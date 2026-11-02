@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { compareRuns, holm, itemSummary, mcnemarExact, wilson } from "../benchmarks/stats.mjs";
+import { compareRuns, holm, itemSummary, mcnemarExact, signFlipPValue, wilson } from "../benchmarks/stats.mjs";
 
 test("Wilson intervals match published values and stay inside 0-100", () => {
   assert.deepEqual(wilson(20, 21), { low: 77.3, high: 99.2 });
@@ -18,6 +18,30 @@ test("exact McNemar is symmetric and matches the binomial tail", () => {
 
 test("Holm adjusts in step-down order and stays monotone", () => {
   assert.deepEqual(holm([0.01, 0.04, 0.03]).map((p) => Number(p.toFixed(2))), [0.03, 0.06, 0.06]);
+});
+
+test("the sign-flip test matches McNemar for uniform magnitudes (S2)", () => {
+  assert.equal(signFlipPValue([]), 1, "no differences, no evidence");
+  assert.equal(Number(signFlipPValue([1, 1, 1, 1, 1, 1, -1, -1]).toFixed(4)), Number(mcnemarExact(2, 6).toFixed(4)));
+  assert.equal(Number(signFlipPValue([1, 1, 1, 1, 1, 1]).toFixed(4)), 0.0313);
+  // Fractions: five items each lost one of three seeds. Majority sees 5-0 stay
+  // put and says p=1; the flip test on 0.33s matches McNemar 5-0.
+  assert.equal(Number(signFlipPValue([-0.33, -0.33, -0.33, -0.33, -0.33]).toFixed(4)), 0.0625);
+});
+
+test("the sign-flip test uses magnitudes a majority vote throws away (S2)", () => {
+  // Three full flips plus two same-direction partials: majority McNemar sees
+  // 3-0 and says p=0.25, but the magnitudes push the permutation p to 0.0625.
+  const p = signFlipPValue([1, 1, 1, 0.33, 0.33]);
+  assert.equal(Number(p.toFixed(4)), 0.0625);
+  assert.ok(p < mcnemarExact(0, 3), "fractions beat the majority vote");
+});
+
+test("the sign-flip Monte Carlo is deterministic and bounded (S2)", () => {
+  const diffs = Array.from({ length: 25 }, (_, index) => (index % 3 === 0 ? -0.5 : 0.25));
+  const first = signFlipPValue(diffs);
+  assert.equal(signFlipPValue(diffs), first, "the seeded draw replays exactly");
+  assert.ok(first >= 0 && first <= 1);
 });
 
 const item = (id, ok, category = "code") => ({ id, category, passed: ok ? 1 : 0, total: 1, error: null });

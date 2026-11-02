@@ -1,4 +1,4 @@
-import { itemPassed, mcnemarExact, wilson } from "./stats.mjs";
+import { itemPassed, signFlipPValue, wilson } from "./stats.mjs";
 
 /** Measuring candidates for a tune: a per-item cache with a run budget, and the statistics each choice is made on. */
 
@@ -39,6 +39,21 @@ export class Measurements {
     this.stopped ??= reason;
   }
 
+  /**
+   * Prefill one slot from saved answers (G8): a continue or re-tune reuses an
+   * exact settings/seed/item match instead of re-asking the model. Returns
+   * false when the slot already has measurements (fresh answers win).
+   */
+  restore(settings, seed, rows) {
+    const slotKey = `${settingsKey(settings)}|${seed}`;
+    if (this.slots.has(slotKey)) return false;
+    this.slots.set(slotKey, {
+      items: new Map(rows.map((row) => [row.item ?? row.id, { ...row, id: row.item ?? row.id }])),
+      memoryBytes: undefined,
+    });
+    return true;
+  }
+
   async measure(settings, itemIds, seed) {
     const slotKey = `${settingsKey(settings)}|${seed}`;
     if (!this.slots.has(slotKey)) this.slots.set(slotKey, { items: new Map(), memoryBytes: undefined });
@@ -64,26 +79,53 @@ export class Measurements {
 export async function score(measurements, settings, itemIds, seeds) {
   const used = settings.temperature > 0 ? seeds : seeds.slice(0, 1);
   const fractions = new Map(itemIds.map((id) => [id, 0]));
+  // Partial credit per item (G6): the share of checks passed, averaged over
+  // seeds. Code items have 2-7 cases but count only when all pass; the
+  // fraction of cases is a finer signal for the paired test. The headline
+  // rate stays all-or-nothing.
+  const credit = new Map(itemIds.map((id) => [id, 0]));
   const itemLatency = new Map();
   const itemTokens = new Map();
+  const itemPrompt = new Map();
   const itemSpeed = new Map();
   const digests = new Map();
   const latencies = [];
   const tokens = [];
   const speeds = [];
+  const promptTokenCounts = [];
+  // Prefill vs decode throughput (M3/M4): identical prompts make prefill
+  // comparable even when answers differ; decode stays comparable per token.
+  const prefillSpeeds = [];
+  const decodeSpeeds = [];
+  // Per-answer serving evidence (M1/V4): stop reasons, TTFT and decode rate stay
+  // comparable when answers differ, unlike raw text digests.
+  let truncated = 0;
+  // Empty answers (no tokens, or blank text) are give-ups, not truncations:
+  // the agentic failure mode is an empty patch, not a cut-off one (lit §8).
+  let empty = 0;
+  let answered = 0;
   let memoryBytes;
+  let gpuVram;
   let errors = 0;
   let firstError = null;
   for (const seed of used) {
     const measured = await measurements.measure(settings, itemIds, seed);
     if (!measured) return null;
-    memoryBytes = measured.memoryBytes;
+    memoryBytes = measured.memoryBytes ?? measured.memory?.cpuRam ?? memoryBytes;
+    gpuVram = measured.gpuVram ?? measured.memory?.gpuVram ?? gpuVram;
     for (const prompt of measured.prompts) {
       if (prompt.error) {
         errors += 1;
         firstError ??= prompt.error;
+      } else {
+        answered += 1;
+        if (prompt.stopReason === "maxTokens") truncated += 1;
+        if (prompt.outputTokens === 0 || (typeof prompt.text === "string" && prompt.text.trim() === "")) empty += 1;
       }
       if (itemPassed(prompt)) fractions.set(prompt.id, fractions.get(prompt.id) + 1 / used.length);
+      if (!prompt.error && Number(prompt.total) > 0) {
+        credit.set(prompt.id, credit.get(prompt.id) + Math.min(1, Math.max(0, (Number(prompt.passed) || 0) / Number(prompt.total))) / used.length);
+      }
       if (Number.isFinite(prompt.ms)) {
         latencies.push(prompt.ms);
         itemLatency.set(prompt.id, (itemLatency.get(prompt.id) ?? 0) + prompt.ms / used.length);
@@ -96,43 +138,131 @@ export async function score(measurements, settings, itemIds, seeds) {
         speeds.push(prompt.tokensPerSecond);
         itemSpeed.set(prompt.id, (itemSpeed.get(prompt.id) ?? 0) + prompt.tokensPerSecond / used.length);
       }
+      if (Number.isFinite(prompt.promptTokens) && Number.isFinite(prompt.firstTokenMs) && prompt.firstTokenMs > 0) {
+        prefillSpeeds.push((prompt.promptTokens / (prompt.firstTokenMs / 1000)) || 0);
+      }
+      if (Number.isFinite(prompt.outputTokens) && Number.isFinite(prompt.ms) && Number.isFinite(prompt.firstTokenMs) && prompt.ms > prompt.firstTokenMs && prompt.outputTokens > 1) {
+        decodeSpeeds.push(((prompt.outputTokens - 1) / ((prompt.ms - prompt.firstTokenMs) / 1000)) || 0);
+      }
+      if (Number.isFinite(prompt.promptTokens)) {
+        promptTokenCounts.push(prompt.promptTokens);
+        itemPrompt.set(prompt.id, (itemPrompt.get(prompt.id) ?? 0) + prompt.promptTokens / used.length);
+      }
       if (seed === used[0]) digests.set(prompt.id, prompt.digest ?? null);
     }
   }
   const passed = [...fractions.values()].reduce((sum, value) => sum + value, 0);
+  // Fractional solved count (seed-averaged) for a rounding-free tolerance (D4):
+  // one item lost by majority at 3 seeds counts as 0.67 items, not as a rounded point.
+  const solved = Math.round(passed * 1000) / 1000;
+  const majority = new Map([...fractions].map(([id, fraction]) => [id, fraction >= 0.5]));
+  // Plain per-item outcomes for the paired gate (V1); the Map stays internal.
+  const outcomes = Object.fromEntries([...majority].map(([id, passed]) => [id, passed ? 1 : 0]));
+  // Seed-averaged pass per item for the sign-flip test (S2); the Map stays internal.
+  const fractionsPlain = Object.fromEntries([...fractions].map(([id, fraction]) => [id, Math.round(fraction * 10000) / 10000]));
+  // Seed-averaged partial credit per item (G6); the Map stays internal.
+  const creditPlain = Object.fromEntries([...credit].map(([id, value]) => [id, Math.round(value * 10000) / 10000]));
   return {
     rate: round((passed / itemIds.length) * 100),
+    solved,
     ci95: wilson(passed, itemIds.length),
     latencyMs: latencies.length ? round(median(latencies)) : null,
     latencySd: latencies.length ? round(stdev(latencies)) : null,
     outputTokens: tokens.length ? round(median(tokens)) : null,
     tokensPerSecond: speeds.length ? round(median(speeds), 2) : null,
+    // Share of non-error answers cut off by the token budget (M1); a tuned cap must keep this near zero.
+    truncationRate: answered ? round((truncated / answered) * 100) : null,
+    // Share of non-error answers that are empty (lit §8); the agentic give-up rate.
+    giveUpRate: answered ? round((empty / answered) * 100) : null,
+    promptTokens: promptTokenCounts.length ? round(median(promptTokenCounts)) : null,
+    prefillTps: prefillSpeeds.length ? round(median(prefillSpeeds), 2) : null,
+    decodeTps: decodeSpeeds.length ? round(median(decodeSpeeds), 2) : null,
     items: itemIds.length,
     seeds: used.length,
     memoryBytes,
+    ...(gpuVram !== undefined && { gpuVram }),
     // Every answer errored: the settings did not load or run, which is not a measurement.
     failed: errors === itemIds.length * used.length,
     error: firstError,
-    majority: new Map([...fractions].map(([id, fraction]) => [id, fraction >= 0.5])),
+    majority,
+    outcomes,
+    fractions: fractionsPlain,
+    credit: creditPlain,
     itemLatency,
     itemTokens,
+    itemPrompt,
     itemSpeed,
     digests,
   };
 }
 
-export const publicStats = ({ majority: _majority, itemLatency: _latency, itemTokens: _tokens, itemSpeed: _speed, digests: _digests, ...stats }) => stats;
+export const publicStats = ({ majority: _majority, itemLatency: _latency, itemTokens: _tokens, itemPrompt: _prompt, itemSpeed: _speed, digests: _digests, ...stats }) => stats;
 
-/** Paired comparison on the majority-vote pass of each item both runs answered. */
-export function paired(before, after) {
-  let b = 0;
-  let c = 0;
+/**
+ * Per-item paired differences (after − before) from the richest signal both
+ * runs share: partial credit (G6), then seed fractions (S2), then majority
+ * votes. Returns [{ id, diff }] with zero diffs dropped.
+ */
+export function pairedDiffs(before, after) {
+  if (before.credit && after.credit) {
+    return Object.entries(before.credit)
+      .filter(([id]) => id in after.credit)
+      .map(([id, base]) => ({ id, diff: after.credit[id] - base }))
+      .filter(({ diff }) => diff !== 0);
+  }
+  if (before.fractions && after.fractions) {
+    return Object.entries(before.fractions)
+      .filter(([id]) => id in after.fractions)
+      .map(([id, base]) => ({ id, diff: after.fractions[id] - base }))
+      .filter(({ diff }) => diff !== 0);
+  }
+  const diffs = [];
   for (const [id, passed] of before.majority) {
     if (!after.majority.has(id)) continue;
-    if (passed && !after.majority.get(id)) b += 1;
-    if (!passed && after.majority.get(id)) c += 1;
+    const diff = Number(Boolean(after.majority.get(id))) - Number(Boolean(passed));
+    if (diff !== 0) diffs.push({ id, diff });
   }
-  return { b, c, pValue: round(mcnemarExact(b, c), 4) };
+  return diffs;
+}
+
+/**
+ * Paired comparison on the items both runs answered. The sign-flip test uses
+ * the per-item differences, so a 2-of-3 flip counts as 0.67 items and
+ * magnitudes matter; with majority votes only it reduces to exact McNemar
+ * (identical for binary differences).
+ */
+export function paired(before, after) {
+  const diffs = pairedDiffs(before, after);
+  let b = 0;
+  let c = 0;
+  for (const { diff } of diffs) {
+    if (diff < 0) b += 1;
+    else c += 1;
+  }
+  return { b, c, pValue: round(signFlipPValue(diffs.map(({ diff }) => diff)), 4) };
+}
+
+/**
+ * Cluster-aware paired comparison (S4): per-item differences are summed within
+ * each cluster — one function, one codebase — and the sign-flip test runs on
+ * the cluster sums. A setting that changes how a model reads one function
+ * flips several of its inputs together; counting those as independent items
+ * makes p-values 3-4x too optimistic. With `clusterOf` null (or one item per
+ * cluster) this reduces to `paired()`. Returns item-level b/c for display,
+ * the cluster count, and the cluster-valid p-value.
+ */
+export function pairedClustered(before, after, clusterOf = null) {
+  const diffs = pairedDiffs(before, after);
+  let b = 0;
+  let c = 0;
+  const sums = new Map();
+  for (const { id, diff } of diffs) {
+    if (diff < 0) b += 1;
+    else c += 1;
+    const cluster = clusterOf?.(id) ?? id;
+    sums.set(cluster, (sums.get(cluster) ?? 0) + diff);
+  }
+  return { b, c, pValue: round(signFlipPValue([...sums.values()]), 4), clusters: sums.size };
 }
 
 /**
@@ -158,6 +288,19 @@ export function costDelta(before, after, speedTie, cost = "itemLatency") {
 /** Items whose answer text differs from the reference run, by digest. */
 export function changedAnswers(reference, stats) {
   return [...reference.digests].filter(([id, digest]) => digest === null || stats.digests.get(id) !== digest).map(([id]) => id);
+}
+
+/**
+ * Items whose pass/fail flipped against the reference run (M3). Rounding can
+ * change answer text without changing quality; only a flip guards speed.
+ */
+export function changedOutcomes(reference, stats) {
+  const flipped = [];
+  for (const [id, passed] of reference.majority) {
+    if (!stats.majority.has(id)) continue;
+    if (Boolean(passed) !== Boolean(stats.majority.get(id))) flipped.push(id);
+  }
+  return flipped;
 }
 
 export const matches = (settings, patch) => Object.entries(patch).every(([key, value]) => settings[key] === value);

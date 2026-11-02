@@ -10,7 +10,7 @@ import { CORE_MODEL_IDS } from "./matrix.mjs";
 import { BENCHMARK_MODELS } from "./suite.mjs";
 import { TASKS, tuneRungs } from "./tasks.mjs";
 import { measurePresets } from "./tune.mjs";
-import { BASELINE_SCHEMA, baselineEntry, comparability, compareToBaseline } from "./tune-baseline.mjs";
+import { BASELINE_SCHEMA, TUNER_VERSION, baselineEntry, comparability, compareToBaseline, hardwareWarning } from "./tune-baseline.mjs";
 import { createEvaluator } from "./tune-evaluate.mjs";
 import { openTarget, runTune, tuneBase, withEngine } from "./tune-job.mjs";
 
@@ -44,7 +44,7 @@ function parseArgs(argv) {
 }
 
 const fileOf = (catalogId) => BENCHMARK_MODELS.find((model) => model.catalogId === catalogId)?.fileName ?? catalogId;
-const identityOf = (fingerprint) => ({ suiteVersion: fingerprint.suiteVersion, taskHash: fingerprint.taskHash, nodeLlamaCpp: fingerprint.nodeLlamaCpp });
+const identityOf = (fingerprint) => ({ suiteVersion: fingerprint.suiteVersion, taskHash: fingerprint.taskHash, nodeLlamaCpp: fingerprint.nodeLlamaCpp, tunerVersion: fingerprint.tunerVersion });
 
 async function updateBaseline(options, home) {
   const models = {};
@@ -62,10 +62,10 @@ async function updateBaseline(options, home) {
       if (event.type === "sweep") process.stdout.write(`  ${event.stage}${event.task ? `:${event.task}` : ""} ${event.axis} -> ${JSON.stringify(event.winner)} · ${event.runs} answers\n`);
     };
     const { profile } = await runTune(target, { tasks: TASK_IDS, force: true, maxRuns: options.maxRuns, passes: options.passes, onEvent });
-    models[catalogId] = baselineEntry(profile);
+    models[catalogId] = baselineEntry(profile, { hardware: { cpu: target.system.cpu, threads: target.system.parallelism } });
     identity = identityOf(target.fingerprint);
   }
-  const baseline = { schema: BASELINE_SCHEMA, ...identity, createdAt: new Date().toISOString(), models };
+  const baseline = { schema: BASELINE_SCHEMA, tunerVersion: TUNER_VERSION, ...identity, createdAt: new Date().toISOString(), models };
   await writeFile(BASELINE, `${JSON.stringify(baseline, null, 2)}\n`);
   process.stdout.write(`Wrote ${BASELINE}\n`);
 }
@@ -100,10 +100,18 @@ async function gate(options, home) {
     }));
   }
   const comparison = compareToBaseline(baseline, current);
+  const warned = new Set();
   for (const row of comparison.rows) {
     const verdict = row.missing ? "MISSING" : row.regression ? "FAIL" : "ok";
     const latency = row.latencyDeltaMs === null || row.latencyDeltaMs === undefined ? "" : ` · latency ${row.latencyDeltaMs >= 0 ? "+" : ""}${row.latencyDeltaMs} ms`;
-    process.stdout.write(`${verdict.padEnd(7)} ${row.model} ${row.task}: ${row.missing ? "not measured" : `${row.baselineRate}% → ${row.rate}% (${row.delta >= 0 ? "+" : ""}${row.delta}, tolerance ${row.tolerance})${latency}`}\n`);
+    const paired = row.b !== undefined ? ` · paired b=${row.b} c=${row.c} p=${row.pValue} Holm p=${row.pAdjusted}` : "";
+    const items = row.regressed?.length ? ` · regressed: ${row.regressed.slice(0, 8).join(", ")}${row.regressed.length > 8 ? ` (+${row.regressed.length - 8} more)` : ""}` : "";
+    process.stdout.write(`${verdict.padEnd(7)} ${row.model} ${row.task}: ${row.missing ? "not measured" : `${row.baselineRate}% → ${row.rate}% (${row.delta >= 0 ? "+" : ""}${row.delta}, tolerance ${row.tolerance})${paired}${items}${latency}`}\n`);
+    if (row.regression && !warned.has(row.model)) {
+      warned.add(row.model);
+      const warning = hardwareWarning(baseline, { cpu: null, threads: null });
+      if (warning) process.stdout.write(`  note: ${warning}\n`);
+    }
   }
   const finishedAt = new Date().toISOString();
   const result = { schema: 3, phase: "tune-gate", suiteVersion: identity.suiteVersion, testHash: identity.taskHash, runtime: { nodeLlamaCpp: identity.nodeLlamaCpp }, createdAt: finishedAt, finishedAt, tuneGate: { ...comparison, current } };

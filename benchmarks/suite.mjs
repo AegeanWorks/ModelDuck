@@ -8,7 +8,7 @@ import { changeAndTracePrompts } from "./repo-items-v13.mjs";
 import { publicPrompts } from "./public-items.mjs";
 import { codeComprehensionPrompts } from "./comprehension-items.mjs";
 
-export const SUITE_VERSION = 14;
+export const SUITE_VERSION = 17;
 
 export const SYSTEM_PROMPT =
   "You are a precise assistant. Follow the requested output format exactly. " +
@@ -59,6 +59,73 @@ const FILLER = Array.from(
   (_value, index) =>
     `Note ${index + 1}: the pond is calm and the duck census records ${100 + index} birds.`,
 ).join(" ");
+
+// Deterministic filler for the long-context KV items (M6): a seeded PRNG so
+// the same prompt is generated on every machine. Token counts are estimated
+// at four characters per token, matching the suite's longest prompt.
+function mulberry32(seed) {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) | 0;
+    let mixed = Math.imul(state ^ (state >>> 15), 1 | state);
+    mixed = (mixed + Math.imul(mixed ^ (mixed >>> 7), 61 | mixed)) ^ mixed;
+    return ((mixed ^ (mixed >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const LONG_FILLER_WORDS = Object.freeze([
+  "pond", "duck", "reed", "census", "calm", "morning", "count", "ledger", "keeper", "fen",
+  "water", "nest", "quack", "wader", "marsh", "tally", "dawn", "ripple", "sedge", "brook",
+]);
+
+function longFiller(targetChars, seed) {
+  const next = mulberry32(seed);
+  const sentences = [];
+  let chars = 0;
+  let note = 1;
+  while (chars < targetChars) {
+    const words = Array.from({ length: 8 + Math.floor(next() * 8) }, () => LONG_FILLER_WORDS[Math.floor(next() * LONG_FILLER_WORDS.length)]);
+    const sentence = `Entry ${note}: the ${words.join(" ")} tally is ${1000 + Math.floor(next() * 9000)}.`;
+    sentences.push(sentence);
+    chars += sentence.length + 1;
+    note += 1;
+  }
+  return sentences.join(" ");
+}
+
+/**
+ * Long-context KV confirmation items (M6): the KV cache is chosen on prompts
+ * of ~1k tokens but served at up to 16k, and a quantized cache degrades with
+ * length. Three recall needles at about 4k, 8k and 16k tokens share one
+ * codebase-like family (`long-context`), which also gives the recall task a
+ * cluster for the cluster-aware guards. They are excluded from the search
+ * rungs, the speed workload and the holdout; the quality stage uses only
+ * them to confirm a KV choice at the budgeted context.
+ */
+function longContextPrompts() {
+  const specs = [
+    { id: "recall-long-4k", kiloTokens: 4, seed: 427, code: 4510 },
+    { id: "recall-long-8k", kiloTokens: 8, seed: 428, code: 8823 },
+    { id: "recall-long-16k", kiloTokens: 16, seed: 429, code: 16047 },
+  ];
+  return specs.map(({ id, kiloTokens, seed, code }) => {
+    const filler = longFiller(kiloTokens * 4000, seed);
+    const half = Math.floor(filler.length / 2);
+    const prompt =
+      `Read these notes carefully.\n\n${filler.slice(0, half)}\n\nThe vault code is VAULT-${code}. Keep it in mind.\n\n` +
+      `${filler.slice(half)}\n\nQuestion: What is the vault code? Reply with only the code.`;
+    return {
+      id,
+      label: `Long-context needle (${kiloTokens}k)`,
+      category: "recall",
+      group: "long-context",
+      longContext: true,
+      prompt,
+      maxTokens: 16,
+      checks: [{ type: "exact", value: `vault-${code}` }],
+    };
+  });
+}
 
 const NEEDLE_PROMPT =
   `Read these notes carefully.\n\n${FILLER}\n\n` +
@@ -266,6 +333,7 @@ const ALL_PROMPTS = [
   ...moreRepoPrompts(),
   ...comprehensionPrompts(),
   ...recallPrompts(),
+  ...longContextPrompts(),
   ...moreMathPrompts(),
   ...moreRecallPrompts(),
   ...moreChatPrompts(),

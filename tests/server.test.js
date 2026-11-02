@@ -671,7 +671,7 @@ test("OpenAI chat completions use the tuned preset as defaults, and the client's
 
   assert.equal((await ask({})).status, 200);
   assert.equal(chats[0].settings.temperature, 0);
-  assert.equal(chats[0].settings.maxTokens, 900);
+  assert.equal(chats[0].settings.maxTokens, 2048, "a suite-fitted 900 cap is raised to the code serving floor (M1)");
   assert.equal(chats[0].settings.reasoning, "off", "the reasoning setting reaches the engine");
   assert.equal(chats[0].systemPrompt, "Think from first principles.");
 
@@ -681,15 +681,15 @@ test("OpenAI chat completions use the tuned preset as defaults, and the client's
   assert.equal(chats[1].systemPrompt, "Be a pirate.");
 
   await ask({}, { "x-modelduck-task": "recall" });
-  assert.equal(chats[2].settings.maxTokens, 321);
+  assert.equal(chats[2].settings.maxTokens, 1024, "a suite-fitted 321 cap is raised to the recall serving floor (M1)");
   assert.equal(chats[2].systemPrompt, "Recall the document carefully.");
   assert.equal(chats[2].settings.reasoning, "auto");
   await ask({ modelduck_task: "recall" });
-  assert.equal(chats[3].settings.maxTokens, 321);
+  assert.equal(chats[3].settings.maxTokens, 1024);
   assert.equal(chats[3].systemPrompt, "Recall the document carefully.");
 
   await ask({}, { "x-modelduck-task": "code" });
-  assert.equal(chats[4].settings.maxTokens, 900);
+  assert.equal(chats[4].settings.maxTokens, 2048);
   assert.equal(chats[4].systemPrompt, "Think from first principles.");
 
   const unknown = await ask({}, { "x-modelduck-task": "poetry" });

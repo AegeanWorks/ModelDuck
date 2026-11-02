@@ -219,16 +219,73 @@ export async function summarizeAnswers(dir, id) {
 /**
  * Per-item outcomes from every saved run of one model: how often each item was
  * right or wrong, ignoring errors. `saturated` holds the items no recorded
- * setting has ever flipped (all right or all wrong after a minimum of looks),
- * which a tune leaves out of its search (ADR-064).
+ * setting has ever flipped (all right or all wrong after a minimum of looks
+ * across at least two distinct settings), which a tune leaves out of its
+ * search (ADR-064, S6). Runs from another suite, runtime or tuner version do
+ * not count: a format fix can unstick an item.
  */
-export async function itemOutcomes(dir, { profileId, minObservations = 2 } = {}) {
+const OUTCOME_FINGERPRINT_KEYS = Object.freeze(["suiteVersion", "taskHash", "nodeLlamaCpp", "tunerVersion"]);
+
+/**
+ * Saved answers grouped for a measurement-cache prefill (G8): the most recent
+ * runs of one model, filtered like the saturation counts, grouped by exact
+ * settings and seed. A continue or re-tune reuses these instead of re-asking;
+ * `answers.jsonl` already holds settings, seed and item for every answer.
+ */
+export async function cachedAnswers(dir, { profileId, fingerprint = null, limitRuns = 3, limitRows = 20000 } = {}) {
+  const FINGERPRINT_KEYS = ["suiteVersion", "taskHash", "nodeLlamaCpp", "tunerVersion"];
+  const names = await fs.promises.readdir(dir).catch(() => []);
+  const runs = [];
+  for (const name of names.filter((item) => item.endsWith(".json"))) {
+    const record = await readJsonWithQuarantine(path.join(dir, name), null, { logger: quiet });
+    if (record?.schema !== RUN_SCHEMA) continue;
+    if (profileId && record.profileId !== profileId) continue;
+    if (fingerprint && record.fingerprint && FINGERPRINT_KEYS.some((key) => record.fingerprint[key] !== undefined && fingerprint[key] !== undefined && record.fingerprint[key] !== fingerprint[key])) continue;
+    runs.push({ name: name.slice(0, -5), startedAt: record.startedAt ?? "" });
+  }
+  runs.sort((left, right) => (left.startedAt < right.startedAt ? 1 : -1));
+  const groups = new Map();
+  let rows = 0;
+  for (const run of runs.slice(0, limitRuns)) {
+    let file;
+    try {
+      file = answersFile(dir, run.name);
+    } catch {
+      continue;
+    }
+    try {
+      const lines = createInterface({ input: fs.createReadStream(file, { encoding: "utf8" }), crlfDelay: Infinity });
+      for await (const line of lines) {
+        let row;
+        try {
+          row = JSON.parse(line);
+        } catch {
+          continue;
+        }
+        if (!row || !row.item || row.error) continue;
+        if (rows >= limitRows) break;
+        rows += 1;
+        const key = `${JSON.stringify(row.settings ?? null)}|${row.seed}`;
+        const group = groups.get(key) ?? { settings: row.settings ?? {}, seed: row.seed, rows: [] };
+        group.rows.push(row);
+        groups.set(key, group);
+      }
+    } catch (error) {
+      if (error?.code !== "ENOENT") throw error;
+    }
+    if (rows >= limitRows) break;
+  }
+  return [...groups.values()];
+}
+
+export async function itemOutcomes(dir, { profileId, minObservations = 6, minSettings = 2, fingerprint = null } = {}) {
   const names = await fs.promises.readdir(dir).catch(() => []);
   const counts = new Map();
   for (const name of names.filter((item) => item.endsWith(".json"))) {
     const record = await readJsonWithQuarantine(path.join(dir, name), null, { logger: quiet });
     if (record?.schema !== RUN_SCHEMA) continue;
     if (profileId && record.profileId !== profileId) continue;
+    if (fingerprint && record.fingerprint && OUTCOME_FINGERPRINT_KEYS.some((key) => record.fingerprint[key] !== undefined && fingerprint[key] !== undefined && record.fingerprint[key] !== fingerprint[key])) continue;
     let file;
     try {
       file = answersFile(dir, name.slice(0, -5));
@@ -246,9 +303,16 @@ export async function itemOutcomes(dir, { profileId, minObservations = 2 } = {})
         }
         const total = Number(row.total) || 0;
         if (row.error || !row.item || !(total > 0)) continue;
-        const entry = counts.get(row.item) ?? { right: 0, wrong: 0 };
+        const entry = counts.get(row.item) ?? { right: 0, wrong: 0, settings: new Set() };
         if ((Number(row.passed) || 0) >= total) entry.right += 1;
         else entry.wrong += 1;
+        // Greedy load-stage repeats of one setting must not saturate an item (S6).
+        try {
+          const key = JSON.stringify(row.settings ?? null);
+          if (entry.settings.size < 16) entry.settings.add(key);
+        } catch {
+          // unstringifiable settings still count as a look, just not a new setting
+        }
         counts.set(row.item, entry);
       }
     } catch (error) {
@@ -259,8 +323,8 @@ export async function itemOutcomes(dir, { profileId, minObservations = 2 } = {})
   const totals = {};
   for (const [id, entry] of counts) {
     const seen = entry.right + entry.wrong;
-    if (seen >= minObservations && (entry.right === 0 || entry.wrong === 0)) saturated.add(id);
-    totals[id] = { ...entry, seen };
+    if (seen >= minObservations && entry.settings.size >= minSettings && (entry.right === 0 || entry.wrong === 0)) saturated.add(id);
+    totals[id] = { right: entry.right, wrong: entry.wrong, seen, settings: entry.settings.size };
   }
   return { saturated, counts: totals };
 }

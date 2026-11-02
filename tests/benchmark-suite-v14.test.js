@@ -19,8 +19,8 @@ const coding = [...moreLongCodePrompts(), ...moreLongBugPrompts()];
 const count = (category) => PROMPTS.filter((prompt) => prompt.category === category).length;
 
 test("suite v14 is code, code comprehension and long context only", () => {
-  assert.equal(SUITE_VERSION, 14);
-  assert.equal(PROMPTS.length, 262);
+  assert.equal(SUITE_VERSION, 17, "v17: long-context KV confirmation items (G-003)");
+  assert.equal(PROMPTS.length, 265);
   assert.equal(new Set(PROMPTS.map((prompt) => prompt.id)).size, PROMPTS.length, "ids stay unique");
   assert.equal(count("code"), 30);
   assert.equal(count("code-long"), 12);
@@ -31,7 +31,7 @@ test("suite v14 is code, code comprehension and long context only", () => {
   assert.equal(count("public-code"), 20);
   assert.equal(count("code-comprehension"), 64);
   assert.equal(count("context"), 14);
-  assert.equal(count("recall"), 48);
+  assert.equal(count("recall"), 51);
   for (const removed of ["instruction", "format", "comprehension", "knowledge", "facts", "reasoning", "public-math", "public-knowledge", "public-truthful"]) {
     assert.equal(count(removed), 0, `${removed} should not be in the coding suite`);
   }
@@ -42,7 +42,7 @@ test("suite v14 is code, code comprehension and long context only", () => {
 test("the three tasks have full rungs and a held-back quarter", () => {
   assert.equal(taskPrompts("code").length, 136);
   assert.equal(taskPrompts("comprehension").length, 64);
-  assert.equal(taskPrompts("recall").length, 62);
+  assert.equal(taskPrompts("recall").length, 65);
   assert.deepEqual(taskRungs("code").map((rung) => rung.length), [12, 24, 48]);
   assert.deepEqual(taskRungs("comprehension").map((rung) => rung.length), [12, 24, 48]);
   assert.deepEqual(taskRungs("recall").map((rung) => rung.length), [12, 24, 46]);
@@ -51,15 +51,35 @@ test("the three tasks have full rungs and a held-back quarter", () => {
   const comprehension = taskPrompts("comprehension");
   const held = new Set(taskHoldout("comprehension"));
   const groups = [...new Set(comprehension.map((item) => item.group))];
-  assert.equal(groups.length, 8, "each comprehension function is its own family");
+  assert.equal(groups.length, 32, "each comprehension function is its own family");
   for (const group of groups) {
     const family = comprehension.filter((item) => item.group === group);
-    assert.equal(family.length, 8, `${group} has eight inputs`);
-    assert.equal(family.filter((item) => held.has(item.id)).length, 2, `${group} holds back two inputs`);
-    const heldIndices = family.flatMap((item, index) => (held.has(item.id) ? [index] : []));
-    assert.ok(heldIndices.some((index) => index < family.length / 2), `${group} holds back only its tail`);
+    assert.equal(family.length, 2, `${group} has two inputs`);
+    const heldCount = family.filter((item) => held.has(item.id)).length;
+    assert.ok(heldCount === 0 || heldCount === 2, `${group} is held back wholly or not at all`);
   }
-  assert.equal(new Set(comprehension.filter((item) => held.has(item.id)).map((item) => item.group)).size, 8);
+  const heldGroups = new Set(comprehension.filter((item) => held.has(item.id)).map((item) => item.group));
+  assert.equal(heldGroups.size, 8, "eight whole functions stay unseen");
+});
+
+test("long-context KV items are seeded needles excluded from search, speed and holdout (M6)", () => {
+  const longs = ["recall-long-4k", "recall-long-8k", "recall-long-16k"].map((id) => PROMPTS.find((prompt) => prompt.id === id));
+  assert.ok(longs.every(Boolean), "all three long items exist");
+  const kilos = [4, 8, 16];
+  longs.forEach((item, index) => {
+    assert.equal(item.category, "recall");
+    assert.equal(item.group, "long-context", "one shared family for the cluster guards");
+    assert.equal(item.longContext, true);
+    assert.equal(item.maxTokens, 16);
+    assert.equal(item.checks.length, 1);
+    assert.ok(item.prompt.includes("VAULT-"), item.id);
+    const estTokens = item.prompt.length / 4;
+    assert.ok(Math.abs(estTokens - kilos[index] * 1000) < kilos[index] * 250, `${item.id} is ~${kilos[index]}k tokens, got ${Math.round(estTokens)}`);
+    assert.equal(evaluateTextCheck(item.checks[0], item.checks[0].value).passed, true, `${item.id} answers its own needle`);
+  });
+  const longIds = new Set(longs.map((item) => item.id));
+  assert.ok(!taskRungs("recall").flat().some((id) => longIds.has(id)), "never searched");
+  assert.ok(!taskHoldout("recall").some((id) => longIds.has(id)), "never held out");
 });
 
 test("the 16-item smoke set covers every task and five comprehension families", () => {
@@ -88,8 +108,8 @@ test("every code-comprehension item asks about the code it shows and has an exac
     assert.equal(item.checks[0].type, "exact");
     assert.equal(evaluateTextCheck(item.checks[0], item.checks[0].value).passed, true, item.id);
   }
-  assert.equal(items.find((item) => item.id === "read-sumTo-5").checks[0].value, "55");
-  assert.equal(items.find((item) => item.id === "read-factorial-5").checks[0].value, "24");
+  assert.equal(items.find((item) => item.id === "read-sumTo-2").checks[0].value, "55");
+  assert.equal(items.find((item) => item.id === "read-factorial-2").checks[0].value, "24");
 });
 
 test("every new long function passes its cases with a reference answer", () => {

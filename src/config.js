@@ -24,6 +24,12 @@ export const DEFAULT_SETTINGS = Object.freeze({
   minP: 0.05,
   repeatPenalty: 1.1,
   repeatPenaltyTokens: 64,
+  penalizeNewLine: true,
+  dryStrength: 0,
+  dryBase: 1.75,
+  dryAllowedLength: 4,
+  responsePrefix: "",
+  customStopTriggers: [],
   maxTokens: 512,
   promptRepeat: 1,
   seed: -1,
@@ -137,7 +143,7 @@ export function applyPreset(name, current = {}) {
   });
 }
 
-const KV_CACHE_TYPES = new Set(["f16", "q8_0", "q4_0"]);
+const KV_CACHE_TYPES = new Set(["f16", "q8_0", "q4_0", "q8_0:q4_0"]);
 const FLASH_ATTENTION_TYPES = new Set(["auto", "on", "off"]);
 const USE_MMAP_TYPES = new Set(["auto", "on", "off"]);
 const REASONING_TYPES = new Set(["off", "auto", "deep"]);
@@ -178,6 +184,18 @@ export function normalizeSettings(input = {}) {
       1024,
       DEFAULT_SETTINGS.repeatPenaltyTokens,
     ),
+    penalizeNewLine: source.penalizeNewLine === undefined ? true : Boolean(source.penalizeNewLine),
+    dryStrength: clampNumber(source.dryStrength, 0, 1, DEFAULT_SETTINGS.dryStrength),
+    dryBase: typeof source.dryBase === "number" && Number.isFinite(source.dryBase) && source.dryBase > 0
+      ? source.dryBase
+      : DEFAULT_SETTINGS.dryBase,
+    dryAllowedLength: clampInteger(source.dryAllowedLength, 1, 32, DEFAULT_SETTINGS.dryAllowedLength),
+    responsePrefix: typeof source.responsePrefix === "string" ? source.responsePrefix.slice(0, 200) : DEFAULT_SETTINGS.responsePrefix,
+    customStopTriggers: Array.isArray(source.customStopTriggers) &&
+      source.customStopTriggers.length <= 4 &&
+      source.customStopTriggers.every((stop) => typeof stop === "string" && stop.length > 0)
+      ? source.customStopTriggers
+      : DEFAULT_SETTINGS.customStopTriggers,
     maxTokens: clampInteger(source.maxTokens, 16, 8192, DEFAULT_SETTINGS.maxTokens), // aikit:allow-secret token limit
     promptRepeat: clampInteger(source.promptRepeat, 1, 3, DEFAULT_SETTINGS.promptRepeat),
     seed: clampInteger(source.seed, -1, 2147483647, DEFAULT_SETTINGS.seed),

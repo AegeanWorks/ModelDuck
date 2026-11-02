@@ -10,9 +10,9 @@ import { createModelRegistry } from "../src/model-registry.js";
 import { systemInfo } from "../src/system.js";
 import { createTimingLock } from "../src/tune-lock.js";
 import { readSteps } from "../src/tune-steps.js";
-import { itemOutcomes, startRun } from "../src/tune-runs.js";
+import { cachedAnswers, itemOutcomes, startRun } from "../src/tune-runs.js";
 import { PROMPTS, SYSTEM_PROMPT } from "./suite.mjs";
-import { codeGroupOf, tuneRungs, withDiscriminatingRungs } from "./tasks.mjs";
+import { codeGroupOf, taskIdOfCategory, tuneRungs, withDiscriminatingRungs } from "./tasks.mjs";
 import { STAGES, resultFrom, tune } from "./tune.mjs";
 import { expectedAnswers, promptAxes, qualityAxes, quickRungs, samplingAxes, speedAxes } from "./tune-grid.mjs";
 import { createEvaluator } from "./tune-evaluate.mjs";
@@ -48,6 +48,10 @@ export async function withEngine(target, fn) {
 }
 
 const CATEGORY_OF = new Map(PROMPTS.map((prompt) => [prompt.id, prompt.category]));
+const TASK_OF = new Map(PROMPTS.map((prompt) => [prompt.id, taskIdOfCategory(prompt.category)]));
+// Function and codebase ids for the cluster-aware guards (S4): comprehension
+// prompts carry their function, other items fall back to per-item clusters.
+const CLUSTER_OF = new Map(PROMPTS.map((prompt) => [prompt.id, prompt.group ?? null]));
 
 /** Where every tune starts and every gate measures from: app defaults, answering like the benchmark (suite system prompt, reasoning off). */
 export function tuneBase() {
@@ -75,12 +79,13 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
   const logicalCores = target.system.parallelism;
   const used = steps ?? (await readSteps(target.paths.tuneGrid)).steps;
   // Items no recorded setting has flipped cannot separate settings for this model, so the
-  // search leaves them out; the final check keeps the whole set (ADR-064).
-  const { saturated } = await itemOutcomes(target.paths.tuneRuns, { profileId: target.profileId });
+  // search leaves them out; the final check keeps the whole set (ADR-064, S6).
+  const { saturated } = await itemOutcomes(target.paths.tuneRuns, { profileId: target.profileId, fingerprint: target.fingerprint });
   // Public coding items may be in the model's training data: they stay in the final check and
   // the gate, but the search is chosen on ModelDuck's own code items (ADR-070).
   for (const prompt of PROMPTS) if (prompt.category === "public-code") saturated.add(prompt.id);
-  const { rungs, tunedOn } = withDiscriminatingRungs(tuneRungs(tasks), saturated, tasks);
+  // A rotating 10% of saturated items is re-admitted each tune, so drift is caught (S6).
+  const { rungs, tunedOn } = withDiscriminatingRungs(tuneRungs(tasks), saturated, tasks, { salt: target.profileId });
   const activeRungs = quick ? quickRungs(rungs, tasks) : rungs;
   const save = async (result) => {
     const measuredUnder = measuredUnderAfter(saved, target.fingerprint, result.stages, plan.rerun ?? []);
@@ -99,6 +104,8 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
   // start stops it here, in a second, instead of after a round of failed answers (ADR-044).
   const probes = stages.includes("device") && (!only?.length || only.includes("device"));
   const startOn = plan.resume?.device?.settings?.gpuBackend ?? saved?.profile.load?.settings?.gpuBackend ?? base.gpuBackend ?? "cpu";
+  // A continue or re-tune reuses exact settings/seed/item matches from earlier answers (G8).
+  const restore = await cachedAnswers(target.paths.tuneRuns, { profileId: target.profileId, fingerprint: target.fingerprint }).catch(() => []);
   // Every run is recorded with every answer, whatever its outcome (ADR-050).
   const run = await startRun(target.paths.tuneRuns, {
     profileId: target.profileId,
@@ -118,6 +125,7 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
       settings, seed, item: answer.id, passed: answer.passed, total: answer.total, ms: answer.ms ?? null,
       outputTokens: answer.outputTokens ?? null, tokensPerSecond: answer.tokensPerSecond ?? null, digest: answer.digest ?? null, error: answer.error ?? null,
       unreadable: Boolean(answer.unreadable), text: answer.text ?? null,
+      stopReason: answer.stopReason ?? null, promptTokens: answer.promptTokens ?? null, firstTokenMs: answer.firstTokenMs ?? null,
     })));
   };
   let lastState = null;
@@ -132,15 +140,17 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
       });
     }
     const evaluate = createEvaluator({ engine, modelId: target.entry.id, beforeAnswer: () => lock.pauseIfNeeded() });
-    // Context size is a memory budget: the largest listed size that fits on the chosen device (ADR-043).
+    // Context size is a memory budget: the largest listed size that fits on the chosen device (ADR-043, M7).
     const contextBudget = async (settings, sizes) => {
       await evaluate.ensureLoaded(settings).catch(() => {});
+      const gpuBackend = settings.gpuBackend ?? "cpu";
       return budgetContext({
         steps: sizes,
         modelBytes: target.entry.size,
         shape: target.entry.kvShape,
         kvCache: settings.kvCache ?? "f16",
-        availableBytes: await engine.availableMemory({ gpuBackend: settings.gpuBackend ?? "cpu" }),
+        totalBytes: await engine.totalMemory({ gpuBackend }).catch(() => null),
+        availableBytes: await engine.availableMemory({ gpuBackend }),
         trainContext: target.entry.contextLength ?? Infinity,
       });
     };
@@ -150,6 +160,10 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
       // Question types, so each task's result is broken down (ADR-056), and coding views for the balance rule (ADR-070).
       typeOf: (id) => CATEGORY_OF.get(id) ?? null,
       groupOf: (id) => codeGroupOf(CATEGORY_OF.get(id)),
+      itemTask: (id) => TASK_OF.get(id) ?? null,
+      clusterOf: (id) => CLUSTER_OF.get(id) ?? null,
+      // Long-context KV confirmation items (M6): searched never.
+      longContext: PROMPTS.filter((prompt) => prompt.longContext).map((prompt) => ({ id: prompt.id, estTokens: Math.ceil(prompt.prompt.length / 4) })),
       timing: { acquire: () => lock.acquire(), release: () => lock.release() },
       base,
       tasks,
@@ -161,6 +175,7 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
       resume: plan.resume,
       rungs: activeRungs,
       tunedOn,
+      restore,
       hardware: { logicalCores },
       deviceBackends: used.device.backends,
       modelLayers: target.entry.kvShape?.layers ?? 0,
@@ -208,7 +223,7 @@ export function summary(profile, result = null) {
     `Load: ${line(profile.load.settings)}`,
   ];
   if (profile.device) lines.push(`Device: ${profile.device.reason}`);
-  if (profile.speed) lines.push(`Speed presets: Fastest ${line(profile.speed.fastest)} · Light ${line(profile.speed.light)}${profile.speed.quiet ? ` · Quiet ${line(profile.speed.quiet)}` : ""}`);
+  if (profile.speed) lines.push(`Speed presets: Fastest ${line(profile.speed.fastest)} · Light ${profile.speed.light ? line(profile.speed.light) : "(unavailable: no thread count qualified)"}${profile.speed.quiet ? ` · Quiet ${line(profile.speed.quiet)}` : ""}`);
   for (const [task, preset] of Object.entries(profile.tasks)) {
     const stats = preset.stats;
     const delta = stats?.vsDefault ? ` (${stats.vsDefault.rateDelta >= 0 ? "+" : ""}${stats.vsDefault.rateDelta} pts vs defaults, p=${stats.vsDefault.pValue})` : "";

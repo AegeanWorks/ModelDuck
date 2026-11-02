@@ -99,7 +99,10 @@ export function createTimingLock({ dir, pid = process.pid, isAlive = processAliv
       for (;;) {
         const running = await others();
         const paused = await Promise.all(running.map((owner) => fs.promises.access(pausedFile(owner)).then(() => true, () => false)));
-        if (paused.every(Boolean) || Date.now() > deadline) return;
+        // Settled when every other tune paused; false after the timeout (M8):
+        // timed stages that proceed unsettled must say so in their record.
+        if (paused.every(Boolean)) return true;
+        if (Date.now() > deadline) return false;
         await sleep(pollMs);
       }
     },

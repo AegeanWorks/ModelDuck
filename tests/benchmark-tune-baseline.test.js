@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { BASELINE_SCHEMA, baselineEntry, comparability, compareToBaseline } from "../benchmarks/tune-baseline.mjs";
+import { BASELINE_SCHEMA, TUNER_VERSION, baselineEntry, comparability, compareToBaseline } from "../benchmarks/tune-baseline.mjs";
 
-const IDENTITY = { suiteVersion: 8, taskHash: "abc", nodeLlamaCpp: "3.22.2" };
+const IDENTITY = { suiteVersion: 8, taskHash: "abc", nodeLlamaCpp: "3.22.2", tunerVersion: TUNER_VERSION };
 const PROFILE = {
   catalogId: "qwen",
   fingerprint: { ...IDENTITY, cpu: "CPU" },
@@ -20,7 +20,7 @@ const baseline = () => ({ schema: BASELINE_SCHEMA, ...IDENTITY, models: { qwen: 
 test("a baseline entry keeps settings and rates, not the sweep log", () => {
   const entry = baselineEntry(PROFILE);
   assert.deepEqual(entry.load, { threads: 8 });
-  assert.deepEqual(entry.tasks.code, { settings: { temperature: 0.1 }, rate: 75, items: 24, latencyMs: 900 });
+  assert.deepEqual(entry.tasks.code, { settings: { temperature: 0.1 }, rate: 75, items: 24, latencyMs: 900, outcomes: null });
   assert.equal("sweeps" in entry, false);
 });
 
@@ -45,4 +45,16 @@ test("a task or model missing from the current run is reported, not silently pas
   const result = compareToBaseline(baseline(), { qwen: { code: { rate: 75, items: 24, latencyMs: 900 } } });
   assert.equal(result.passed, false);
   assert.equal(result.rows.find((row) => row.task === "comprehension").missing, true);
+});
+
+test("a paired loss fails only when significant after Holm; noise does not (V1)", () => {
+  const ids = Array.from({ length: 24 }, (_, i) => `code-${i}`);
+  const outcomes = (flips) => Object.fromEntries(ids.map((id, i) => [id, flips.includes(i) ? 0 : 1]));
+  const base = { schema: BASELINE_SCHEMA, ...IDENTITY, models: { qwen: { load: {}, tasks: { code: { settings: {}, rate: 100, items: 24, latencyMs: 100, outcomes: outcomes([]) } } } } };
+  const noisy = compareToBaseline(base, { qwen: { code: { rate: 95.8, items: 24, latencyMs: 100, outcomes: outcomes([0]) } } });
+  assert.equal(noisy.rows[0].regression, false, "a single flip is noise");
+  assert.deepEqual(noisy.rows[0].regressed, ["code-0"]);
+  const real = compareToBaseline(base, { qwen: { code: { rate: 75, items: 24, latencyMs: 100, outcomes: outcomes([0, 1, 2, 3, 4, 5]) } } });
+  assert.equal(real.rows[0].regression, true);
+  assert.equal(real.passed, false);
 });

@@ -1,17 +1,47 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { budgetContext, estimateLoad, fitVerdict, kvBytesPerToken } from "../src/memory-fit.js";
+import { budgetContext, estimateLoad, estimateLoadV2, fitVerdict, kvBytesPerToken, splitKvCache } from "../src/memory-fit.js";
 
 const GIB = 1024 ** 3;
 const QWEN_1_5B = { layers: 28, kvHeads: 2, headDim: 128 };
 const LLAMA_3B = { layers: 28, kvHeads: 8, headDim: 128 };
+
+test("V2 requirements normalize to the estimate shape, with the VRAM split kept (M7)", () => {
+  const estimate = estimateLoadV2({
+    requirements: { cpuRam: 300 * 1024 ** 2, gpuVram: 100 * 1024 ** 2 },
+    weights: 1.83 * GIB,
+    contextSize: 8192,
+    kvCache: "q8_0",
+  });
+  assert.equal(estimate.estimator, "v2");
+  assert.equal(estimate.kv, 400 * 1024 ** 2);
+  assert.equal(estimate.overhead, 0, "graph and compute buffers live inside the V2 split");
+  assert.equal(estimate.total, estimate.weights + 400 * 1024 ** 2);
+  assert.equal(estimate.vram, 100 * 1024 ** 2);
+  assert.equal(estimate.contextSize, 8192);
+  // Garbage in: zero context, never NaN, so a bad simulator answer cannot block a load.
+  const empty = estimateLoadV2({ requirements: null, weights: null, contextSize: 4096, kvCache: "f16" });
+  assert.deepEqual([empty.kv, empty.total, empty.weights], [0, 0, 0]);
+  // A V2 verdict composes with the same fit rule as the formula.
+  const roomy = fitVerdict({ estimate, availableBytes: 8 * GIB });
+  assert.equal(roomy.verdict, "comfortable");
+  const tight = fitVerdict({ estimate, availableBytes: estimate.total / 0.7 });
+  assert.equal(tight.verdict, "tight");
+});
 
 test("KV bytes per token follow the GGUF attention shape and cache type", () => {
   assert.equal(kvBytesPerToken(QWEN_1_5B, "f16"), 28_672);
   assert.equal(kvBytesPerToken(LLAMA_3B, "f16"), 114_688);
   assert.ok(kvBytesPerToken(LLAMA_3B, "q8_0") < kvBytesPerToken(LLAMA_3B, "f16") * 0.55);
   assert.equal(kvBytesPerToken(null, "f16"), null);
+  assert.ok(
+    kvBytesPerToken(LLAMA_3B, "q8_0:q4_0") < kvBytesPerToken(LLAMA_3B, "q8_0"),
+    "mixed K/V (Q8 keys, Q4 values) sits between Q8 and Q4",
+  );
+  assert.ok(kvBytesPerToken(LLAMA_3B, "q8_0:q4_0") > kvBytesPerToken(LLAMA_3B, "q4_0"));
+  assert.deepEqual(splitKvCache("q8_0:q4_0"), { key: "q8_0", value: "q4_0" });
+  assert.deepEqual(splitKvCache("q8_0"), { key: "q8_0", value: "q8_0" });
 });
 
 test("the estimate adds weights, KV at the chosen context and a runtime reserve", () => {
@@ -53,6 +83,16 @@ test("the context budget is the largest listed size that fits comfortably, cappe
   assert.ok(budgetContext({ ...llama, kvCache: "q4_0", availableBytes: 4.5 * GIB, trainContext: 131072 }).contextSize > 4096);
   // Never above what the model was trained on.
   assert.equal(budgetContext({ ...llama, availableBytes: 16 * GIB, trainContext: 8192 }).contextSize, 8192);
+});
+
+test("the context budget prefers total-minus-reserve over momentary free memory (M7)", async () => {
+  const { budgetContext: budget } = await import("../src/memory-fit.js");
+  const llama = { modelBytes: 1.83 * GIB, shape: LLAMA_3B, kvCache: "f16", steps: STEPS, trainContext: 131072 };
+  // Only 2 GiB free right now, but 16 GiB total: the tune must not shrink for a busy afternoon.
+  const sized = budget({ ...llama, totalBytes: 16 * GIB, availableBytes: 2 * GIB });
+  assert.equal(sized.contextSize, 16384);
+  assert.match(sized.reason, /16\.0 GiB total/);
+  assert.deepEqual(sized.inputs.totalBytes, 16 * GIB);
 });
 
 test("the context budget falls back to the smallest size, and says so, when nothing fits or memory is unknown", () => {

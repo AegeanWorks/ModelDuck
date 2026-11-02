@@ -4,7 +4,7 @@ import { AppError } from "./errors.js";
 import { normalizeSettings } from "./config.js";
 import { toGenerationError, toLoadError } from "./engine-errors.js";
 import { formatBytes } from "./fs-atomic.js";
-import { estimateLoad, fitVerdict } from "./memory-fit.js";
+import { estimateLoad, estimateLoadV2, fitVerdict, splitKvCache } from "./memory-fit.js";
 import {
   buildChatHistory,
   buildGenerationManifest,
@@ -42,6 +42,12 @@ function mapAttention(value) {
   if (value === "on") return true;
   if (value === "off") return false;
   return "auto";
+}
+
+/** A KV cache label is valid when every colon-separated part names a known type. */
+function validKvLabel(label) {
+  const parts = String(label ?? "").split(":");
+  return parts.length <= 2 && parts.every((part) => part in KV_CACHE_TYPES) ? parts.join(":") : "f16";
 }
 
 function mapMmap(value) {
@@ -129,20 +135,67 @@ export class LlamaEngine {
   }
 
   /**
+   * Runtime V2 context requirements for a load (M7). The simulator accounts
+   * for batch size, sequences, flash attention, K/V types, mmap and offloaded
+   * layers, where the formula only scales the KV cache with context. Cached
+   * per file; null on any failure (or for "auto" offload, which resolves its
+   * own layer count), so the caller falls back to the formula.
+   */
+  #insightsCache = new Map();
+  async #contextRequirementsV2(entry, { contextSize, gpuLayers, batchSize, sequences, flashAttention, kvCache }) {
+    try {
+      const layers = Number(gpuLayers);
+      const gpuLayerCount = Number.isFinite(layers)
+        ? layers
+        : gpuLayers === "max"
+          ? Number(entry.kvShape?.layers) || 0
+          : null;
+      // "auto" offload picks its own layer count from live VRAM; the formula covers it.
+      if (gpuLayerCount === null || !(gpuLayerCount >= 0)) return null;
+      const { readGgufFileInfo, GgufInsights, GgmlType } = await import("node-llama-cpp");
+      const { key: kvKey, value: kvValue } = splitKvCache(kvCache);
+      const keyType = GgmlType[KV_CACHE_TYPES[kvKey] ?? "F16"];
+      const valueType = GgmlType[KV_CACHE_TYPES[kvValue] ?? "F16"];
+      if (!Number.isFinite(keyType) || !Number.isFinite(valueType)) return null;
+      const key = `${entry.path}|${entry.size}`;
+      let insights = this.#insightsCache.get(key);
+      if (!insights) {
+        insights = await GgufInsights.from(await readGgufFileInfo(entry.path));
+        this.#insightsCache.set(key, insights);
+      }
+      const flash = flashAttention === "on" ? true : flashAttention === "off" ? false : "auto";
+      return await insights.estimateContextResourceRequirementsV2({
+        contextSize,
+        modelGpuLayers: gpuLayerCount,
+        ...(Number(batchSize) > 0 && { batchSize: Number(batchSize) }),
+        ...(Number(sequences) > 0 && { sequences: Number(sequences) }),
+        flashAttention: flash,
+        kvCacheKeyType: keyType,
+        kvCacheValueType: valueType,
+      });
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Memory verdict for a CPU load. The currently loaded model is unloaded
    * first, so its weights count as available. GPU offload moves weights out of
    * RAM, so the check is skipped when layers are offloaded.
    */
-  #planFit(entry, { contextSize, kvCache, gpuLayers }) {
+  async #planFit(entry, { contextSize, kvCache, gpuLayers, batchSize, sequences, flashAttention }) {
     const contextTokens = Math.max(512, Math.min(Number(contextSize) || 4096, entry.contextLength || Infinity));
-    const kvLabel = KV_CACHE_TYPES[kvCache] ? kvCache : "f16";
-    const estimate = estimateLoad({ modelBytes: entry.size, shape: entry.kvShape, contextSize: contextTokens, kvCache: kvLabel });
+    const kvLabel = validKvLabel(kvCache);
+    const v2 = await this.#contextRequirementsV2(entry, { contextSize: contextTokens, gpuLayers, batchSize, sequences, flashAttention, kvCache: kvLabel });
+    const estimate = v2
+      ? estimateLoadV2({ requirements: v2, weights: entry.size, contextSize: contextTokens, kvCache: kvLabel })
+      : estimateLoad({ modelBytes: entry.size, shape: entry.kvShape, contextSize: contextTokens, kvCache: kvLabel });
     const offloaded = gpuLayers === "auto" || gpuLayers === "max" || Number(gpuLayers) > 0;
     const reclaimable = this.#state.status === "ready" ? Number(this.#state.model?.size) || 0 : 0;
     const fit = offloaded
       ? { verdict: "unknown", ratio: null, availableBytes: null, largestSafeContext: null }
       : fitVerdict({ estimate, availableBytes: this.#availableMemory() + reclaimable, shape: entry.kvShape });
-    return { ...fit, estimateBytes: estimate.total, contextSize: contextTokens, kvCache: kvLabel };
+    return { ...fit, estimateBytes: estimate.total, contextSize: contextTokens, kvCache: kvLabel, estimator: estimate.estimator };
   }
 
   /**
@@ -157,6 +210,29 @@ export class LlamaEngine {
     try {
       const vram = await this.#llama.getVramState();
       return vram.free + loaded;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Total memory for a load on `gpuBackend` (M7): RAM on the CPU, VRAM on a
+   * GPU. Unlike the momentary free figure, the total does not move with
+   * whatever else runs, so the same PC tunes the same context twice.
+   */
+  async totalMemory({ gpuBackend = "cpu" } = {}) {
+    if (gpuBackend === "cpu") {
+      try {
+        const os = await import("node:os");
+        return os.totalmem();
+      } catch {
+        return null;
+      }
+    }
+    if (!this.#llama?.gpu || this.#gpuBackend !== gpuBackend) return null;
+    try {
+      const vram = await this.#llama.getVramState();
+      return Number(vram.total) || null;
     } catch {
       return null;
     }
@@ -275,7 +351,7 @@ export class LlamaEngine {
         fix: "Delete the file and download the model again from a source you trust.",
       });
     }
-    const fit = this.#planFit(entry, { contextSize, kvCache, gpuLayers });
+    const fit = await this.#planFit(entry, { contextSize, kvCache, gpuLayers, batchSize, sequences, flashAttention });
     if (fit.verdict === "will_not_fit" && !force) {
       const safer = fit.largestSafeContext >= 512
         ? `Lower Context size to ${fit.largestSafeContext} tokens, use the q8_0 KV cache,`
@@ -311,8 +387,10 @@ export class LlamaEngine {
       const actualMaxThreads = Math.max(1, Math.min(64, Number(maxThreads) || actualThreads));
       const actualBatchSize = Math.max(32, Math.min(8192, Number(batchSize) || 512));
       const actualSequences = Math.max(1, Math.min(8, Number(sequences) || 1));
-      const kvLabel = KV_CACHE_TYPES[kvCache] ? kvCache : "f16";
-      const kvType = KV_CACHE_TYPES[kvLabel];
+      const kvLabel = validKvLabel(kvCache);
+      const { key: kvKey, value: kvValue } = splitKvCache(kvLabel);
+      const kvKeyType = KV_CACHE_TYPES[kvKey];
+      const kvValueType = KV_CACHE_TYPES[kvValue];
       const attention = mapAttention(flashAttention);
       const mmap = mapMmap(useMmap);
       const gpuLayerValue =
@@ -344,10 +422,10 @@ export class LlamaEngine {
             batchSize: actualBatchSize,
             sequences: actualSequences,
           };
-          if (kvType !== "F16") {
+          if (kvKeyType !== "F16" || kvValueType !== "F16") {
             contextOptions.flashAttention = true;
-            contextOptions.experimentalKvCacheKeyType = kvType;
-            contextOptions.experimentalKvCacheValueType = kvType;
+            contextOptions.experimentalKvCacheKeyType = kvKeyType;
+            contextOptions.experimentalKvCacheValueType = kvValueType;
           } else if (attention !== "auto") {
             contextOptions.flashAttention = attention;
           }
@@ -357,7 +435,7 @@ export class LlamaEngine {
         } catch (error) {
           lastError = error;
           this.#logger.warn?.(
-            `[modelduck] Context size ${attempt} with KV ${kvType} failed: ${error?.message || error}`,
+            `[modelduck] Context size ${attempt} with KV ${kvLabel} failed: ${error?.message || error}`,
           );
         }
       }
@@ -372,7 +450,7 @@ export class LlamaEngine {
         maxThreads: actualMaxThreads,
         batchSize: actualBatchSize,
         sequences: actualSequences,
-        flashAttention: kvType !== "F16" ? "on" : flashAttention ?? "auto",
+        flashAttention: kvKeyType !== "F16" || kvValueType !== "F16" ? "on" : flashAttention ?? "auto",
         useMmap: mmap,
         gpuLayers: this.#model.gpuLayers,
         gpuBackend: this.#llama.gpu || "cpu",
@@ -562,11 +640,22 @@ export class LlamaEngine {
         topK: normalized.topK,
         minP: normalized.minP,
         seed: normalized.seed >= 0 ? normalized.seed : undefined,
+        responsePrefix: normalized.responsePrefix || undefined,
+        customStopTriggers: normalized.customStopTriggers.length ? normalized.customStopTriggers : undefined,
         repeatPenalty:
           normalized.repeatPenalty > 1
             ? {
                 penalty: normalized.repeatPenalty,
                 lastTokens: normalized.repeatPenaltyTokens, // aikit:allow-secret repetition window, not a credential,
+                penalizeNewLine: normalized.penalizeNewLine !== false,
+              }
+            : false,
+        dryRepeatPenalty:
+          normalized.dryStrength > 0
+            ? {
+                strength: normalized.dryStrength,
+                base: normalized.dryBase,
+                allowedLength: normalized.dryAllowedLength,
               }
             : false,
         grammar,
@@ -748,11 +837,21 @@ export class LlamaEngine {
           topK: normalized.topK,
           minP: normalized.minP,
           seed: normalized.seed >= 0 ? normalized.seed : undefined,
+          customStopTriggers: normalized.customStopTriggers.length ? normalized.customStopTriggers : undefined,
           repeatPenalty:
             normalized.repeatPenalty > 1
               ? {
                   penalty: normalized.repeatPenalty,
                   lastTokens: normalized.repeatPenaltyTokens, // aikit:allow-secret repetition window, not a credential
+                  penalizeNewLine: normalized.penalizeNewLine !== false,
+                }
+              : false,
+          dryRepeatPenalty:
+            normalized.dryStrength > 0
+              ? {
+                  strength: normalized.dryStrength,
+                  base: normalized.dryBase,
+                  allowedLength: normalized.dryAllowedLength,
                 }
               : false,
           grammar,

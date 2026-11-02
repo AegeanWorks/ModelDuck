@@ -516,7 +516,7 @@ export function createHttpServer({
         const seconds = pace?.secondsPerAnswer ?? 3;
         const low = pace?.low ?? seconds;
         const high = pace?.high ?? seconds;
-        const estimate = (quick, secondsPerAnswer) => ({ answersPerModel: expectedAnswers(result.steps, { logicalCores, tasks, stages, only, quick }), estimate: estimateTune(result.steps, { logicalCores, tasks, secondsPerAnswer, quick }) });
+        const estimate = (quick, secondsPerAnswer) => ({ answersPerModel: expectedAnswers(result.steps, { logicalCores, tasks, stages, only, quick }), estimate: estimateTune(result.steps, { logicalCores, tasks, stages, only, secondsPerAnswer, quick }) });
         return {
           id: model.id,
           name: model.name,
@@ -526,7 +526,7 @@ export function createHttpServer({
           full: { ...estimate(false, seconds), lowSeconds: Math.min(estimate(false, low).estimate.onePassSeconds, estimate(false, high).estimate.onePassSeconds), highSeconds: Math.max(estimate(false, low).estimate.onePassSeconds, estimate(false, high).estimate.onePassSeconds) },
         };
       });
-      const quick = perModel[0]?.quick ?? { answersPerModel: expectedAnswers(result.steps, { logicalCores, tasks, stages, only, quick: true }), estimate: estimateTune(result.steps, { logicalCores, tasks, quick: true }) };
+      const quick = perModel[0]?.quick ?? { answersPerModel: expectedAnswers(result.steps, { logicalCores, tasks, stages, only, quick: true }), estimate: estimateTune(result.steps, { logicalCores, tasks, stages, only, quick: true }) };
       sendJson(res, 200, {
         tasks,
         stages,
@@ -535,7 +535,7 @@ export function createHttpServer({
         models: perModel.length,
         perModel,
         answersPerModel: perModel[0]?.full.answersPerModel ?? expectedAnswers(result.steps, { logicalCores, tasks, stages, only }),
-        estimate: perModel[0]?.full.estimate ?? estimateTune(result.steps, { logicalCores, tasks }),
+        estimate: perModel[0]?.full.estimate ?? estimateTune(result.steps, { logicalCores, tasks, stages, only }),
         quick,
       });
       return;

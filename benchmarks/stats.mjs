@@ -35,6 +35,53 @@ export function mcnemarExact(b, c) {
   return Math.min(1, 2 * tail);
 }
 
+/**
+ * Sign-flip (permutation) test on paired differences (S2): under no difference
+ * each difference is as likely positive as negative, so the two-sided p-value
+ * is the share of sign assignments whose absolute sum reaches the observed
+ * one. Exact enumeration up to 20 non-zero differences, then a seeded Monte
+ * Carlo, so results reproduce exactly. Uniform magnitudes reduce to McNemar.
+ */
+const SIGN_FLIP_EXACT_LIMIT = 20;
+const SIGN_FLIP_PERMUTATIONS = 10000;
+
+function lcg(seed) {
+  let state = seed >>> 0;
+  return () => {
+    state = (state * 1664525 + 1013904223) >>> 0;
+    return state / 2 ** 32;
+  };
+}
+
+export function signFlipPValue(differences, { exactLimit = SIGN_FLIP_EXACT_LIMIT, permutations = SIGN_FLIP_PERMUTATIONS } = {}) {
+  const nonzero = differences.filter((value) => value !== 0);
+  const count = nonzero.length;
+  if (!count) return 1;
+  const neg = nonzero.filter((value) => value < 0).length;
+  const pos = count - neg;
+  // Every difference the same size: the sum is decided by the sign counts alone.
+  if (nonzero.every((value) => Math.abs(value) === Math.abs(nonzero[0]))) return mcnemarExact(neg, pos);
+  const observed = Math.abs(nonzero.reduce((sum, value) => sum + value, 0));
+  if (count <= exactLimit) {
+    const total = 2 ** count;
+    let extreme = 0;
+    for (let mask = 0; mask < total; mask += 1) {
+      let sum = 0;
+      for (let index = 0; index < count; index += 1) sum += (mask >> index) & 1 ? nonzero[index] : -nonzero[index];
+      if (Math.abs(sum) >= observed - 1e-12) extreme += 1;
+    }
+    return extreme / total;
+  }
+  const random = lcg(0x5EED);
+  let extreme = 0;
+  for (let draw = 0; draw < permutations; draw += 1) {
+    let sum = 0;
+    for (const value of nonzero) sum += random() < 0.5 ? value : -value;
+    if (Math.abs(sum) >= observed - 1e-12) extreme += 1;
+  }
+  return extreme / permutations;
+}
+
 /** Holm step-down adjustment; returns adjusted p-values in input order. */
 export function holm(pValues) {
   const order = pValues.map((p, index) => ({ p, index })).sort((left, right) => left.p - right.p);

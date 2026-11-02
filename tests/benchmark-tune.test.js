@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { promptAxes } from "../benchmarks/tune-grid.mjs";
+import { Measurements } from "../benchmarks/tune-measure.mjs";
+import { predictWeightedMs, speedStage, taskProfiles } from "../benchmarks/tune-speed.mjs";
 import { measurePresets, tune } from "../benchmarks/tune.mjs";
 
 const ids = (prefix, count) => Array.from({ length: count }, (_value, index) => `${prefix}-${index}`);
@@ -93,12 +95,15 @@ test("stage 1 picks the smallest context recall needs and keeps the KV cache tha
   assert.equal(stages.quality, "done");
 });
 
-test("stage 2 picks the fastest threads, excludes settings that change answers, and offers a Light preset", async () => {
+test("stage 2 picks the fastest threads, excludes only pass/fail flips, and offers a Light preset", async () => {
   const { load, speed, sweeps } = await run().result;
   assert.equal(load.settings.threads, 8);
-  assert.notEqual(load.settings.flashAttention, "off", "flash off was faster but changed the answers");
+  // Flash off is faster and only changes rounding text, not pass/fail (M3), so it wins now.
+  assert.equal(load.settings.flashAttention, "off", "text-only rounding no longer excludes a faster setting");
   const flash = sweeps.find((sweep) => sweep.stage === "speed" && sweep.axis === "flashAttention");
-  assert.ok(flash.rungs[0].candidates.find((candidate) => candidate.patch.flashAttention === "off").changedItems.length > 0);
+  const off = flash.rungs[0].candidates.find((candidate) => candidate.patch.flashAttention === "off");
+  assert.ok(off.changedItems.length > 0, "the text change is still recorded");
+  assert.deepEqual(off.flippedItems, [], "but no item flipped pass/fail");
   assert.equal(speed.fastest.threads, 8);
   assert.equal(speed.light.threads, 4, "the fastest at no more than half of 12 threads");
   assert.equal(speed.quiet.threads, 2, "the fastest at no more than a quarter of 12 threads");
@@ -108,6 +113,22 @@ test("the tune never starts above three quarters of the logical threads", async 
   const { model, result } = run();
   await result;
   assert.ok(model.calls.every((call) => call.settings.threads <= 9));
+});
+
+test("code sampling starts with the newline penalty off", async () => {
+  const model = syntheticModel();
+  const rungs = { ...RUNGS, code: [ids("c", 4), ids("c", 8)] };
+  await tune({
+    evaluate: model.evaluate, base: BASE, tasks: ["code"], rungs,
+    hardware: { logicalCores: 12 }, ...AXES,
+    options: { seeds: [42, 7, 1234], passes: 1, changeAlpha: Infinity },
+  });
+  const codeCalls = model.calls.filter((call) => call.itemIds.some((id) => id.startsWith("c-")));
+  assert.ok(codeCalls.length > 0, "code items were measured");
+  assert.ok(
+    codeCalls.some((call) => call.settings.penalizeNewLine === false),
+    "code answers are measured with the newline penalty off (lit review §2)",
+  );
 });
 
 test("stage 3 tunes sampling per task by quality, then answer length, and skips no-op axes when greedy", async () => {
@@ -404,6 +425,253 @@ test("stage 0 says plainly when the CPU could not run the model at all", async (
   assert.equal(result.load.settings.gpuBackend, "vulkan");
   assert.equal(result.device.probe[0].verdict, "did not run: load failed: This model will not fit in memory");
   assert.match(result.device.reason, /the CPU could not run it \(load failed: This model will not fit in memory\)/);
+});
+
+test("stage 0 tries a partial offload when the full one loads but is not faster (G7)", async () => {
+  const { result, calls } = await probe({
+    cpu: { ms: 1000, passed: 6 },
+    "vulkan:max": { ms: 1000, passed: 6 },
+    "vulkan:21": { ms: 300, passed: 6 },
+  });
+  assert.deepEqual(result.load.settings, { gpuBackend: "vulkan", gpuLayers: 21 });
+  assert.ok(calls.some((settings) => settings.gpuLayers === 21), "the 75% offload was tried");
+});
+
+test("the speed stage picks the task-weighted latency, not the raw 6-item latency (M4)", async () => {
+  // Five short recall items plus one long code item. The challenger is much
+  // faster on raw medians (prefill-bound workload) but slower where code
+  // lives (decode-bound), so a code-weighted choice keeps the incumbent.
+  const items = ["r-1", "r-2", "r-3", "r-4", "r-5", "c-1"];
+  const itemTask = (id) => (id.startsWith("c-") ? "code" : "recall");
+  const evaluate = async (settings, itemIds) => ({
+    prompts: itemIds.map((id) => {
+      const code = id.startsWith("c-");
+      const fast = settings.flashAttention === "off";
+      const promptTokens = code ? 200 : 1400;
+      const outputTokens = code ? 400 : 10;
+      // Challenger: 8000 prefill tok/s, 80 decode tok/s. Incumbent: 1000 / 100.
+      const firstTokenMs = promptTokens / (fast ? 8000 : 1000) * 1000;
+      const decodeMs = (outputTokens - 1) / (fast ? 80 : 100) * 1000;
+      return { id, passed: 1, total: 1, ms: firstTokenMs + decodeMs, firstTokenMs, promptTokens, outputTokens, digest: id };
+    }),
+  });
+  const context = {
+    measurements: new Measurements(evaluate, 100000),
+    options: { seeds: [42], passes: 1, speedTie: 0.03 },
+    valid: () => true,
+    onEvent: () => {},
+    sweeps: [],
+  };
+  const axes = [{ name: "flashAttention", patches: [{ flashAttention: "on" }, { flashAttention: "off" }] }];
+  const start = { temperature: 0, flashAttention: "on", threads: 8 };
+  const outcome = await speedStage(context, {
+    axes, start, items, forced: { temperature: 0 }, logicalCores: 12,
+    itemTask, taskWeights: { code: 0.9, recall: 0.1 },
+  });
+  const record = context.sweeps[0];
+  const [on, off] = ["on", "off"].map((value) => record.rungs[0].candidates.find((candidate) => candidate.patch.flashAttention === value));
+  assert.ok(off.latencyMs < on.latencyMs, "the challenger is faster on raw medians");
+  assert.deepEqual(record.taskProfiles, {
+    recall: { promptTokens: 1400, outputTokens: 10 },
+    code: { promptTokens: 200, outputTokens: 400 },
+  });
+  assert.ok(off.predictedMs.ms > on.predictedMs.ms, "but slower where the weighted tasks live");
+  assert.equal(outcome.current.flashAttention, "on", "task-weighted latency keeps the incumbent");
+  assert.deepEqual(record.taskWeights, { code: 0.9, recall: 0.1, comprehension: 0.25 });
+});
+
+test("task-weighted prediction falls back to latency without throughput (M4)", () => {
+  assert.equal(predictWeightedMs({ latencyMs: 500 }, {}, {}), 500);
+  assert.equal(predictWeightedMs({ latencyMs: 500, prefillTps: 1000, decodeTps: 100 }, {}, { code: 1 }), 500);
+  const predicted = predictWeightedMs(
+    { latencyMs: 500, prefillTps: 1000, decodeTps: 100 },
+    { code: { promptTokens: 200, outputTokens: 400 } },
+    { code: 1 },
+  );
+  assert.equal(predicted.ms, 4200);
+});
+
+test("the code task starts sampling greedy, and heat must prove itself (G3)", async () => {
+  const seen = [];
+  const result = await tune({
+    evaluate: async (settings, itemIds) => {
+      seen.push(settings.temperature);
+      return { prompts: itemIds.map((id) => ({ id, passed: 1, total: 1, ms: 10, outputTokens: 10, digest: id })) };
+    },
+    base: { ...BASE, temperature: 0.7 },
+    tasks: ["code"],
+    stages: ["sampling"],
+    rungs: { code: [ids("code", 8)] },
+    hardware: { logicalCores: 12 },
+    qualityAxes: [],
+    speedAxes: [],
+    samplingAxes: () => [
+      { name: "temperature", patches: [{ temperature: 0 }, { temperature: 0.5 }] },
+      { name: "maxTokens", patches: [{ maxTokens: 256 }] },
+    ],
+  });
+  assert.equal(result.tasks.code.settings.temperature, 0, "nothing beat greedy");
+  assert.ok(seen.includes(0.5), "higher temperatures are still tried");
+  assert.equal(seen[0], 0, "but the first answers are greedy");
+});
+
+test("a quality change that breaks one function cluster does not revert the task (S4)", async () => {
+  // Six inputs of one function flip, two of another do not. Item-level that
+  // is a significant 6-0 loss; cluster-level it is one cluster moving.
+  // The two passes come first so sequential stopping sees a live candidate.
+  const items = ["g-1", "g-2", "f-1", "f-2", "f-3", "f-4", "f-5", "f-6"];
+  const evaluate = async (settings, itemIds) => ({
+    prompts: itemIds.map((id) => ({
+      id,
+      passed: settings.kvCache === "q8_0" && id.startsWith("f-") ? 0 : 1,
+      total: 1,
+      ms: settings.kvCache === "q8_0" ? 100 : 1000,
+      tokensPerSecond: 10,
+      outputTokens: 10,
+      digest: id,
+    })),
+  });
+  const quality = (clusterOf) => tune({
+    evaluate,
+    base: { ...BASE, kvCache: "f16" },
+    tasks: ["math"],
+    stages: ["quality"],
+    rungs: { load: [items], loadByTask: { math: items }, math: [items] },
+    hardware: { logicalCores: 12 },
+    qualityAxes: [{ name: "kvCache", patches: ["f16", "q8_0"].map((kvCache) => ({ kvCache })) }],
+    speedAxes: [],
+    ...(clusterOf && { clusterOf }),
+    options: { seeds: [42], passes: 1, toleranceItems: 6 },
+  });
+  const plain = await quality(null);
+  assert.equal(plain.load.reverted, "math", "item-level: six flips revert the task");
+  assert.equal(plain.load.settings.kvCache, "f16");
+  const clustered = await quality((id) => id.split("-")[0]);
+  assert.equal(clustered.load.reverted, null, "cluster-level: one cluster moving does not revert");
+  assert.equal(clustered.load.settings.kvCache, "q8_0", "the faster setting stands");
+});
+
+test("a task without rungs leaves its stages pending instead of crashing", async () => {
+  const result = await tune({
+    evaluate: async (settings, itemIds) => ({
+      prompts: itemIds.map((id) => ({ id, passed: 1, total: 1, ms: 10, outputTokens: 10, digest: id })),
+    }),
+    base: { ...BASE, threads: 8 },
+    tasks: ["code"],
+    stages: ["speed"],
+    rungs: { speed: [ids("speed", 6)] },
+    hardware: { logicalCores: 12 },
+    qualityAxes: [],
+    speedAxes: [{ name: "threads", patches: [{ threads: 8 }, { threads: 4 }] }],
+    options: { seeds: [42], passes: 1 },
+  });
+  assert.deepEqual(result.load.settings.threads, 8);
+  assert.equal(result.stages.sampling.code, "pending");
+});
+
+test("a KV cache that loses long-context items is rejected even when the load rungs keep it (M6)", async () => {
+  // Six inputs of one function flip on q8_0 (one cluster: no per-task revert),
+  // plus one long-context needle. The load rungs adopt the faster cache; the
+  // long item rejects it.
+  const items = ["g-1", "g-2", "f-1", "f-2", "f-3", "f-4", "f-5", "f-6"];
+  const evaluate = async (settings, itemIds) => ({
+    prompts: itemIds.map((id) => ({
+      id,
+      passed: settings.kvCache === "q8_0" && (id.startsWith("f-") || id === "L1") ? 0 : 1,
+      total: 1,
+      ms: settings.kvCache === "q8_0" ? 100 : 1000,
+      tokensPerSecond: 10,
+      outputTokens: 10,
+      digest: id,
+    })),
+  });
+  const runQuality = (longContext) => tune({
+    evaluate,
+    base: { ...BASE, kvCache: "f16" },
+    tasks: ["math"],
+    stages: ["quality"],
+    rungs: { load: [items], loadByTask: { math: items }, math: [items] },
+    hardware: { logicalCores: 12 },
+    qualityAxes: [{ name: "kvCache", patches: ["f16", "q8_0"].map((kvCache) => ({ kvCache })) }],
+    speedAxes: [],
+    clusterOf: (id) => id[0],
+    longContext,
+    options: { seeds: [42], passes: 1, toleranceItems: 6 },
+  });
+  const confirmed = await runQuality([{ id: "L1", estTokens: 100 }]);
+  assert.equal(confirmed.load.reverted, null, "one cluster moving reverts no task");
+  assert.equal(confirmed.load.settings.kvCache, "f16");
+  assert.equal(confirmed.load.kvConfirm?.reverted, true, "the long item rejects the quantized cache");
+  // Without long items the faster setting stands, as before.
+  const plain = await runQuality([]);
+  assert.equal(plain.load.settings.kvCache, "q8_0");
+  assert.equal(plain.load.kvConfirm, undefined);
+});
+
+test("a pair of settings that only works together is found after the passes (G2)", async () => {
+  const ids = Array.from({ length: 8 }, (_, index) => `m-${index + 1}`);
+  const setup = (extra) => tune({
+    evaluate: async (settings, itemIds) => ({
+      prompts: itemIds.map((id) => ({
+        id,
+        passed: settings.a === 1 && settings.b === 1 ? 1 : 0,
+        total: 1,
+        ms: 10,
+        outputTokens: 10,
+        digest: `${settings.a}${settings.b}`,
+      })),
+    }),
+    base: { a: 0, b: 0, temperature: 0 },
+    tasks: ["math"],
+    stages: ["sampling"],
+    rungs: { math: [ids] },
+    hardware: { logicalCores: 12 },
+    qualityAxes: [],
+    speedAxes: [],
+    samplingAxes: () => [
+      { name: "a", patches: [{ a: 0 }, { a: 1 }] },
+      { name: "b", patches: [{ b: 0 }, { b: 1 }] },
+    ],
+    options: { seeds: [42], passes: 2 },
+    ...extra,
+  });
+  const result = await setup({});
+  assert.deepEqual(result.tasks.math.settings, { a: 1, b: 1 }, "the interaction is adopted with evidence");
+  const pair = result.sweeps.find((sweep) => sweep.axis === "pair:a+b");
+  assert.ok(pair, "a pair sweep ran");
+  assert.equal(pair.changed, true);
+  const quick = await setup({ quick: true });
+  assert.ok(quick.sweeps.every((sweep) => !sweep.axis.startsWith("pair:")), "quick passes skip the pair check");
+});
+
+test("speed candidates are timed repeatedly and interleaved, with an A/A band (M2)", async () => {
+  const { sweeps } = await run().result;
+  const flash = sweeps.find((sweep) => sweep.stage === "speed" && sweep.axis === "threads");
+  assert.equal(flash.repeats, 3);
+  assert.ok(Number.isFinite(flash.aaSpread), "the incumbent's own spread is recorded");
+  assert.ok(flash.speedTie >= 0.05, "the tie band never drops below 5%");
+  const candidate = flash.rungs[0].candidates[0];
+  assert.ok(candidate.prefillTps === null || Number.isFinite(candidate.prefillTps));
+});
+
+test("stage 0 keeps a 5x GPU that loses one speed item when the load rung ties (S7)", async () => {
+  const speedCalls = [];
+  const evaluate = async (settings, itemIds) => {
+    const key = settings.gpuBackend === "cpu" || !settings.gpuBackend ? "cpu" : `${settings.gpuBackend}:${settings.gpuLayers}`;
+    const gpu = key !== "cpu";
+    // Speed items: GPU loses exactly one; load items (mix-*): both answer all.
+    const passed = itemIds[0].startsWith("speed") ? (gpu ? 5 : 6) : 8;
+    const ms = gpu ? 200 : 1000;
+    speedCalls.push({ key, items: itemIds.length });
+    return { prompts: itemIds.map((id, index) => ({ id, passed: index < passed ? 1 : 0, total: 1, ms: ms * (1 + index / 20), tokensPerSecond: 1000 / ms, digest: id })) };
+  };
+  const result = await tune({
+    evaluate, base: { threads: 4 }, tasks: [], stages: ["device"], modelLayers: 28,
+    rungs: { load: [ids("mix", 8)], speed: [ids("speed", 6)] }, qualityAxes: [], speedAxes: [],
+  });
+  assert.deepEqual(result.load.settings, { gpuBackend: "vulkan", gpuLayers: "max" });
+  assert.ok(result.device.accuracyRecheck, "the load rung decided accuracy");
+  assert.equal(result.device.accuracyRecheck.of, 8);
 });
 
 test("with parallel answers, the timing stages still answer one at a time", async () => {
@@ -778,6 +1046,12 @@ test("a preset that also wins on held-back items is kept, with its honest gain",
   assert.equal(tasks.math.holdout.vsDefault.rateDelta, 50, "8 of 8 against 4 of 8 on unseen items");
 });
 
+test("an equal but cheaper preset is kept by the held-back check (S5)", async () => {
+  const { tasks } = await heldOutTune((prompt, held, index) => index < (held ? 4 : 10));
+  assert.equal(tasks.math.holdout.fellBack, false, "equal rates are not a coin-flip fall-back");
+  assert.equal(tasks.math.holdout.rate, tasks.math.holdout.defaultRate);
+});
+
 test("each task's result and its unseen check are broken down by question type", async () => {
   const items = ids("math", 20);
   const held = ids("hold", 8);
@@ -829,4 +1103,154 @@ test("a shared quality setting that clearly hurts one task is reverted, naming t
   assert.equal(load.perTask.recall.worse, true);
   assert.equal(load.perTask.math.worse, false);
   assert.equal(load.reverted, "recall");
+});
+
+test("a quick pass followed by a continue re-measures every axis on the full rungs (D1)", async () => {
+  const seen = [];
+  const evaluate = async (settings, itemIds, seed) => {
+    seen.push({ maxTokens: settings.maxTokens, items: itemIds.length, seed });
+    return { prompts: itemIds.map((id) => ({ id, passed: id.endsWith("-0") ? 0 : 1, total: 1, ms: 10, outputTokens: 10, digest: `${id}:${settings.maxTokens}` })) };
+  };
+  const axes = { samplingAxes: () => [{ name: "maxTokens", patches: [64, 128].map((maxTokens) => ({ maxTokens })) }] };
+  const rungs = { math: [ids("math", 4), ids("math", 8)] };
+  const quick = await tune({
+    evaluate,
+    base: { ...BASE, maxTokens: 64 },
+    tasks: ["math"],
+    stages: ["sampling"],
+    rungs: { ...rungs },
+    hardware: { logicalCores: 12 },
+    qualityAxes: [],
+    speedAxes: [],
+    ...axes,
+    quick: true,
+    options: { seeds: [42], passes: 1, changeAlpha: Infinity },
+  });
+  assert.ok(quick.progress.sampling.math.done.some((key) => key.startsWith("quick:")), "quick sweeps are namespaced");
+  assert.equal(quick.stages.sampling.math, "partial");
+  const before = seen.length;
+  const full = await tune({
+    evaluate,
+    base: { ...BASE, maxTokens: 64 },
+    tasks: ["math"],
+    stages: ["sampling"],
+    rungs: { ...rungs },
+    hardware: { logicalCores: 12 },
+    qualityAxes: [],
+    speedAxes: [],
+    ...axes,
+    resume: { ...quick.progress, sweeps: quick.sweeps },
+    options: { seeds: [42], passes: 1, changeAlpha: Infinity },
+  });
+  // The measurement cache only asks for items a rung has not seen, so the
+  // full rung appears as new-item calls plus a sweep record at size 8.
+  const added = seen.slice(before);
+  assert.ok(added.length > 0, "the continuation measured beyond the quick rung");
+  const newSweeps = full.sweeps.slice(quick.sweeps.length);
+  assert.ok(newSweeps.some((sweep) => sweep.rungs?.some((rung) => rung.size === 8)), "every axis ran on the full rung");
+  assert.equal(full.stages.sampling.math, "done");
+});
+
+test("light and quiet are null when no measured thread count qualifies (D2)", async () => {
+  const evaluate = async (settings, itemIds) => ({
+    prompts: itemIds.map((id) => ({ id, passed: 1, total: 1, ms: 100, outputTokens: 10, digest: `${id}:${settings.threads}:${settings.flashAttention}` })),
+  });
+  // Every non-incumbent thread count flips an item's pass/fail, so nothing qualifies.
+  // Text-only rounding without a flip qualifies since M3.
+  const changing = async (settings, itemIds) => ({
+    prompts: itemIds.map((id) => ({ id, passed: settings.threads === 8 ? 1 : 0, total: 1, ms: 100, outputTokens: 10, digest: settings.threads === 8 ? `same-${id}` : `changed-${id}` })),
+  });
+  const { speed } = await tune({
+    evaluate: changing,
+    base: { ...BASE, threads: 8, flashAttention: "on" },
+    tasks: [],
+    rungs: { load: [ids("mix", 4)], speed: [ids("speed", 4)] },
+    qualityAxes: [],
+    speedAxes: [{ name: "threads", patches: [1, 2, 4, 8].map((threads) => ({ threads })) }],
+    hardware: { logicalCores: 12 },
+    options: { seeds: [42], passes: 1, changeAlpha: Infinity },
+  });
+  assert.equal(speed.fastest.threads, 8);
+  assert.equal(speed.light, null, "no formula fallback to an unmeasured count");
+  assert.ok(speed.quiet == null, "quiet is null or omitted when nothing qualifies");
+  assert.ok(evaluate, "keeps the mock referenced");
+});
+
+test("above temperature 0 the first rung screens with one seed and decides with all (G1)", async () => {
+  const calls = [];
+  const evaluate = async (settings, itemIds, seed) => {
+    calls.push({ items: [...itemIds], seed });
+    return { prompts: itemIds.map((id) => ({ id, passed: 1, total: 1, ms: 10, outputTokens: 10, digest: id })) };
+  };
+  await tune({
+    evaluate,
+    base: { ...BASE, temperature: 0.7 },
+    tasks: ["math"],
+    stages: ["sampling"],
+    rungs: { math: [ids("math", 4), ids("math", 8)] },
+    hardware: { logicalCores: 12 },
+    qualityAxes: [],
+    speedAxes: [],
+    samplingAxes: () => [{ name: "temperature", patches: [0.7, 0.2].map((temperature) => ({ temperature })) }],
+    options: { seeds: [42, 7, 1234], passes: 1, changeAlpha: Infinity },
+  });
+  const firstFull = calls.findIndex((call) => call.items.length === 8);
+  assert.ok(firstFull > 0, "the second rung asks new items");
+  assert.ok(calls.slice(0, firstFull).every((call) => call.seed === 42), "the screen runs one seed");
+  assert.ok(calls.some((call) => call.items.length === 8 && call.seed === 7), "the decision still uses every seed");
+});
+
+test("a rung leader that loses on unused items does not stand (S1)", async () => {
+  const rung = ids("rung", 8);
+  const unused = ids("unused", 10);
+  const evaluate = async (settings, itemIds) => ({
+    prompts: itemIds.map((id) => ({
+      id,
+      passed: (settings.level === "good") === id.startsWith("rung") ? 1 : 0,
+      total: 1, ms: 10, outputTokens: 10, digest: id,
+    })),
+  });
+  const run = (level) => tune({
+    evaluate,
+    base: { ...BASE, temperature: 0, level: "base" },
+    tasks: ["math"],
+    stages: ["sampling"],
+    rungs: { math: [rung], final: { math: [...rung, ...(level === "flip" ? unused : [])] } },
+    hardware: { logicalCores: 12 },
+    qualityAxes: [],
+    speedAxes: [],
+    samplingAxes: () => [{ name: "level", patches: ["base", "good"].map((value) => ({ level: value })) }],
+    options: { seeds: [42], passes: 1, changeAlpha: 0.2 },
+  });
+  const overturned = await run("flip");
+  const sweep = overturned.sweeps.find((item) => item.axis === "level");
+  assert.equal(overturned.tasks.math.settings.level, "base", "the unconfirmed challenger does not stand");
+  assert.equal(sweep.confirmation.confirmed, false);
+  assert.equal(sweep.confirmation.items, 10);
+  assert.match(sweep.kept, /unused items/);
+  const held = await run("keep");
+  assert.equal(held.sweeps.find((item) => item.axis === "level").confirmation, undefined, "no leftover pool, no confirmation rung");
+});
+
+test("the tolerance counts items, not rounded percents (D4)", async () => {
+  // 12 items: incumbent solves 11, challenger solves 10 with fewer tokens.
+  // One item is within the tolerance, so the cheaper challenger wins on both rung sizes.
+  const evaluate12 = async (settings, itemIds) => ({
+    prompts: itemIds.map((id, index) => ({ id, passed: (settings.maxTokens === 64 ? index < 10 : index < 11) ? 1 : 0, total: 1, ms: 10, outputTokens: settings.maxTokens, digest: id })),
+  });
+  for (const size of [12, 24]) {
+    const { tasks } = await tune({
+      evaluate: evaluate12,
+      base: { ...BASE, maxTokens: 128 },
+      tasks: ["math"],
+      stages: ["sampling"],
+      rungs: { math: [ids("math", size)] },
+      hardware: { logicalCores: 12 },
+      qualityAxes: [],
+      speedAxes: [],
+      samplingAxes: () => [{ name: "maxTokens", patches: [64, 128].map((maxTokens) => ({ maxTokens })) }],
+      options: { seeds: [42], passes: 1, changeAlpha: Infinity },
+    });
+    assert.equal(tasks.math.settings.maxTokens, 64, `one item lost is within tolerance on ${size} items`);
+  }
 });

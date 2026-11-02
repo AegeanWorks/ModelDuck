@@ -114,33 +114,40 @@ test("the answer summary counts wrong answers apart from replies that could not 
 
 test("per-item outcomes say which items no recorded setting has flipped", async (t) => {
   const dir = await runsDir(t);
+  const cool = { temperature: 0 };
+  const warm = { temperature: 0.7 };
   const first = await startRun(dir, { profileId: "m", model: "m.gguf", request: REQUEST, now: new Date("2026-01-01T00:00:00Z"), pid: 11 });
   await first.answers([
-    { item: "i-1", passed: 1, total: 1 },
-    { item: "i-2", passed: 0, total: 1 },
-    { item: "i-3", passed: 0, total: 1, error: "timed out" },
-    { item: "i-4", passed: 1, total: 1 },
+    { item: "i-1", passed: 1, total: 1, settings: cool },
+    { item: "i-1", passed: 1, total: 1, settings: cool },
+    { item: "i-1", passed: 1, total: 1, settings: warm },
+    { item: "i-2", passed: 0, total: 1, settings: cool },
+    { item: "i-3", passed: 0, total: 1, error: "timed out", settings: cool },
+    { item: "i-4", passed: 1, total: 1, settings: cool },
   ]);
   await first.finish({ outcome: "done" });
   const second = await startRun(dir, { profileId: "m", model: "m.gguf", request: REQUEST, now: new Date("2026-01-01T00:01:00Z"), pid: 12 });
   await second.answers([
-    { item: "i-1", passed: 1, total: 1 },
-    { item: "i-2", passed: 1, total: 1 },
-    { item: "i-4", passed: 1, total: 1 },
-    { item: "i-5", passed: 0, total: 1 },
+    { item: "i-1", passed: 1, total: 1, settings: warm },
+    { item: "i-1", passed: 1, total: 1, settings: warm },
+    { item: "i-1", passed: 1, total: 1, settings: warm },
+    { item: "i-2", passed: 1, total: 1, settings: warm },
+    { item: "i-4", passed: 1, total: 1, settings: warm },
+    { item: "i-5", passed: 0, total: 1, settings: warm },
   ]);
   await second.finish({ outcome: "done" });
   const other = await startRun(dir, { profileId: "other", model: "o.gguf", request: REQUEST, now: new Date("2026-01-01T00:02:00Z"), pid: 13 });
-  await other.answers([{ item: "i-1", passed: 0, total: 1 }, { item: "i-5", passed: 1, total: 1 }]);
+  await other.answers([{ item: "i-1", passed: 0, total: 1, settings: cool }, { item: "i-5", passed: 1, total: 1, settings: cool }]);
   await other.finish({ outcome: "done" });
 
   const { saturated, counts } = await itemOutcomes(dir, { profileId: "m" });
-  assert.ok(saturated.has("i-1"), "always right for this model");
-  assert.ok(saturated.has("i-4"), "always right for this model");
+  assert.ok(saturated.has("i-1"), "always right across two settings and six looks");
+  assert.equal(saturated.has("i-4"), false, "two looks on one setting are not enough (S6)");
   assert.equal(saturated.has("i-2"), false, "one right and one wrong is discriminating");
   assert.equal(saturated.has("i-3"), false, "an error is not an outcome");
   assert.equal(saturated.has("i-5"), false, "one look is not enough to call it saturated");
-  assert.equal(counts["i-1"].right, 2);
+  assert.equal(counts["i-1"].right, 6);
   assert.equal(counts["i-1"].wrong, 0, "the other model's answers are ignored");
-  assert.equal(await itemOutcomes(dir, { profileId: "m", minObservations: 3 }).then((out) => out.saturated.has("i-1")), false, "two looks are under a minimum of three");
+  assert.equal(counts["i-1"].settings, 2);
+  assert.equal(await itemOutcomes(dir, { profileId: "m", minObservations: 7 }).then((out) => out.saturated.has("i-1")), false, "six looks are under a minimum of seven");
 });

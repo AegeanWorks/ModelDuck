@@ -82,7 +82,7 @@ test("a profile records which items its search used", () => {
 });
 
 test("a task preset is the tuned load settings, the speed preset and that task's settings", () => {
-  assert.deepEqual(presetFor(profile(), "code"), { contextSize: 8192, threads: 8, kvCache: "q8_0", batchSize: 512, temperature: 0.2, maxTokens: 1024 });
+  assert.deepEqual(presetFor(profile(), "code"), { contextSize: 8192, threads: 8, kvCache: "q8_0", batchSize: 512, temperature: 0.2, maxTokens: 2048 }, "a suite-fitted 1024 cap is raised to the code serving floor (M1)");
   assert.equal(presetFor(profile(), "code", "light").threads, 4, "Light keeps half the threads free");
   assert.equal(presetFor(profile(), "code", "quiet").threads, 2, "Quiet keeps three quarters of the threads free");
   const legacy = { ...profile(), speed: { fastest: { threads: 8 }, light: { threads: 4 } } };
@@ -104,6 +104,21 @@ test("a profile recipe carries settings and a receipt, and imports back", () => 
   assert.equal(imported.search.imported, true);
   assert.equal(imported.stages, null, "an imported profile is not marked as tuned here");
   assert.equal(imported.speed.quiet.threads, 2);
+});
+
+test("a recipe carries the newline and DRY settings and imports them back", () => {
+  const recipe = profileRecipe(profile());
+  recipe.tasks.code.settings = {
+    temperature: 0.2, maxTokens: 1024, penalizeNewLine: false,
+    dryStrength: 0.8, dryBase: 1.75, dryAllowedLength: 4,
+    responsePrefix: "```", customStopTriggers: ["```"],
+  };
+  const imported = importRecipe(recipe);
+  assert.deepEqual(imported.tasks.code.settings, {
+    temperature: 0.2, maxTokens: 1024, penalizeNewLine: false,
+    dryStrength: 0.8, dryBase: 1.75, dryAllowedLength: 4,
+    responsePrefix: "```", customStopTriggers: ["```"],
+  }, "tuned newline and DRY settings travel with the profile");
 });
 
 test("an imported recipe drops unknown and out-of-range settings", () => {

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { PROMPTS } from "../benchmarks/suite.mjs";
-import { CODE_GROUPS, TASKS, TASK_RUNGS, codeGroupOf, speedItems, suiteSummary, taskHoldout, taskPrompts, taskRungs, taskSubsetHash, tuneRungs, withDiscriminatingRungs } from "../benchmarks/tasks.mjs";
+import { CODE_GROUPS, TASKS, TASK_RUNGS, codeGroupOf, speedItems, suiteSummary, taskHoldout, taskLongContext, taskPrompts, taskRungs, taskSubsetHash, tuneRungs, withDiscriminatingRungs } from "../benchmarks/tasks.mjs";
 
 test("the three tasks cover every suite item exactly once", () => {
   assert.deepEqual(TASKS.map((task) => task.id), ["code", "comprehension", "recall"]);
@@ -23,7 +23,8 @@ test("an unknown task is refused with a fix", () => {
 
 test("rungs grow, nest and stop at the task's tuning items", () => {
   for (const task of TASKS) {
-    const all = taskPrompts(task.id).slice(0, taskPrompts(task.id).length - taskHoldout(task.id).length);
+    const tuned = taskPrompts(task.id).filter((prompt) => !prompt.longContext);
+    const all = tuned.slice(0, tuned.length - taskHoldout(task.id).length);
     const rungs = taskRungs(task.id);
     assert.ok(rungs.length >= 1 && rungs.length <= TASK_RUNGS.length);
     for (let index = 0; index < rungs.length; index += 1) {
@@ -41,13 +42,29 @@ test("the first rung mixes categories instead of taking the first ones in suite 
 
 test("tune rungs give each task its rungs and the load stage every task's first two rungs", () => {
   const rungs = tuneRungs(["comprehension", "recall"]);
-  assert.deepEqual(Object.keys(rungs).sort(), ["comprehension", "holdout", "load", "loadByTask", "recall", "speed"]);
+  assert.deepEqual(Object.keys(rungs).sort(), ["comprehension", "holdout", "load", "loadByTask", "longContext", "pool", "recall", "speed"]);
   assert.deepEqual(rungs.loadByTask.comprehension, taskRungs("comprehension")[1], "each task's share of the last load level");
   assert.deepEqual(rungs.speed, [speedItems()]);
   assert.deepEqual(rungs.comprehension, taskRungs("comprehension"));
   assert.equal(rungs.load.length, 2);
   assert.deepEqual(rungs.load[0], [...taskRungs("comprehension")[0], ...taskRungs("recall")[0]]);
   assert.deepEqual(rungs.load[1], [...taskRungs("comprehension")[1], ...taskRungs("recall")[1]]);
+});
+
+test("long-context items are listed separately and stay out of the speed workload (M6)", () => {
+  assert.deepEqual(taskLongContext("recall"), ["recall-long-4k", "recall-long-8k", "recall-long-16k"]);
+  const longs = new Set(taskLongContext("recall"));
+  assert.ok(!speedItems().some((id) => longs.has(id)), "a 16k prefill would dominate the speed workload");
+  assert.deepEqual(tuneRungs(["recall"]).longContext.recall, [...longs]);
+});
+
+test("the pool holds the whole tuning set behind the search rungs (S1/S3)", () => {
+  const rungs = tuneRungs(["code"]);
+  assert.ok(rungs.pool.code.length > rungs.code.at(-1).length, "code searches 48 of a larger pool");
+  const searched = new Set(rungs.code.flat());
+  const unused = rungs.pool.code.filter((id) => !searched.has(id));
+  assert.equal(unused.length, rungs.pool.code.length - rungs.code.at(-1).length);
+  assert.deepEqual(rungs.pool.code.slice(0, rungs.code.at(-1).length), rungs.code.at(-1), "rungs are prefixes of the pool");
 });
 
 test("the task subset hash is stable and changes with an item definition", () => {
@@ -80,7 +97,7 @@ test("saturated items leave the search rungs but stay in the final set", () => {
   const rungs = tuneRungs(["comprehension"]);
   const full = rungs.comprehension.at(-1);
   const saturated = new Set(full.slice(0, 20));
-  const { rungs: search, tunedOn } = withDiscriminatingRungs(rungs, saturated, ["comprehension"]);
+  const { rungs: search, tunedOn } = withDiscriminatingRungs(rungs, saturated, ["comprehension"], { salt: "test", readmitFraction: 0 });
   const keep = full.slice(20);
   assert.equal(search.comprehension.at(-1).length, keep.length);
   assert.ok(search.comprehension.every((rung) => rung.every((id) => !saturated.has(id))));
@@ -91,11 +108,21 @@ test("saturated items leave the search rungs but stay in the final set", () => {
   assert.deepEqual(search.loadByTask.comprehension, search.comprehension[1]);
 });
 
+test("a rotating tenth of saturated items is re-admitted to catch drift (S6)", () => {
+  const rungs = tuneRungs(["comprehension"]);
+  const full = rungs.comprehension.at(-1);
+  const saturated = new Set(full.slice(0, 20));
+  const { rungs: search } = withDiscriminatingRungs(rungs, saturated, ["comprehension"], { salt: "m" });
+  const readmitted = search.comprehension.at(-1).filter((id) => saturated.has(id));
+  assert.ok(readmitted.length > 0 && readmitted.length <= 4, `about 10% comes back, got ${readmitted.length}`);
+  assert.deepEqual(search.final.comprehension, full);
+});
+
 test("a task left with too few discriminating items keeps its whole search set", () => {
   const rungs = tuneRungs(["comprehension"]);
   const full = rungs.comprehension.at(-1);
   const nearlyAll = new Set(full.slice(0, full.length - 5));
-  const { rungs: search, tunedOn } = withDiscriminatingRungs(rungs, nearlyAll, ["comprehension"]);
+  const { rungs: search, tunedOn } = withDiscriminatingRungs(rungs, nearlyAll, ["comprehension"], { readmitFraction: 0 });
   assert.deepEqual(search.comprehension, rungs.comprehension);
   assert.equal(tunedOn.comprehension.fellBack, true);
   assert.deepEqual(tunedOn.comprehension.ids, full);

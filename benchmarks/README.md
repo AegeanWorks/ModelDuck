@@ -32,7 +32,7 @@ once on the target machine before using the cross-model gate as a regression
 check. The tuned-profile gate has no committed `baseline-profiles.json` yet, so
 `npm run tune:gate` exits with `tune_baseline_missing` rather than comparing; run
 `npm run tune:gate -- --update-baseline` once to create it.
-Suite v14 has 262 items in ten categories:
+Suite v17 has 265 items in ten categories (262 searched; 3 long-context needles are KV-confirmation only):
 
 | Category | Items | What is measured |
 |---|---:|---|
@@ -43,7 +43,7 @@ Suite v14 has 262 items in ten categories:
 | bugfix-long | 12 | Multi-line functions with two or three interacting bugs, checked by several cases |
 | bugfix-repo | 12 | A user's bug report against a multi-file codebase; the corrected function must pass the tests with the rest loaded |
 | public-code | 20 | HumanEval (12) and MBPP (8) tasks translated from Python to JavaScript, checked by their original cases |
-| code-comprehension | 64 | Read a small JavaScript function and report what it returns for eight inputs per function; the expected value is computed from the exact code shown |
+| code-comprehension | 64 | Read a small JavaScript function and report what it returns; 32 functions with two inputs each, so clustered inputs of one function no longer pose as independent items; the expected value is computed from the exact code shown |
 | context | 14 | Long-context documents: needle lookups, code in a long document, two-step lookups, event order, absence and cross-references |
 | recall | 48 | Locker registers, PIN lookups at four depths, reverse lookups, latest status, two balances and colour counts |
 
@@ -59,7 +59,7 @@ quarter of its items for the unseen check (ADR-054, ADR-072):
 |---|---|---|---:|---|---:|
 | `code` | Code | write, fix, codebase and public code | 136 | 12, 24, 48 | 35 |
 | `comprehension` | Code comprehension | read a function and report its result | 64 | 12, 24, 48 | 16 |
-| `recall` | Long context | needle, lookup and cross-reference | 62 | 12, 24, 46 | 16 |
+| `recall` | Long context | needle, lookup and cross-reference | 65 (62 searched; 3 long needles confirm the KV choice only) | 12, 24, 46 | 16 |
 
 `x-modelduck-task` and the tune verbs accept these three ids; the default is
 `code`. The API's `GET /api/benchmarks/suite` returns the same task, type and

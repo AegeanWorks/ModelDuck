@@ -116,6 +116,14 @@ test("sampling fields clamp and presets are benchmark candidates", () => {
   assert.equal(settings.gpuBackend, "vulkan");
   assert.equal(settings.gpuLayers, "auto");
 
+  const dry = normalizeSettings({ dryStrength: 9, dryBase: -1, dryAllowedLength: 0 });
+  assert.equal(dry.dryStrength, 1, "DRY strength clamps to 0..1");
+  assert.equal(dry.dryBase, 1.75, "a non-positive DRY base falls back to the default");
+  assert.equal(dry.dryAllowedLength, 1, "the DRY window clamps to at least 1");
+  const dryDefaults = normalizeSettings({});
+  assert.equal(dryDefaults.dryStrength, 0, "DRY is off unless tuned on");
+  assert.equal(dryDefaults.dryAllowedLength, 4, "code-length repeats are allowed");
+
   assert.deepEqual(
     Object.keys(SETTING_PRESETS).sort(),
     ["balanced", "quality", "token_saver"],

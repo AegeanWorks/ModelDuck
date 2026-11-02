@@ -28,6 +28,11 @@ export const CODE_GROUPS = Object.freeze({
 
 const CODE_GROUP_OF = new Map(Object.entries(CODE_GROUPS).flatMap(([group, categories]) => categories.map((category) => [category, group])));
 
+/** The task an item category belongs to, or null. */
+export function taskIdOfCategory(category) {
+  return TASKS.find((task) => task.categories.includes(category))?.id ?? null;
+}
+
 /** The coding view an item's category belongs to, or null for other tasks. */
 export function codeGroupOf(category) {
   return CODE_GROUP_OF.get(category) ?? null;
@@ -73,25 +78,43 @@ function stratified(prompts) {
 }
 
 /**
- * A task split into the items tuned on and those held back: the last quarter of every
- * family bucket, so each kind of item is checked unseen, both in stratified order.
+ * A task split into the items tuned on and those held back (S5). By default
+ * the last quarter of every family bucket is held back, so each kind of item
+ * is checked unseen, both in stratified order. When every bucket is tiny
+ * (one function = one bucket), splitting buckets would tear clusters apart
+ * and shrink the tuned pool below rung size: every fourth bucket is held
+ * back wholly instead, so whole functions stay unseen (S4/S5) while the
+ * tuned pool keeps full rungs. Long-context items (M6) stay out of both:
+ * the search rungs and the holdout keep their sizes, and the quality stage
+ * consults them separately.
  */
 function split(taskId, prompts) {
-  const items = taskPrompts(taskId, prompts);
+  const items = taskPrompts(taskId, prompts).filter((prompt) => !prompt.longContext);
   const buckets = new Map();
   for (const prompt of items) {
     const key = bucketKey(prompt);
     if (!buckets.has(key)) buckets.set(key, []);
     buckets.get(key).push(prompt.id);
   }
-  const held = new Set([...buckets.values()].flatMap((ids) => {
-    const count = Math.round(ids.length * HOLDOUT_SHARE);
-    if (!count) return [];
-    return Array.from({ length: count }, (_, index) =>
-      ids[Math.floor(((index + 0.5) * ids.length) / count)]);
-  }));
+  let held;
+  if ([...buckets.values()].every((ids) => ids.length <= 2)) {
+    const keys = [...buckets.keys()].sort();
+    held = new Set(keys.filter((_key, index) => index % 4 === 3).flatMap((key) => buckets.get(key)));
+  } else {
+    held = new Set([...buckets.values()].flatMap((ids) => {
+      const count = Math.round(ids.length * HOLDOUT_SHARE);
+      if (!count) return [];
+      return Array.from({ length: count }, (_, index) =>
+        ids[Math.floor(((index + 0.5) * ids.length) / count)]);
+    }));
+  }
   const order = stratified(items);
   return { tune: order.filter((id) => !held.has(id)), held: order.filter((id) => held.has(id)) };
+}
+
+/** Long-context KV confirmation items (M6): searched never, used only to confirm a KV choice at the budgeted context. */
+export function taskLongContext(taskId, prompts = PROMPTS) {
+  return taskPrompts(taskId, prompts).filter((prompt) => prompt.longContext).map((prompt) => prompt.id);
 }
 
 /** The items a task holds back from tuning, across its categories. */
@@ -118,6 +141,11 @@ export function tuneRungs(taskIds = TASKS.map((task) => task.id), prompts = PROM
   // Each task's share of the last load level, to check the shared quality settings per task (ADR-057).
   rungs.loadByTask = Object.fromEntries(taskIds.map((taskId) => [taskId, rungs[taskId][1] ?? rungs[taskId].at(-1)]));
   rungs.holdout = Object.fromEntries(taskIds.map((taskId) => [taskId, taskHoldout(taskId, prompts)]));
+  // The full tuning pool per task: rungs are prefixes of it, and whatever the
+  // search rungs leave out confirms a rung leader before it stands (S1/S3).
+  rungs.pool = Object.fromEntries(taskIds.map((taskId) => [taskId, split(taskId, prompts).tune]));
+  // Long-context KV confirmation items (M6): searched never.
+  rungs.longContext = Object.fromEntries(taskIds.map((taskId) => [taskId, taskLongContext(taskId, prompts)]));
   return rungs;
 }
 
@@ -126,14 +154,23 @@ export function tuneRungs(taskIds = TASKS.map((task) => task.id), prompts = PROM
  * this model, keeping the rung sizes, and keep the whole tuning set for the
  * final check (`final`). A task with too few discriminating items keeps every
  * item, so a filtered search never rests on a handful of questions (ADR-064).
+ * A deterministic 10% of saturated items is re-admitted (S6): `salt` rotates
+ * the subset (per model by default), so drift is caught without re-asking all.
  */
-export function withDiscriminatingRungs(rungs, saturated = null, taskIds = TASKS.map((task) => task.id).filter((id) => Array.isArray(rungs[id]))) {
+function hash32(text) {
+  let hash = 5381;
+  for (let index = 0; index < text.length; index += 1) hash = ((hash * 33) ^ text.charCodeAt(index)) >>> 0;
+  return hash;
+}
+
+export function withDiscriminatingRungs(rungs, saturated = null, taskIds = TASKS.map((task) => task.id).filter((id) => Array.isArray(rungs[id])), { salt = "", readmitFraction = 0.1 } = {}) {
   const search = { ...rungs, final: {} };
   const tunedOn = {};
+  const readmit = (id) => saturated?.has(id) && hash32(`${salt}\n${id}`) % 10 < Math.round(readmitFraction * 10);
   for (const taskId of taskIds) {
     const full = rungs[taskId].at(-1);
     search.final[taskId] = full;
-    const keep = saturated ? full.filter((id) => !saturated.has(id)) : full;
+    const keep = saturated ? full.filter((id) => !saturated.has(id) || readmit(id)) : full;
     if (keep.length < Math.min(TASK_RUNGS[0], full.length)) {
       tunedOn[taskId] = { items: full.length, ids: full, excluded: [], fellBack: true };
       continue;
@@ -147,9 +184,9 @@ export function withDiscriminatingRungs(rungs, saturated = null, taskIds = TASKS
   return { rungs: search, tunedOn };
 }
 
-/** The speed stage's fixed workload: the first item of every task, then a second item for each task. */
+/** The speed stage's fixed workload: the first item of every task, then a second item for each task. Long-context items (M6) stay out: a 16k-token prefill would dominate the workload and is not what the speed settings are chosen for. */
 export function speedItems(prompts = PROMPTS) {
-  const order = (taskId) => stratified(taskPrompts(taskId, prompts));
+  const order = (taskId) => stratified(taskPrompts(taskId, prompts).filter((prompt) => !prompt.longContext));
   return [
     ...TASKS.map((task) => order(task.id)[0]),
     order("code")[1],

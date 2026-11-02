@@ -25,6 +25,12 @@ const SAMPLING_DEFAULTS = Object.freeze({
   topK: 40,
   minP: 0.05,
   repeatPenalty: 1.1,
+  penalizeNewLine: true,
+  dryStrength: 0,
+  dryBase: 1.75,
+  dryAllowedLength: 4,
+  responsePrefix: "",
+  customStopTriggers: [],
   maxTokens: 512,
   reasoning: "off",
   promptRepeat: 1,
@@ -45,6 +51,7 @@ export function createEvaluator({ engine, modelId, prompts = PROMPTS, systemProm
   const byId = new Map(prompts.map((prompt) => [prompt.id, prompt]));
   let loadedSignature = null;
   let memoryBytes = null;
+  let gpuVram = null;
 
   async function ensureLoaded(settings) {
     const load = { ...LOAD_DEFAULTS, ...pick(settings, LOAD_KEYS), sequences: Math.max(1, parallel) };
@@ -52,7 +59,10 @@ export function createEvaluator({ engine, modelId, prompts = PROMPTS, systemProm
     if (signature === loadedSignature) return load;
     loadedSignature = null;
     await engine.load({ modelId, ...load, maxThreads: load.threads });
-    memoryBytes = (await engine.status())?.memory?.cpuRam ?? null;
+    const memory = (await engine.status())?.memory ?? null;
+    memoryBytes = memory?.cpuRam ?? null;
+    // M9: the KV cache lives in VRAM on a GPU, so the tie-break needs both.
+    gpuVram = memory?.gpuVram ?? null;
     await warmUp(load);
     loadedSignature = signature;
     return load;
@@ -110,10 +120,15 @@ export function createEvaluator({ engine, modelId, prompts = PROMPTS, systemProm
         ms: result.stats?.ms ?? Date.now() - started,
         tokensPerSecond: result.stats?.tokensPerSecond ?? null,
         outputTokens: result.stats?.outputTokens ?? null,
+        // Serving evidence (M1/M9/V4): the budget cap, prompt size and TTFT stay
+        // with every answer instead of being dropped like before.
+        stopReason: result.stats?.stopReason ?? null,
+        promptTokens: result.stats?.promptTokens ?? null,
+        firstTokenMs: result.stats?.firstTokenMs ?? null,
         digest: digestOf(result.text),
       };
     } catch (error) {
-      return { passed: 0, total: checkCount(prompt), error: error.message, ms: Date.now() - started, tokensPerSecond: null, outputTokens: null, digest: null };
+      return { passed: 0, total: checkCount(prompt), error: error.message, ms: Date.now() - started, tokensPerSecond: null, outputTokens: null, stopReason: null, promptTokens: null, firstTokenMs: null, digest: null };
     } finally {
       clearTimeout(timer);
       engine.dropSession(conversationId);
@@ -132,7 +147,7 @@ export function createEvaluator({ engine, modelId, prompts = PROMPTS, systemProm
     } catch (error) {
       // Unstable KV types can refuse to load; that is a result for these settings, not a reason to stop the tune.
       const reason = `load failed: ${error.message}`;
-      return { prompts: items.map((prompt) => ({ id: prompt.id, passed: 0, total: checkCount(prompt), error: reason, ms: null, tokensPerSecond: null })), memoryBytes: null };
+      return { prompts: items.map((prompt) => ({ id: prompt.id, passed: 0, total: checkCount(prompt), error: reason, ms: null, tokensPerSecond: null })), memoryBytes: null, gpuVram: null };
     }
     const results = new Array(items.length);
     const width = settings.parallelism === 1 ? 1 : Math.max(1, parallel);
@@ -148,7 +163,7 @@ export function createEvaluator({ engine, modelId, prompts = PROMPTS, systemProm
       }
     };
     await Promise.all(Array.from({ length: Math.min(width, items.length) }, worker));
-    return { prompts: results, memoryBytes };
+    return { prompts: results, memoryBytes, gpuVram };
   };
   // The context budget loads the model first so the GPU's free memory can be read (ADR-043).
   evaluate.ensureLoaded = ensureLoaded;

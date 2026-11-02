@@ -22,7 +22,7 @@ import {
 test("the benchmark keeps at least three different small model classes", () => {
   assert.ok(BENCHMARK_MODELS.length >= 3);
   assert.ok(new Set(BENCHMARK_MODELS.map((model) => model.kind)).size >= 3);
-  assert.equal(PROMPTS.length, 262);
+  assert.equal(PROMPTS.length, 265);
 });
 
 test("every matrix variant asks only for shipped prompt ids", () => {
@@ -121,7 +121,7 @@ test("fenced answers and trailing punctuation normalize for exact checks", () =>
 });
 
 test("exact checks are deterministic on the coding suite", async () => {
-  const exactPrompt = PROMPTS.find((prompt) => prompt.id === "read-sumTo-5");
+  const exactPrompt = PROMPTS.find((prompt) => prompt.id === "read-sumTo-2");
   const exact = await evaluateResponse(exactPrompt, "55");
   assert.equal(exact.passed, exact.total);
   const wrong = await evaluateResponse(exactPrompt, "54");

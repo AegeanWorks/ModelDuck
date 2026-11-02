@@ -36,7 +36,7 @@ test("suite v10 keeps a substantial long-context workload", () => {
   assert.ok(SUITE_VERSION >= 10);
   assert.ok(PROMPTS.length >= 198);
   assert.equal(new Set(PROMPTS.map((prompt) => prompt.id)).size, PROMPTS.length, "ids stay unique");
-  assert.equal(taskPrompts("recall").length, 62);
+  assert.equal(taskPrompts("recall").length, 65);
 });
 
 test("every generated recall answer can be read back from its own text, and only once", () => {

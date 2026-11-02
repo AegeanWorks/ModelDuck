@@ -32,9 +32,12 @@ function summarise(entry, verdict) {
 
 /**
  * Probe the devices from `start`. Resolves `{ settings, probe, reason, aborted }`;
- * `settings` is `{ gpuBackend, gpuLayers }` for the chosen device.
+ * `settings` is `{ gpuBackend, gpuLayers }` for the chosen device. `loadItems`
+ * is the larger mixed rung used only when a fast GPU loses one speed item (S7).
  */
-export async function deviceStage(context, { backends, layers = 0, start, items, forced }) {
+const LOAD_RECHECK_MIN = 8;
+
+export async function deviceStage(context, { backends, layers = 0, start, items, forced, loadItems = null }) {
   const { measurements, options } = context;
   const seeds = options.seeds.slice(0, 1);
   const { first, fallback } = candidatePatches(backends, layers);
@@ -61,18 +64,54 @@ export async function deviceStage(context, { backends, layers = 0, start, items,
 
   const cpu = entries[0];
   const verdicts = new Map();
+  const judge = (entry) => {
+    if (entry.stats.failed) return `did not run: ${entry.stats.error}`;
+    if (!cpu.stats.failed && passedOf(entry) < passedOf(cpu)) return `answered ${passedOf(entry)} of ${entry.stats.items} correctly vs ${passedOf(cpu)} on the CPU`;
+    const delta = cpu.stats.failed ? { significant: true, meanDelta: 1 } : costDelta(cpu.stats, entry.stats, options.speedTie, "itemSpeed");
+    return delta.significant && delta.meanDelta > 0 ? "faster than the CPU" : "not measurably faster than the CPU";
+  };
+  for (const entry of entries.slice(1)) verdicts.set(entry, judge(entry));
+  // A full offload that loads but shares memory (spilled, slow) loses to the
+  // CPU without a partial offload ever being tried (G7): try 75% then 50%.
   for (const entry of entries.slice(1)) {
-    if (entry.stats.failed) verdicts.set(entry, `did not run: ${entry.stats.error}`);
-    else if (!cpu.stats.failed && passedOf(entry) < passedOf(cpu)) verdicts.set(entry, `answered ${passedOf(entry)} of ${entry.stats.items} correctly vs ${passedOf(cpu)} on the CPU`);
-    else {
-      const delta = cpu.stats.failed ? { significant: true, meanDelta: 1 } : costDelta(cpu.stats, entry.stats, options.speedTie, "itemSpeed");
-      verdicts.set(entry, delta.significant && delta.meanDelta > 0 ? "faster than the CPU" : "not measurably faster than the CPU");
+    if (entry.patch.gpuBackend === "cpu" || entry.patch.gpuLayers !== "max") continue;
+    if (entry.stats.failed || verdicts.get(entry) !== "not measurably faster than the CPU") continue;
+    for (const attempt of fallback(entry.patch.gpuBackend)) {
+      if (entries.some((existing) => existing.patch.gpuBackend === attempt.gpuBackend && existing.patch.gpuLayers === attempt.gpuLayers)) break;
+      const smaller = await measure(attempt);
+      if (!smaller) return { aborted: true };
+      verdicts.set(smaller, judge(smaller));
+      if (!smaller.stats.failed) break;
     }
   }
-  const winners = entries.slice(1).filter((entry) => verdicts.get(entry) === "faster than the CPU");
+  let winners = entries.slice(1).filter((entry) => verdicts.get(entry) === "faster than the CPU");
+  // One rounding-induced loss on six items rejects a 5x GPU (S7): when the
+  // fastest GPU loses exactly one item but is at least twice as fast, decide
+  // accuracy on the larger load rung instead of the 6-item count.
+  let recheck = null;
+  if (!winners.length && loadItems?.length >= LOAD_RECHECK_MIN && !cpu.stats.failed) {
+    const bySpeed = entries.slice(1)
+      .filter((entry) => !entry.stats.failed && passedOf(entry) === passedOf(cpu) - 1)
+      .sort((left, right) => speedOf(right) - speedOf(left))[0];
+    const speedup = bySpeed && cpu.stats.tokensPerSecond ? (bySpeed.stats.tokensPerSecond / cpu.stats.tokensPerSecond) : 0;
+    if (bySpeed && speedup >= 2) {
+      const onLoad = [];
+      for (const patch of [CPU, bySpeed.patch]) {
+        const stats = await score(measurements, { ...start, ...patch, ...forced }, loadItems, seeds);
+        if (!stats) return { aborted: true };
+        onLoad.push({ patch, stats });
+      }
+      const [cpuLoad, gpuLoad] = onLoad;
+      recheck = { patch: bySpeed.patch, cpuPassed: Math.round((cpuLoad.stats.rate / 100) * cpuLoad.stats.items), gpuPassed: Math.round((gpuLoad.stats.rate / 100) * gpuLoad.stats.items), of: loadItems.length };
+      if (!gpuLoad.stats.failed && recheck.gpuPassed >= recheck.cpuPassed - 1) {
+        winners = [bySpeed];
+        verdicts.set(bySpeed, `one item behind on the 6 speed items but within one item on ${loadItems.length} load items, ${speedup.toFixed(1)}x faster: chosen on non-inferiority`);
+      }
+    }
+  }
   const chosen = winners.sort((left, right) => speedOf(right) - speedOf(left))[0] ?? cpu;
   verdicts.set(cpu, cpu.stats.failed ? `did not run: ${cpu.stats.error}` : chosen === cpu ? "chosen" : "slower than the chosen GPU");
-  if (chosen !== cpu) verdicts.set(chosen, "chosen");
+  if (chosen !== cpu && !verdicts.get(chosen)?.includes("non-inferiority")) verdicts.set(chosen, "chosen");
   const tokS = (entry) => (entry.stats.tokensPerSecond ? `${entry.stats.tokensPerSecond} tok/s` : `${entry.stats.latencyMs} ms/answer`);
   const reason = chosen === cpu
     ? `CPU kept (${tokS(cpu)}): no GPU option was both faster and as accurate.`
@@ -81,6 +120,7 @@ export async function deviceStage(context, { backends, layers = 0, start, items,
     settings: { ...chosen.patch },
     probe: entries.map((entry) => summarise(entry, verdicts.get(entry))),
     reason,
+    ...(recheck && { accuracyRecheck: recheck }),
     aborted: false,
   };
 }

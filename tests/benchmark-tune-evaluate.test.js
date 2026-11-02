@@ -57,6 +57,26 @@ test("sampling settings, the seed and the tuned token budget reach the engine", 
   assert.equal(sent.topK, 40);
 });
 
+test("code-only sampling keys reach the engine with off/empty defaults", async () => {
+  const engine = recordingEngine();
+  await createEvaluator({ engine, modelId: "m1" })(SETTINGS, ["read-sumTo-1"], 42);
+  const defaults = engine.chats.at(-1).settings;
+  assert.equal(defaults.dryStrength, 0);
+  assert.equal(defaults.dryBase, 1.75);
+  assert.equal(defaults.dryAllowedLength, 4);
+  assert.equal(defaults.responsePrefix, "");
+  assert.deepEqual(defaults.customStopTriggers, []);
+  await createEvaluator({ engine, modelId: "m1" })(
+    { ...SETTINGS, dryStrength: 0.8, responsePrefix: "```", customStopTriggers: ["```"] },
+    ["read-sumTo-1"],
+    43,
+  );
+  const tuned = engine.chats.at(-1).settings;
+  assert.equal(tuned.dryStrength, 0.8);
+  assert.equal(tuned.responsePrefix, "```");
+  assert.deepEqual(tuned.customStopTriggers, ["```"]);
+});
+
 test("without a tuned budget each item keeps its own", async () => {
   const engine = recordingEngine();
   await createEvaluator({ engine, modelId: "m1" })({ ...SETTINGS, maxTokens: null }, ["read-sumTo-1"], 42);
@@ -133,12 +153,12 @@ test("with parallel answers the model loads that many sequences and runs that ma
     return { text: "quack", stats: { ms: 10, tokensPerSecond: 5, outputTokens: 1 } };
   };
   const evaluate = createEvaluator({ engine, modelId: "m1", parallel: 3 });
-  const out = await evaluate(SETTINGS, ["read-sumTo-1", "read-sumTo-2", "read-sumTo-3", "needle", "code-palindrome"], 42);
+  const out = await evaluate(SETTINGS, ["read-sumTo-1", "read-sumTo-2", "read-clamp-1", "needle", "code-palindrome"], 42);
   assert.equal(engine.loads[0].sequences, 3);
   assert.equal(peak, 3);
-  assert.deepEqual(out.prompts.map((item) => item.id), ["read-sumTo-1", "read-sumTo-2", "read-sumTo-3", "needle", "code-palindrome"], "results keep item order");
+  assert.deepEqual(out.prompts.map((item) => item.id), ["read-sumTo-1", "read-sumTo-2", "read-clamp-1", "needle", "code-palindrome"], "results keep item order");
   peak = 0;
-  await evaluate({ ...SETTINGS, parallelism: 1 }, ["read-sumTo-1", "read-sumTo-2", "read-sumTo-3"], 7);
+  await evaluate({ ...SETTINGS, parallelism: 1 }, ["read-sumTo-1", "read-sumTo-2", "read-clamp-1"], 7);
   assert.equal(peak, 1, "timing stages answer one at a time");
   assert.equal(engine.loads.length, 1, "switching to one at a time does not reload the model");
 });

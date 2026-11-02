@@ -11,8 +11,23 @@ const KV_BYTES_PER_ELEMENT = Object.freeze({
   q8_0: 34 / 32, // 32 int8 values plus one f16 scale per block
   q4_0: 18 / 32, // 32 nibbles plus one f16 scale per block
 });
+
+/**
+ * Split a KV cache label into its key and value types. A "K:V" label tunes
+ * them separately (lit §3: K-precision dominates, V tolerates coarse types);
+ * a bare label uses one type for both. Unknown parts fall back to f16.
+ */
+export function splitKvCache(label) {
+  const [key, value] = String(label ?? "f16").split(":");
+  const known = (part) => (part in KV_BYTES_PER_ELEMENT ? part : "f16");
+  return { key: known(key), value: known(value ?? key) };
+}
 export const RUNTIME_RESERVE_BYTES = 256 * 1024 ** 2; // compute buffers and the runtime itself
 export const COMFORTABLE_RATIO = 0.6;
+// Budgeting against momentary free memory makes the same PC tune different
+// contexts depending on what else runs (M7). Against the total, keep this much
+// for the OS, the runtime and anything else on the machine.
+export const MEMORY_RESERVE_BYTES = 1 * 1024 ** 3;
 export const FIT_LIMIT_RATIO = 0.75;
 const CONTEXT_STEP = 512;
 
@@ -29,7 +44,11 @@ export function kvShapeFromMetadata(architectureMetadata) {
 
 export function kvBytesPerToken(shape, kvCache = "f16") {
   if (!shape) return null;
-  const element = KV_BYTES_PER_ELEMENT[kvCache] ?? KV_BYTES_PER_ELEMENT.f16;
+  // A mixed cache stores K and V at different precisions: the per-token cost
+  // is the mean of the two element sizes, times both sides (lit §3).
+  const { key, value } = splitKvCache(kvCache);
+  const element = ((KV_BYTES_PER_ELEMENT[key] ?? KV_BYTES_PER_ELEMENT.f16) +
+    (KV_BYTES_PER_ELEMENT[value] ?? KV_BYTES_PER_ELEMENT.f16)) / 2;
   return Math.ceil(2 * shape.layers * shape.kvHeads * shape.headDim * element);
 }
 
@@ -44,6 +63,31 @@ export function estimateLoad({ modelBytes, shape, contextSize, kvCache }) {
     total: weights + (kv ?? 0) + RUNTIME_RESERVE_BYTES,
     contextSize,
     kvCache,
+    estimator: "v1",
+  };
+}
+
+/**
+ * Normalize the runtime's V2 context requirements to the estimateLoad shape
+ * (M7). V2 simulates the real allocator, so it accounts for batch size,
+ * sequences, flash attention, K/V types, mmap and offloaded layers, where the
+ * formula above only scales the KV cache with context. `requirements` is the
+ * {cpuRam, gpuVram} pair; weights stay the file size, and the graph/compute
+ * buffers already live inside the V2 split, so overhead is zero.
+ */
+export function estimateLoadV2({ requirements, weights, contextSize, kvCache }) {
+  const cpuRam = Math.max(0, Number(requirements?.cpuRam) || 0);
+  const gpuVram = Math.max(0, Number(requirements?.gpuVram) || 0);
+  const w = Number(weights) || 0;
+  return {
+    weights: w,
+    kv: cpuRam + gpuVram,
+    overhead: 0,
+    total: w + cpuRam + gpuVram,
+    contextSize,
+    kvCache,
+    estimator: "v2",
+    vram: gpuVram,
   };
 }
 
@@ -57,28 +101,43 @@ function largestContextWithin(budget, { modelBytes, shape, kvCache }) {
 const gib = (bytes) => `${(bytes / 1024 ** 3).toFixed(1)} GiB`;
 
 /**
- * The context size a tune uses (ADR-043): the largest of `steps` whose load fits comfortably
- * in `availableBytes` (the device's free memory) and the model was trained for. The short test
- * questions cannot tell context sizes apart, so memory decides; with nothing fitting, or the KV
- * shape unknown, the smallest step is used.
+ * The context size a tune uses (ADR-043): the largest of `steps` whose load fits
+ * and the model was trained for. The short test questions cannot tell context
+ * sizes apart, so memory decides; with nothing fitting, or the KV shape
+ * unknown, the smallest step is used.
+ *
+ * Prefer `totalBytes` (the device's total memory minus `reserveBytes`, M7):
+ * momentary free memory includes whatever else runs — even the server's own
+ * loaded model — so the same PC tunes different contexts on different days.
+ * With only `availableBytes`, the old 60%-of-free rule applies. Either way the
+ * inputs are returned, so a profile says what budget it assumed.
  */
-export function budgetContext({ steps, modelBytes, shape, kvCache = "f16", availableBytes, trainContext = Infinity }) {
+export function budgetContext({ steps, modelBytes, shape, kvCache = "f16", availableBytes, totalBytes = null, reserveBytes = MEMORY_RESERVE_BYTES, trainContext = Infinity }) {
   const sizes = [...steps].map(Number).filter((size) => size > 0).sort((left, right) => left - right);
   const smallest = sizes[0];
-  if (!kvBytesPerToken(shape, kvCache) || !(availableBytes > 0)) {
-    return { contextSize: smallest, reason: `Free memory or the model's KV shape is unknown, so the smallest listed context (${smallest}) is used.` };
+  const inputs = {
+    modelBytes: Number(modelBytes) || null,
+    kvCache,
+    trainContext,
+    ...(totalBytes ? { totalBytes, reserveBytes } : { availableBytes: availableBytes ?? null }),
+  };
+  if (!kvBytesPerToken(shape, kvCache) || !((totalBytes ?? 0) > 0 || (availableBytes ?? 0) > 0)) {
+    return { contextSize: smallest, reason: `Memory or the model's KV shape is unknown, so the smallest listed context (${smallest}) is used.`, inputs };
   }
-  const fits = (size) => estimateLoad({ modelBytes, shape, contextSize: size, kvCache }).total <= availableBytes * COMFORTABLE_RATIO;
+  const budget = (totalBytes ?? 0) > 0 ? totalBytes - reserveBytes : availableBytes * COMFORTABLE_RATIO;
+  const basis = (totalBytes ?? 0) > 0 ? `${gib(totalBytes)} total minus ${gib(reserveBytes)} reserved` : `${gib(availableBytes)} free`;
+  const fits = (size) => estimateLoad({ modelBytes, shape, contextSize: size, kvCache }).total <= budget;
   const usable = sizes.filter((size) => size <= trainContext && fits(size));
   if (!usable.length) {
-    return { contextSize: smallest, reason: `No listed size fits comfortably in ${gib(availableBytes)} free, so the smallest (${smallest}) is used.` };
+    return { contextSize: smallest, reason: `No listed size fits in ${basis}, so the smallest (${smallest}) is used.`, inputs: { ...inputs, budget } };
   }
   const contextSize = usable.at(-1);
   const capped = sizes.some((size) => size > contextSize && size > trainContext && fits(size));
   return {
     contextSize,
-    reason: `${contextSize} is the largest listed context that fits comfortably in ${gib(availableBytes)} free with a ${kvCache} KV cache` +
+    reason: `${contextSize} is the largest listed context that fits in ${basis} with a ${kvCache} KV cache` +
       `${capped ? `; the model was trained for ${trainContext}` : ""}.`,
+    inputs: { ...inputs, budget },
   };
 }
 

@@ -6,6 +6,7 @@ import { normalizeSettings } from "./config.js";
 import { readJsonWithQuarantine, writeJsonAtomic } from "./fs-atomic.js";
 import { SUITE_VERSION } from "../benchmarks/suite.mjs";
 import { TASKS, taskSubsetHash } from "../benchmarks/tasks.mjs";
+import { TUNER_VERSION } from "../benchmarks/tune.mjs";
 import { MODEL_CATALOG } from "./model-catalog.js";
 import { systemInfo } from "./system.js";
 
@@ -22,7 +23,7 @@ export const LOAD_KEYS = Object.freeze([
 
 /** What a profile was measured on; any difference makes it stale. */
 export const FINGERPRINT_KEYS = Object.freeze([
-  "cpu", "cores", "platform", "arch", "nodeLlamaCpp", "suiteVersion", "taskHash", "modelFile", "modelSize",
+  "cpu", "cores", "platform", "arch", "nodeLlamaCpp", "suiteVersion", "taskHash", "modelFile", "modelSize", "tunerVersion",
 ]);
 
 const CATALOG_ID = /^[a-z0-9][a-z0-9._-]*$/i;
@@ -81,12 +82,24 @@ export const SPEED_PRESETS = Object.freeze(["fastest", "light", "quiet"]);
  * speed preset, plus that task's tuned sampling and prompt settings. Only
  * tuned keys are returned, so everything else keeps its default.
  */
+/**
+ * A suite-fitted token budget must not cap real requests (M1): the suite's
+ * answers are short, while a file-wide refactor is not. A tuned cap below the
+ * floor is raised to it on serving; explicit `max_tokens` in the request still wins.
+ */
+export const SERVING_TOKEN_FLOOR = Object.freeze({ code: 2048, comprehension: 1024, recall: 1024 });
+
 export function presetFor(profile, taskId, speedPreset = "fastest") {
   if (!profile) return null;
   // A profile from before Quiet falls back to Light rather than to the fastest threads.
   const preset = profile.speed?.[speedPreset] ?? (speedPreset === "quiet" ? profile.speed?.light : null) ?? {};
   const load = { ...profile.load.settings, ...preset };
-  return { ...pick(load, LOAD_KEYS), ...(profile.tasks?.[taskId]?.settings ?? {}) };
+  const settings = { ...pick(load, LOAD_KEYS), ...(profile.tasks?.[taskId]?.settings ?? {}) };
+  const floor = SERVING_TOKEN_FLOOR[taskId] ?? 1024;
+  if (Number.isFinite(settings.maxTokens) && settings.maxTokens < floor) {
+    settings.maxTokens = floor;
+  }
+  return settings;
 }
 
 export async function saveProfile(directory, profile) {
@@ -110,7 +123,9 @@ export function typeWarnings(profile) {
 // A portable profile (ADR-067): what to apply, where it was measured, and a compact receipt.
 export const RECIPE_SCHEMA = 1;
 const TASK_SETTING_KEYS = Object.freeze([
-  "temperature", "maxTokens", "repeatPenalty", "minP", "topP", "topK", "systemPrompt", "reasoning", "promptRepeat",
+  "temperature", "maxTokens", "repeatPenalty", "penalizeNewLine", "dryStrength", "dryBase", "dryAllowedLength",
+  "responsePrefix", "customStopTriggers",
+  "minP", "topP", "topK", "systemPrompt", "reasoning", "promptRepeat",
 ]);
 const TASK_IDS = new Set(TASKS.map((task) => task.id));
 const finiteOrNull = (value) => (typeof value === "number" && Number.isFinite(value) ? value : null);
@@ -278,6 +293,7 @@ const STALE_REASONS = Object.freeze({
   arch: (saved, now) => `The CPU architecture changed (${saved} → ${now})`,
   modelFile: (saved, now) => `The model file changed (${saved} → ${now ?? "not installed"})`,
   modelSize: () => "The model file's size changed, so it is a different build",
+  tunerVersion: (saved, now) => `The tuner's decision rules changed (v${saved} → v${now})`,
 });
 
 /** A stale profile is still used; this says what changed and that a re-tune would refresh it. */
@@ -298,6 +314,7 @@ export async function currentFingerprint(entry, { system = systemInfo(), nodeLla
     nodeLlamaCpp: nodeLlamaCpp ?? (await runtimeVersion),
     suiteVersion: SUITE_VERSION,
     taskHash: taskSubsetHash(),
+    tunerVersion: TUNER_VERSION,
     modelFile: entry ? path.basename(String(entry.fileName).replace(/\\/g, "/")) : null,
     modelSize: entry?.size ?? null,
   };

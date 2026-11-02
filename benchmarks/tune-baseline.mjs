@@ -1,21 +1,44 @@
 /**
- * The tune gate's baseline (G-001, G-003): each core model's tuned settings
- * and the per-task rates they reached. The gate re-measures those settings
- * after a change and fails on a quality drop beyond one item.
+ * The tune gate's baseline (G-001, G-003, V1): each core model's tuned settings,
+ * the per-task rates they reached, and the per-item majority outcomes the
+ * paired decision needs. The gate re-measures those settings after a change and
+ * fails on a paired, Holm-adjusted regression beyond one item — naming the
+ * regressed items. Latency is reported but never gates.
  */
-export const BASELINE_SCHEMA = 1;
-export const IDENTITY_KEYS = Object.freeze(["suiteVersion", "taskHash", "nodeLlamaCpp"]);
+import { holm, mcnemarExact } from "./stats.mjs";
+import { TUNER_VERSION } from "./tune.mjs";
+
+export { TUNER_VERSION };
+
+export const BASELINE_SCHEMA = 2;
+// Hardware is recorded but advisory: a baseline from one PC is comparable on
+// another, with a warning, since thread rounding alone flips answers (D5/M3).
+export const IDENTITY_KEYS = Object.freeze(["suiteVersion", "taskHash", "nodeLlamaCpp", "tunerVersion"]);
 
 const round = (value) => Number(value.toFixed(1));
 
-/** What the gate keeps of one profile: settings and rates, without the sweep log. */
-export function baselineEntry(profile) {
+const outcomesOf = (stats) => {
+  if (!stats) return null;
+  if (stats.outcomes && typeof stats.outcomes === "object") return { ...stats.outcomes };
+  if (stats.majority instanceof Map) return Object.fromEntries([...stats.majority].map(([id, passed]) => [id, passed ? 1 : 0]));
+  return null;
+};
+
+/** What the gate keeps of one profile: settings, rates and per-item outcomes, without the sweep log. */
+export function baselineEntry(profile, { hardware = null } = {}) {
   return {
     load: { ...profile.load.settings },
     tasks: Object.fromEntries(Object.entries(profile.tasks).map(([task, preset]) => [
       task,
-      { settings: { ...preset.settings }, rate: preset.stats?.rate ?? null, items: preset.stats?.items ?? null, latencyMs: preset.stats?.latencyMs ?? null },
+      {
+        settings: { ...preset.settings },
+        rate: preset.stats?.rate ?? null,
+        items: preset.stats?.items ?? null,
+        latencyMs: preset.stats?.latencyMs ?? null,
+        outcomes: outcomesOf(preset.stats),
+      },
     ])),
+    ...(hardware && { hardware: { ...hardware } }),
   };
 }
 
@@ -25,13 +48,42 @@ export function comparability(baseline, identity) {
   return IDENTITY_KEYS.filter((key) => baseline[key] !== identity[key]);
 }
 
+/** Hardware warning: the same settings answer differently on another CPU/GPU (D5/M3). */
+export function hardwareWarning(baseline, hardware) {
+  if (!baseline || !hardware) return null;
+  const saved = baseline.hardware ?? baseline.models?.[Object.keys(baseline.models ?? {})[0]]?.hardware;
+  if (!saved) return "the baseline records no hardware; treat small deltas as noise";
+  const changed = ["cpu", "gpu", "threads"].filter((key) => saved[key] !== undefined && hardware[key] !== undefined && saved[key] !== hardware[key]);
+  return changed.length ? `baseline hardware (${changed.map((key) => `${key}=${saved[key]}`).join(", ")}) differs from this machine` : null;
+}
+
+function pairedOutcomes(savedOutcomes, nowOutcomes) {
+  let b = 0;
+  let c = 0;
+  const regressed = [];
+  for (const [id, saved] of Object.entries(savedOutcomes ?? {})) {
+    if (!(id in (nowOutcomes ?? {}))) continue;
+    const was = Boolean(saved);
+    const now = Boolean(nowOutcomes[id]);
+    if (was && !now) {
+      b += 1;
+      regressed.push(id);
+    } else if (!was && now) c += 1;
+  }
+  return { b, c, pValue: round(mcnemarExact(b, c), 4), regressed };
+}
+
 /**
  * Compare re-measured task rates with the baseline. `current` maps model →
- * task → { rate, items, latencyMs }. A drop larger than one item is a
+ * task → { rate, items, latencyMs, outcomes? }. With per-item outcomes on both
+ * sides the decision is paired (McNemar, Holm across a model's tasks); without
+ * them it falls back to the one-item rate rule. A drop larger than one item is a
  * regression; latency is reported but never gates, since it depends on the machine.
  */
-export function compareToBaseline(baseline, current, { toleranceItems = 1 } = {}) {
+export function compareToBaseline(baseline, current, { toleranceItems = 1, alpha = 0.05 } = {}) {
   const rows = [];
+  const pValues = [];
+  const order = [];
   for (const [model, entry] of Object.entries(baseline.models ?? {})) {
     for (const [task, saved] of Object.entries(entry.tasks)) {
       const now = current[model]?.[task];
@@ -41,7 +93,8 @@ export function compareToBaseline(baseline, current, { toleranceItems = 1 } = {}
       }
       const tolerance = (toleranceItems / (now.items || saved.items || 1)) * 100;
       const delta = round(now.rate - saved.rate);
-      rows.push({
+      const paired = saved.outcomes && now.outcomes ? pairedOutcomes(saved.outcomes, now.outcomes) : null;
+      const row = {
         model,
         task,
         baselineRate: saved.rate,
@@ -49,9 +102,28 @@ export function compareToBaseline(baseline, current, { toleranceItems = 1 } = {}
         delta,
         tolerance: round(tolerance),
         regression: delta < -tolerance,
-        latencyDeltaMs: saved.latencyMs !== null && now.latencyMs !== null ? round(now.latencyMs - saved.latencyMs) : null,
-      });
+        latencyDeltaMs: saved.latencyMs !== null && saved.latencyMs !== undefined && now.latencyMs !== null && now.latencyMs !== undefined ? round(now.latencyMs - saved.latencyMs) : null,
+        ...(paired && { b: paired.b, c: paired.c, pValue: paired.pValue, regressed: paired.regressed }),
+      };
+      rows.push(row);
+      if (paired) {
+        pValues.push(paired.pValue);
+        order.push(row);
+      }
     }
+  }
+  // Holm across the paired comparisons: a noisy drop on one task must survive
+  // correction before it fails the gate (V1).
+  if (pValues.length) {
+    const adjusted = holm(pValues);
+    order.forEach((row, index) => {
+      row.pAdjusted = round(adjusted[index], 4);
+      // A paired, significant loss beyond the item tolerance fails; a bare rate
+      // dip without paired significance does not (it is noise until proven).
+      if (row.b !== undefined) {
+        row.regression = row.b > row.c && row.pAdjusted <= alpha && row.delta < -row.tolerance;
+      }
+    });
   }
   return { passed: rows.every((row) => !row.regression), rows };
 }

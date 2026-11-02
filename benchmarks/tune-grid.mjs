@@ -88,7 +88,9 @@ export const DEFAULT_STEPS = freezeDeep({
   lanes: { cpu: 1, gpu: 2 },
   load: {
     contextSize: [2048, 4096, 8192, 16384],
-    kvCache: ["f16", "q8_0", "q4_0"],
+    // Symmetric q4_0 is off the default list (lit §3: catastrophic at context);
+    // the mixed K/V Pareto point is measured instead. q4_0 stays a valid opt-in.
+    kvCache: ["f16", "q8_0", "q8_0:q4_0"],
     flashAttention: ["on", "off"],
     useMmap: ["on", "off"],
     batchSize: [64, 128, 256, 512, 1024, 2048],
@@ -100,9 +102,11 @@ export const DEFAULT_STEPS = freezeDeep({
     temperature: [0, 0.2, 0.4, 0.6, 0.8, 1],
     maxTokens: { code: TOKEN_STEPS, comprehension: TOKEN_STEPS, recall: TOKEN_STEPS },
     repeatPenalty: [1, 1.05, 1.1, 1.15, 1.2],
+    dryStrength: [0, 0.8],
     minP: [0, 0.05, 0.1, 0.15, 0.2],
     topP: [0.8, 0.85, 0.9, 0.95, 1],
     topK: [0, 20, 40],
+    penalizeNewLine: [true, false],
   },
   prompt: {
     // The prompt the earlier stages answered with comes first, as the reference.
@@ -120,7 +124,7 @@ const oneOf = (...allowed) => (value) => allowed.includes(value);
 /** The ranges the settings form accepts (`normalizeSettings`); a step outside one would be silently clamped. */
 const VALID = Object.freeze({
   contextSize: number(512, 32768, true),
-  kvCache: oneOf("f16", "q8_0", "q4_0"),
+  kvCache: oneOf("f16", "q8_0", "q4_0", "q8_0:q4_0"),
   flashAttention: oneOf("auto", "on", "off"),
   useMmap: oneOf("auto", "on", "off"),
   batchSize: number(32, 8192, true),
@@ -130,6 +134,7 @@ const VALID = Object.freeze({
   temperature: number(0, 2),
   maxTokens: number(16, 8192, true),
   repeatPenalty: number(1, 2),
+  dryStrength: number(0, 1),
   minP: number(0, 1),
   topP: number(0.05, 1),
   topK: number(0, 200, true),
@@ -197,9 +202,11 @@ export function normalizeSteps(input = {}) {
         list(`maxTokens.${task}`, sampling.maxTokens?.[task], fallback, VALID.maxTokens),
       ])),
       repeatPenalty: list("repeatPenalty", sampling.repeatPenalty, defaults.sampling.repeatPenalty),
+      dryStrength: list("dryStrength", sampling.dryStrength, defaults.sampling.dryStrength, VALID.dryStrength),
       minP: list("minP", sampling.minP, defaults.sampling.minP),
       topP: list("topP", sampling.topP, defaults.sampling.topP),
       topK: list("topK", sampling.topK, defaults.sampling.topK),
+      penalizeNewLine: list("penalizeNewLine", sampling.penalizeNewLine, defaults.sampling.penalizeNewLine, (value) => typeof value === "boolean"),
     },
     prompt: {
       systemPrompt: list("systemPrompt", prompt.systemPrompt, defaults.prompt.systemPrompt),
@@ -251,19 +258,77 @@ export function speedAxes(hardware = {}, steps = DEFAULT_STEPS.load) {
 }
 
 /**
- * Stage 3: sampling for one task. Temperature first; min-p, top-p and top-k
- * only drop unlikely tokens, so they cannot change a greedy (temperature 0) answer.
+ * One sampler-profile axis instead of three interacting ones (G2): temperature
+ * interacts with min-p and top-p, so once temperature 0 wins those three are
+ * skipped as no-ops and combinations like "T 0.2 with min-p 0.1" are never
+ * tried. Each profile pairs a temperature from the user's steps with the
+ * nearest min-p/top-p to a known-good combination; greedy stays alone.
+ * Low temperatures pair with truncated top-p (0.8): untruncated tails hurt
+ * code, where top-p matters more than temperature (lit review §1).
+ */
+export function samplerProfiles(
+  temperatures = DEFAULT_STEPS.sampling.temperature,
+  minPs = DEFAULT_STEPS.sampling.minP,
+  topPs = DEFAULT_STEPS.sampling.topP,
+) {
+  const nearest = (list, target) => {
+    if (!list.length) return target;
+    return list.reduce((best, value) => (Math.abs(value - target) < Math.abs(best - target) ? value : best), list[0]);
+  };
+  const combos = [];
+  for (const temperature of temperatures) {
+    if (temperature === 0) combos.push({ temperature: 0 });
+    else if (temperature <= 0.4) {
+      combos.push({ temperature, minP: nearest(minPs, 0.1), topP: nearest(topPs, 0.75) });
+    } else if (temperature <= 0.8) {
+      combos.push({ temperature, minP: nearest(minPs, 0.05), topP: nearest(topPs, 0.9) });
+    } else {
+      combos.push({ temperature, minP: nearest(minPs, 0), topP: nearest(topPs, 0.85) });
+    }
+  }
+  const seen = new Set();
+  return combos.filter((combo) => {
+    const key = JSON.stringify(combo);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+const multiAxis = (name, patches, extra = {}) => Object.freeze({ name, patches: Object.freeze(patches.map((patch) => Object.freeze({ ...patch }))), ...extra });
+
+/**
+ * Stage 3: sampling for one task. The sampler profile first (temperature with
+ * its min-p/top-p); top-k only drops unlikely tokens, so it is skipped for
+ * greedy answers and only tuned when min-p is 0 (G1).
  */
 export function samplingAxes(taskId, steps = DEFAULT_STEPS.sampling) {
-  const noop = { greedyNoop: true };
-  return Object.freeze([
-    axis("temperature", "temperature", steps.temperature),
+  const axes = [
+    multiAxis("sampler", samplerProfiles(steps.temperature, steps.minP, steps.topP)),
     axis("maxTokens", "maxTokens", steps.maxTokens[taskId] ?? steps.maxTokens.code),
     axis("repeatPenalty", "repeatPenalty", steps.repeatPenalty),
-    axis("minP", "minP", steps.minP, noop),
-    axis("topP", "topP", steps.topP, noop),
-    axis("topK", "topK", steps.topK, noop),
-  ]);
+    // DRY penalizes repeated sequences, not repeated tokens, so it fits code
+    // (lit review §2): tried on the code task only, off against the measured on.
+    ...(taskId === "code" ? [axis("dry", "dryStrength", steps.dryStrength ?? [0, 0.8])] : []),
+    // A fenced answer with its closing stop, or neither: a lone prefix spills
+    // prose after the code, a lone stop truncates multi-block answers (lit §7).
+    ...(taskId === "code"
+      ? [multiAxis("codeFence", [
+        { responsePrefix: "", customStopTriggers: [] },
+        { responsePrefix: "```", customStopTriggers: ["```"] },
+      ])]
+      : []),
+    axis("penalizeNewLine", "penalizeNewLine", steps.penalizeNewLine ?? [true, false], {
+      skipWhen: (current) => (current.repeatPenalty ?? 1) === 1,
+      skipReason: "repeat penalty 1: newlines are not penalized at all",
+    }),
+    axis("topK", "topK", steps.topK, {
+      greedyNoop: true,
+      skipWhen: (current) => (current.minP ?? 0) !== 0,
+      skipReason: "top-k is only tuned when min-p is 0",
+    }),
+  ];
+  return Object.freeze(axes);
 }
 
 /** Stage 4: prompt wording for one task. Every system prompt gets a full score on the task's whole set; code uses its own directives and also tries reasoning "auto" (ADR-070). */
@@ -273,6 +338,7 @@ export function promptAxes(steps = DEFAULT_STEPS.prompt, task = null) {
   const promptRepeats = Array.isArray(steps.promptRepeat) ? steps.promptRepeat : DEFAULT_STEPS.prompt.promptRepeat;
   const customPrompts = JSON.stringify(systemPrompts) !== JSON.stringify(DEFAULT_STEPS.prompt.systemPrompt);
   const customReasoning = JSON.stringify(reasoningSteps) !== JSON.stringify(DEFAULT_STEPS.prompt.reasoning);
+  const customRepeat = JSON.stringify(promptRepeats) !== JSON.stringify(DEFAULT_STEPS.prompt.promptRepeat);
   return Object.freeze([
     axis("systemPrompt", "systemPrompt", task === "code" && !customPrompts ? [SYSTEM_PROMPT, ...CODE_PROMPTS] : systemPrompts, { full: true }),
     // Thinking first needs room: a reasoning candidate gets at least REASONING_TOKENS, and the preset keeps them (ADR-046).
@@ -280,7 +346,8 @@ export function promptAxes(steps = DEFAULT_STEPS.prompt, task = null) {
       extraKeys: ["maxTokens"],
       widen: (current, patch) => (patch.reasoning === "off" ? patch : { ...patch, maxTokens: Math.max(Number(current.maxTokens) || 0, REASONING_TOKENS) }), // aikit:allow-secret token budget
     }),
-    axis("promptRepeat", "promptRepeat", promptRepeats),
+    // Repeating the prompt doubles prefill for little gain on generation tasks (G1): code stays at 1 unless opted in.
+    axis("promptRepeat", "promptRepeat", task === "code" && !customRepeat ? [1] : promptRepeats),
   ]);
 }
 
@@ -327,24 +394,56 @@ function stageCost(axes, sizes, seeds, secondsPerAnswer, reloadSeconds = 0) {
 /**
  * Rough cost of one coordinate-descent pass, before a tune starts. Sampling
  * and prompt stages count every seed and every axis, so they are upper bounds;
- * a second pass only runs when the first changed something.
+ * a second pass only runs when the first changed something. Tolerant halving
+ * can keep more than half, so the halving counts are a lower bound; the
+ * confirmation rung (S1) is counted as an upper bound instead.
  */
-export function estimateTune(steps, { logicalCores = 8, tasks = ["code", "comprehension", "recall"], secondsPerAnswer = 3, reloadSeconds = 5, seeds = 3, quick = false } = {}) {
+export function estimateTune(steps, { logicalCores = 8, tasks = ["code", "comprehension", "recall"], stages = ["device", "quality", "speed", "sampling", "prompt"], only = null, secondsPerAnswer = 3, reloadSeconds = 5, seeds = 3, quick = false } = {}) {
   const allRungs = tuneRungs(tasks);
   const rungs = quick ? quickRungs(allRungs, tasks) : allRungs;
-  const device = stageCost([{ patches: steps.device.backends }], [speedItems().length], 1, secondsPerAnswer, reloadSeconds);
-  const quality = stageCost(qualityAxes(steps.load), rungs.load.map((rung) => rung.length), 1, secondsPerAnswer, 2 * reloadSeconds);
-  const speed = stageCost(speedAxes({ logicalCores }, steps.load), [speedItems().length], 1, secondsPerAnswer, reloadSeconds);
+  // Upper bound on confirmation answers for one task (S1): every counted
+  // sampling/prompt sweep re-scores two configs on the pool the rungs leave
+  // out. Quick and targeted runs skip confirmation, as does a small pool.
+  const confirmFor = (task, axesCount) => {
+    if (quick || only) return 0;
+    const unused = Math.max(0, (allRungs.pool?.[task]?.length ?? 0) - (allRungs[task].at(-1)?.length ?? 0));
+    if (unused < 8) return 0;
+    return axesCount * 2 * unused * seeds;
+  };
+  const wanted = (stage, axes) => stages.includes(stage) && (!only || axes.some((axis) => only.includes(axis.name ?? axis)));
+  const deviceAxes = [{ patches: steps.device.backends, name: "device" }];
+  const quality = qualityAxes(steps.load);
+  const speed = speedAxes({ logicalCores }, steps.load);
+  const device = wanted("device", ["device"])
+    ? stageCost(deviceAxes, [speedItems().length], 1, secondsPerAnswer, reloadSeconds)
+    : { configs: 0, answers: 0, seconds: 0 };
+  const qualityCost = wanted("quality", quality)
+    ? stageCost(quality.filter((axis) => !only || only.includes(axis.name)), rungs.load.map((rung) => rung.length), 1, secondsPerAnswer, 2 * reloadSeconds)
+    : { configs: 0, answers: 0, seconds: 0 };
+  const speedCost = wanted("speed", speed)
+    ? stageCost(speed.filter((axis) => !only || only.includes(axis.name)), [speedItems().length], 1, secondsPerAnswer, reloadSeconds)
+    : { configs: 0, answers: 0, seconds: 0 };
   const sampling = {};
   const prompt = {};
+  const confirm = {};
   for (const task of tasks) {
     const sizes = rungs[task].map((rung) => rung.length);
-    sampling[task] = stageCost(samplingAxes(task, steps.sampling), sizes, seeds, secondsPerAnswer);
-    prompt[task] = stageCost(promptAxes(steps.prompt, task), sizes, seeds, secondsPerAnswer);
+    const samplingAxesFor = samplingAxes(task, steps.sampling);
+    const promptAxesFor = promptAxes(steps.prompt, task);
+    const samplingWanted = wanted("sampling", samplingAxesFor) ? samplingAxesFor.filter((axis) => !only || only.includes(axis.name)) : [];
+    const promptWanted = wanted("prompt", promptAxesFor) ? promptAxesFor.filter((axis) => !only || only.includes(axis.name)) : [];
+    sampling[task] = samplingWanted.length
+      ? stageCost(samplingWanted, sizes, seeds, secondsPerAnswer)
+      : { configs: 0, answers: 0, seconds: 0 };
+    prompt[task] = promptWanted.length
+      ? stageCost(promptWanted, sizes, seeds, secondsPerAnswer)
+      : { configs: 0, answers: 0, seconds: 0 };
+    const confirmAnswers = confirmFor(task, samplingWanted.length + promptWanted.length);
+    confirm[task] = { configs: 0, answers: confirmAnswers, seconds: confirmAnswers * secondsPerAnswer };
   }
   const perTask = (entries) => Object.values(entries).reduce((sum, entry) => sum + entry.seconds, 0);
-  const onePassSeconds = Math.round(device.seconds + quality.seconds + speed.seconds + perTask(sampling) + perTask(prompt));
-  return { device, quality, speed, sampling, prompt, onePassSeconds, worstCaseSeconds: onePassSeconds * 2 };
+  const onePassSeconds = Math.round(device.seconds + qualityCost.seconds + speedCost.seconds + perTask(sampling) + perTask(prompt) + perTask(confirm));
+  return { device, quality: qualityCost, speed: speedCost, sampling, prompt, confirm, onePassSeconds, worstCaseSeconds: onePassSeconds * 2 };
 }
 
 /**
@@ -363,10 +462,25 @@ export function expectedAnswers(steps, { logicalCores = 8, tasks = ["code", "com
   if (stages.includes("speed")) total += cost(speedAxes({ logicalCores }, steps.load), [speedItems().length], 1);
   for (const task of tasks) {
     const sizes = rungs[task].map((rung) => rung.length);
-    if (stages.includes("sampling")) total += cost(samplingAxes(task, steps.sampling), sizes, seeds);
-    if (stages.includes("prompt")) total += cost(promptAxes(steps.prompt, task), sizes, seeds);
+    let axesCount = 0;
+    if (stages.includes("sampling")) {
+      const axes = chosen(samplingAxes(task, steps.sampling));
+      total += axes.reduce((sum, axis) => sum + axisAnswers(axis.patches.length, sizes, seeds, axis.full), 0);
+      axesCount += axes.length;
+    }
+    if (stages.includes("prompt")) {
+      const axes = chosen(promptAxes(steps.prompt, task));
+      total += axes.reduce((sum, axis) => sum + axisAnswers(axis.patches.length, sizes, seeds, axis.full), 0);
+      axesCount += axes.length;
+    }
     // The final preset and the defaults on the held-back items (ADR-054).
     if (!only && (stages.includes("sampling") || stages.includes("prompt"))) total += 2 * (rungs.holdout?.[task]?.length ?? 0) * seeds;
+    // Upper bound on the confirmation rung (S1): two configs per counted sweep
+    // on the pool the rungs leave out; quick and targeted runs skip it.
+    if (!quick && !only) {
+      const unused = Math.max(0, (allRungs.pool?.[task]?.length ?? 0) - (allRungs[task].at(-1)?.length ?? 0));
+      if (unused >= 8) total += axesCount * 2 * unused * seeds;
+    }
   }
   return total;
 }

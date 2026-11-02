@@ -21,7 +21,7 @@ export function buildSystemPrompt(systemPrompt, reasoning) {
   if (reasoning === "off") return base;
   const directive =
     reasoning === "deep"
-      ? "Think through the problem carefully before giving the final answer. Show only the answer the user asked for."
+      ? "Think through the problem step by step in a few short sentences, then give the final answer on its own line (code answers: in one final fenced block)."
       : "Reason carefully before answering. Keep the final answer concise.";
   return base ? `${base}\n\n${directive}` : directive;
 }
