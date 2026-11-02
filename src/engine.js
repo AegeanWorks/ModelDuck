@@ -788,13 +788,17 @@ export class LlamaEngine {
     this.#pending.add(generation);
 
     const normalized = normalizeSettings(settings ?? {});
+    // The completion engine has no response-prefix option, so a tuned prefix
+    // (the code-fence axis) is prefilled by continuing the prompt with it,
+    // mirroring the chat path where the assistant turn starts with it.
+    const fullPrompt = promptText + (normalized.responsePrefix || "");
     const manifest = buildGenerationManifest({
       model: this.#state.model,
       originalSystemPrompt: "",
       effectiveSystemPrompt: "",
       messages: [],
       history: [],
-      promptText,
+      promptText: fullPrompt,
       settings: normalized,
       runtimeVersion: this.#state.runtimeVersion,
       chatTemplateHash: this.#state.model?.chatTemplateHash,
@@ -806,7 +810,7 @@ export class LlamaEngine {
     let stopReason = "eogToken";
 
     try {
-      const promptTokens = this.#countTokens(promptText); // aikit:allow-secret token count, not a credential
+      const promptTokens = this.#countTokens(fullPrompt); // aikit:allow-secret token count, not a credential
       if (
         normalized.contextOverflow === "strict" &&
         promptTokens + normalized.maxTokens > (this.#context.contextSize ?? 0)
@@ -830,7 +834,7 @@ export class LlamaEngine {
           contextSequence: sequence,
           autoDisposeSequence: true,
         });
-        const result = await completion.generateCompletionWithMeta(promptText, {
+        const result = await completion.generateCompletionWithMeta(fullPrompt, {
           maxTokens: normalized.maxTokens, // aikit:allow-secret token limit, not a credential
           temperature: normalized.temperature,
           topP: normalized.topP,
@@ -902,7 +906,7 @@ export class LlamaEngine {
           text,
           aborted: true,
           stats: {
-            promptTokens: this.#countTokens(promptText), // aikit:allow-secret token count
+            promptTokens: this.#countTokens(fullPrompt), // aikit:allow-secret token count
             outputTokens: this.#countTokens(text) || outputTokens, // aikit:allow-secret token count
             tokensPerSecond: 0,
             firstTokenMs: firstTokenAt ? firstTokenAt - startedAt : null,

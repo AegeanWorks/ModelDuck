@@ -240,7 +240,7 @@ export async function cachedAnswers(dir, { profileId, fingerprint = null, limitR
     const record = await readJsonWithQuarantine(path.join(dir, name), null, { logger: quiet });
     if (record?.schema !== RUN_SCHEMA) continue;
     if (profileId && record.profileId !== profileId) continue;
-    if (fingerprint && record.fingerprint && FINGERPRINT_KEYS.some((key) => record.fingerprint[key] !== undefined && fingerprint[key] !== undefined && record.fingerprint[key] !== fingerprint[key])) continue;
+    if (fingerprint && FINGERPRINT_KEYS.some((key) => record.fingerprint?.[key] !== fingerprint[key])) continue;
     runs.push({ name: name.slice(0, -5), startedAt: record.startedAt ?? "" });
   }
   runs.sort((left, right) => (left.startedAt < right.startedAt ? 1 : -1));
@@ -285,7 +285,7 @@ export async function itemOutcomes(dir, { profileId, minObservations = 6, minSet
     const record = await readJsonWithQuarantine(path.join(dir, name), null, { logger: quiet });
     if (record?.schema !== RUN_SCHEMA) continue;
     if (profileId && record.profileId !== profileId) continue;
-    if (fingerprint && record.fingerprint && OUTCOME_FINGERPRINT_KEYS.some((key) => record.fingerprint[key] !== undefined && fingerprint[key] !== undefined && record.fingerprint[key] !== fingerprint[key])) continue;
+    if (fingerprint && OUTCOME_FINGERPRINT_KEYS.some((key) => record.fingerprint?.[key] !== fingerprint[key])) continue;
     let file;
     try {
       file = answersFile(dir, name.slice(0, -5));

@@ -67,11 +67,42 @@ async function loaded(runtime) {
   return engine;
 }
 
+/** A runtime whose completion engine records what it was asked to continue. */
+function completionRuntime() {
+  const base = recordingRuntime();
+  const inputs = [];
+  const loadRuntime = async () => ({
+    ...(await base.loadRuntime()),
+    LlamaCompletion: class {
+      dispose() {}
+      async generateCompletionWithMeta(input, options) {
+        inputs.push({ input, options });
+        return { response: "code", metadata: { stopReason: "eogToken" } };
+      }
+    },
+  });
+  return { loadRuntime, inputs };
+}
+
 test("the system prompt reaches the model on a new conversation", async () => {
   const runtime = recordingRuntime();
   const engine = await loaded(runtime);
   await engine.chat({ conversationId: "a", messages: [{ role: "user", content: "hi" }], systemPrompt: "Answer in one word.", settings: { maxTokens: 8, reasoning: "off" } });
   assert.deepEqual(runtime.prompted[0][0], { type: "system", text: "Answer in one word." });
+});
+
+test("the tuned response prefix is prefilled on text completions", async () => {
+  const runtime = completionRuntime();
+  const engine = await loaded(runtime);
+  const result = await engine.complete({
+    conversationId: "c",
+    prompt: "write fizzbuzz",
+    settings: { responsePrefix: "```", customStopTriggers: ["```"] },
+  });
+  assert.equal(runtime.inputs.length, 1);
+  assert.ok(runtime.inputs[0].input.endsWith("```"), "the fence prefix starts the continuation");
+  assert.deepEqual(runtime.inputs[0].options.customStopTriggers, ["```"]);
+  assert.equal(result.text, "code");
 });
 
 test("a rebuilt session keeps the system prompt ahead of the earlier turns", async () => {

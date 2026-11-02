@@ -12,7 +12,7 @@ import { getCatalogModel } from "../src/model-catalog.js";
 import { createModelRegistry } from "../src/model-registry.js";
 import { systemInfo } from "../src/system.js";
 import { currentGitInfo, recordRun } from "./history.mjs";
-import { MODEL_MATRIX, buildChatMatrix, flashMatrix, modelMatrix, modelMatrixFor } from "./matrix.mjs";
+import { MODEL_MATRIX, buildChatMatrix, flashMatrix, modelMatrix, modelMatrixFor, resultFileName } from "./matrix.mjs";
 import { BENCHMARK_MODELS, PROMPTS, SUITE_VERSION, SYSTEM_PROMPT, checkCount, evaluateResponse } from "./suite.mjs";
 import { compareRuns, itemSummary, promptOrigin } from "./stats.mjs";
 import { benchmarkTestHash, modelIdentityChanges } from "./test-hash.mjs";
@@ -866,7 +866,7 @@ async function main() {
     await writeFile(LATEST, `${JSON.stringify(result, null, 2)}\n`, "utf8");
   }
   await writeFile(
-    path.join(RESULTS_DIR, singleModel ? "latest-single-model.json" : options.flash ? "latest-flash.json" : `latest-${options.phase}.json`),
+    path.join(RESULTS_DIR, resultFileName({ flash: options.flash, phase: options.phase, singleModelCatalogId: singleModel?.catalogId ?? null })),
     `${JSON.stringify(result, null, 2)}\n`,
     "utf8",
   );

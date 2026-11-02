@@ -133,6 +133,21 @@ test("sampling fields clamp and presets are benchmark candidates", () => {
   assert.equal(preset.systemPrompt, "keep me");
 });
 
+test("a long stop list keeps the first stops instead of dropping the fence", () => {
+  const settings = normalizeSettings({ customStopTriggers: ["```", "a", "b", "c", "d"] });
+  assert.deepEqual(settings.customStopTriggers, ["```", "a", "b", "c"]);
+  assert.deepEqual(
+    normalizeSettings({ customStopTriggers: ["```"] }).customStopTriggers,
+    ["```"],
+    "the tuned fence stop still applies on its own",
+  );
+  assert.deepEqual(
+    normalizeSettings({ customStopTriggers: "```" }).customStopTriggers,
+    DEFAULT_SETTINGS.customStopTriggers,
+    "a non-list is still refused",
+  );
+});
+
 test("resolvePaths puts all state under the chosen home", () => {
   const home = path.join(os.tmpdir(), "duck-home");
   const models = path.join(os.tmpdir(), "duck-models");

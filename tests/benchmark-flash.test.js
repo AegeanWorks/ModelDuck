@@ -7,6 +7,7 @@ import {
   flashMatrix,
   modelMatrix,
   modelMatrixFor,
+  resultFileName,
 } from "../benchmarks/matrix.mjs";
 import { SMOKE_PROMPT_IDS } from "../benchmarks/suite.mjs";
 
@@ -42,4 +43,50 @@ test("flash keeps only the base entry of a single-model sweep", () => {
   assert.equal(flashed.length, 1);
   assert.match(flashed[0].id, /-base$/);
   assert.deepEqual(flashed[0].promptIds, [...SMOKE_PROMPT_IDS]);
+});
+
+test("flash fails loudly when no variant looks like a base", () => {
+  assert.throws(
+    () => flashMatrix([{ id: "x", family: "a", catalogId: "b" }]),
+    /no base variants/,
+  );
+});
+
+test("flash on an empty matrix stays empty", () => {
+  assert.deepEqual(flashMatrix([]), []);
+});
+
+test("result files keep flash, single-model and phase runs apart", () => {
+  assert.equal(
+    resultFileName({ flash: false, phase: "model", singleModelCatalogId: null }),
+    "latest-model.json",
+  );
+  assert.equal(
+    resultFileName({ flash: false, phase: "chat", singleModelCatalogId: null }),
+    "latest-chat.json",
+  );
+  assert.equal(
+    resultFileName({
+      flash: false,
+      phase: "model",
+      singleModelCatalogId: "qwen2.5-0.5b-instruct-q4",
+    }),
+    "latest-single-model.json",
+  );
+  assert.equal(
+    resultFileName({ flash: true, phase: "model", singleModelCatalogId: null }),
+    "latest-flash-model.json",
+  );
+  assert.equal(
+    resultFileName({ flash: true, phase: "chat", singleModelCatalogId: null }),
+    "latest-flash-chat.json",
+  );
+  assert.equal(
+    resultFileName({
+      flash: true,
+      phase: "model",
+      singleModelCatalogId: "qwen2.5-0.5b-instruct-q4",
+    }),
+    "latest-flash-single-qwen2.5-0.5b-instruct-q4.json",
+  );
 });

@@ -402,8 +402,28 @@ export function flashMatrix(matrix) {
   const base = matrix.filter(
     (spec) => spec.family === spec.catalogId || spec.id === "chat-base" || spec.id.endsWith("-base"),
   );
+  if (matrix.length && !base.length) {
+    throw new Error(`flash: no base variants in a ${matrix.length}-variant matrix`);
+  }
   const picked = base.length ? base : matrix.slice(0, 1);
   return picked.map((spec) => ({ ...spec, promptIds: [...SMOKE_PROMPT_IDS] }));
+}
+
+/**
+ * Result file routing for a finished run. Flash runs never touch the shared
+ * latest-<phase>.json or latest-single-model.json files: a flash+model run
+ * would otherwise clobber the real single-model sweep, and flash model/chat
+ * phases would share one file. Kept here (not run.mjs) so unit tests can
+ * import it — run.mjs executes on import.
+ */
+export function resultFileName({ flash, phase, singleModelCatalogId = null }) {
+  if (flash) {
+    return singleModelCatalogId
+      ? `latest-flash-single-${singleModelCatalogId}.json`
+      : `latest-flash-${phase}.json`;
+  }
+  if (singleModelCatalogId) return "latest-single-model.json";
+  return `latest-${phase}.json`;
 }
 
 export const MATRIX_VERSION = 4;

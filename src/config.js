@@ -167,6 +167,17 @@ function normalizeGpuLayers(value) {
   return clampInteger(value, 0, 200, 0);
 }
 
+// Stop lists clamp like numbers do: junk entries are dropped and the list is
+// capped at four, but a list that is already clean is kept as is — so a fifth
+// user stop can no longer wipe the tuned fence stop, and every value the tuner
+// can choose still survives normalisation unchanged.
+function normalizeStops(value) {
+  if (!Array.isArray(value)) return DEFAULT_SETTINGS.customStopTriggers;
+  const kept = value.filter((stop) => typeof stop === "string" && stop.length > 0);
+  if (kept.length === value.length && kept.length <= 4) return value;
+  return kept.slice(0, 4);
+}
+
 export function normalizeSettings(input = {}) {
   const source = input && typeof input === "object" ? input : {};
   const kvCache = String(source.kvCache ?? "f16").toLowerCase();
@@ -191,11 +202,7 @@ export function normalizeSettings(input = {}) {
       : DEFAULT_SETTINGS.dryBase,
     dryAllowedLength: clampInteger(source.dryAllowedLength, 1, 32, DEFAULT_SETTINGS.dryAllowedLength),
     responsePrefix: typeof source.responsePrefix === "string" ? source.responsePrefix.slice(0, 200) : DEFAULT_SETTINGS.responsePrefix,
-    customStopTriggers: Array.isArray(source.customStopTriggers) &&
-      source.customStopTriggers.length <= 4 &&
-      source.customStopTriggers.every((stop) => typeof stop === "string" && stop.length > 0)
-      ? source.customStopTriggers
-      : DEFAULT_SETTINGS.customStopTriggers,
+    customStopTriggers: normalizeStops(source.customStopTriggers),
     maxTokens: clampInteger(source.maxTokens, 16, 8192, DEFAULT_SETTINGS.maxTokens), // aikit:allow-secret token limit
     promptRepeat: clampInteger(source.promptRepeat, 1, 3, DEFAULT_SETTINGS.promptRepeat),
     seed: clampInteger(source.seed, -1, 2147483647, DEFAULT_SETTINGS.seed),

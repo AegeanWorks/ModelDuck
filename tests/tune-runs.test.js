@@ -116,7 +116,8 @@ test("per-item outcomes say which items no recorded setting has flipped", async 
   const dir = await runsDir(t);
   const cool = { temperature: 0 };
   const warm = { temperature: 0.7 };
-  const first = await startRun(dir, { profileId: "m", model: "m.gguf", request: REQUEST, now: new Date("2026-01-01T00:00:00Z"), pid: 11 });
+  const v8 = { suiteVersion: 17, taskHash: "abc", nodeLlamaCpp: "test", tunerVersion: 8 };
+  const first = await startRun(dir, { profileId: "m", model: "m.gguf", request: REQUEST, fingerprint: v8, now: new Date("2026-01-01T00:00:00Z"), pid: 11 });
   await first.answers([
     { item: "i-1", passed: 1, total: 1, settings: cool },
     { item: "i-1", passed: 1, total: 1, settings: cool },
@@ -126,7 +127,7 @@ test("per-item outcomes say which items no recorded setting has flipped", async 
     { item: "i-4", passed: 1, total: 1, settings: cool },
   ]);
   await first.finish({ outcome: "done" });
-  const second = await startRun(dir, { profileId: "m", model: "m.gguf", request: REQUEST, now: new Date("2026-01-01T00:01:00Z"), pid: 12 });
+  const second = await startRun(dir, { profileId: "m", model: "m.gguf", request: REQUEST, fingerprint: v8, now: new Date("2026-01-01T00:01:00Z"), pid: 12 });
   await second.answers([
     { item: "i-1", passed: 1, total: 1, settings: warm },
     { item: "i-1", passed: 1, total: 1, settings: warm },
@@ -140,7 +141,18 @@ test("per-item outcomes say which items no recorded setting has flipped", async 
   await other.answers([{ item: "i-1", passed: 0, total: 1, settings: cool }, { item: "i-5", passed: 1, total: 1, settings: cool }]);
   await other.finish({ outcome: "done" });
 
-  const { saturated, counts } = await itemOutcomes(dir, { profileId: "m" });
+  const old = await startRun(dir, { profileId: "m", model: "m.gguf", request: REQUEST, fingerprint: { suiteVersion: 17, taskHash: "abc", nodeLlamaCpp: "test" }, now: new Date("2026-01-01T00:03:00Z"), pid: 14 });
+  await old.answers([
+    { item: "i-9", passed: 1, total: 1, settings: cool },
+    { item: "i-9", passed: 1, total: 1, settings: cool },
+    { item: "i-9", passed: 1, total: 1, settings: warm },
+    { item: "i-9", passed: 1, total: 1, settings: warm },
+    { item: "i-9", passed: 1, total: 1, settings: warm },
+    { item: "i-9", passed: 1, total: 1, settings: warm },
+  ]);
+  await old.finish({ outcome: "done" });
+  const { saturated, counts } = await itemOutcomes(dir, { profileId: "m", fingerprint: v8 });
+  assert.equal(counts["i-9"], undefined, "a run from before tuner versions were recorded does not count");
   assert.ok(saturated.has("i-1"), "always right across two settings and six looks");
   assert.equal(saturated.has("i-4"), false, "two looks on one setting are not enough (S6)");
   assert.equal(saturated.has("i-2"), false, "one right and one wrong is discriminating");
