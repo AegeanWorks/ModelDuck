@@ -69,12 +69,12 @@ export class TuneScheduler {
 
   /** Start tuning `models` ([{ id, fileName, profileId, name }]); resolves immediately with the job. */
   start({ models, tasks = null, stages = null, settings = null, force = false, continueRun = false, quick = false, guard = false, guardQueue = false }) {
-    if (this.#job?.status === "running") {
+    if (this.#job?.status === "running" || this.#job?.paused) {
       throw new AppError("A tune is already running", {
         code: "tune_in_progress",
         status: 409,
         why: "ModelDuck schedules one set of tunes at a time so lanes and timing stay fair.",
-        fix: "Wait for it to finish, or cancel it first.",
+        fix: "Wait for it to finish, resume or cancel it first.",
       });
     }
     const wanted = (stages?.length ? stages : ALL_STAGES).filter((stage) => ALL_STAGES.includes(stage));
@@ -95,6 +95,7 @@ export class TuneScheduler {
       order: models.map((model) => model.profileId),
       items: models.map((model) => ({
         id: model.id, profileId: model.profileId, name: model.name ?? model.profileId, fileName: model.fileName,
+        force: Boolean(model.force),
         lane: null, phase: null, status: "queued", progress: null, exitCode: null, error: null, guard: null, provisional: false, log: [], live: emptyLive(),
       })),
     };
@@ -132,8 +133,9 @@ export class TuneScheduler {
     const order = job.order ?? job.items.map((item) => item.profileId);
     const index = order.indexOf(profileId);
     const target = index + (direction === "up" ? -1 : 1);
-    if (index < 0) {
-      throw new AppError("Model not in the queue", { code: "tune_queue_model", status: 404, why: "That model is not waiting in this tune.", fix: "Pick a model from the current queue." });
+    const item = job.items.find((entry) => entry.profileId === profileId);
+    if (index < 0 || item?.status !== "queued") {
+      throw new AppError("Model not in the queue", { code: "tune_queue_model", status: 404, why: "That model is not waiting in this tune.", fix: "Pick a model that is still queued." });
     }
     if (target >= 0 && target < order.length) {
       [order[index], order[target]] = [order[target], order[index]];
@@ -156,6 +158,9 @@ export class TuneScheduler {
     }
     const job = saved?.schema === 1 ? saved.job : null;
     if (!job?.items?.length) return null;
+    // A terminal queue was already finished, cancelled or guarded: it stays
+    // that way instead of coming back as a paused queue on the next launch.
+    if (!["running", "paused"].includes(job.status)) return null;
     this.#job = {
       ...job,
       status: "paused",
@@ -193,7 +198,7 @@ export class TuneScheduler {
     const rank = new Map(order.map((profileId, index) => [profileId, index]));
     return models
       .map((model, index) => ({ model, item: job.items[index] }))
-      .sort((left, right) => (rank.get(left.model.profileId) ?? 0) - (rank.get(right.model.profileId) ?? 0));
+      .sort((left, right) => (rank.get(left.model.profileId) ?? Infinity) - (rank.get(right.model.profileId) ?? Infinity));
   }
 
   #stopQueue(job, guard, keepChild = null) {
@@ -210,7 +215,7 @@ export class TuneScheduler {
     this.#changed();
   }
 
-  /** Stop between models and shortcut passes; the current child finishes its answer. */
+  /** Stop between models; a running child finishes its whole invocation before the pause takes hold. */
   pause() {
     const job = this.#job;
     if (!job || job.status !== "running") {
@@ -231,7 +236,7 @@ export class TuneScheduler {
       job.status = "running";
       job.paused = false;
       job.restored = false;
-      const models = job.items.map((item) => ({ id: item.id, profileId: item.profileId, name: item.name, fileName: item.fileName }));
+      const models = job.items.map((item) => ({ id: item.id, profileId: item.profileId, name: item.name, fileName: item.fileName, force: Boolean(item.force) }));
       this.#writeQueue();
       this.#run(job, models).catch((error) => {
         this.#logger.warn?.(`[modelduck] Tune scheduler failed: ${error?.message ?? error}`);
@@ -285,7 +290,7 @@ export class TuneScheduler {
           if (job.status !== "running" || !queue.length) break;
           // The order can change while a model runs; take the first pending model in the current order.
           const rank = new Map((job.order ?? []).map((profileId, index) => [profileId, index]));
-          queue.sort((left, right) => (rank.get(left.item.profileId) ?? 0) - (rank.get(right.item.profileId) ?? 0));
+          queue.sort((left, right) => (rank.get(left.item.profileId) ?? Infinity) - (rank.get(right.item.profileId) ?? Infinity));
           const { model, item } = queue.shift();
           await this.#runChild(job, item, model, rest, "tune", forceOnce(model), false, { quick: job.quick });
           // A quick pass is saved immediately, then continued on the full rungs.

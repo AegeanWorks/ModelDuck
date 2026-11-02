@@ -32,7 +32,7 @@ older test, runtime, CPU or model file is kept with a warning until --force.
   --events           JSON progress lines on stdout (used by the app)
   --continue         finish an unfinished run: measure only what is not done yet
   --quick            provisional first-rung pass; the app follows it with a full continue
-  --guard            stop the remaining tasks when a held-back check falls back
+  --guard            stop the remaining tasks when a held-back check falls back (full pass only; a quick pass presets first and guards on its full continue)
 `;
 
 function parseArgs(argv) {
@@ -100,9 +100,9 @@ async function main() {
     log(options, `Saved your steps to ${target.paths.tuneGrid}`);
   }
   for (const problem of normalizeSteps(steps).problems.concat(loaded.problems)) log(options, `Steps: ${problem}`);
-  const estimate = estimateTune(steps, { logicalCores: target.system.parallelism, tasks: options.tasks });
+  const estimate = estimateTune(steps, { logicalCores: target.system.parallelism, tasks: options.tasks, stages: options.stages, only: options.only ?? null, quick: Boolean(options.quick) });
   // The time left comes from the answers this run asks and its own measured pace (ADR-045).
-  const expected = expectedAnswers(steps, { logicalCores: target.system.parallelism, tasks: options.tasks, stages: options.stages, only: options.only ?? null });
+  const expected = expectedAnswers(steps, { logicalCores: target.system.parallelism, tasks: options.tasks, stages: options.stages, only: options.only ?? null, quick: Boolean(options.quick) });
   log(options, `This run asks at most ${expected} answers in one pass; the time left shows once the first answers are measured.`);
   emit(options, { type: "estimate", phase: "tune", model: target.profileId, expectedAnswers: expected, ...estimate });
   let startedAt = Date.now();

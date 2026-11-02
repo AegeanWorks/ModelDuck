@@ -243,6 +243,86 @@ test("only one scheduled run at a time", () => {
   assert.throws(() => runner.start({ models: MODELS.slice(0, 1) }), (error) => error.code === "tune_in_progress");
 });
 
+test("starting over a restored paused queue is refused", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "modelduck-queue-"));
+  const queueFile = path.join(dir, "queue.json");
+  const spawn = spawner();
+  const make = () => new TuneScheduler({
+    homeDir: dir,
+    modelsDir: "models",
+    queueFile,
+    scriptPath: "tune-run.mjs",
+    spawnImpl: spawn.spawnImpl,
+    readLanes: async () => ({ cpu: 1, gpu: 0 }),
+    readLane: async () => "cpu",
+    logger: { warn() {} },
+  });
+  make().start({ models: MODELS.slice(0, 1), stages: ["quality"] });
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  const restored = make();
+  const job = await restored.restore();
+  assert.equal(job.status, "paused");
+  assert.throws(() => restored.start({ models: MODELS.slice(0, 1) }), (error) => error.code === "tune_in_progress");
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test("a model missing from the saved order tunes last, not first", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "modelduck-queue-"));
+  const queueFile = path.join(dir, "queue.json");
+  const item = (model) => ({ id: model.id, profileId: model.profileId, name: model.name, fileName: model.fileName, lane: null, phase: null, status: "queued", progress: null, exitCode: null, error: null, guard: null, provisional: false, log: [], live: null });
+  fs.writeFileSync(queueFile, JSON.stringify({ schema: 1, job: { id: "j", status: "running", paused: false, startedAt: new Date().toISOString(), finishedAt: null, stages: ["quality"], tasks: null, settings: null, force: false, continueRun: false, quick: false, guard: false, guardQueue: false, order: ["qwen"], items: [item(MODELS[0]), item(MODELS[1])] } }));
+  const spawn = spawner();
+  const runner = new TuneScheduler({ homeDir: dir, modelsDir: "models", queueFile, scriptPath: "tune-run.mjs", spawnImpl: spawn.spawnImpl, readLanes: async () => ({ cpu: 1, gpu: 0 }), readLane: async () => "cpu", logger: { warn() {} } });
+  await runner.restore();
+  runner.resume();
+  await settle();
+  assert.ok(spawn.children.length >= 1);
+  assert.equal(value(spawn.children[0].args, "--model"), "qwen.gguf", "the model without a saved order position waits its turn");
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test("a finished queue file is not resurrected", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "modelduck-queue-"));
+  const queueFile = path.join(dir, "queue.json");
+  const item = (model) => ({ id: model.id, profileId: model.profileId, name: model.name, fileName: model.fileName, status: "done" });
+  fs.writeFileSync(queueFile, JSON.stringify({ schema: 1, job: { id: "j", status: "complete", paused: false, finishedAt: new Date().toISOString(), stages: ["quality"], tasks: null, settings: null, force: false, continueRun: false, quick: false, guard: false, guardQueue: false, order: ["a"], items: [item(MODELS[0])] } }));
+  const runner = new TuneScheduler({ homeDir: dir, modelsDir: "models", queueFile, scriptPath: "tune-run.mjs", spawnImpl: spawner().spawnImpl, readLanes: async () => ({ cpu: 1, gpu: 0 }), readLane: async () => "cpu", logger: { warn() {} } });
+  assert.equal(await runner.restore(), null, "a terminal queue stays finished");
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test("reordering refuses a model that is no longer queued", async () => {
+  const spawn = spawner();
+  const runner = scheduler(spawn);
+  runner.start({ models: MODELS.slice(0, 2), stages: ["quality"] });
+  await settle();
+  assert.equal(spawn.children.length, 2);
+  spawn.children[0].finish(0);
+  await settle();
+  assert.equal(runner.get().items[0].status, "done");
+  assert.equal(runner.get().status, "running");
+  await assert.rejects(runner.move(MODELS[0].profileId, "down"), (error) => error.code === "tune_queue_model");
+});
+
+test("a resumed queue keeps per-model force", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "modelduck-queue-"));
+  const queueFile = path.join(dir, "queue.json");
+  const spawn = spawner();
+  const make = (impl) => new TuneScheduler({ homeDir: dir, modelsDir: "models", queueFile, scriptPath: "tune-run.mjs", spawnImpl: impl, readLanes: async () => ({ cpu: 1, gpu: 0 }), readLane: async () => "cpu", logger: { warn() {} } });
+  const first = make(spawn.spawnImpl);
+  first.start({ models: [{ ...MODELS[0], force: true }], stages: ["quality"] });
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  assert.equal(first.get().items[0].force, true, "force is kept on the queued item");
+  const next = spawner();
+  const runner = make(next.spawnImpl);
+  await runner.restore();
+  runner.resume();
+  await settle();
+  assert.ok(next.children.length >= 1);
+  assert.ok(next.children[0].args.includes("--force"), "the resumed tune still starts the stale model over");
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
 test("a run of only some settings passes them to every tune", async () => {
   const spawn = spawner();
   const runner = scheduler(spawn);

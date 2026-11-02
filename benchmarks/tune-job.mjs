@@ -112,7 +112,7 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
     model: target.entry.fileName,
     request: { stages, tasks, only, force, continueRun, quick, guard, maxRuns, passes, rerun: plan.rerun ?? [] },
     fingerprint: target.fingerprint,
-    expectedAnswers: expectedAnswers(used, { logicalCores, tasks, stages, only }),
+    expectedAnswers: expectedAnswers(used, { logicalCores, tasks, stages, only, quick }),
   });
   const earlierSweeps = plan.resume?.sweeps?.length ?? 0;
   const earlierAnswers = plan.resume?.runs ?? 0;

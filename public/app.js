@@ -2601,7 +2601,9 @@ async function refreshTunePreflight() {
     return;
   }
   try {
-    const data = await request(`/api/tune/estimate?tasks=${encodeURIComponent(tasks.join(","))}&stages=${encodeURIComponent(stages.join(","))}`);
+    const only = [...els.tuneOnly.querySelectorAll("input:checked")].map((input) => input.value);
+    const params = `tasks=${encodeURIComponent(tasks.join(","))}&stages=${encodeURIComponent(stages.join(","))}${only.length ? `&settings=${encodeURIComponent(only.join(","))}` : ""}`;
+    const data = await request(`/api/tune/estimate?${params}`);
     const models = data.perModel ?? [];
     const count = data.models === 1 ? "1 model" : `${data.models} models`;
     const fallback = (kind) => (kind === "quick" ? data.quick?.estimate : data.estimate)?.onePassSeconds ?? 0;
@@ -3321,6 +3323,7 @@ function bindEvents() {
   els.tunePause.addEventListener("click", pauseOrResumeTune);
   els.tuneStages.addEventListener("change", () => { void refreshTunePreflight(); });
   els.tuneTasks.addEventListener("change", () => { void refreshTunePreflight(); });
+  els.tuneOnly.addEventListener("change", () => { void refreshTunePreflight(); });
   els.tuneCancel.addEventListener("click", cancelTune);
   els.tuneSettingsSave.addEventListener("click", () => void saveTuneSettings(readTuneSettings()));
   els.tuneSettingsReset.addEventListener("click", () => {

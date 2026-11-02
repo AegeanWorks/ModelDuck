@@ -137,3 +137,15 @@ test("the tuning help explains the stages and the checks", () => {
     assert.ok(html.includes(text), `tuning help is missing: ${text}`);
   }
 });
+
+test("the tune preflight covers the Only-settings boxes", () => {
+  const preflight = app.match(/async function refreshTunePreflight\(\) \{[\s\S]*?\n\}/)?.[0] ?? "";
+  assert.ok(preflight, "refreshTunePreflight is missing");
+  assert.match(preflight, /tuneOnly/, "the preflight reads the Only-settings boxes");
+  assert.match(preflight, /settings=/, "the estimate request carries the chosen settings");
+  assert.match(
+    app,
+    /els\.tuneOnly\.addEventListener\("change"[\s\S]*?refreshTunePreflight/,
+    "changing Only-settings refreshes the preflight",
+  );
+});
