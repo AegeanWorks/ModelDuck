@@ -523,6 +523,7 @@ modelduck/
 │   ├── benchmark-tune.test.js
 │   ├── benchmark-tune-evaluate.test.js
 │   ├── benchmark-tune-baseline.test.js
+│   ├── benchmark-tune-stats.test.js
 │   ├── tuned-settings.test.js
 │   ├── jit-tuned.test.js
 │   ├── engine-parallel.test.js
@@ -541,6 +542,7 @@ modelduck/
 │   ├── benchmark-base.test.js
 │   ├── benchmark-recommend.test.js
 │   ├── benchmark-stats.test.js
+│   ├── benchmark-flash.test.js
 │   ├── generation-manifest.test.js
 │   ├── engine-errors.test.js
 │   ├── engine-runtime.test.js
