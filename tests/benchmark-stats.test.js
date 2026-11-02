@@ -98,8 +98,16 @@ test("a variant that failed before answering is not counted as a regression", ()
   const baseline = run({ v: [["a", true], ["b", true]] });
   const current = { models: [{ variantId: "v", prompts: [], failed: true }] };
   const result = compareRuns(current, baseline);
-  assert.equal(result.verdict, "pass");
-  assert.deepEqual(result.variants, []);
+  assert.equal(result.verdict, "fail", "a run with no answers fails the gate instead of passing it");
+  assert.deepEqual(result.variants, [], "the failed variant is still not paired as a regression");
+  assert.deepEqual(result.failed, ["v"]);
+  assert.match(result.reasons.join("; "), /v/);
+  const allFailed = compareRuns(
+    { models: [{ variantId: "v", prompts: [], failed: true }] },
+    { models: [{ variantId: "v", prompts: [{ id: "a", passed: 1, total: 1 }] }] },
+  );
+  assert.equal(allFailed.verdict, "fail");
+  assert.equal(allFailed.currentRate, 0);
 });
 
 test("improvements and new variants never fail the gate", () => {

@@ -273,8 +273,16 @@ export function createHttpServer({
         });
       }
       const body = await readJsonBody(req);
-      const requestedTasks = Array.isArray(body.tasks) ? body.tasks.map(String) : null;
-      const requestedStages = Array.isArray(body.stages) ? body.stages.map(String) : null;
+      const requestedTasks = Array.isArray(body.tasks) && body.tasks.length ? body.tasks.map(String) : null;
+      const requestedStages = Array.isArray(body.stages) && body.stages.length ? body.stages.map(String) : null;
+      if ((body.phase ?? "model") !== "tune" && (requestedTasks || requestedStages)) {
+        throw new AppError("Stages and tasks tune only", {
+          code: "invalid_benchmark_selection",
+          status: 400,
+          why: "A model or chat benchmark always runs the whole matrix; stages and tasks select tune work the run would ignore.",
+          fix: "Drop stages and tasks, or run phase tune.",
+        });
+      }
       validateTuneSelection(requestedTasks, requestedStages);
       sendJson(res, 202, {
         job: benchmarks.start({
@@ -443,7 +451,9 @@ export function createHttpServer({
       });
       const only = Array.isArray(body.settings) && body.settings.length ? body.settings.map(String) : null;
       const stages = Array.isArray(body.stages) ? body.stages.map(String) : null;
-      const tasks = Array.isArray(body.tasks) ? body.tasks.map(String) : null;
+      // An empty task list means every task, like the runner already treats it; keeping [] would
+      // mark the run a task subset and skip or part-run nothing instead of tuning the model.
+      const tasks = Array.isArray(body.tasks) && body.tasks.length ? body.tasks.map(String) : null;
       validateTuneSelection(tasks, stages);
       // forceStale starts over only where the saved profile was measured on another suite, runtime or machine,
       // and only for a whole tune: a part run re-measures its parts on top of the saved rest (ADR-040).

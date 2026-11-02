@@ -159,6 +159,14 @@ test("benchmark routes start, report and cancel one local run", async (t) => {
   assert.equal(cancelled.status, 200);
   assert.equal((await cancelled.json()).job.status, "cancelled");
 
+  const scoped = await post("/api/benchmarks/run", { phase: "model", stages: ["quality"] });
+  assert.equal(scoped.status, 400);
+  assert.equal((await scoped.json()).error.code, "invalid_benchmark_selection");
+  const emptyScope = await post("/api/benchmarks/run", { phase: "model", tasks: [] });
+  assert.equal(emptyScope.status, 202);
+  assert.equal(starts.at(-1).tasks, null, "an empty task list means the whole matrix");
+  assert.equal((await (await post("/api/benchmarks/cancel")).json()).job.status, "cancelled");
+
   harness.engine.activeIds.add("busy-conversation");
   const busy = await post("/api/benchmarks/run", { phase: "model" });
   assert.equal(busy.status, 409);
@@ -591,6 +599,8 @@ test("tunes for one model or all installed models are scheduled, watched and can
   assert.equal(starts[1].models.length, 1);
   assert.equal(starts[1].models[0].profileId, profileIdFor(installed.fileName));
   assert.deepEqual(starts[1].tasks, ["code"]);
+  await post("/api/tune/start", { models: [installed.id], tasks: [] });
+  assert.deepEqual(starts.at(-1).tasks, null, "an empty task list means every task");
 
   const quick = await post("/api/tune/start", { models: [installed.id], tasks: ["code"], quick: true, guard: true, guardQueue: true });
   assert.equal(quick.status, 202);

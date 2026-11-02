@@ -148,9 +148,14 @@ function outcomes(model) {
 export function compareRuns(current, baseline) {
   const previous = new Map((baseline.models ?? []).map((model) => [model.variantId ?? model.key, model]));
   const variants = [];
+  const failed = [];
   for (const model of current.models ?? []) {
-    // A variant that failed before producing any answer is reported as failed, not paired as a regression.
-    if (!model.prompts?.length) continue;
+    // A variant that failed before producing any answer fails the gate outright instead of
+    // passing it quietly; it is still not paired as a regression against the baseline.
+    if (!model.prompts?.length) {
+      failed.push(model.variantId ?? model.key);
+      continue;
+    }
     const before = previous.get(model.variantId ?? model.key);
     if (!before) continue;
     const then = outcomes(before);
@@ -179,11 +184,12 @@ export function compareRuns(current, baseline) {
   const drop = Number((baselineRate - currentRate).toFixed(1));
 
   const reasons = [];
+  if (failed.length) reasons.push(`${failed.join(", ")}: no answers recorded (the variant failed before answering)`);
   if (drop >= FLOOR_DROP_POINTS) reasons.push(`item pass rate fell ${drop} pts (${baselineRate}% -> ${currentRate}%), at or past the ${FLOOR_DROP_POINTS}-pt floor`);
   for (const variant of variants.filter((item) => item.significantDecline)) {
     reasons.push(`${variant.variantId}: ${variant.regressed.length} items regressed vs ${variant.improved.length} improved (Holm p=${variant.pAdjusted})`);
   }
   const declines = variants.filter((variant) => variant.regressed.length > 0);
   const verdict = reasons.length ? "fail" : declines.length ? "warn" : "pass";
-  return { verdict, reasons, currentRate, baselineRate, drop, variants };
+  return { verdict, reasons, currentRate, baselineRate, drop, variants, failed };
 }
