@@ -201,7 +201,7 @@ drop exits 1; a speed drop over 20% only warns. Generated code runs in a
 
 ## Screenshots
 
-[27-shot gallery and 3-minute video storyboard](assets/screenshots/README.md) · [social preview](assets/social-preview.png)
+[27-shot gallery and 3-minute video storyboard](assets/screenshots/README.md) · [social preview](assets/social-preview.png) · Gallery shot 2026-11-01, pre-redesign; fresh captures land via `npm run ui:shots` on a clean tree (ADR-081).
 
 ## Where things live
 
