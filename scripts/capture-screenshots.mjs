@@ -322,9 +322,20 @@ async function main() {
     let id = 0;
     const send = (method, params = {}) => new Promise((resolve, reject) => {
       const messageId = ++id;
-      pending.set(messageId, { resolve, reject });
+      const timer = setTimeout(() => {
+        pending.delete(messageId);
+        reject(new Error(`CDP ${method} timed out`));
+      }, 30_000);
+      pending.set(messageId, {
+        resolve: (value) => { clearTimeout(timer); resolve(value); },
+        reject: (error) => { clearTimeout(timer); reject(error); },
+      });
       ws.send(JSON.stringify({ id: messageId, method, params }));
     });
+    ws.onclose = () => {
+      for (const { reject } of pending.values()) reject(new Error("The browser closed the capture connection"));
+      pending.clear();
+    };
     ws.onmessage = (event) => {
       const message = JSON.parse(event.data);
       if (!message.id || !pending.has(message.id)) return;
