@@ -390,6 +390,22 @@ export function buildChatMatrix(selection = {}) {
 /** Generation-only settings run on the model configuration chosen by the model phase. */
 export const CHAT_MATRIX = buildChatMatrix();
 
+/**
+ * Flash section: one base variant per model family on the 16-item smoke set,
+ * for a minutes-scale signal while the full matrix takes hours. Base variants
+ * are the entries that change no setting (family === catalogId), plus the
+ * chat base and single-model sweep bases. Informational only: the promptIds
+ * override changes the test hash, so a flash run never compares or replaces
+ * a baseline.
+ */
+export function flashMatrix(matrix) {
+  const base = matrix.filter(
+    (spec) => spec.family === spec.catalogId || spec.id === "chat-base" || spec.id.endsWith("-base"),
+  );
+  const picked = base.length ? base : matrix.slice(0, 1);
+  return picked.map((spec) => ({ ...spec, promptIds: [...SMOKE_PROMPT_IDS] }));
+}
+
 export const MATRIX_VERSION = 4;
 
 export const MATRIX_MODELS = [...new Map(

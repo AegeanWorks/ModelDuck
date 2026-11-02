@@ -16,6 +16,7 @@
     "ui:shots": "node scripts/capture-screenshots.mjs",
     "bench": "node benchmarks/run.mjs --phase model",
     "bench:full": "node benchmarks/run.mjs --phase model --full-matrix",
+    "bench:flash": "node benchmarks/run.mjs --phase model --flash",
     "bench:all": "node benchmarks/run.mjs --phase model && node benchmarks/run.mjs --phase chat",
     "bench:update": "node benchmarks/run.mjs --phase model --update-baseline && node benchmarks/run.mjs --phase chat --update-baseline",
     "bench:update:model": "node benchmarks/run.mjs --phase model --update-baseline",

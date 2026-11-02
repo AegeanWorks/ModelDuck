@@ -12,7 +12,7 @@ import { getCatalogModel } from "../src/model-catalog.js";
 import { createModelRegistry } from "../src/model-registry.js";
 import { systemInfo } from "../src/system.js";
 import { currentGitInfo, recordRun } from "./history.mjs";
-import { MODEL_MATRIX, buildChatMatrix, modelMatrix, modelMatrixFor } from "./matrix.mjs";
+import { MODEL_MATRIX, buildChatMatrix, flashMatrix, modelMatrix, modelMatrixFor } from "./matrix.mjs";
 import { BENCHMARK_MODELS, PROMPTS, SUITE_VERSION, SYSTEM_PROMPT, checkCount, evaluateResponse } from "./suite.mjs";
 import { compareRuns, itemSummary, promptOrigin } from "./stats.mjs";
 import { benchmarkTestHash, modelIdentityChanges } from "./test-hash.mjs";
@@ -53,6 +53,7 @@ function parseArgs(argv) {
     baseVariant: null,
     fullMatrix: false,
     model: null,
+    flash: false,
   };
   for (let index = 0; index < argv.length; index += 1) {
     const [flag, inline] = argv[index].includes("=")
@@ -105,6 +106,9 @@ function parseArgs(argv) {
       case "--model":
         options.model = take();
         break;
+      case "--flash":
+        options.flash = true;
+        break;
       default:
         throw new AppError(`Unknown option: ${flag}`, { fix: "Run npm run bench -- --help." });
     }
@@ -132,6 +136,8 @@ Options:
   --base-variant <id> Use that variant for this chat run only (no save)
   --full-matrix       Run all six model families (default: the three core models)
   --model <id>        Sweep reload settings for one model on the smoke set (never replaces a baseline)
+  --flash             Base variant per family on the 16-item smoke set, minutes not hours
+                      (informational only: never compares or replaces a baseline)
   --json              Print only the machine-readable result
   --events            Stream JSON progress lines on stdout (for the app)
   -h, --help          Show this help
@@ -564,11 +570,25 @@ async function main() {
       ? await resolveChatBase({ benchmarkDir: HERE, variantId: options.baseVariant })
       : await loadChatBase({ benchmarkDir: HERE });
   }
-  const matrix = options.phase === "chat"
-    ? buildChatMatrix(chatBaseSettings(chatBase))
-    : singleModel
-      ? modelMatrixFor(singleModel.catalogId)
-      : modelMatrix({ full: options.fullMatrix });
+  if (options.flash && options.updateBaseline) {
+    throw new AppError("A flash run cannot replace the baseline", {
+      code: "flash_baseline_refused",
+      fix: "Run the core matrix (npm run bench) or --full-matrix to replace a baseline.",
+    });
+  }
+  const matrix = options.flash
+    ? flashMatrix(
+        options.phase === "chat"
+          ? buildChatMatrix(chatBaseSettings(chatBase))
+          : singleModel
+            ? modelMatrixFor(singleModel.catalogId)
+            : modelMatrix({ full: options.fullMatrix }),
+      )
+    : options.phase === "chat"
+      ? buildChatMatrix(chatBaseSettings(chatBase))
+      : singleModel
+        ? modelMatrixFor(singleModel.catalogId)
+        : modelMatrix({ full: options.fullMatrix });
   if (!matrix.length) {
     throw new AppError("That model has no benchmark variants", {
       code: "benchmark_model_unknown",
@@ -614,6 +634,9 @@ async function main() {
   if (singleModel) {
     log(options, `Single-model settings sweep: ${singleModel.label} (${singleModel.catalogId})`);
   }
+  if (options.flash) {
+    log(options, `Flash: ${matrix.length} base variants on the 16-item smoke set — informational only, no baseline comparison.`);
+  }
   log(options, `Matrix: ${matrix.length} variants · CPU ${systemInfo().cpu}`);
   log(options, `Unsupported by the runtime: ${Object.keys(UNSUPPORTED_SETTINGS).join(", ")}`);
   emit(options, {
@@ -641,7 +664,7 @@ async function main() {
   }
 
   let baseline = null;
-  if (!singleModel) {
+  if (!singleModel && !options.flash) {
     try {
       baseline = JSON.parse(await readFile(baselinePath, "utf8"));
     } catch {
@@ -785,11 +808,13 @@ async function main() {
     },
     settings: {
       matrix: true,
-      matrixScope: singleModel
-        ? `single:${singleModel.catalogId}`
-        : options.phase === "model"
-          ? options.fullMatrix ? "full" : "core"
-          : "chat",
+      matrixScope: options.flash
+        ? "flash"
+        : singleModel
+          ? `single:${singleModel.catalogId}`
+          : options.phase === "model"
+            ? options.fullMatrix ? "full" : "core"
+            : "chat",
       contextSizeOverride: options.contextSize,
       threadsOverride: options.threads,
       temperature: 0,
@@ -837,9 +862,11 @@ async function main() {
     tests,
     models,
   };
-  await writeFile(LATEST, `${JSON.stringify(result, null, 2)}\n`, "utf8");
+  if (!options.flash) {
+    await writeFile(LATEST, `${JSON.stringify(result, null, 2)}\n`, "utf8");
+  }
   await writeFile(
-    path.join(RESULTS_DIR, singleModel ? "latest-single-model.json" : `latest-${options.phase}.json`),
+    path.join(RESULTS_DIR, singleModel ? "latest-single-model.json" : options.flash ? "latest-flash.json" : `latest-${options.phase}.json`),
     `${JSON.stringify(result, null, 2)}\n`,
     "utf8",
   );
@@ -915,6 +942,8 @@ async function main() {
     } else {
       log(options, "  NO QUALITY CHANGE.");
     }
+  } else if (options.flash) {
+    log(options, "\nFlash run: base variants on the smoke set. Informational only — the shared baseline was not read, compared or replaced.");
   } else if (singleModel) {
     log(options, "\nSingle-model settings sweep: the shared baseline was not read, compared or replaced.");
   } else {

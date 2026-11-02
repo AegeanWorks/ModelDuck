@@ -140,6 +140,7 @@ may be in a model's training data, so the report shows **own questions** and
 
 ```bash
 npm run bench -- --download        # first run: fetch missing models, core phase
+npm run bench:flash               # base variants on the 16-item smoke set, minutes not hours (informational)
 npm run bench:all                  # optional: add the model-usage phase
 npm run bench:full                 # optional: add Llama 3B and Phi 3.8B
 npm run bench -- --model <id>      # settings sweep for one model; never touches a baseline
