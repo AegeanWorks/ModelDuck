@@ -719,7 +719,7 @@ test("Run all can start stale profiles over while fresh ones resume", async (t) 
   assert.equal(starts.at(-1).continueRun, true);
 
   // A part run keeps every saved profile and re-measures only the chosen parts (ADR-040).
-  for (const part of [{ stages: ["prompt"] }, { settings: ["contextSize"] }]) {
+  for (const part of [{ stages: ["prompt"] }, { settings: ["contextSize"] }, { tasks: ["code"] }]) {
     await fetch(`${harness.base}/api/tune/start`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ models: "all", forceStale: true, ...part }) });
     assert.deepEqual(starts.at(-1).models.map((model) => Boolean(model.force)), [false, false], JSON.stringify(part));
   }

@@ -2880,7 +2880,8 @@ async function startTune(models, { force = false, forceStale = false, stage = nu
     return;
   }
   // A part run measures its parts again on top of the saved rest; only a whole tune starts a stale profile over (ADR-040).
-  const partRun = settings.length > 0 || stages.length < all.length;
+  // A task subset is a part run too: scratch on a subset would save a profile without the other tasks.
+  const partRun = settings.length > 0 || stages.length < all.length || (taskList && taskList.length < TUNE_TASKS.length);
   try {
     const { job } = await request("/api/tune/start", { method: "POST", body: { models, ...(taskList && { tasks: taskList }), ...(continueRun && { continue: true }), stages, settings: settings.length ? settings : null, force: !continueRun && (useForm ? ((force && !partRun) || (!stage && els.tuneForce.checked)) : force), forceStale, quick: Boolean(quick), guard: useForm ? Boolean(els.tuneGuard?.checked) : false, guardQueue: useForm ? Boolean(els.tuneGuardQueue?.checked) : false } });
     state.tuneJob = job;

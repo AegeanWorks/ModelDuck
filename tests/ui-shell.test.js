@@ -149,3 +149,10 @@ test("the tune preflight covers the Only-settings boxes", () => {
     "changing Only-settings refreshes the preflight",
   );
 });
+
+test("a task subset counts as a part run so scratch never drops the other tasks", () => {
+  const start = app.match(/async function startTune\(models[\s\S]*?\n\}/)?.[0] ?? "";
+  assert.ok(start, "startTune is missing");
+  assert.match(start, /taskList/, "the form builds an explicit task list");
+  assert.match(start, /taskList\.length < TUNE_TASKS\.length/, "a task subset marks the run a part run");
+});

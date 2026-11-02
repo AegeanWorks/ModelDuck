@@ -447,8 +447,10 @@ export function createHttpServer({
       validateTuneSelection(tasks, stages);
       // forceStale starts over only where the saved profile was measured on another suite, runtime or machine,
       // and only for a whole tune: a part run re-measures its parts on top of the saved rest (ADR-040).
+      // A task subset is a part run too: starting it over would save a profile without the other tasks.
       // Continuing never starts over: it finishes what the earlier run left (ADR-051).
-      if (body.forceStale === true && profilesDir && !isPartRun(stages, only) && body.continue !== true) {
+      const taskSubset = Array.isArray(tasks) && tasks.length < TASKS.length;
+      if (body.forceStale === true && profilesDir && !isPartRun(stages, only) && !taskSubset && body.continue !== true) {
         for (const model of models) {
           const entry = installed.find((item) => item.id === model.id);
           const saved = await loadProfile(profilesDir, model.profileId, await profileFingerprint(entry)).catch(() => null);
