@@ -1180,26 +1180,6 @@ button.tune-chip.running {
   color: var(--danger, #f87171);
 }
 
-/* The Benchmark tab: the suite per task */
-
-.bench-suite-total {
-  margin: 0 0 8px;
-  font-size: 13px;
-}
-.bench-suite-task {
-  margin-top: 14px;
-}
-.bench-suite-task h4 {
-  margin: 0 0 2px;
-  font-size: 13px;
-}
-
-/* "Checked by" is text, not a number */
-
-.bench-suite-task .benchmark-table th:last-child, .bench-suite-task .benchmark-table td:last-child {
-  text-align: left;
-}
-
 /* Control panel: the server and tuner surface */
 
 .app {

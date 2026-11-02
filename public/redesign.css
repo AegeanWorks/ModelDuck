@@ -3228,6 +3228,14 @@ a {
   display: none;
 }
 
+/* Without popover support the :popover-open rules above are dropped, so the
+   fallback path in showHelp owns visibility and the box starts hidden. */
+@supports not selector(:popover-open) {
+  .field-help-popover {
+    display: none;
+  }
+}
+
 .field-help-popover:popover-open {
   display: block;
 }

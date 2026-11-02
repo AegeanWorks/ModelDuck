@@ -150,6 +150,22 @@ test("the tune preflight covers the Only-settings boxes", () => {
   );
 });
 
+test("the suite summary never renders NaN or Infinity", () => {
+  const render = app.match(/function renderBenchSuite\(suite\) \{[\s\S]*?\n\}/)?.[0] ?? "";
+  assert.ok(render, "renderBenchSuite is missing");
+  assert.match(render, /Number\.isFinite\(suite\.holdoutShare\)/, "a missing holdout share shows a dash");
+  assert.match(render, /rounds\.length \?/, "an empty task list shows a dash for rounds");
+  assert.doesNotMatch(css, /\.bench-suite-(total|task)\b/, "the old suite overview styles are gone");
+});
+
+test("stage help and the popover fallback degrade gracefully", () => {
+  const mark = app.match(/function markSettingHelp\(\) \{[\s\S]*?\n\}/)?.[0] ?? "";
+  assert.ok(mark, "markSettingHelp is missing");
+  assert.match(mark, /STAGE_HELP\[input\.value\]/, "stage help comes from the map");
+  assert.match(mark, /if \(!span \|\| !text/, "a stage without help text gets no button");
+  assert.match(theme, /@supports not selector\(:popover-open\)/, "browsers without popover start with the help box hidden");
+});
+
 test("a task subset counts as a part run so scratch never drops the other tasks", () => {
   const start = app.match(/async function startTune\(models[\s\S]*?\n\}/)?.[0] ?? "";
   assert.ok(start, "startTune is missing");

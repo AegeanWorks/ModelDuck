@@ -309,8 +309,9 @@ function markSettingHelp() {
   for (const label of document.querySelectorAll("#tune-stages .tune-stage")) {
     const input = label.querySelector("input[value]");
     const span = label.querySelector("span");
-    if (!input || !span || span.querySelector(".field-help")) continue;
-    span.appendChild(helpButton(label.querySelector("strong")?.textContent ?? "stage", STAGE_HELP[input.value]));
+    const text = input && STAGE_HELP[input.value];
+    if (!span || !text || span.querySelector(".field-help")) continue;
+    span.appendChild(helpButton(label.querySelector("strong")?.textContent ?? "stage", text));
   }
 }
 
@@ -1925,16 +1926,17 @@ async function loadBenchSuite() {
 }
 
 function renderBenchSuite(suite) {
-  const heldShare = Math.round(suite.holdoutShare * 100);
+  const tasks = Array.isArray(suite.tasks) ? suite.tasks : [];
+  const heldShare = Number.isFinite(suite.holdoutShare) ? `${Math.round(suite.holdoutShare * 100)}%` : "–";
   if (els.benchSuiteVersion) els.benchSuiteVersion.textContent = `v${suite.suiteVersion}`;
-  const rounds = suite.tasks.flatMap((task) => task.rungs);
+  const rounds = tasks.flatMap((task) => task.rungs);
   const summary = document.createElement("div");
   summary.className = "suite-summary";
   for (const [value, label] of [
-    [suite.items, "questions"],
-    [suite.tasks.length, "tasks"],
-    [`${heldShare}%`, "held back"],
-    [`${Math.min(...rounds)}–${Math.max(...rounds)}`, "rounds"],
+    [suite.items ?? "–", "questions"],
+    [tasks.length || "–", "tasks"],
+    [heldShare, "held back"],
+    [rounds.length ? `${Math.min(...rounds)}–${Math.max(...rounds)}` : "–", "rounds"],
   ]) {
     const stat = document.createElement("div");
     stat.className = "suite-stat";
@@ -1943,7 +1945,7 @@ function renderBenchSuite(suite) {
   }
   els.benchSuite.replaceChildren(summary);
 
-  for (const task of suite.tasks) {
+  for (const task of tasks) {
     const section = document.createElement("section");
     section.className = "suite-task";
     const head = document.createElement("div");
