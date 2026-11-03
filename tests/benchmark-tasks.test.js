@@ -93,6 +93,17 @@ test("the speed workload is six fixed items covering every task", () => {
   for (const task of TASKS) assert.ok(items.some((id) => taskPrompts(task.id).some((prompt) => prompt.id === id)), `${task.id} missing`);
 });
 
+test("the speed workload has no holes on a short prompt set", () => {
+  const tiny = [
+    { id: "c1", category: "code" },
+    { id: "u1", category: "code-comprehension" },
+    { id: "r1", category: "recall" },
+  ];
+  const items = speedItems(tiny);
+  assert.ok(items.every((id) => typeof id === "string"), `holes in ${JSON.stringify(items)}`);
+  assert.equal(items.length, 3);
+});
+
 test("saturated items leave the search rungs but stay in the final set", () => {
   const rungs = tuneRungs(["comprehension"]);
   const full = rungs.comprehension.at(-1);

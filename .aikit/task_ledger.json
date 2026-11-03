@@ -5,40 +5,12 @@
     "last_phase": "in_progress",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1793722655.8902004,
+    "updated_at": 1793723078.933987,
     "owner": "kilo:1",
     "started_by": "kilo:1",
     "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "tuner-engine-validation",
-      "phase": "implementation",
-      "phase_num": 4,
-      "description": "[G2] pair check after convergence: winner+runner-up of top-2 axes, 3 combos on last rung, normal evidence rules; tuner v6, ADR-078, full suite 409/409",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793633731.6388836,
-      "timestamp_str": "2026-11-02 18:35:31",
-      "agent": "kilo:1"
-    },
-    {
-      "task_id": "tuner-long-context",
-      "phase": "planning",
-      "phase_num": 2,
-      "description": "[1/5] Qwen M5 replication on existing local file; [2/5] M6 long-context items (seeded 4k/8k/16k recall needles, excluded from search/speed/holdout); [3/5] KV-confirmation step in quality stage (non-inferiority vs f16, greedy, 1 seed, budget-capped); [4/5] full tests; [5/5] baseline pilot (smollm2 --passes 1) then full baseline call",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793634037.0717402,
-      "timestamp_str": "2026-11-02 18:40:37",
-      "agent": "kilo:1",
-      "impact_assessment": {
-        "why": "Local models unblock every engine-dependent step: M5 answer, M6 validation, G-001 baseline",
-        "benefits": "KV choice confirmed at served context lengths; gate becomes runnable; tuner v6+suite v16 get a deliberate baseline",
-        "risks": "contract: suite item additions change task hash (G-003 handled: v16 row already notes regen); dependency: 16k-context loads need RAM; concurrency: one engine study at a time; state: baseline file deliberately rewritten",
-        "mitigation": "Long items excluded from search rungs and speed workload; KV confirm reverts on significant loss; baseline pilot on smallest model first"
-      }
-    },
     {
       "task_id": "tuner-engine-validation",
       "phase": "superseded",
@@ -239,6 +211,34 @@
       "status": "in_progress",
       "timestamp": 1793722655.8902004,
       "timestamp_str": "2026-11-03 19:17:35",
+      "agent": "kilo:1"
+    },
+    {
+      "task_id": "tuner-lit-followups",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[Wave 10 plan 1/1] survey oldest commits 1-10 (suite v10/v11, part-runs, reasoning); fix speedItems holes on short prompt sets; failing-first test; full gates",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793723023.0909162,
+      "timestamp_str": "2026-11-03 19:23:43",
+      "agent": "kilo:1",
+      "impact_assessment": {
+        "why": "speedItems feeds estimate denominators and the speed workload; undefined holes inflate counts and crash scorers",
+        "benefits": "correct estimates and no undefined ids on small/custom suites",
+        "risks": "contract: speedItems return length changes for degenerate inputs only; dependency: none; concurrency: none; state: none",
+        "mitigation": "failing-first unit test on tiny prompt set; full npm test plus aikit check before commit"
+      }
+    },
+    {
+      "task_id": "tuner-lit-followups",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[Wave 10] done: speedItems drops missing slots (tiny suite gave 3 undefined holes, now compact); surveyed oldest 1-10; suite 438/438; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793723078.933987,
+      "timestamp_str": "2026-11-03 19:24:38",
       "agent": "kilo:1"
     }
   ]
