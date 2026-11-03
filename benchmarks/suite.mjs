@@ -366,8 +366,13 @@ const SUITE_CATEGORIES = new Set([
   "recall",
 ]);
 
+// Short unscored items: kept in the file for reference, never part of a run.
+// A rename or a new tiny demo item stays out by adding its id here, instead
+// of another bare carve-out in the filter below.
+export const EXCLUDED_IDS = Object.freeze(new Set(["squad"]));
+
 export const PROMPTS = Object.freeze(
-  ALL_PROMPTS.filter((prompt) => SUITE_CATEGORIES.has(prompt.category) && prompt.id !== "squad"),
+  ALL_PROMPTS.filter((prompt) => SUITE_CATEGORIES.has(prompt.category) && !EXCLUDED_IDS.has(prompt.id)),
 );
 
 /* v5 families ------------------------------------------------------------- */

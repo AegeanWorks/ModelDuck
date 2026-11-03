@@ -79,8 +79,9 @@ function stratified(prompts) {
 
 /**
  * A task split into the items tuned on and those held back (S5). By default
- * the last quarter of every family bucket is held back, so each kind of item
- * is checked unseen, both in stratified order. When every bucket is tiny
+ * a share of every family bucket is held back, spread evenly through the
+ * bucket by midpoint, so each kind of item is checked unseen, both in
+ * stratified order. When every bucket is tiny
  * (one function = one bucket), splitting buckets would tear clusters apart
  * and shrink the tuned pool below rung size: every fourth bucket is held
  * back wholly instead, so whole functions stay unseen (S4/S5) while the

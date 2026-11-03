@@ -12,7 +12,7 @@ import { getCatalogModel } from "../src/model-catalog.js";
 import { createModelRegistry } from "../src/model-registry.js";
 import { systemInfo } from "../src/system.js";
 import { currentGitInfo, recordRun } from "./history.mjs";
-import { MODEL_MATRIX, buildChatMatrix, flashMatrix, modelMatrix, modelMatrixFor, resultFileName } from "./matrix.mjs";
+import { MODEL_MATRIX, buildChatMatrix, flashMatrix, modelMatrix, modelMatrixFor, promptListFor, resultFileName } from "./matrix.mjs";
 import { BENCHMARK_MODELS, PROMPTS, SUITE_VERSION, SYSTEM_PROMPT, checkCount, evaluateResponse } from "./suite.mjs";
 import { compareRuns, itemSummary, promptOrigin } from "./stats.mjs";
 import { benchmarkTestHash, modelIdentityChanges } from "./test-hash.mjs";
@@ -232,22 +232,6 @@ function formatSize(bytes) {
   const value = Number(bytes) || 0;
   if (value < 1024 * 1024) return `${Math.round(value / 1024)} KB`;
   return `${(value / (1024 * 1024)).toFixed(0)} MB`;
-}
-
-/** Resolve a variant's prompt list once, refusing unknown ids before a model is loaded. */
-function promptListFor(spec) {
-  const prompts = spec.promptIds ? PROMPTS.filter((prompt) => spec.promptIds.includes(prompt.id)) : PROMPTS;
-  if (spec.promptIds) {
-    const missing = spec.promptIds.filter((id) => !PROMPTS.some((prompt) => prompt.id === id));
-    if (missing.length) {
-      throw new AppError("Benchmark variant asks for unknown prompts", {
-        code: "benchmark_prompt_unknown",
-        why: `${spec.id} asks for: ${missing.join(", ")}.`,
-        fix: "Remove the unknown prompt ids from benchmarks/matrix.mjs.",
-      });
-    }
-  }
-  return prompts;
 }
 
 function failedVariant(entry, spec, error) {

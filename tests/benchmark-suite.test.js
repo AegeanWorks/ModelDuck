@@ -5,6 +5,7 @@ import test from "node:test";
 
 import {
   BENCHMARK_MODELS,
+  EXCLUDED_IDS,
   PROMPTS,
   evaluateResponse,
   normalizeAnswer,
@@ -19,6 +20,7 @@ import {
   buildChatMatrix,
   modelMatrix,
   modelMatrixFor,
+  promptListFor,
 } from "../benchmarks/matrix.mjs";
 
 test("the benchmark keeps at least three different small model classes", () => {
@@ -27,6 +29,19 @@ test("the benchmark keeps at least three different small model classes", () => {
   assert.equal(PROMPTS.length, 265);
   const gallery = readFileSync(fileURLToPath(new URL("../assets/screenshots/README.md", import.meta.url)), "utf8");
   assert.ok(gallery.includes(`${PROMPTS.length} questions`), "the screenshot gallery names the current suite size");
+});
+
+test("a variant's prompt list refuses empty, unknown and repeated ids", () => {
+  assert.deepEqual(promptListFor({ id: "x", promptIds: ["needle"] }).map((prompt) => prompt.id), ["needle"]);
+  assert.deepEqual(promptListFor({ id: "x" }), PROMPTS, "no list means the whole suite");
+  assert.throws(() => promptListFor({ id: "x", promptIds: [] }), (error) => error.code === "benchmark_prompt_empty");
+  assert.throws(() => promptListFor({ id: "x", promptIds: ["no-such-prompt"] }), (error) => error.code === "benchmark_prompt_unknown");
+  assert.throws(() => promptListFor({ id: "x", promptIds: ["needle", "needle"] }), (error) => error.code === "benchmark_prompt_duplicate");
+});
+
+test("short unscored items stay out of scored runs by id, not by a bare carve-out", () => {
+  assert.ok(EXCLUDED_IDS.has("squad"), "the reading-comprehension demo is excluded");
+  assert.ok(PROMPTS.every((prompt) => !EXCLUDED_IDS.has(prompt.id)));
 });
 
 test("every matrix variant asks only for shipped prompt ids", () => {

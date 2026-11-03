@@ -1,6 +1,7 @@
 import { getCatalogModel } from "../src/model-catalog.js";
 import { SETTING_PRESETS } from "../src/config.js";
-import { BENCHMARK_MODELS, SMOKE_PROMPT_IDS } from "./suite.mjs";
+import { AppError } from "../src/errors.js";
+import { BENCHMARK_MODELS, PROMPTS, SMOKE_PROMPT_IDS } from "./suite.mjs";
 
 const BASE = new Map(BENCHMARK_MODELS.map((model) => [model.catalogId, model]));
 
@@ -407,6 +408,41 @@ export function flashMatrix(matrix) {
   }
   const picked = base.length ? base : matrix.slice(0, 1);
   return picked.map((spec) => ({ ...spec, promptIds: [...SMOKE_PROMPT_IDS] }));
+}
+
+/**
+ * Resolve a variant's prompt list once, refusing unknown ids before a model
+ * is loaded. Empty and repeated lists are refused too: both would silently
+ * score fewer items than the matrix author meant. Kept here (not run.mjs) so
+ * unit tests can import it — run.mjs executes on import.
+ */
+export function promptListFor(spec) {
+  const prompts = spec.promptIds ? PROMPTS.filter((prompt) => spec.promptIds.includes(prompt.id)) : PROMPTS;
+  if (spec.promptIds) {
+    if (!spec.promptIds.length) {
+      throw new AppError("Benchmark variant asks for no prompts", {
+        code: "benchmark_prompt_empty",
+        why: `${spec.id} lists no prompt ids.`,
+        fix: "Give the variant prompt ids from benchmarks/matrix.mjs.",
+      });
+    }
+    const missing = spec.promptIds.filter((id) => !PROMPTS.some((prompt) => prompt.id === id));
+    if (missing.length) {
+      throw new AppError("Benchmark variant asks for unknown prompts", {
+        code: "benchmark_prompt_unknown",
+        why: `${spec.id} asks for: ${missing.join(", ")}.`,
+        fix: "Remove the unknown prompt ids from benchmarks/matrix.mjs.",
+      });
+    }
+    if (new Set(spec.promptIds).size !== spec.promptIds.length) {
+      throw new AppError("Benchmark variant repeats prompts", {
+        code: "benchmark_prompt_duplicate",
+        why: `${spec.id} lists a prompt id twice but scores it once.`,
+        fix: "Remove the repeated prompt ids from benchmarks/matrix.mjs.",
+      });
+    }
+  }
+  return prompts;
 }
 
 /**
