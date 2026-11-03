@@ -95,6 +95,11 @@ test("the context budget prefers total-minus-reserve over momentary free memory 
   assert.deepEqual(sized.inputs.totalBytes, 16 * GIB);
 });
 
+test("the context budget refuses an empty step list instead of choosing undefined", () => {
+  assert.throws(() => budgetContext({ modelBytes: GIB, shape: LLAMA_3B, kvCache: "f16", steps: [], availableBytes: 8 * GIB, trainContext: 32768 }),
+    (error) => error.code === "empty_context_steps" && /empty/.test(error.why) && /at least one/.test(error.fix));
+});
+
 test("the context budget falls back to the smallest size, and says so, when nothing fits or memory is unknown", () => {
   const tiny = budgetContext({ modelBytes: 1.83 * GIB, shape: LLAMA_3B, kvCache: "f16", steps: STEPS, availableBytes: 1 * GIB, trainContext: 131072 });
   assert.equal(tiny.contextSize, 2048);

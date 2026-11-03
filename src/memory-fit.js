@@ -6,6 +6,8 @@
  * bytes per element, per token.
  */
 
+import { AppError } from "./errors.js";
+
 const KV_BYTES_PER_ELEMENT = Object.freeze({
   f16: 2,
   q8_0: 34 / 32, // 32 int8 values plus one f16 scale per block
@@ -113,7 +115,16 @@ const gib = (bytes) => `${(bytes / 1024 ** 3).toFixed(1)} GiB`;
  * inputs are returned, so a profile says what budget it assumed.
  */
 export function budgetContext({ steps, modelBytes, shape, kvCache = "f16", availableBytes, totalBytes = null, reserveBytes = MEMORY_RESERVE_BYTES, trainContext = Infinity }) {
-  const sizes = [...steps].map(Number).filter((size) => size > 0).sort((left, right) => left - right);
+  const sizes = [...(steps ?? [])].map(Number).filter((size) => size > 0).sort((left, right) => left - right);
+  // No sizes is a caller bug, not a tight budget: refusing loudly beats
+  // choosing `undefined` and poisoning the tune winner downstream.
+  if (!sizes.length) {
+    throw new AppError("No context sizes to budget", {
+      code: "empty_context_steps",
+      why: "The context step list is empty, so there is no size to choose.",
+      fix: "List at least one context size, e.g. [2048, 4096, 8192].",
+    });
+  }
   const smallest = sizes[0];
   const inputs = {
     modelBytes: Number(modelBytes) || null,

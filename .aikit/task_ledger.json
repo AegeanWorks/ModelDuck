@@ -5,7 +5,7 @@
     "last_phase": "in_progress",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1793723134.165801,
+    "updated_at": 1793723239.1200454,
     "owner": "kilo:1",
     "started_by": "kilo:1",
     "continuations": []
@@ -79,28 +79,6 @@
       "status": "superseded",
       "timestamp": 1793644272.4674096,
       "timestamp_str": "2026-11-02 21:31:12",
-      "agent": "kilo:1"
-    },
-    {
-      "task_id": "tuner-lit-followups",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/6] done: DRY end-to-end for code (dryStrength 0/0.8 axis, dryBase 1.75, dryAllowedLength 4) via config normalize, engine chat+completion pass-through, openai preset apply, recipe import keys (+penalizeNewLine gap fixed); runtime acceptance of dryRepeatPenalty deferred to [5/6]; full suite 414/414",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793644820.2431514,
-      "timestamp_str": "2026-11-02 21:40:20",
-      "agent": "kilo:1"
-    },
-    {
-      "task_id": "tuner-lit-followups",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/6] partial: code-fence axis done (prefix+stop move together, off vs fenced), config/engine/openai/recipe plumbing, normalize returns validated stop array by reference; mixed K/V verified API-true (separate K/V types) but unsized; thoughtTokens verified API-true but deferred (no reasoning models in catalog); full suite 415/415",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793645078.2181654,
-      "timestamp_str": "2026-11-02 21:44:38",
       "agent": "kilo:1"
     },
     {
@@ -245,6 +223,34 @@
       "status": "in_progress",
       "timestamp": 1793723134.165801,
       "timestamp_str": "2026-11-03 19:25:34",
+      "agent": "kilo:1"
+    },
+    {
+      "task_id": "tuner-lit-followups",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[Wave 30 plan 1/1] survey oldest commits 21-30 (context budget, time-left, warnings); refuse empty context steps loudly; failing-first test; full gates",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793723143.1715374,
+      "timestamp_str": "2026-11-03 19:25:43",
+      "agent": "kilo:1",
+      "impact_assessment": {
+        "why": "empty steps yield contextSize undefined, which poisons the tune winner silently",
+        "benefits": "fail-loud refusal with Why/Fix instead of undefined propagating",
+        "risks": "contract: direct-API empty steps now throw AppError; dependency: src/errors.js only; concurrency: none; state: none",
+        "mitigation": "failing-first unit test; normalized user steps can never be empty (cleanList fallback); full suite plus aikit check"
+      }
+    },
+    {
+      "task_id": "tuner-lit-followups",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[Wave 30] done: budgetContext refuses empty steps with AppError (was contextSize undefined); surveyed oldest 21-30; suite 440/440 (one scheduler flake on first run, green on rerun); checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793723239.1200454,
+      "timestamp_str": "2026-11-03 19:27:19",
       "agent": "kilo:1"
     }
   ]
