@@ -141,6 +141,18 @@ smoke set, writes `results/latest-single-model.json`, and recommends its best
 settings. It is deliberately not baseline-eligible: `--update-baseline` is refused,
 so a quick optimisation can never shrink the shared gate.
 
+## Context curve (long-context variant evaluation)
+
+`npm run bench:curve -- --model <id> --variant <name:key=value,...> [--variant ...]`
+reports quality-vs-prompt-length plus a prefill/decode breakdown on the locked
+recall task (short lookups, context items, M6 4k/8k/16k needles) — the paper
+methodology (accuracy at several lengths) at ModelDuck scale. Variants differ in
+load settings only (`contextSize`, `kvCache`, `threads`, `batchSize`,
+`flashAttention`, `useMmap`; CPU lane, greedy seed); the comparison is refused
+when suite, items, runtime or model file drift. Reports land in
+`benchmarks/curves/` and never touch baselines, profiles, tune runs or history.
+`--items` restricts to a subset for smoke runs; `--json` prints the report.
+
 ## Test identity
 
 `benchmarks/suite.mjs` exports `SUITE_VERSION`. Every result also carries a

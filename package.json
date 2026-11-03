@@ -27,6 +27,7 @@
     "bench:link": "node benchmarks/link.mjs",
     "bench:model": "node benchmarks/run.mjs --phase model",
     "bench:chat": "node benchmarks/run.mjs --phase chat",
+    "bench:curve": "node benchmarks/context-curve.mjs",
     "verify:manifest": "node benchmarks/verify-manifest.mjs"
   },
   "dependencies": {
