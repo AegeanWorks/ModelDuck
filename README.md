@@ -442,6 +442,7 @@ modelduck/
 │   ├── benchmark-report.js <- report summary for the Bench panel
 │   ├── benchmark-runner.js <- one benchmark child, JSON progress
 │   ├── benchmark-base.js <- benchmark base choice
+│   ├── checkpoint-merge.js <- toy qwenFS checkpoint-merge math (offline analysis only)
 │   ├── openai.js <- OpenAI-compatible models/chat endpoints
 │   ├── http.js <- JSON, SSE, static serving, loopback guard
 │   ├── jit.js <- just-in-time loading and idle unload
@@ -504,6 +505,7 @@ modelduck/
 │   ├── helpers.js
 │   ├── ui-shell.test.js
 │   ├── config.test.js
+│   ├── checkpoint-merge.test.js
 │   ├── fs-atomic.test.js
 │   ├── model-registry.test.js
 │   ├── model-profiles.test.js
