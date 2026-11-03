@@ -156,3 +156,11 @@ test("restored answers are reused without calling evaluate (G8)", async () => { 
   assert.equal(calls, 0, "the restored slot answered without measuring");
   assert.equal(stats.rate, 50);
 });
+
+test("score on no items is a zero rate, not NaN", async () => {
+  const measurements = new Measurements(async () => ({ prompts: [] }), 100);
+  const stats = await score(measurements, { temperature: 0 }, [], [42]);
+  assert.equal(stats.items, 0);
+  assert.equal(stats.rate, 0, `empty input must not poison rate comparisons (got ${stats.rate})`);
+  assert.equal(stats.solved, 0);
+});

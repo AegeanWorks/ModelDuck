@@ -5,7 +5,7 @@
     "last_phase": "in_progress",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1793723078.933987,
+    "updated_at": 1793723134.165801,
     "owner": "kilo:1",
     "started_by": "kilo:1",
     "continuations": []
@@ -79,28 +79,6 @@
       "status": "superseded",
       "timestamp": 1793644272.4674096,
       "timestamp_str": "2026-11-02 21:31:12",
-      "agent": "kilo:1"
-    },
-    {
-      "task_id": "tuner-lit-followups",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[1/6] sampler profiles pair low T with truncated top-p (T<=0.4->0.8, T<=0.8->0.9, T>0.8->minP0/topP0.85); combo count unchanged so estimates hold; TUNER_VERSION 7->8; failing-first test updated; 122/122 affected tests pass",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793644395.396647,
-      "timestamp_str": "2026-11-02 21:33:15",
-      "agent": "kilo:1"
-    },
-    {
-      "task_id": "tuner-lit-followups",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/6] partial: code sampling starts with penalizeNewLine:false (zero-cost, resume-safe, recorded in preset via axis keys); fingerprint verified to pin sampler order via nodeLlamaCpp+tunerVersion (no change needed); DRY axis wiring still open (needs session-level plumbing); full suite 413/413",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793644585.4588978,
-      "timestamp_str": "2026-11-02 21:36:25",
       "agent": "kilo:1"
     },
     {
@@ -239,6 +217,34 @@
       "status": "in_progress",
       "timestamp": 1793723078.933987,
       "timestamp_str": "2026-11-03 19:24:38",
+      "agent": "kilo:1"
+    },
+    {
+      "task_id": "tuner-lit-followups",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[Wave 20 plan 1/1] survey oldest commits 11-20 (reasoning stage, bench-ui, change-on-real-gains rule); guard score() rate on empty item sets; failing-first test; full gates",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793723090.7063203,
+      "timestamp_str": "2026-11-03 19:24:50",
+      "agent": "kilo:1",
+      "impact_assessment": {
+        "why": "score feeds choose() rate comparisons and reports; NaN poisons ordering and leaks into public stats",
+        "benefits": "total function on empty input: rate 0, no NaN propagation",
+        "risks": "contract: empty-input rate 0 instead of NaN; dependency: none; concurrency: none; state: none",
+        "mitigation": "failing-first unit test with stub measurements; full npm test plus aikit check before commit"
+      }
+    },
+    {
+      "task_id": "tuner-lit-followups",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[Wave 20] done: score() on no items returns rate 0 not NaN; surveyed oldest 11-20 (reasoning, bench-ui, change-on-real-gains); suite 439/439; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793723134.165801,
+      "timestamp_str": "2026-11-03 19:25:34",
       "agent": "kilo:1"
     }
   ]

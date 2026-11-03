@@ -163,7 +163,8 @@ export async function score(measurements, settings, itemIds, seeds) {
   // Seed-averaged partial credit per item (G6); the Map stays internal.
   const creditPlain = Object.fromEntries([...credit].map(([id, value]) => [id, Math.round(value * 10000) / 10000]));
   return {
-    rate: round((passed / itemIds.length) * 100),
+    // No items is a zero rate, not NaN: an empty rung must compare and report, never poison ordering.
+    rate: itemIds.length ? round((passed / itemIds.length) * 100) : 0,
     solved,
     ci95: wilson(passed, itemIds.length),
     latencyMs: latencies.length ? round(median(latencies)) : null,
