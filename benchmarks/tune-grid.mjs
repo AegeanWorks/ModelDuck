@@ -310,14 +310,10 @@ export function samplingAxes(taskId, steps = DEFAULT_STEPS.sampling) {
     // DRY penalizes repeated sequences, not repeated tokens, so it fits code
     // (lit review §2): tried on the code task only, off against the measured on.
     ...(taskId === "code" ? [axis("dry", "dryStrength", steps.dryStrength ?? [0, 0.8])] : []),
-    // A fenced answer with its closing stop, or neither: a lone prefix spills
-    // prose after the code, a lone stop truncates multi-block answers (lit §7).
-    ...(taskId === "code"
-      ? [multiAxis("codeFence", [
-        { responsePrefix: "", customStopTriggers: [] },
-        { responsePrefix: "```", customStopTriggers: ["```"] },
-      ])]
-      : []),
+    // No code-fence axis: a "```" prefix plus closing stop amputates the code
+    // on this suite (39 vs 1, p≈7e-12, replicated 7 vs 1) — the stop fires
+    // mid-answer and the checkers fail the stump. The serving plumbing stays
+    // for explicit user presets, but the search does not offer it.
     axis("penalizeNewLine", "penalizeNewLine", steps.penalizeNewLine ?? [true, false], {
       skipWhen: (current) => (current.repeatPenalty ?? 1) === 1,
       skipReason: "repeat penalty 1: newlines are not penalized at all",

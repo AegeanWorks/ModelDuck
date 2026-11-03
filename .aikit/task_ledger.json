@@ -5,56 +5,12 @@
     "last_phase": "in_progress",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1793652036.289682,
+    "updated_at": 1793722655.8902004,
     "owner": "kilo:1",
     "started_by": "kilo:1",
     "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "tuner-engine-validation",
-      "phase": "implementation",
-      "phase_num": 4,
-      "description": "[5/6] live-engine speed-stage smoke test through tune() (tuner v5): 8 threads kept, Light/Quiet measured, per-task weighted predictions recorded, 2.7% edge correctly kept incumbent; hardened tune() for rung-less tasks (+1 test)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793575447.7596967,
-      "timestamp_str": "2026-11-02 02:24:07",
-      "agent": "kilo:1"
-    },
-    {
-      "task_id": "tuner-engine-validation",
-      "phase": "implementation",
-      "phase_num": 4,
-      "description": "[6/6] report section 7 written with all engine numbers; full suite 407/407; models+scripts in scratch/ (gguf ignored, scripts untracked); no commit",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793575448.074069,
-      "timestamp_str": "2026-11-02 02:24:08",
-      "agent": "kilo:1"
-    },
-    {
-      "task_id": "tuner-engine-validation",
-      "phase": "implementation",
-      "phase_num": 4,
-      "description": "[M7] V2 context estimator wired: estimateLoadV2 normalization, async planFit prefers estimateContextResourceRequirementsV2 with formula fallback, estimator recorded; full suite 408/408",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793621834.6722155,
-      "timestamp_str": "2026-11-02 15:17:14",
-      "agent": "kilo:1"
-    },
-    {
-      "task_id": "tuner-engine-validation",
-      "phase": "implementation",
-      "phase_num": 4,
-      "description": "[Suite v16] comprehension 32x2 with whole-function holdout (S4/S5): 24 new functions, split() whole-bucket path, v16+CHANGELOG+ADR-077, full suite 408/408; Qwen M5 study still running",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793633270.2283192,
-      "timestamp_str": "2026-11-02 18:27:50",
-      "agent": "kilo:1"
-    },
     {
       "task_id": "tuner-engine-validation",
       "phase": "implementation",
@@ -245,7 +201,18 @@
       "task_id": "tuner-lit-followups",
       "phase": "in_progress",
       "phase_num": 4,
-      "description": "[5/6] done: engine validation on SmolLM2 CPU (greedy, seed 42) — mixed q8_0:q4_0 loads OK, DRY/fence/newline runtime-accepted; newline true 42/101 beats false 35/101; DRY 39/101 vs 39/101 byte-identical (inert here, kept); fence 1/24 vs 7/24 off (recipe hurts small model, kept as rejectable candidate); outcomes appended to lit notes; full suite 421/421; deliberate baseline regen still pending approval",
+      "description": "[6/6] partial: ADR-080 accepted, CHANGELOG tuner-v8 row, lit notes verification incl. engine outcomes; kit REPORT.md absent from worktree so no row; deliberate baseline regen pending approval; commit of v8 tree next",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793653020.0,
+      "timestamp_str": "2026-11-02 23:57:00",
+      "agent": "kilo:1"
+    },
+    {
+      "task_id": "tuner-lit-followups",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[5/6] done: engine validation on SmolLM2 CPU (greedy, seed 42) \u2014 mixed q8_0:q4_0 loads OK, DRY/fence/newline runtime-accepted; newline true 42/101 beats false 35/101; DRY 39/101 vs 39/101 byte-identical (inert here, kept); fence 1/24 vs 7/24 off (recipe hurts small model, kept as rejectable candidate); outcomes appended to lit notes; full suite 421/421; deliberate baseline regen still pending approval",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1793653100.0,
@@ -256,11 +223,22 @@
       "task_id": "tuner-lit-followups",
       "phase": "in_progress",
       "phase_num": 4,
-      "description": "[6/6] partial: ADR-080 accepted, CHANGELOG tuner-v8 row, lit notes verification incl. engine outcomes; kit REPORT.md absent from worktree so no row; deliberate baseline regen pending approval; commit of v8 tree next",
+      "description": "[5/6] done: 606-answer SmolLM2 short benchmarks (newline ON 42 vs OFF 35 p=0.016 mechanistic via less truncation; DRY 39/39 neutral with runtime acceptance verified; fence 39 vs 1 p\u22487e-12 replicated, axis REMOVED from search, plumbing kept); concurrent wave commits absorbed, suite 426/426, fence removal uncommitted",
       "files_affected": [],
       "status": "in_progress",
-      "timestamp": 1793653020.0,
-      "timestamp_str": "2026-11-02 23:57:00",
+      "timestamp": 1793660126.433085,
+      "timestamp_str": "2026-11-03 01:55:26",
+      "agent": "kilo:1"
+    },
+    {
+      "task_id": "tuner-lit-followups",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[Wave 0] finish: fence axis removed (39 vs 1 p~7e-12, 7 vs 1 replication), DRY neutral kept, newline mechanistic; ledger history restored (3 checkpoints); suite 437/437; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793722655.8902004,
+      "timestamp_str": "2026-11-03 19:17:35",
       "agent": "kilo:1"
     }
   ]

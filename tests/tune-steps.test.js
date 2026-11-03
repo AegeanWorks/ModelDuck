@@ -73,14 +73,10 @@ test("the sampling steps are the user's, and truncation axes are marked as no-op
   assert.equal(axes.find((axis) => axis.name === "penalizeNewLine").skipWhen({ repeatPenalty: 1.1 }), false);
 });
 
-test("the code task tries DRY and the code-fence pair", () => {
+test("the code task tries DRY but not the code fence", () => {
   const axes = samplingAxes("code");
-  assert.deepEqual(axes.map((axis) => axis.name), ["sampler", "maxTokens", "repeatPenalty", "dry", "codeFence", "penalizeNewLine", "topK"]);
-  const fence = axes.find((axis) => axis.name === "codeFence");
-  assert.deepEqual(fence.patches, [
-    { responsePrefix: "", customStopTriggers: [] },
-    { responsePrefix: "```", customStopTriggers: ["```"] },
-  ], "prefix and stop move together: a lone fence spills, a lone stop truncates");
+  assert.deepEqual(axes.map((axis) => axis.name), ["sampler", "maxTokens", "repeatPenalty", "dry", "penalizeNewLine", "topK"]);
+  assert.ok(!axes.some((axis) => axis.name === "codeFence"), "the fence amputates code (39 vs 1, p≈7e-12): evidence-against, not searched");
 });
 
 test("the prompt stage tries the baseline and all 21 directives, fully scored, then reasoning and repetition", () => {
