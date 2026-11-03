@@ -602,3 +602,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: The 27 gallery stills (taken 2026-11-01) predate the UI redesign (redesign.css deleted, styles/app rewritten) and carried empty commit fields; the working tree is mid wave-12 with uncommitted UI changes, so any capture now would bake dirty pixels.
 - **Decision**: Backfill all 27 `media.json` entries with the gallery commit `4ba064d` and a pre-redesign caption note; add a currency line to the README gallery link; defer regeneration to `npm run ui:shots` on a clean tree. No dossier ingest: there is no current proof to place.
 - **Consequences**: The gallery stays honest history with resolvable commits; fresh proof is one scripted command away once the tree settles.
+
+### ADR-082: Stage 3 qwenFS merge stays a hermetic toy; widened serving is rejected
+- **Date**: 2026-11-03
+- **Status**: Accepted
+- **Context**: The verified map asks for a qwenFS -> ModelDuck toy (`qfs/merge.py` widen 2048 -> 3072 zero-pad, norm gains x sqrt(2048/3072), FS layers front plus vocab append; `qfs/circuit.py` ballast/padded-rails; `qfs/disk.py` layout; limits max 32 scripted sessions with no search) without touching the benchmark suite, the test hash, or the fixed-shape GGUF runtime.
+- **Decision**: Add `src/checkpoint-merge.js` (pure `widenResidual(W,k)` / `appendVocab(E,n)` / `rescaleNorm(gain)` on plain toy arrays, EPS-sized, no safetensors ingest, no runtime widen, no model download, no retraining) plus hermetic `tests/checkpoint-merge.test.js` (shapes, norm-equivalence, seeded scripted-session digests via `src/generation-manifest.js` `digest()` reuse). Do not wire it into `src/engine.js`; do not touch `benchmarks/suite.mjs` / `matrix.mjs`.
+- **Consequences**: Transferred: toy widen/append/rescale shapes and norm-equivalence plus digest determinism. Rejected on record: production widened serve (GGUF-only ingest plus fixed-shape runtime cannot serve a 3072-wide model). Suite v17 test hashes are unchanged; `npm test` and `python aikit.py check modelduck` gate the change.
