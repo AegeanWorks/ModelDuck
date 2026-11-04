@@ -27,6 +27,52 @@ export async function replaceWithRetry(from, to, { tries = 5, delayMs = 50, rena
   }
 }
 
+/**
+ * IDEA-1381: durable file fsync before promotion. Opens the file read-only
+ * and flushes it, so the bytes are on stable storage before the directory
+ * entry moves. Best-effort: a missing file or a platform that refuses the
+ * sync still resolves, because the caller already synced its write handle.
+ */
+export async function fsyncFile(file) {
+  let handle = null;
+  try {
+    handle = await fs.promises.open(file, "r");
+    await handle.sync();
+  } catch {
+    // Best-effort: the writer already synced its own handle.
+  } finally {
+    await handle?.close().catch(() => {});
+  }
+}
+
+/**
+ * IDEA-1381: durable directory fsync after promotion. Flushes the directory
+ * entry so a power loss cannot lose the rename. Best-effort: Windows does
+ * not allow opening a directory this way.
+ */
+export async function fsyncDirectory(directory) {
+  let handle = null;
+  try {
+    handle = await fs.promises.open(directory, "r");
+    await handle.sync();
+  } catch {
+    // Not supported on every platform.
+  } finally {
+    await handle?.close().catch(() => {});
+  }
+}
+
+/**
+ * IDEA-1381: durable promotion for downloads. The part file is fsynced,
+ * atomically renamed (with Windows lock retries), then the directory is
+ * fsynced, so a crash cannot expose a half-promoted model file.
+ */
+export async function promoteFileAtomic(partPath, finalPath, { renameImpl = fs.promises.rename } = {}) {
+  await fsyncFile(partPath);
+  await replaceWithRetry(partPath, finalPath, { renameImpl });
+  await fsyncDirectory(path.dirname(finalPath));
+}
+
 export async function writeFileAtomic(file, text, { mode = 0o600 } = {}) {
   const directory = path.dirname(file);
   await ensureDirectory(directory);

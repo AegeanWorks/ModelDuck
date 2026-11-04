@@ -2,6 +2,7 @@ import os from "node:os";
 
 import { AppError } from "./errors.js";
 import { normalizeSettings } from "./config.js";
+import { samplerOptions } from "./sampler-chain.js";
 import { toGenerationError, toLoadError } from "./engine-errors.js";
 import { formatBytes } from "./fs-atomic.js";
 import { estimateLoad, estimateLoadV2, fitVerdict, recordLoadSample, splitKvCache } from "./memory-fit.js";
@@ -761,11 +762,17 @@ export class LlamaEngine {
     this.#pending.add(generation);
 
     const normalized = normalizeSettings(settings ?? {});
-    const effectiveSystemPrompt = buildSystemPrompt(systemPrompt, normalized.reasoning);
+    // IDEA-1675: per-model stops/sampling win over the global settings; other
+    // models fall back to the global values so stops cannot bleed across models.
+    const withModel = this.#registry?.resolveModelSettings
+      ? this.#registry.resolveModelSettings(this.#state.model?.id, normalized)
+      : normalized;
+    const effectiveSettings = normalizeSettings(withModel);
+    const effectiveSystemPrompt = buildSystemPrompt(systemPrompt, effectiveSettings.reasoning);
     const priorMessages = messages.slice(0, -1);
     const history = buildChatHistory(priorMessages);
     const historyComplete = history.length === priorMessages.length;
-    const promptText = repeatPrompt(last.content, normalized.promptRepeat);
+    const promptText = repeatPrompt(last.content, effectiveSettings.promptRepeat);
     const manifest = buildGenerationManifest({
       model: this.#state.model,
       originalSystemPrompt: systemPrompt,
@@ -773,13 +780,13 @@ export class LlamaEngine {
       messages: priorMessages,
       history,
       promptText,
-      settings: normalized,
+      settings: effectiveSettings,
       runtimeVersion: this.#state.runtimeVersion,
       chatTemplateHash: this.#state.model?.chatTemplateHash,
       // IDEA-1229: attest what was actually allocated for this reply.
       allocation: {
         allocatedContext: this.#context?.contextSize ?? null,
-        requestedContext: Number(normalized.contextSize) || null,
+        requestedContext: Number(effectiveSettings.contextSize) || null,
         backend: this.#gpuBackend ?? "cpu",
         gpuLayers: this.#state.gpuLayers ?? null,
         fallback: this.#state.contextFallback ?? null,
@@ -797,18 +804,18 @@ export class LlamaEngine {
         conversationId,
         messages,
         effectiveSystemPrompt,
-        normalized,
+        effectiveSettings,
         history,
       );
       const promptCount = this.#countPromptTokens(effectiveSystemPrompt, messages);
       if (
-        normalized.contextOverflow === "strict" &&
-        promptCount + normalized.maxTokens > (this.#context?.contextSize ?? 0)
+        effectiveSettings.contextOverflow === "strict" &&
+        promptCount + effectiveSettings.maxTokens > (this.#context?.contextSize ?? 0)
       ) {
         throw new AppError("The context is full", {
           code: "context_overflow",
           status: 413,
-          why: `This conversation needs about ${promptCount + normalized.maxTokens} tokens but the model context is ${this.#context?.contextSize}.`,
+          why: `This conversation needs about ${promptCount + effectiveSettings.maxTokens} tokens but the model context is ${this.#context?.contextSize}.`,
           fix: "Start a new chat, raise Context size, or set Context overflow to shift.",
         });
       }
@@ -823,35 +830,18 @@ export class LlamaEngine {
           fix: "Start a new chat, raise Context size, or shorten the conversation.",
         });
       }
-      const replyMax = replyBudget(promptCount, this.#context?.contextSize ?? 0, normalized.maxTokens);
+      const replyMax = replyBudget(promptCount, this.#context?.contextSize ?? 0, effectiveSettings.maxTokens);
       // IDEA-1084: parallel sequences share one context window; divide it.
       const requestMax = Math.max(1, slotClamp(replyMax, (this.#context?.contextSize ?? 0) - promptCount, this.#maxConcurrent));
-      const grammar = await this.#grammarFor(normalized);
+      const grammar = await this.#grammarFor(effectiveSettings);
+      // IDEA-1520: single canonical ordered sampler chain
+      // (temperature -> topP -> topK -> minP -> repeat -> dry -> seed);
+      // both paths spread samplerOptions() so the order is identical.
       const chatOptions = (activeGrammar) => ({
         maxTokens: requestMax, // aikit:allow-secret token limit, not a credential
-        temperature: normalized.temperature,
-        topP: normalized.topP,
-        topK: normalized.topK,
-        minP: normalized.minP,
-        seed: normalized.seed >= 0 ? normalized.seed : undefined,
-        responsePrefix: normalized.responsePrefix || undefined,
-        customStopTriggers: normalized.customStopTriggers.length ? normalized.customStopTriggers : undefined,
-        repeatPenalty:
-          normalized.repeatPenalty > 1
-            ? {
-                penalty: normalized.repeatPenalty,
-                lastTokens: normalized.repeatPenaltyTokens, // aikit:allow-secret repetition window, not a credential,
-                penalizeNewLine: normalized.penalizeNewLine !== false,
-              }
-            : false,
-        dryRepeatPenalty:
-          normalized.dryStrength > 0
-            ? {
-                strength: normalized.dryStrength,
-                base: normalized.dryBase,
-                allowedLength: normalized.dryAllowedLength,
-              }
-            : false,
+        ...samplerOptions(effectiveSettings),
+        responsePrefix: effectiveSettings.responsePrefix || undefined,
+        customStopTriggers: effectiveSettings.customStopTriggers.length ? effectiveSettings.customStopTriggers : undefined,
         grammar,
         signal: controller.signal,
         stopOnAbortSignal: true,
@@ -1000,10 +990,15 @@ export class LlamaEngine {
     this.#pending.add(generation);
 
     const normalized = normalizeSettings(settings ?? {});
+    // IDEA-1675: per-model stops/sampling win over the global settings here too.
+    const withModel = this.#registry?.resolveModelSettings
+      ? this.#registry.resolveModelSettings(this.#state.model?.id, normalized)
+      : normalized;
+    const effectiveSettings = normalizeSettings(withModel);
     // The completion engine has no response-prefix option, so a tuned prefix
     // (the code-fence axis) is prefilled by continuing the prompt with it,
     // mirroring the chat path where the assistant turn starts with it.
-    const fullPrompt = promptText + (normalized.responsePrefix || "");
+    const fullPrompt = promptText + (effectiveSettings.responsePrefix || "");
     const manifest = buildGenerationManifest({
       model: this.#state.model,
       originalSystemPrompt: "",
@@ -1011,13 +1006,13 @@ export class LlamaEngine {
       messages: [],
       history: [],
       promptText: fullPrompt,
-      settings: normalized,
+      settings: effectiveSettings,
       runtimeVersion: this.#state.runtimeVersion,
       chatTemplateHash: this.#state.model?.chatTemplateHash,
       // IDEA-1229: attest what was actually allocated for this reply.
       allocation: {
         allocatedContext: this.#context?.contextSize ?? null,
-        requestedContext: Number(normalized.contextSize) || null,
+        requestedContext: Number(effectiveSettings.contextSize) || null,
         backend: this.#gpuBackend ?? "cpu",
         gpuLayers: this.#state.gpuLayers ?? null,
         fallback: this.#state.contextFallback ?? null,
@@ -1032,13 +1027,13 @@ export class LlamaEngine {
     try {
       const promptTokens = this.#countTokens(fullPrompt); // aikit:allow-secret token count, not a credential
       if (
-        normalized.contextOverflow === "strict" &&
-        promptTokens + normalized.maxTokens > (this.#context.contextSize ?? 0)
+        effectiveSettings.contextOverflow === "strict" &&
+        promptTokens + effectiveSettings.maxTokens > (this.#context.contextSize ?? 0)
       ) {
         throw new AppError("The context is full", {
           code: "context_overflow",
           status: 413,
-          why: `This prompt needs about ${promptTokens + normalized.maxTokens} tokens but the model context is ${this.#context.contextSize}.`,
+          why: `This prompt needs about ${promptTokens + effectiveSettings.maxTokens} tokens but the model context is ${this.#context.contextSize}.`,
           fix: "Shorten the prompt, raise Context size, or set Context overflow to shift.",
         });
       }
@@ -1052,37 +1047,18 @@ export class LlamaEngine {
         });
       }
       // IDEA-1084: same per-slot division on the completion path.
-      const completionMax = Math.max(1, slotClamp(replyBudget(promptTokens, this.#context.contextSize ?? 0, normalized.maxTokens), (this.#context.contextSize ?? 0) - promptTokens, this.#maxConcurrent));
-      const grammar = await this.#grammarFor(normalized);
+      const completionMax = Math.max(1, slotClamp(replyBudget(promptTokens, this.#context.contextSize ?? 0, effectiveSettings.maxTokens), (this.#context.contextSize ?? 0) - promptTokens, this.#maxConcurrent));
+      const grammar = await this.#grammarFor(effectiveSettings);
       // A lingering chat session occupies the only sequence with sequences=1.
       // Completions do not reuse chat history, so release idle sessions first.
       if ((this.#context.sequencesLeft ?? 0) === 0) this.#disposeIdleSessions();
       const sequence = await this.#acquireSequence();
       let completion = null;
+      // IDEA-1520: same canonical ordered sampler chain as the chat path.
       const completionOptions = (activeGrammar) => ({
         maxTokens: completionMax, // aikit:allow-secret token limit, not a credential
-        temperature: normalized.temperature,
-        topP: normalized.topP,
-        topK: normalized.topK,
-        minP: normalized.minP,
-        seed: normalized.seed >= 0 ? normalized.seed : undefined,
-        customStopTriggers: normalized.customStopTriggers.length ? normalized.customStopTriggers : undefined,
-        repeatPenalty:
-          normalized.repeatPenalty > 1
-            ? {
-                penalty: normalized.repeatPenalty,
-                lastTokens: normalized.repeatPenaltyTokens, // aikit:allow-secret repetition window, not a credential
-                penalizeNewLine: normalized.penalizeNewLine !== false,
-              }
-            : false,
-        dryRepeatPenalty:
-          normalized.dryStrength > 0
-            ? {
-                strength: normalized.dryStrength,
-                base: normalized.dryBase,
-                allowedLength: normalized.dryAllowedLength,
-              }
-            : false,
+        ...samplerOptions(effectiveSettings),
+        customStopTriggers: effectiveSettings.customStopTriggers.length ? effectiveSettings.customStopTriggers : undefined,
         grammar: activeGrammar,
         signal: controller.signal,
         stopOnAbortSignal: true,

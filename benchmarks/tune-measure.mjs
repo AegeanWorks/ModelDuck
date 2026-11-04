@@ -17,11 +17,26 @@ function stdev(values) {
 
 const settingsKey = (settings) => JSON.stringify(Object.keys(settings).sort().map((key) => [key, settings[key]]));
 
+/** Fixed-budget quota default: no cap unless the caller sets one (IDEA-1580). */
+export const QUOTA_DEFAULT = Infinity;
+
+/**
+ * True when `runs` has reached the fixed `quota`. Pure so the quota rule is
+ * unit-testable without a Measurements instance.
+ */
+export function isQuotaExceeded(runs, quota) {
+  if (!Number.isFinite(quota)) return false;
+  return Number(runs) >= Number(quota);
+}
+
 /** Per-item result cache with a run budget; a rung only asks for the items it has not seen. */
 export class Measurements {
-  constructor(evaluate, maxRuns, onAnswers = () => {}) {
+  constructor(evaluate, maxRuns, onAnswers = () => {}, { quota = QUOTA_DEFAULT } = {}) {
     this.evaluate = evaluate;
     this.maxRuns = maxRuns;
+    // IDEA-1580: fixed-budget quota caps total measured answers for the whole
+    // tune, independent of the per-rung maxRuns ceiling. Infinity disables it.
+    this.quota = quota ?? QUOTA_DEFAULT;
     // Called with every newly measured answer, for the run record (ADR-050).
     this.onAnswers = onAnswers;
     this.runs = 0;
@@ -30,8 +45,12 @@ export class Measurements {
     this.stopped = null;
   }
 
+  get quotaExceeded() {
+    return isQuotaExceeded(this.runs, this.quota);
+  }
+
   get exhausted() {
-    return this.runs >= this.maxRuns || this.stopped !== null;
+    return this.runs >= this.maxRuns || this.quotaExceeded || this.stopped !== null;
   }
 
   /** Stop every further measurement; later stages see the budget as spent and end. */

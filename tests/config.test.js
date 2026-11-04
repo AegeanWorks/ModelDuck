@@ -126,7 +126,7 @@ test("sampling fields clamp and presets are benchmark candidates", () => {
 
   assert.deepEqual(
     Object.keys(SETTING_PRESETS).sort(),
-    ["balanced", "quality", "token_saver"],
+    ["balanced", "cheap", "quality", "token_saver"],
   );
   const preset = applyPreset("token_saver", { systemPrompt: "keep me" });
   assert.equal(preset.kvCache, "q8_0", "q4_0 KV measured 19.1% on Qwen2.5 0.5B (IDEA-1062)");

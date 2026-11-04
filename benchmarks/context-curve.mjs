@@ -27,6 +27,64 @@ const CURVES_DIR = path.join(HERE, "curves");
  * the comparison instead of printing it.
  */
 
+/**
+ * IDEA-1504: affordable-needle chain scoring. The v17 long-context needles
+ * (4k/8k/16k) confirm a KV choice at the budgeted context; a quantized cache
+ * that silently drops a needle the f16 cache held is a regression, not noise.
+ * The chain is ordered short to long: the score is the passing prefix, and
+ * any affordable needle lost breaks the chain. Pure functions, no engine.
+ */
+export const NEEDLE_CHAIN_IDS = Object.freeze(["recall-long-4k", "recall-long-8k", "recall-long-16k"]);
+
+function needlePassed(outcomes, id) {
+  if (!outcomes) return false;
+  const value = typeof outcomes.get === "function" ? outcomes.get(id) : outcomes[id];
+  if (typeof value === "object" && value !== null) {
+    if ("passed" in value && "total" in value) {
+      return Number(value.total) > 0 && Number(value.passed) === Number(value.total) && !value.error;
+    }
+    if ("passed" in value) return Boolean(value.passed);
+    return false;
+  }
+  return value === true || value === 1 || value === "1";
+}
+
+/**
+ * Score one run's needle outcomes as a chain. `affordable` lists the needles
+ * that fit the budgeted context; longer needles outside the budget stay out
+ * instead of failing the chain.
+ */
+export function scoreNeedleChain(outcomes, { affordable = null } = {}) {
+  const ids = [...(affordable ?? NEEDLE_CHAIN_IDS)];
+  const results = ids.map((id) => ({ id, passed: needlePassed(outcomes, id) }));
+  const passed = results.filter((row) => row.passed).length;
+  let prefix = 0;
+  for (const row of results) {
+    if (row.passed) prefix += 1;
+    else break;
+  }
+  const brokenAt = results.find((row) => !row.passed)?.id ?? null;
+  const chainPassed = results.length > 0 && brokenAt === null;
+  return { ids, total: results.length, passed, prefix, brokenAt, chainPassed, verdict: chainPassed ? "pass" : "fail", results };
+}
+
+/**
+ * Catch a silent KV regression: any affordable needle the base held but the
+ * candidate drops fails the gate; gains alone never fail it.
+ */
+export function compareNeedleChains(baseOutcomes, candidateOutcomes, { affordable = null } = {}) {
+  const ids = [...(affordable ?? NEEDLE_CHAIN_IDS)];
+  const regressed = ids.filter((id) => needlePassed(baseOutcomes, id) && !needlePassed(candidateOutcomes, id));
+  const improved = ids.filter((id) => !needlePassed(baseOutcomes, id) && needlePassed(candidateOutcomes, id));
+  return {
+    ids,
+    regressed,
+    improved,
+    verdict: regressed.length ? "fail" : "pass",
+    reasons: regressed.map((id) => `${id}: held by the base, dropped by the candidate (silent KV regression)`),
+  };
+}
+
 // Load settings a curve variant may change. GPU offload stays out: the
 // curve runs the CPU lane so prefill/decode numbers stay comparable.
 export const CURVE_LOAD_KEYS = Object.freeze([

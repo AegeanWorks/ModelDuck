@@ -1,9 +1,11 @@
 import { createHash, randomUUID } from "node:crypto";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
 import { AppError } from "./errors.js";
-import { assertDiskSpace, ensureDirectory, formatBytes } from "./fs-atomic.js";
+import { assertDiskSpace, ensureDirectory, formatBytes, promoteFileAtomic } from "./fs-atomic.js";
+import { checkDownloadFit } from "./gguf-guard.js";
 import { downloadUrl, getCatalogModel } from "./model-catalog.js";
 
 const MAX_ACTIVE = 2;
@@ -109,6 +111,18 @@ export class DownloadManager {
       job.finishedAt = new Date().toISOString();
       this.#jobs.set(job.id, job);
       return this.#publicJob(job);
+    }
+
+    // IDEA-1637: refuse a doomed download early. Weights + reserve alone can
+    // already exceed free RAM; the header walk runs later in preflightGgufFile.
+    // Best-effort: an unreadable memory figure never blocks a download.
+    try {
+      const free = typeof os.freemem === "function" ? os.freemem() : null;
+      if (Number.isFinite(free) && free > 0) {
+        checkDownloadFit({ modelBytes: model.size, contextSize: 2048, kvCache: "f16", availableBytes: free });
+      }
+    } catch (error) {
+      if (error?.code === "download_would_not_fit") throw error;
     }
 
     const job = this.#newJob(model);
@@ -335,7 +349,9 @@ export class DownloadManager {
         });
       }
 
-      await fs.promises.rename(partPath, finalPath);
+      // IDEA-1381: fsync the part file, atomically promote it, then fsync
+      // the directory, so a crash cannot expose a half-promoted model file.
+      await promoteFileAtomic(partPath, finalPath);
       await fs.promises.rm(resumePath, { force: true }).catch(() => {});
       // IDEA-1067/1194: measured artifact receipt binds digest, quant and source.
       const catalogEntry = this.#getModel(job.catalogId);

@@ -10,6 +10,20 @@ import { RUNTIME_RESERVE_BYTES, estimateLoad, fitVerdict } from "./memory-fit.js
 const DEFAULT_CONTEXT = 2048;
 const LIMIT = 5;
 
+/**
+ * IDEA-1623: fixed-total-bytes rule. Memory math is always fixed bytes —
+ * weights plus KV plus the runtime reserve — never a ratio or a hidden
+ * scale. The helper is the single place both recommenders total through,
+ * so a weights-only estimate still carries the reserve.
+ */
+export const FIXED_BYTES_OVERHEAD = RUNTIME_RESERVE_BYTES;
+
+export function totalBytesWithReserve({ sizeBytes = 0, kvBytes = 0 } = {}) {
+  const size = Math.max(0, Number(sizeBytes) || 0);
+  const kv = Math.max(0, Number(kvBytes) || 0);
+  return size + kv + RUNTIME_RESERVE_BYTES;
+}
+
 const fitText = (fit) => ({
   comfortable: "fits comfortably",
   tight: "fits tightly",
@@ -27,6 +41,7 @@ export function recommendModels({ models, profiles = {}, memory = {}, task = "co
     const kvCache = load.kvCache ?? "f16";
     const contextSize = Number(load.contextSize) || DEFAULT_CONTEXT;
     const estimate = estimateLoad({ modelBytes: model.size, shape: model.kvShape ?? null, contextSize, kvCache });
+    const totalBytes = totalBytesWithReserve({ sizeBytes: model.size, kvBytes: estimate.kv ?? 0 });
     const verdict = fitVerdict({ estimate, availableBytes: available, shape: model.kvShape ?? null, modelBytes: model.size, kvCache });
     // Without a KV shape the fit is weights plus the runtime reserve, which is still useful.
     const fit = verdict.verdict === "unknown"
@@ -44,7 +59,7 @@ export function recommendModels({ models, profiles = {}, memory = {}, task = "co
       rate,
       tokensPerSecond,
       contextSize,
-      memoryBytes: estimate.total,
+      memoryBytes: totalBytes,
       fit,
       why: measured
         ? `Measured on this PC: ${rate}% on ${task}${Number.isFinite(tokensPerSecond) ? `, ${tokensPerSecond} tok/s` : ""}; ${fitText(fit)}.`
@@ -70,7 +85,7 @@ export function recommendCatalog({ catalog = [], installed = [], memory = {}, li
   return catalog
     .filter((model) => !have.has(model.id) && Number(model.size) > 0)
     .map((model) => {
-      const totalBytes = Number(model.size) + RUNTIME_RESERVE_BYTES;
+      const totalBytes = totalBytesWithReserve({ sizeBytes: model.size });
       return {
         id: model.id,
         name: model.name,

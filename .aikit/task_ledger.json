@@ -1,55 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "approved-deepcheck-w2",
+    "task_id": "approved-deepcheck-w3",
     "last_phase": "in_progress",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1793815007.9654002,
+    "updated_at": 1793815589.9464853,
     "owner": "kilo:main",
     "started_by": "kilo:main",
     "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "tuner-lit-followups",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[Wave 30] done: budgetContext refuses empty steps with AppError (was contextSize undefined); surveyed oldest 21-30; suite 440/440 (one scheduler flake on first run, green on rerun); checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793723239.1200454,
-      "timestamp_str": "2026-11-03 19:27:19",
-      "agent": "kilo:1"
-    },
-    {
-      "task_id": "tuner-lit-followups",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[Wave 40 plan 1/1] survey oldest 31-40 (tune run records, continue, statistics, API); harden settings normalization, KV guards and fit verdict; failing-first tests; full gates",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793809369.1858387,
-      "timestamp_str": "2026-11-04 19:22:49",
-      "agent": "kilo:1",
-      "impact_assessment": {
-        "why": "string settings (env/file) mis-parse via Boolean(), stop lists alias shared defaults, 'in' accepts proto names as KV types, missing/NaN estimates throw instead of unknown",
-        "benefits": "correct string/env settings, isolated stop lists, prototype-safe KV split, fail-safe fit verdict",
-        "risks": "contract: string booleans now parse, dryBase coerces numeric strings, fitVerdict unknown on bad estimate; dependency: none; concurrency: none; state: none",
-        "mitigation": "failing-first unit tests for each fix; full npm test plus aikit check before commit"
-      }
-    },
-    {
-      "task_id": "tuner-lit-followups",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[Wave 40] done: settings isolate stop lists and parse string booleans, dryBase coerces numerics, splitKvCache uses hasOwn, fitVerdict unknown on bad estimate; surveyed oldest 31-40, claims hold; suite 458/458; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793809375.1877594,
-      "timestamp_str": "2026-11-04 19:22:55",
-      "agent": "kilo:1"
-    },
     {
       "task_id": "tuner-lit-followups",
       "phase": "phase 2",
@@ -254,6 +215,45 @@
       "status": "in_progress",
       "timestamp": 1793815007.9654002,
       "timestamp_str": "2026-11-04 20:56:47",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "approved-deepcheck-w2",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'approved-deepcheck-w2' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793815025.912661,
+      "timestamp_str": "2026-11-04 20:57:05",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "approved-deepcheck-w3",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/3] Correctness 1381 fsync plus 1637 preflight plus 1627 determinism plus 1580 quotas plus 1520 sampler chain; [2/3] Bench honesty 1617 Q8_0 gate plus 1504 needle plus 1618 drift plus 1623 bytes plus 1621 imatrix; [3/3] Settings docs 1675 registry plus 1676 reason off plus 1496 temp plus 1644 threat",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793815070.0487387,
+      "timestamp_str": "2026-11-04 20:57:50",
+      "agent": "kilo:main",
+      "impact_assessment": {
+        "why": "Implement 14 newly-Approved ex-Proposed ideas with verified gaps",
+        "benefits": "Crash-safe downloads, doomed-download prevention, repro gates, bounded tuning, honest sampler and quant claims",
+        "risks": "contract: sampler order changes outputs, fsync adds latency; dependency: node-llama-cpp sampler mapping; concurrency: none; state: catalog copy and presets additive",
+        "mitigation": "Failing-first tests per idea; additive presets and docs; npm test plus tune gate per milestone"
+      },
+      "plan_digest": "1d2f220ff9234e4891e6adcbe7215b3eeb50a3a4732e800482b61fe318407733"
+    },
+    {
+      "task_id": "approved-deepcheck-w3",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/3] done: sampler chain plus fsync plus preflight plus determinism plus quotas; bench Q8_0 gate plus needle plus drift plus bytes plus imatrix; registry plus reason-off plus cheap plus threat; 525/525; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793815589.9464853,
+      "timestamp_str": "2026-11-04 21:06:29",
       "agent": "kilo:main"
     }
   ]

@@ -286,13 +286,70 @@ export const CORE_MODEL_MATRIX = MODEL_MATRIX.filter((entry) =>
   CORE_MODEL_IDS.includes(entry.catalogId),
 );
 
+/**
+ * IDEA-1627: determinism lockdown for repro comparisons. Batch 512 stays the
+ * speed default in `variant()` above; repro work forces batch 1 and runs each
+ * comparison three times, and the triple-run spread must sit within the noise
+ * floor before a delta is trusted. Bench-only and default off: `modelMatrix`
+ * and `modelMatrixFor` take `deterministic: true` to opt in without slowing
+ * the normal gate.
+ */
+export const DETERMINISM_LOCKDOWN = Object.freeze({
+  batchSize: 1,
+  runs: 3,
+  maxSpreadPct: 5,
+  enabled: false,
+});
+
+/**
+ * Triple-run noise-floor gate. `triple` holds three comparable measurements
+ * (e.g. latencyMs); a comparison only stands when the spread stays within
+ * `maxSpreadPct` of the mean. Pure so unit tests can drive it directly.
+ */
+export function isNoiseFloorStable(triple, { maxSpreadPct = DETERMINISM_LOCKDOWN.maxSpreadPct } = {}) {
+  const nums = [...(triple ?? [])].map(Number).filter((value) => Number.isFinite(value));
+  if (nums.length < 2) return { stable: false, mean: null, spread: null, spreadPct: null, runs: nums.length };
+  const mean = nums.reduce((sum, value) => sum + value, 0) / nums.length;
+  const spread = Math.max(...nums) - Math.min(...nums);
+  const spreadPct = mean === 0 ? (spread === 0 ? 0 : Infinity) : (spread / Math.abs(mean)) * 100;
+  return {
+    mean,
+    spread,
+    spreadPct,
+    runs: nums.length,
+    stable: spreadPct <= maxSpreadPct,
+  };
+}
+
+/** Bench-only repro wrapper: batch 1 with the triple-run count attached. */
+export function withDeterministicRepro(matrix, { enabled = false } = {}) {
+  if (!enabled) return matrix;
+  return matrix.map((spec) => ({
+    ...spec,
+    batchSize: DETERMINISM_LOCKDOWN.batchSize,
+    deterministicRepro: true,
+    reproRuns: DETERMINISM_LOCKDOWN.runs,
+  }));
+}
+
+/** One batch-1 repro variant for `catalogId`, for direct repro comparisons. */
+export function reproVariant(id, catalogId, overrides = {}) {
+  return {
+    ...variant(id, catalogId, { ...overrides, batchSize: DETERMINISM_LOCKDOWN.batchSize }),
+    batchSize: DETERMINISM_LOCKDOWN.batchSize,
+    deterministicRepro: true,
+    reproRuns: DETERMINISM_LOCKDOWN.runs,
+  };
+}
+
 /** The fast default gate, or the full six-model matrix for a deeper review. */
-export function modelMatrix({ full = false } = {}) {
-  return full ? MODEL_MATRIX : CORE_MODEL_MATRIX;
+export function modelMatrix({ full = false, deterministic = false } = {}) {
+  const base = full ? MODEL_MATRIX : CORE_MODEL_MATRIX;
+  return deterministic ? withDeterministicRepro(base, { enabled: true }) : base;
 }
 
 /** A settings sweep for one benchmark model, on the 16-item smoke subset. */
-export function modelMatrixFor(catalogId) {
+export function modelMatrixFor(catalogId, { deterministic = false } = {}) {
   const spec = BENCHMARK_MODELS.find(
     (model) => model.catalogId === catalogId || model.fileName === catalogId,
   );
@@ -301,7 +358,7 @@ export function modelMatrixFor(catalogId) {
   const common = { family, promptIds: [...SMOKE_PROMPT_IDS] };
   const make = (suffix, overrides = {}) =>
     variant(`single-${spec.catalogId}-${suffix}`, spec.catalogId, { ...common, ...overrides });
-  return [
+  const built = [
     make("base"),
     make("kv8", { kvCache: "q8_0" }),
     make("kv4", { kvCache: "q4_0" }),
@@ -320,6 +377,7 @@ export function modelMatrixFor(catalogId) {
     make("ckpt512", { checkpointInterval: 512 }),
     make("ckpt-max4", { checkpointInterval: 512, checkpointMax: 4 }),
   ];
+  return deterministic ? withDeterministicRepro(built, { enabled: true }) : built;
 }
 
 export const CHAT_BASE = Object.freeze({

@@ -225,6 +225,10 @@ Only loopback bindings are accepted. The server also checks the `Host` and
 `Origin` headers, so a random website cannot talk to your local model through
 your browser.
 
+Threat model: [docs/THREAT-MODEL.md](docs/THREAT-MODEL.md) names the seven
+local-inference parties (user, model publisher, host OS, LAN clients,
+skill/tool publisher, benchmark publisher, runtime supplier).
+
 ## Model guide for CPU machines
 
 | Model | Size | RAM while loaded | Feel |
@@ -240,6 +244,11 @@ your browser.
 
 These are rough numbers, not promises. The app shows the real context size and
 the native runtime's memory report for the loaded model.
+
+Q4_K_M is lossy: expect small quality drift versus the Q8_0 ceiling in the
+same family. No catalog entry uses imatrix calibration. Memory math is fixed
+bytes (weights + KV + runtime reserve); the Q5 entry costs ~30 MB more
+weights than its Q4 sibling.
 
 ## OpenAI-compatible API
 

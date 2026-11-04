@@ -73,6 +73,47 @@ export function templateCompat(entry) {
   return { status: entry?.chatTemplate ? "model" : "fallback", warnings };
 }
 
+/**
+ * IDEA-1675: per-model stops/sampling registry. The chat template hash is
+ * stored per model but sampling was global-only, so one model's fence stop
+ * could bleed into another model's generation. Overrides are keyed by model
+ * id and fall back to the global settings when a model has none.
+ */
+export const MODEL_SAMPLING_KEYS = Object.freeze([
+  "temperature",
+  "topP",
+  "topK",
+  "minP",
+  "repeatPenalty",
+  "repeatPenaltyTokens",
+  "penalizeNewLine",
+  "dryStrength",
+  "dryBase",
+  "dryAllowedLength",
+  "responsePrefix",
+  "customStopTriggers",
+]);
+
+export function fenceModelSamplingPatch(patch) {
+  if (!patch || typeof patch !== "object" || Array.isArray(patch)) return {};
+  const fenced = {};
+  for (const key of MODEL_SAMPLING_KEYS) {
+    if (Object.hasOwn(patch, key)) fenced[key] = patch[key];
+  }
+  return fenced;
+}
+
+export function resolveModelSettings(globalSettings, override) {
+  const base = globalSettings && typeof globalSettings === "object" ? globalSettings : {};
+  const patch = fenceModelSamplingPatch(override);
+  if (!Object.keys(patch).length) return { ...base };
+  const merged = { ...base, ...patch };
+  if (Array.isArray(patch.customStopTriggers)) {
+    merged.customStopTriggers = [...patch.customStopTriggers];
+  }
+  return merged;
+}
+
 function hashId(relativePath) {
   return createHash("sha1")
     .update(relativePath.replaceAll("\\", "/").toLowerCase())
@@ -175,6 +216,7 @@ export function createModelRegistry({
 }) {
   const cache = new Map();
   let entries = new Map();
+  const samplingOverrides = new Map();
 
   async function scan() {
     await ensureDirectory(modelsDir);
@@ -372,6 +414,43 @@ export function createModelRegistry({
     return publicEntry(entry);
   }
 
+  function setModelSampling(modelId, patch) {
+    if (typeof modelId !== "string" || !modelId) return {};
+    const fenced = fenceModelSamplingPatch(patch);
+    if (!Object.keys(fenced).length) {
+      samplingOverrides.delete(modelId);
+      return {};
+    }
+    const copy = { ...fenced };
+    if (Array.isArray(fenced.customStopTriggers)) copy.customStopTriggers = [...fenced.customStopTriggers];
+    samplingOverrides.set(modelId, copy);
+    return { ...copy };
+  }
+
+  function getModelSampling(modelId) {
+    const stored = samplingOverrides.get(modelId);
+    if (!stored) return null;
+    const copy = { ...stored };
+    if (Array.isArray(stored.customStopTriggers)) copy.customStopTriggers = [...stored.customStopTriggers];
+    return copy;
+  }
+
+  function clearModelSampling(modelId) {
+    return samplingOverrides.delete(modelId);
+  }
+
+  function resolveModelSettingsForId(modelId, globalSettings) {
+    const base = globalSettings && typeof globalSettings === "object" ? globalSettings : {};
+    const override = samplingOverrides.get(modelId) ?? null;
+    const patch = fenceModelSamplingPatch(override);
+    if (!Object.keys(patch).length) return { ...base };
+    const merged = { ...base, ...patch };
+    if (Array.isArray(patch.customStopTriggers)) {
+      merged.customStopTriggers = [...patch.customStopTriggers];
+    }
+    return merged;
+  }
+
   return {
     modelsDir,
     scan,
@@ -379,6 +458,10 @@ export function createModelRegistry({
     findById,
     importFromPath,
     deleteById,
+    setModelSampling,
+    getModelSampling,
+    clearModelSampling,
+    resolveModelSettings: resolveModelSettingsForId,
     get size() {
       return entries.size;
     },

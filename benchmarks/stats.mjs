@@ -54,6 +54,69 @@ export function mcnemarExact(b, c) {
 }
 
 /**
+ * IDEA-1617: Q8_0 is the lossless ceiling reference for bench comparisons.
+ * A bench that never measured the ceiling cannot tell a tie from a win, and
+ * a non-ceiling variant must never be reported lossless without the ceiling
+ * beside it. Bench-only: pure functions, no dependencies.
+ */
+export const CEILING_QUANT = "Q8_0";
+
+function ceilingQuantOf(model) {
+  return String(model?.quant ?? "").toLowerCase();
+}
+
+/** A weight-quant Q8_0 variant (not a q8 KV cache on smaller weights). */
+export function isCeilingVariant(model = {}) {
+  const quant = ceilingQuantOf(model);
+  if (quant) return quant === "q8_0";
+  const id = `${model.variantId ?? model.key ?? model.catalogId ?? ""}`.toLowerCase();
+  if (!id) return false;
+  return id.includes("-q8-") || id.endsWith("-q8") || id.includes("-q8_") || id.includes("_q8");
+}
+
+function claimsLossless(model = {}) {
+  if (model.lossless === true || model.claimsLossless === true) return true;
+  if (String(model.quality ?? "").toLowerCase() === "lossless") return true;
+  return /lossless/i.test(String(model.label ?? "")) && !isCeilingVariant(model);
+}
+
+/**
+ * Ceiling gate over one bench result's models. Warns when no Q8_0 variant
+ * was measured (the ceiling is unknown), fails when a non-ceiling variant
+ * is reported lossless without the ceiling beside it, passes otherwise.
+ */
+export function losslessCeilingGate(result, { ceilingQuant = CEILING_QUANT } = {}) {
+  const models = result?.models ?? [];
+  const ceiling = models.filter(isCeilingVariant);
+  const hasCeiling = ceiling.length > 0;
+  const ceilingVariantId = hasCeiling ? (ceiling[0].variantId ?? ceiling[0].key ?? null) : null;
+  const claimants = models
+    .filter((model) => !isCeilingVariant(model) && claimsLossless(model))
+    .map((model) => model.variantId ?? model.key ?? model.catalogId ?? "unknown");
+  if (!hasCeiling && claimants.length) {
+    return {
+      verdict: "fail",
+      hasCeiling: false,
+      ceilingVariantId: null,
+      ceilingQuant,
+      claimants,
+      reasons: [`${claimants.join(", ")}: reported lossless without a measured ${ceilingQuant} ceiling beside it`],
+    };
+  }
+  if (!hasCeiling) {
+    return {
+      verdict: "warn",
+      hasCeiling: false,
+      ceilingVariantId: null,
+      ceilingQuant,
+      claimants,
+      reasons: [`no ${ceilingQuant} ceiling variant measured; smaller quants cannot claim a tie or a win`],
+    };
+  }
+  return { verdict: "pass", hasCeiling: true, ceilingVariantId, ceilingQuant, claimants, reasons: [] };
+}
+
+/**
  * Sign-flip (permutation) test on paired differences (S2): under no difference
  * each difference is as likely positive as negative, so the two-sided p-value
  * is the share of sign assignments whose absolute sum reaches the observed
@@ -163,7 +226,8 @@ function outcomes(model) {
  * variant whose decline survives Holm-corrected exact McNemar at ALPHA; any
  * smaller decline is a warning that names the items.
  */
-export function compareRuns(current, baseline) {
+export function compareRuns(current, baseline, { enforceCeiling = false } = {}) {
+  const ceiling = losslessCeilingGate(current);
   const previous = new Map((baseline.models ?? []).map((model) => [model.variantId ?? model.key, model]));
   const variants = [];
   const failed = [];
@@ -208,6 +272,14 @@ export function compareRuns(current, baseline) {
     reasons.push(`${variant.variantId}: ${variant.regressed.length} items regressed vs ${variant.improved.length} improved (Holm p=${variant.pAdjusted})`);
   }
   const declines = variants.filter((variant) => variant.regressed.length > 0);
-  const verdict = reasons.length ? "fail" : declines.length ? "warn" : "pass";
-  return { verdict, reasons, currentRate, baselineRate, drop, variants, failed };
+  let verdict = reasons.length ? "fail" : declines.length ? "warn" : "pass";
+  const mergedReasons = [...reasons];
+  if (enforceCeiling && ceiling.verdict === "fail") {
+    verdict = "fail";
+    mergedReasons.push(...ceiling.reasons);
+  } else if (enforceCeiling && ceiling.verdict === "warn" && verdict === "pass") {
+    verdict = "warn";
+    mergedReasons.push(...ceiling.reasons);
+  }
+  return { verdict, reasons: mergedReasons, currentRate, baselineRate, drop, variants, failed, ceiling };
 }

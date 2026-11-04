@@ -1,6 +1,7 @@
 import fs from "node:fs";
 
 import { AppError } from "./errors.js";
+import { estimateLoad, FIT_LIMIT_RATIO, fitVerdict } from "./memory-fit.js";
 
 /**
  * Walks a GGUF header with every count and length bounded by the file size
@@ -145,4 +146,51 @@ export async function inspectGgufHeader(file) {
   } finally {
     await handle.close().catch(() => {});
   }
+}
+
+/**
+ * IDEA-1637: pre-download fit glue. Links the bounded header walk above to
+ * the memory-fit estimator, so a download that cannot fit is refused before
+ * any byte is fetched, with an actionable remedy instead of a mid-load swap.
+ * `shape` is null when the KV shape is unknown (pre-download): the verdict
+ * is then weights + runtime reserve only, which still refuses the hopeless.
+ */
+export function checkDownloadFit({ modelBytes, shape = null, contextSize = 2048, kvCache = "f16", availableBytes = null } = {}) {
+  const estimate = estimateLoad({ modelBytes, shape, contextSize, kvCache });
+  const verdict = fitVerdict({ estimate, availableBytes, shape, modelBytes });
+  // Pre-download the KV shape is unknown (verdict "unknown"): weights plus the
+  // runtime reserve alone still refuse the hopeless (e.g. a 16 GiB file with
+  // 1 GiB free), using the same 75 % wall as the load path.
+  const unknownDoomed = verdict.verdict === "unknown" &&
+    Number.isFinite(availableBytes) && availableBytes > 0 &&
+    estimate.total > availableBytes * FIT_LIMIT_RATIO;
+  if (verdict.verdict === "will_not_fit" || unknownDoomed) {
+    const gib = (bytes) => `${(Number(bytes) / 1024 ** 3).toFixed(1)} GiB`;
+    throw new AppError("This model will not fit in memory", {
+      code: "download_would_not_fit",
+      status: 507,
+      why: `It needs about ${gib(estimate.total)} at ${estimate.contextSize} tokens, but only ${gib(availableBytes)} is free; downloading it would waste time before the load refuses it.`,
+      fix: "Pick a smaller model or quantization, lower Context size to 2048 with the q8_0 KV cache, or close other programs and try again.",
+    });
+  }
+  return { estimate, verdict };
+}
+
+/**
+ * IDEA-1637: header + fit preflight for a GGUF file on disk. Validates the
+ * header first (a hostile file is still blocked), then estimates the load
+ * from the file's own byte size. Used after a download to confirm the file
+ * before promotion, and in tests with a small fake header.
+ */
+export async function preflightGgufFile(file, { contextSize = 2048, kvCache = "f16", availableBytes = null, shape = null } = {}) {
+  const header = await inspectGgufHeader(file);
+  const { size } = await fs.promises.stat(file);
+  const { estimate, verdict } = checkDownloadFit({
+    modelBytes: size,
+    shape,
+    contextSize,
+    kvCache,
+    availableBytes,
+  });
+  return { header, estimate, verdict, size };
 }

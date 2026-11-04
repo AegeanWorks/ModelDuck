@@ -2,7 +2,27 @@
  * Curated single-file GGUF models. Every entry is pinned to a repository and
  * exact byte size, so a slow or truncated download can be detected before it
  * ever reaches the model list.
+ *
+ * Honesty notes (bench Wave 3, docs-only):
+ * - Q4_K_M is lossy: expect small quality drift versus the Q8_0 ceiling in
+ *   the same family; a close score is a tie, not a win (IDEA-1618).
+ * - No entry here uses imatrix calibration. Q4_K_M is the generic mix
+ *   without importance-matrix tuning; no Q2/imatrix entry is cataloged, and
+ *   a Q2 without imatrix would drift far more than these Q4 entries
+ *   (IDEA-1621).
+ * - The Q5 entry costs fixed extra weight bytes over its Q4 sibling
+ *   (522,186,592 vs 491,400,032: ~30 MB), not a ratio; memory math is always
+ *   fixed bytes — weights plus KV plus the runtime reserve (IDEA-1623).
  */
+export const QUANT_HONESTY_NOTES = Object.freeze({
+  q4Drift:
+    "Q4_K_M is lossy: expect small quality drift versus the Q8_0 ceiling in this family; a close score is a tie, not a win.",
+  imatrix:
+    "No entry here uses imatrix calibration: Q4_K_M is the generic mix without importance-matrix tuning, and no Q2/imatrix entry is cataloged — a Q2 without imatrix would drift far more than these Q4 entries.",
+  q5Overhead:
+    "Q5_K_M costs ~30 MB more weights than the Q4 sibling in this family (fixed bytes: 522,186,592 vs 491,400,032) for a small fidelity gain.",
+});
+
 export const MODEL_CATALOG = [
   {
     id: "smollm2-135m-instruct-q4",
@@ -16,6 +36,7 @@ export const MODEL_CATALOG = [
     context: 8192,
     license: "Apache-2.0",
     tagline: "Tiny smoke-test model. Loads in seconds, useful for checking the app.",
+    note: `${QUANT_HONESTY_NOTES.q4Drift} ${QUANT_HONESTY_NOTES.imatrix}`,
     tags: ["test", "tiny"],
     recommended: false,
   },
@@ -31,6 +52,7 @@ export const MODEL_CATALOG = [
     context: 32768,
     license: "Apache-2.0",
     tagline: "Fast first chat model. Good for quick questions on any laptop.",
+    note: `${QUANT_HONESTY_NOTES.q4Drift} ${QUANT_HONESTY_NOTES.imatrix}`,
     tags: ["starter", "fast"],
     recommended: true,
   },
@@ -46,6 +68,7 @@ export const MODEL_CATALOG = [
     context: 32768,
     license: "Apache-2.0",
     tagline: "Best all-round balance for a 16 GB CPU machine. Recommended.",
+    note: `${QUANT_HONESTY_NOTES.q4Drift} ${QUANT_HONESTY_NOTES.imatrix}`,
     tags: ["starter", "general", "recommended"],
     recommended: true,
   },
@@ -61,6 +84,7 @@ export const MODEL_CATALOG = [
     context: 32768,
     license: "Apache-2.0",
     tagline: "Higher-fidelity 0.5B weights for quantization comparisons.",
+    note: QUANT_HONESTY_NOTES.q5Overhead,
     tags: ["quantized", "general"],
     recommended: false,
   },
@@ -76,6 +100,7 @@ export const MODEL_CATALOG = [
     context: 32768,
     license: "Apache-2.0",
     tagline: "Near-lossless 0.5B weights; the quality ceiling for this family.",
+    note: "Quality ceiling for this family: bench comparisons judge smaller quants against these weights.",
     tags: ["quantized", "general"],
     recommended: false,
   },
@@ -91,6 +116,7 @@ export const MODEL_CATALOG = [
     context: 32768,
     license: "Apache-2.0",
     tagline: "A small coding companion for snippets, explanations, and refactors.",
+    note: `${QUANT_HONESTY_NOTES.q4Drift} ${QUANT_HONESTY_NOTES.imatrix}`,
     tags: ["code"],
     recommended: false,
   },
@@ -106,6 +132,7 @@ export const MODEL_CATALOG = [
     context: 131072,
     license: "Llama 3.2 Community License",
     tagline: "A different model family with about 3.2 GB of runtime memory.",
+    note: `${QUANT_HONESTY_NOTES.q4Drift} ${QUANT_HONESTY_NOTES.imatrix}`,
     tags: ["general", "smarter", "heavy"],
     recommended: false,
   },
@@ -121,6 +148,7 @@ export const MODEL_CATALOG = [
     context: 131072,
     license: "MIT",
     tagline: "Strong reasoning near the 4 GB memory mark. Desktop CPU recommended.",
+    note: `${QUANT_HONESTY_NOTES.q4Drift} ${QUANT_HONESTY_NOTES.imatrix}`,
     tags: ["reasoning", "heavy"],
     recommended: false,
   },
@@ -136,6 +164,7 @@ export const MODEL_CATALOG = [
     context: 32768,
     license: "Apache-2.0",
     tagline: "Heavyweight for CPU chat. Use only with 10 GB+ of free RAM.",
+    note: `${QUANT_HONESTY_NOTES.q4Drift} ${QUANT_HONESTY_NOTES.imatrix}`,
     tags: ["heavy"],
     recommended: false,
   },

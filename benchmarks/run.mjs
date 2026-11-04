@@ -14,7 +14,7 @@ import { systemInfo } from "../src/system.js";
 import { currentGitInfo, recordRun } from "./history.mjs";
 import { MODEL_MATRIX, buildChatMatrix, flashMatrix, modelMatrix, modelMatrixFor, promptListFor, resultFileName } from "./matrix.mjs";
 import { BENCHMARK_MODELS, PROMPTS, SUITE_VERSION, SYSTEM_PROMPT, checkCount, evaluateResponse } from "./suite.mjs";
-import { compareRuns, itemSummary, promptOrigin } from "./stats.mjs";
+import { compareRuns, itemSummary, losslessCeilingGate, promptOrigin } from "./stats.mjs";
 import { benchmarkTestHash, modelIdentityChanges } from "./test-hash.mjs";
 import {
   chatBaseSettings,
@@ -908,6 +908,16 @@ async function main() {
     // that survives Holm-corrected exact McNemar fails; smaller declines warn.
     const gate = compareRuns(result, baseline);
     result.gate = gate;
+    // IDEA-1617: Q8_0 is the lossless ceiling reference. A bench without it
+    // cannot tell a tie from a win; a lossless claim without it fails loudly.
+    const ceiling = losslessCeilingGate(result);
+    result.ceiling = ceiling;
+    if (ceiling.verdict === "fail") {
+      log(options, `  LOSSLESS CEILING: ${ceiling.reasons.join("; ")}. Measure the Q8_0 ceiling before claiming lossless.`);
+      process.exitCode = 1;
+    } else if (ceiling.verdict === "warn") {
+      log(options, "  WARNING: no Q8_0 ceiling variant measured; smaller quants cannot claim a tie or a win.");
+    }
     log(options, `  Items: ${gate.baselineRate}% -> ${gate.currentRate}% (paired over ${gate.variants.length} variants)`);
     for (const variant of gate.variants.filter((item) => item.regressed.length || item.improved.length)) {
       log(

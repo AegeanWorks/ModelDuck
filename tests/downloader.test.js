@@ -153,3 +153,23 @@ test("every catalog model pins a SHA-256 from its Hugging Face LFS pointer", asy
   const { MODEL_CATALOG } = await import("../src/model-catalog.js");
   for (const model of MODEL_CATALOG) assert.match(model.sha256 ?? "", /^[0-9a-f]{64}$/, model.id);
 });
+
+// IDEA-1381: durable promotion fsyncs the file and directory before exposing it.
+test("IDEA-1381: promotion fsyncs the file and directory before exposing it", async (t) => {
+  const { promoteFileAtomic, fsyncFile, fsyncDirectory } = await import("../src/fs-atomic.js");
+  assert.equal(typeof promoteFileAtomic, "function");
+  assert.equal(typeof fsyncFile, "function");
+  assert.equal(typeof fsyncDirectory, "function");
+  const directory = await mkdtemp(path.join(os.tmpdir(), "modelduck-promote-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const part = path.join(directory, "model.gguf.part");
+  const final = path.join(directory, "model.gguf");
+  await writeFile(part, Buffer.from("GGUFduck"));
+  await promoteFileAtomic(part, final);
+  const files = await readdir(directory);
+  assert.ok(files.includes("model.gguf"), files.join(","));
+  assert.ok(!files.some((name) => name.endsWith(".part")), files.join(","));
+  // Helpers are best-effort and never throw on missing paths.
+  await fsyncFile(path.join(directory, "missing.gguf"));
+  await fsyncDirectory(directory);
+});

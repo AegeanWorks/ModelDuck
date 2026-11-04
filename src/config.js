@@ -35,7 +35,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
   seed: -1,
   contextSize: 4096,
   contextOverflow: "shift",
-  reasoning: "auto",
+  reasoning: "off",
   structuredOutput: "none",
   jsonSchema: "",
   threads: defaultThreads(),
@@ -54,6 +54,30 @@ export const DEFAULT_SETTINGS = Object.freeze({
   speedPreset: "fastest",
   systemPrompt: DEFAULT_SYSTEM_PROMPT,
 });
+
+/**
+ * IDEA-1627: determinism lockdown for repro comparisons. Batch 512 stays the
+ * speed default above; repro work uses batch 1 with each comparison run three
+ * times, and a comparison only stands when the triple-run spread is within the
+ * noise floor. Bench-only and default off: `withDeterminismLockdown` opts a
+ * settings object in without touching the fast defaults.
+ */
+export const DETERMINISM_LOCKDOWN = Object.freeze({
+  batchSize: 1,
+  runs: 3,
+  maxSpreadPct: 5,
+  enabled: false,
+});
+
+/** Bench-only repro settings: batch 1 with the determinism flag set. */
+export function withDeterminismLockdown(settings = {}) {
+  return { ...settings, batchSize: DETERMINISM_LOCKDOWN.batchSize, deterministicRepro: true };
+}
+
+/** True when a settings object already asks for the batch-1 repro path. */
+export function isDeterministicRepro(settings = {}) {
+  return settings?.deterministicRepro === true || Number(settings?.batchSize) === DETERMINISM_LOCKDOWN.batchSize;
+}
 
 export const SETTING_PRESETS = Object.freeze({
   token_saver: Object.freeze({
@@ -116,6 +140,29 @@ export const SETTING_PRESETS = Object.freeze({
       gpuLayers: 0,
     }),
   }),
+  cheap: Object.freeze({
+    id: "cheap",
+    label: "Cheap",
+    description:
+      "Temperature-as-cost: low temperature (0.2) with truncated top-p (0.8) and min-p 0.1 per tuner v8 sampler profiles; small context and batch keep it fast.",
+    settings: Object.freeze({
+      contextSize: 2048,
+      batchSize: 128,
+      maxTokens: 256,
+      temperature: 0.2,
+      topP: 0.8,
+      topK: 20,
+      minP: 0.1,
+      repeatPenalty: 1.05,
+      reasoning: "off",
+      kvCache: "q8_0",
+      flashAttention: "on",
+      useMmap: "auto",
+      checkpoints: false,
+      sequences: 1,
+      gpuLayers: 0,
+    }),
+  }),
 });
 
 export function settingPresets() {
@@ -133,7 +180,7 @@ export function applyPreset(name, current = {}) {
     throw new AppError("Unknown preset", {
       code: "preset_not_found",
       why: `There is no preset named ${name}.`,
-      fix: "Choose token_saver, balanced or quality.",
+      fix: "Choose token_saver, balanced, quality or cheap.",
     });
   }
   return normalizeSettings({
@@ -222,8 +269,8 @@ export function normalizeSettings(input = {}) {
     contextOverflow: CONTEXT_OVERFLOW_TYPES.has(String(source.contextOverflow ?? "shift"))
       ? String(source.contextOverflow ?? "shift")
       : DEFAULT_SETTINGS.contextOverflow,
-    reasoning: REASONING_TYPES.has(String(source.reasoning ?? "auto"))
-      ? String(source.reasoning ?? "auto")
+    reasoning: REASONING_TYPES.has(String(source.reasoning ?? DEFAULT_SETTINGS.reasoning))
+      ? String(source.reasoning ?? DEFAULT_SETTINGS.reasoning)
       : DEFAULT_SETTINGS.reasoning,
     structuredOutput: STRUCTURED_OUTPUT_TYPES.has(String(source.structuredOutput ?? "none"))
       ? String(source.structuredOutput ?? "none")
