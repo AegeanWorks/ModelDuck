@@ -5,7 +5,7 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1793809375.1877594,
+    "updated_at": 1793809748.0128307,
     "owner": "kilo:1",
     "started_by": "kilo:1",
     "continuations": []
@@ -79,28 +79,6 @@
       "status": "superseded",
       "timestamp": 1793644272.4674096,
       "timestamp_str": "2026-11-02 21:31:12",
-      "agent": "kilo:1"
-    },
-    {
-      "task_id": "tuner-lit-followups",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[6/6] partial: ADR-080 accepted (literature-backed search changes, v8, validation pending), benchmarks/CHANGELOG tuner-v8 row, lit notes verification outcomes; kit notes/REPORT.md absent from worktree so no row added; engine benchmarks + deliberate baseline regen still pending",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793651309.4393654,
-      "timestamp_str": "2026-11-02 23:28:29",
-      "agent": "kilo:1"
-    },
-    {
-      "task_id": "tuner-lit-followups",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[5/6] partial, current-data analysis: pilot trajectory (code greedy+repeat1+precise-format, recall pair flips T0.7 to greedy, q8_0 beats f16, threads 2) corroborated by saved coder profile; engine micro-benchmarks stay queued behind pilot; analysis appended to lit notes",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793652036.289682,
-      "timestamp_str": "2026-11-02 23:40:36",
       "agent": "kilo:1"
     },
     {
@@ -257,6 +235,34 @@
       "status": "in_progress",
       "timestamp": 1793809375.1877594,
       "timestamp_str": "2026-11-04 19:22:55",
+      "agent": "kilo:1"
+    },
+    {
+      "task_id": "tuner-lit-followups",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[Wave 11-20 plan 1/1] survey newest 11-20 (gate bypass, gallery, help, part runs, scheduler, capture, flash/v8, lit v8, flash smoke); fix engine validKvLabel prototype check; failing-first tests; full gates",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793809678.5798588,
+      "timestamp_str": "2026-11-04 19:27:58",
+      "agent": "kilo:1",
+      "impact_assessment": {
+        "why": "engine validKvLabel uses 'in' so inherited names pass as KV types; raw body.kvCache reaches engine.load unvalidated via the load route",
+        "benefits": "same-class follow-up to wave 40 splitKvCache fix; label integrity at the load boundary",
+        "risks": "contract: inherited names now fall back to f16 like other unknown labels; dependency: none; concurrency: none; state: none",
+        "mitigation": "failing-first unit test on exported validator; full npm test plus aikit check before commit"
+      }
+    },
+    {
+      "task_id": "tuner-lit-followups",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[Wave 11-20] done: engine validKvLabel uses hasOwn, exported for tests; surveyed newest 11-20, claims hold; suite 460/460; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793809748.0128307,
+      "timestamp_str": "2026-11-04 19:29:08",
       "agent": "kilo:1"
     }
   ]

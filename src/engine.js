@@ -45,9 +45,9 @@ function mapAttention(value) {
 }
 
 /** A KV cache label is valid when every colon-separated part names a known type. */
-function validKvLabel(label) {
+export function validKvLabel(label) {
   const parts = String(label ?? "").split(":");
-  return parts.length <= 2 && parts.every((part) => part in KV_CACHE_TYPES) ? parts.join(":") : "f16";
+  return parts.length <= 2 && parts.every((part) => Object.hasOwn(KV_CACHE_TYPES, part)) ? parts.join(":") : "f16";
 }
 
 function mapMmap(value) {

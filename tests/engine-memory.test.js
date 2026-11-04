@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { LlamaEngine } from "../src/engine.js";
+import { LlamaEngine, validKvLabel } from "../src/engine.js";
 
 const GIB = 1024 ** 3;
 const ENTRY = { id: "m1", path: "model.gguf", name: "Duck", fileName: "model.gguf", size: 2 * GIB };
@@ -40,6 +40,22 @@ test("free memory for a load counts the loaded model's own share as free", async
   await gpu.load({ modelId: "m1", gpuBackend: "vulkan", contextSize: 2048 });
   assert.equal(await gpu.availableMemory({ gpuBackend: "vulkan" }), 12 * GIB, "free VRAM plus the model on the GPU");
   assert.equal(await cpu.availableMemory({ gpuBackend: "vulkan" }), null, "no GPU runtime: unknown, so the budget falls back");
+});
+
+test("inherited property names are not KV cache labels", () => {
+  assert.equal(validKvLabel("toString"), "f16");
+  assert.equal(validKvLabel("__proto__"), "f16");
+  assert.equal(validKvLabel("constructor"), "f16");
+});
+
+test("known KV cache labels pass through, malformed ones fall back", () => {
+  assert.equal(validKvLabel("f16"), "f16");
+  assert.equal(validKvLabel("q8_0"), "q8_0");
+  assert.equal(validKvLabel("q4_0"), "q4_0");
+  assert.equal(validKvLabel("q8_0:q4_0"), "q8_0:q4_0");
+  assert.equal(validKvLabel("f16:f16:f16"), "f16");
+  assert.equal(validKvLabel("q9"), "f16");
+  assert.equal(validKvLabel(undefined), "f16");
 });
 
 test("a backend can be started without a model, failing the way a load would", async () => {
