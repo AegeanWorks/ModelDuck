@@ -1,0 +1,162 @@
+{
+  "tool": "context-curve",
+  "suiteVersion": 17,
+  "model": {
+    "id": "d03b46cb3856",
+    "fileName": "qwen2.5-0.5b-instruct-q4_k_m.gguf",
+    "size": 491400032,
+    "chatTemplateHash": "d5495a1e5db06111"
+  },
+  "runtime": {
+    "nodeLlamaCpp": "3.22.2",
+    "node": "26.9.0",
+    "promptFingerprintVersion": 1
+  },
+  "items": [
+    "recall-long-4k",
+    "recall-long-8k",
+    "recall-long-16k"
+  ],
+  "seed": 42,
+  "comparable": true,
+  "variants": [
+    {
+      "variant": "q8",
+      "settings": {
+        "contextSize": 16384,
+        "kvCache": "q8",
+        "threads": 10,
+        "batchSize": 512,
+        "flashAttention": "auto",
+        "useMmap": "auto"
+      },
+      "stamp": {
+        "suiteVersion": 17,
+        "testHash": "054a8f1f16c08c7c",
+        "promptIds": [
+          "recall-long-16k",
+          "recall-long-4k",
+          "recall-long-8k"
+        ],
+        "promptCount": 3,
+        "runtime": {
+          "nodeLlamaCpp": "3.22.2",
+          "node": "26.9.0",
+          "promptFingerprintVersion": 1
+        },
+        "model": {
+          "id": "d03b46cb3856",
+          "fileName": "qwen2.5-0.5b-instruct-q4_k_m.gguf",
+          "size": 491400032,
+          "chatTemplateHash": "d5495a1e5db06111"
+        },
+        "prompts": 265
+      },
+      "rate": 66.7,
+      "solved": 2,
+      "ci95": {
+        "low": 20.8,
+        "high": 93.9
+      },
+      "latencyMs": 167515,
+      "promptTokens": 9565,
+      "prefillTps": 58.68,
+      "decodeTps": 0.86,
+      "tokensPerSecond": 0.91,
+      "truncationRate": 0,
+      "giveUpRate": 0,
+      "failed": false,
+      "error": null,
+      "buckets": [
+        {
+          "bucket": "2-8k",
+          "items": 1,
+          "passed": 1,
+          "rate": 100,
+          "medianTokens": 4790
+        },
+        {
+          "bucket": "8k+",
+          "items": 2,
+          "passed": 1,
+          "rate": 50,
+          "medianTokens": 19097
+        }
+      ],
+      "outcomes": {
+        "recall-long-4k": 1,
+        "recall-long-8k": 1,
+        "recall-long-16k": 0
+      }
+    },
+    {
+      "variant": "f16",
+      "settings": {
+        "contextSize": 16384,
+        "kvCache": "f16",
+        "threads": 10,
+        "batchSize": 512,
+        "flashAttention": "auto",
+        "useMmap": "auto"
+      },
+      "stamp": {
+        "suiteVersion": 17,
+        "testHash": "054a8f1f16c08c7c",
+        "promptIds": [
+          "recall-long-16k",
+          "recall-long-4k",
+          "recall-long-8k"
+        ],
+        "promptCount": 3,
+        "runtime": {
+          "nodeLlamaCpp": "3.22.2",
+          "node": "26.9.0",
+          "promptFingerprintVersion": 1
+        },
+        "model": {
+          "id": "d03b46cb3856",
+          "fileName": "qwen2.5-0.5b-instruct-q4_k_m.gguf",
+          "size": 491400032,
+          "chatTemplateHash": "d5495a1e5db06111"
+        },
+        "prompts": 265
+      },
+      "rate": 66.7,
+      "solved": 2,
+      "ci95": {
+        "low": 20.8,
+        "high": 93.9
+      },
+      "latencyMs": 203477,
+      "promptTokens": 9565,
+      "prefillTps": 48.01,
+      "decodeTps": 0.7,
+      "tokensPerSecond": 0.74,
+      "truncationRate": 0,
+      "giveUpRate": 0,
+      "failed": false,
+      "error": null,
+      "buckets": [
+        {
+          "bucket": "2-8k",
+          "items": 1,
+          "passed": 1,
+          "rate": 100,
+          "medianTokens": 4790
+        },
+        {
+          "bucket": "8k+",
+          "items": 2,
+          "passed": 1,
+          "rate": 50,
+          "medianTokens": 19097
+        }
+      ],
+      "outcomes": {
+        "recall-long-4k": 1,
+        "recall-long-8k": 1,
+        "recall-long-16k": 0
+      }
+    }
+  ]
+}

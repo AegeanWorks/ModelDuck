@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 
 import { AppError } from "../src/errors.js";
 import { ensureDirectory } from "../src/fs-atomic.js";
+import { resolvePaths } from "../src/config.js";
 import { currentGitInfo, recordRun } from "./history.mjs";
 import { CORE_MODEL_IDS } from "./matrix.mjs";
 import { BENCHMARK_MODELS } from "./suite.mjs";
@@ -129,6 +130,11 @@ async function main() {
     return;
   }
   // Gate tunes never touch the user's saved profiles.
+  // The temp home isolates profiles and runs, but models must keep resolving
+  // to the real folder: resolvePaths derives models from home when
+  // --models-dir is absent, and an empty temp models dir makes every model
+  // look uninstalled. An explicit --models-dir still wins.
+  if (!options.modelsDir) options.modelsDir = resolvePaths({}).models;
   const home = await mkdtemp(path.join(os.tmpdir(), "modelduck-tune-gate-"));
   try {
     if (options.updateBaseline) await updateBaseline(options, home);
