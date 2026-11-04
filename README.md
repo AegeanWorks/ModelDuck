@@ -460,8 +460,12 @@ modelduck/
 │   ├── errors.js <- actionable error objects
 │   ├── fs-atomic.js <- atomic writes, backups, quarantine and home lock
 │   ├── model-catalog.js <- curated GGUF catalogue
+│   ├── sampler-chain.js <- canonical ordered sampler chain
 │   ├── recommend.js <- what to run on this PC: measured models and estimates
+│   ├── sampler-chain.js <- canonical ordered sampler chain shared by chat and completions
 │   └── system.js <- CPU, memory and platform snapshot, loop-lag health
+├── docs/
+│   └── THREAT-MODEL.md <- seven-party local-inference threat model
 ├── public/
 │   ├── index.html <- the control panel
 │   ├── app.js <- state and interactions, no framework
@@ -557,6 +561,12 @@ modelduck/
 │   ├── benchmark-stats.test.js
 │   ├── benchmark-flash.test.js
 │   ├── benchmark-context-curve.test.js
+│   ├── benchmark-bench-honesty.test.js
+│   ├── gguf-preflight.test.js
+│   ├── matrix-determinism.test.js
+│   ├── sampler-chain.test.js
+│   ├── tune-quota.test.js
+│   ├── wave3-settings-docs.test.js
 │   ├── generation-manifest.test.js
 │   ├── engine-errors.test.js
 │   ├── engine-runtime.test.js
@@ -573,6 +583,14 @@ modelduck/
 │   ├── gated-downloads.test.js
 │   ├── manifest-bench.test.js
 │   ├── sampler-health.test.js
+│   ├── sampler-chain.test.js
+│   ├── gguf-preflight.test.js
+│   ├── matrix-determinism.test.js
+│   ├── tune-quota.test.js
+│   ├── benchmark-bench-honesty.test.js
+│   ├── wave3-settings-docs.test.js
+│   ├── cache-truncate.test.js
+│   ├── cache-truncate.test.js
 │   ├── recommend.test.js
 │   └── server.test.js
 ├── assets/
@@ -591,6 +609,8 @@ modelduck/
 ├── LICENSE
 ├── COMMERCIAL.md
 ├── LICENSES/
+├── docs/ <- threat model and design notes
+│   └── THREAT-MODEL.md
 ├── MODELDUCK_IDEA_ANALYSIS.md <- approved/proposed idea audit
 ├── MODELDUCK_IMPLEMENT_LIST.md <- implementation waves
 └── REUSE.toml

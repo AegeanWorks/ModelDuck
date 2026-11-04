@@ -1,84 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "approved-deepcheck-w3",
+    "task_id": "approved-deepcheck-w4",
     "last_phase": "in_progress",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1793815589.9464853,
+    "updated_at": 1793816195.3300273,
     "owner": "kilo:main",
     "started_by": "kilo:main",
     "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "tuner-lit-followups",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[Wave 11-20 plan 1/1] survey newest 11-20 (gate bypass, gallery, help, part runs, scheduler, capture, flash/v8, lit v8, flash smoke); fix engine validKvLabel prototype check; failing-first tests; full gates",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793809678.5798588,
-      "timestamp_str": "2026-11-04 19:27:58",
-      "agent": "kilo:1",
-      "impact_assessment": {
-        "why": "engine validKvLabel uses 'in' so inherited names pass as KV types; raw body.kvCache reaches engine.load unvalidated via the load route",
-        "benefits": "same-class follow-up to wave 40 splitKvCache fix; label integrity at the load boundary",
-        "risks": "contract: inherited names now fall back to f16 like other unknown labels; dependency: none; concurrency: none; state: none",
-        "mitigation": "failing-first unit test on exported validator; full npm test plus aikit check before commit"
-      }
-    },
-    {
-      "task_id": "tuner-lit-followups",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[Wave 11-20] done: engine validKvLabel uses hasOwn, exported for tests; surveyed newest 11-20, claims hold; suite 460/460; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793809748.0128307,
-      "timestamp_str": "2026-11-04 19:29:08",
-      "agent": "kilo:1"
-    },
-    {
-      "task_id": "tuner-lit-followups",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'tuner-lit-followups' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793813633.188053,
-      "timestamp_str": "2026-11-04 20:33:53",
-      "agent": "kilo:main",
-      "continued_from": "kilo:1"
-    },
-    {
-      "task_id": "approved-deepcheck-w1",
-      "phase": "planning",
-      "phase_num": 2,
-      "description": "[1/5] Correctness package 1200/1163/1160/1162; [2/5] OpenAI contract 1080/1085/1264; [3/5] Provenance receipts 1067/1194/1195; [4/5] Settings library SSE 1070/1097/1197; [5/5] Memory load trio ladder 1064/1065/1094/1095/1158",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793813643.0318527,
-      "timestamp_str": "2026-11-04 20:34:03",
-      "agent": "kilo:main",
-      "impact_assessment": {
-        "why": "Implement deep-checked Approved ModelDuck ideas with open code gaps; smallest high-value correctness and contract fixes first",
-        "benefits": "Silent guard-disable and grammar-cache bugs fixed; OpenAI stop/finish/param honesty; install artifact resume receipts; symlink settings SSE; memory-fit honesty and cancelable load",
-        "risks": "contract: OpenAI /v1 error and finish shapes change, SSE backpressure alters timing; dependency: node-llama-cpp native calls unabortable, grammar and template behavior loader-gated; concurrency: single-session engine, load/unload phase machine must not race JIT; state: settings version migration, receipt files, profile keys must stay backward compatible",
-        "mitigation": "Failing-first unit tests per idea; additive typed refusals never fake params; receipts written atomically via fs-atomic; feature flags and Load anyway overrides preserved; npm test plus tune:gate per milestone"
-      },
-      "plan_digest": "f0a5013931cc51906c076b5cfbc35550ae32e5d43e7f9c658b9afccb86b1858c"
-    },
-    {
-      "task_id": "approved-deepcheck-w1",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[1/5] done: engine 1200 loud token count, 1163 model-keyed grammar plus unload clear, 1160 replyBudget clamp both paths, 1162 schema preflight; tests/engine-correctness.test.js 4/4; full suite 464/464",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793813810.7584727,
-      "timestamp_str": "2026-11-04 20:36:50",
-      "agent": "kilo:main"
-    },
     {
       "task_id": "approved-deepcheck-w1",
       "phase": "in_progress",
@@ -254,6 +186,66 @@
       "status": "in_progress",
       "timestamp": 1793815589.9464853,
       "timestamp_str": "2026-11-04 21:06:29",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "approved-deepcheck-w3",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'approved-deepcheck-w3' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793815609.7641075,
+      "timestamp_str": "2026-11-04 21:06:49",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "approved-deepcheck-w3",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'approved-deepcheck-w3' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793815622.369111,
+      "timestamp_str": "2026-11-04 21:07:02",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "approved-deepcheck-w4",
+      "phase": "planning",
+      "phase_num": 2,
+      "description": "[1/2] 1076 conservative deterministic cache exact digest plus temp0 plus seed plus memory-only; [2/2] 1082 truncate overflow mode with session invalidation",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793815733.5294933,
+      "timestamp_str": "2026-11-04 21:08:53",
+      "agent": "kilo:main",
+      "impact_assessment": {
+        "why": "Last two safely implementable Approved holds; 1074 ChatDuck-side, 1087 vague, 1098 needs opt-in decision, 1192 blocked on rejected 942 and deferred tool calling",
+        "benefits": "Exact-repeat deterministic answers skip reload-free regeneration; chat survives overflow by dropping oldest history instead of failing",
+        "risks": "contract: new contextOverflow value and cached flag are additive; dependency: none new; concurrency: single-session engine plus in-memory cache cleared on unload; state: cache memory-only never persisted",
+        "mitigation": "Failing-first unit tests; truncate defaults off; cache eligibility fenced to temp0 plus explicit seed; npm test plus aikit check"
+      },
+      "plan_digest": "f30fefd0d00c299feb4177c249baa9124c3ff6e3651fa0872099106ff5f1cf02"
+    },
+    {
+      "task_id": "approved-deepcheck-w4",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[2/2] done: 1076 complete-path cache plus 1082 truncate history plus session invalidation; README tree updated; 530/530; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793816193.1869445,
+      "timestamp_str": "2026-11-04 21:16:33",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "approved-deepcheck-w4",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[2/2] done: engine 1082 truncate chat plus completion with manifest flags; fixed cache-hit slot leak on both paths; 1076 tests 5/5; full suite 530/530; README tree; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793816195.3300273,
+      "timestamp_str": "2026-11-04 21:16:35",
       "agent": "kilo:main"
     }
   ]

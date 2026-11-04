@@ -195,7 +195,7 @@ const FLASH_ATTENTION_TYPES = new Set(["auto", "on", "off"]);
 const USE_MMAP_TYPES = new Set(["auto", "on", "off"]);
 const REASONING_TYPES = new Set(["off", "auto", "deep"]);
 const STRUCTURED_OUTPUT_TYPES = new Set(["none", "json_object", "json_schema"]);
-const CONTEXT_OVERFLOW_TYPES = new Set(["shift", "strict"]);
+const CONTEXT_OVERFLOW_TYPES = new Set(["shift", "strict", "truncate"]);
 const GPU_BACKENDS = new Set(["cpu", "auto", "cuda", "vulkan", "metal"]);
 
 function clampNumber(value, min, max, fallback) {

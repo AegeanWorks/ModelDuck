@@ -108,6 +108,18 @@ export function needsEmptyRetry({ text, grammarUsed, aborted }) {
   return Boolean(grammarUsed) && !aborted && String(text ?? "").trim().length === 0;
 }
 
+const RESPONSE_CACHE_MAX = 32;
+const RESPONSE_CACHE_TEXT_MAX = 8192;
+
+/**
+ * IDEA-1076: only exact-repeat deterministic answers are cacheable: greedy
+ * decoding (temperature 0) with an explicit seed, keyed by the full manifest
+ * digest. Anything creative or unseeded always regenerates.
+ */
+export function eligibleForCache(settings) {
+  return Number(settings?.temperature) === 0 && Number(settings?.seed) >= 0;
+}
+
 const KNOWN_SCHEMA_TYPES = new Set(["object", "array", "string", "number", "integer", "boolean", "null"]);
 
 /** IDEA-1162: reject unsupported JSON schemas before a session is created. */
@@ -176,6 +188,7 @@ export class LlamaEngine {
   #checkpointInterval = 8192;
   #checkpointMax = 32;
   #grammarCache = null;
+  #responseCache = new Map(); // IDEA-1076: memory-only, cleared on unload.
   #gpuBackend = null;
   #state = {
     status: "idle",
@@ -664,6 +677,8 @@ export class LlamaEngine {
       this.#model = null;
     }
     this.#grammarCache = null; // IDEA-1163: a model swap must never reuse a stale grammar.
+    // IDEA-1076: cached answers belong to the unloaded model; never reuse them.
+    this.#responseCache.clear();
     this.#state = {
       status: "idle",
       model: null,
@@ -769,8 +784,22 @@ export class LlamaEngine {
       : normalized;
     const effectiveSettings = normalizeSettings(withModel);
     const effectiveSystemPrompt = buildSystemPrompt(systemPrompt, effectiveSettings.reasoning);
-    const priorMessages = messages.slice(0, -1);
-    const history = buildChatHistory(priorMessages);
+    let priorMessages = messages.slice(0, -1);
+    let truncatedHistory = false;
+    // IDEA-1082: truncate mode drops the oldest history (keeping the newest
+    // turns) so a long chat survives overflow; the session is invalidated
+    // because the stored history no longer matches.
+    if (effectiveSettings.contextOverflow === "truncate") {
+      const contextSize = this.#context?.contextSize ?? 0;
+      let probe = this.#countPromptTokens(effectiveSystemPrompt, [...priorMessages, last]);
+      while (priorMessages.length > 0 && probe + effectiveSettings.maxTokens > contextSize) {
+        priorMessages = priorMessages.slice(1);
+        truncatedHistory = true;
+        probe = this.#countPromptTokens(effectiveSystemPrompt, [...priorMessages, last]);
+      }
+      if (truncatedHistory) this.dropSession(conversationId);
+    }
+    let history = buildChatHistory(priorMessages);
     const historyComplete = history.length === priorMessages.length;
     const promptText = repeatPrompt(last.content, effectiveSettings.promptRepeat);
     const manifest = buildGenerationManifest({
@@ -792,6 +821,26 @@ export class LlamaEngine {
         fallback: this.#state.contextFallback ?? null,
       },
     });
+    // IDEA-1082: the manifest records that older turns were dropped.
+    if (truncatedHistory) manifest.history.truncated = true;
+    // IDEA-1076: exact-repeat deterministic answers skip regeneration entirely.
+    // The store is memory-only and cleared on unload, so nothing private persists.
+    const cacheable = eligibleForCache(effectiveSettings);
+    const cached = cacheable ? this.#responseCache.get(manifest.digest) : null;
+    if (cached) {
+      // A hit never reaches the session: release the slot it reserved.
+      signal?.removeEventListener?.("abort", abortFromCaller);
+      this.#active.delete(conversationId);
+      this.#running -= 1;
+      this.#pending.delete(generation);
+      finishGeneration();
+      return {
+        text: cached.text,
+        aborted: false,
+        stats: { ...cached.stats, cached: true, ms: 0 },
+        manifest,
+      };
+    }
     const startedAt = Date.now();
     let firstTokenAt = null;
     let text = "";
@@ -890,6 +939,7 @@ export class LlamaEngine {
         retriedAfterEmpty,
         // IDEA-1164: a degenerate tail loop is flagged for the sampler stack.
         loopDetected: detectLoop(text).loop,
+        cached: false,
       };
       this.#state = { ...this.#state, lastStats: stats };
       const aborted = controller.signal.aborted || stopReason === "abort";
@@ -898,6 +948,13 @@ export class LlamaEngine {
         const record = this.#sessions.get(conversationId);
         const nextLength = nextSessionHistoryLength(messages.length, historyComplete);
         if (record && nextLength !== null) record.historyLength = nextLength;
+      }
+      // IDEA-1076: store exact-repeat deterministic answers, memory-only.
+      if (cacheable && !aborted && text.length <= RESPONSE_CACHE_TEXT_MAX) {
+        if (this.#responseCache.size >= RESPONSE_CACHE_MAX) {
+          this.#responseCache.delete(this.#responseCache.keys().next().value);
+        }
+        this.#responseCache.set(manifest.digest, { text, stats });
       }
       return {
         text,
@@ -998,7 +1055,7 @@ export class LlamaEngine {
     // The completion engine has no response-prefix option, so a tuned prefix
     // (the code-fence axis) is prefilled by continuing the prompt with it,
     // mirroring the chat path where the assistant turn starts with it.
-    const fullPrompt = promptText + (effectiveSettings.responsePrefix || "");
+    let fullPrompt = promptText + (effectiveSettings.responsePrefix || "");
     const manifest = buildGenerationManifest({
       model: this.#state.model,
       originalSystemPrompt: "",
@@ -1019,13 +1076,50 @@ export class LlamaEngine {
       },
     });
     const startedAt = Date.now();
+    // IDEA-1076: same exact-repeat cache on the completion path.
+    const completeCacheable = eligibleForCache(effectiveSettings);
+    const completeCached = completeCacheable ? this.#responseCache.get(manifest.digest) : null;
+    if (completeCached) {
+      signal?.removeEventListener?.("abort", abortFromCaller);
+      this.#active.delete(conversationId);
+      this.#running -= 1;
+      this.#pending.delete(generation);
+      finishGeneration();
+      return {
+        text: completeCached.text,
+        aborted: false,
+        stats: { ...completeCached.stats, cached: true, ms: 0 },
+        manifest,
+      };
+    }
     let firstTokenAt = null;
     let text = "";
     let outputTokens = 0;
     let stopReason = "eogToken";
 
     try {
-      const promptTokens = this.#countTokens(fullPrompt); // aikit:allow-secret token count, not a credential
+      let promptTokens = this.#countTokens(fullPrompt); // aikit:allow-secret token count, not a credential
+      // IDEA-1082: truncate mode keeps the prompt tail so a completion can
+      // proceed instead of failing; the manifest prompt reflects the tail.
+      if (
+        effectiveSettings.contextOverflow === "truncate" &&
+        promptTokens + effectiveSettings.maxTokens > (this.#context?.contextSize ?? 0)
+      ) {
+        const budget = Math.max(1, (this.#context?.contextSize ?? 0) - effectiveSettings.maxTokens);
+        let lo = 0;
+        let hi = fullPrompt.length;
+        while (lo < hi) {
+          const mid = Math.floor((lo + hi) / 2);
+          const tail = fullPrompt.slice(mid);
+          if (this.#countTokens(tail) <= budget) hi = mid;
+          else lo = mid + 1;
+        }
+        const tail = fullPrompt.slice(lo);
+        promptTokens = this.#countTokens(tail);
+        fullPrompt = tail;
+        manifest.prompt.text = tail;
+        manifest.prompt.truncated = true;
+      }
       if (
         effectiveSettings.contextOverflow === "strict" &&
         promptTokens + effectiveSettings.maxTokens > (this.#context.contextSize ?? 0)
@@ -1115,11 +1209,20 @@ export class LlamaEngine {
         retriedAfterEmpty,
         // IDEA-1164: a degenerate tail loop is flagged for the sampler stack.
         loopDetected: detectLoop(text).loop,
+        cached: false,
       };
       this.#state = { ...this.#state, lastStats: stats };
+      const completeAborted = controller.signal.aborted || stopReason === "abort";
+      // IDEA-1076: store exact-repeat deterministic completions, memory-only.
+      if (completeCacheable && !completeAborted && text.length <= RESPONSE_CACHE_TEXT_MAX) {
+        if (this.#responseCache.size >= RESPONSE_CACHE_MAX) {
+          this.#responseCache.delete(this.#responseCache.keys().next().value);
+        }
+        this.#responseCache.set(manifest.digest, { text, stats });
+      }
       return {
         text,
-        aborted: controller.signal.aborted || stopReason === "abort",
+        aborted: completeAborted,
         stats,
         manifest,
       };
