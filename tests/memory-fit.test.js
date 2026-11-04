@@ -100,6 +100,17 @@ test("the context budget refuses an empty step list instead of choosing undefine
     (error) => error.code === "empty_context_steps" && /empty/.test(error.why) && /at least one/.test(error.fix));
 });
 
+test("inherited property names are not KV cache types", () => {
+  assert.deepEqual(splitKvCache("toString"), { key: "f16", value: "f16" });
+  assert.deepEqual(splitKvCache("__proto__"), { key: "f16", value: "f16" });
+  assert.ok(Number.isFinite(kvBytesPerToken(QWEN_1_5B, "toString")));
+});
+
+test("fitVerdict without an estimate is unknown, not a throw", () => {
+  assert.deepEqual(fitVerdict({ availableBytes: 8 * GIB }).verdict, "unknown");
+  assert.deepEqual(fitVerdict({ estimate: { total: NaN }, availableBytes: 8 * GIB }).verdict, "unknown");
+});
+
 test("the context budget falls back to the smallest size, and says so, when nothing fits or memory is unknown", () => {
   const tiny = budgetContext({ modelBytes: 1.83 * GIB, shape: LLAMA_3B, kvCache: "f16", steps: STEPS, availableBytes: 1 * GIB, trainContext: 131072 });
   assert.equal(tiny.contextSize, 2048);

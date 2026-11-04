@@ -172,10 +172,21 @@ function normalizeGpuLayers(value) {
 // user stop can no longer wipe the tuned fence stop, and every value the tuner
 // can choose still survives normalisation unchanged.
 function normalizeStops(value) {
-  if (!Array.isArray(value)) return DEFAULT_SETTINGS.customStopTriggers;
+  if (!Array.isArray(value)) return [...DEFAULT_SETTINGS.customStopTriggers];
   const kept = value.filter((stop) => typeof stop === "string" && stop.length > 0);
-  if (kept.length === value.length && kept.length <= 4) return value;
+  if (kept.length === value.length && kept.length <= 4) return [...value];
   return kept.slice(0, 4);
+}
+
+function normalizeBoolean(value, fallback) {
+  if (value === undefined) return fallback;
+  if (typeof value === "string") {
+    const lowered = value.trim().toLowerCase();
+    if (["false", "0", "no", "off", ""].includes(lowered)) return false;
+    if (["true", "1", "yes", "on"].includes(lowered)) return true;
+    return fallback;
+  }
+  return Boolean(value);
 }
 
 export function normalizeSettings(input = {}) {
@@ -195,11 +206,12 @@ export function normalizeSettings(input = {}) {
       1024,
       DEFAULT_SETTINGS.repeatPenaltyTokens,
     ),
-    penalizeNewLine: source.penalizeNewLine === undefined ? true : Boolean(source.penalizeNewLine),
+    penalizeNewLine: source.penalizeNewLine === undefined ? true : normalizeBoolean(source.penalizeNewLine, true),
     dryStrength: clampNumber(source.dryStrength, 0, 1, DEFAULT_SETTINGS.dryStrength),
-    dryBase: typeof source.dryBase === "number" && Number.isFinite(source.dryBase) && source.dryBase > 0
-      ? source.dryBase
-      : DEFAULT_SETTINGS.dryBase,
+    dryBase: (() => {
+      const coerced = Number(source.dryBase);
+      return Number.isFinite(coerced) && coerced > 0 ? coerced : DEFAULT_SETTINGS.dryBase;
+    })(),
     dryAllowedLength: clampInteger(source.dryAllowedLength, 1, 32, DEFAULT_SETTINGS.dryAllowedLength),
     responsePrefix: typeof source.responsePrefix === "string" ? source.responsePrefix.slice(0, 200) : DEFAULT_SETTINGS.responsePrefix,
     customStopTriggers: normalizeStops(source.customStopTriggers),
@@ -229,7 +241,7 @@ export function normalizeSettings(input = {}) {
     gpuBackend: GPU_BACKENDS.has(String(source.gpuBackend ?? "cpu"))
       ? String(source.gpuBackend ?? "cpu")
       : DEFAULT_SETTINGS.gpuBackend,
-    checkpoints: source.checkpoints === undefined ? true : Boolean(source.checkpoints),
+    checkpoints: source.checkpoints === undefined ? true : normalizeBoolean(source.checkpoints, true),
     checkpointInterval: clampInteger(
       source.checkpointInterval,
       128,
@@ -238,7 +250,7 @@ export function normalizeSettings(input = {}) {
     ),
     checkpointMax: clampInteger(source.checkpointMax, 1, 64, DEFAULT_SETTINGS.checkpointMax),
     kvCache: KV_CACHE_TYPES.has(kvCache) ? kvCache : DEFAULT_SETTINGS.kvCache,
-    useTunedProfile: source.useTunedProfile === undefined ? true : Boolean(source.useTunedProfile),
+    useTunedProfile: source.useTunedProfile === undefined ? true : normalizeBoolean(source.useTunedProfile, true),
     speedPreset: ["fastest", "light", "quiet"].includes(source.speedPreset) ? source.speedPreset : "fastest",
     systemPrompt:
       typeof source.systemPrompt === "string"

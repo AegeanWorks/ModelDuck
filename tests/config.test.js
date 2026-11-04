@@ -148,6 +148,39 @@ test("a long stop list keeps the first stops instead of dropping the fence", () 
   );
 });
 
+test("SettingsStore isolates stop lists and ignores non-object patches", async (t) => {
+  const { SettingsStore } = await import("../src/settings.js");
+  const file = path.join(os.tmpdir(), `duck-settings-${process.pid}-${Date.now()}.json`);
+  t.after(() => import("node:fs/promises").then((fs) => fs.rm(file, { force: true })));
+  const store = new SettingsStore({ file, logger: { warn() {}, error() {} } });
+  const snapshot = store.value;
+  snapshot.customStopTriggers.push("leak");
+  assert.deepEqual(store.value.customStopTriggers, []);
+  await store.update("abc");
+  assert.deepEqual(store.value.customStopTriggers, []);
+});
+
+test("boolean strings parse instead of Boolean() truthiness", () => {
+  assert.equal(normalizeSettings({ checkpoints: "false" }).checkpoints, false);
+  assert.equal(normalizeSettings({ checkpoints: "0" }).checkpoints, false);
+  assert.equal(normalizeSettings({ penalizeNewLine: "0" }).penalizeNewLine, false);
+  assert.equal(normalizeSettings({ useTunedProfile: "no" }).useTunedProfile, false);
+  assert.equal(normalizeSettings({ checkpoints: "true" }).checkpoints, true);
+  assert.equal(normalizeSettings({ checkpoints: "1" }).checkpoints, true);
+});
+
+test("dryBase coerces numeric strings like other numbers", () => {
+  assert.equal(normalizeSettings({ dryBase: "2.5" }).dryBase, 2.5);
+  assert.equal(normalizeSettings({ dryBase: -1 }).dryBase, 1.75);
+});
+
+test("stop lists are isolated copies, not shared references", () => {
+  const first = normalizeSettings({});
+  first.customStopTriggers.push("leak");
+  assert.deepEqual(normalizeSettings({}).customStopTriggers, []);
+  assert.deepEqual(DEFAULT_SETTINGS.customStopTriggers, []);
+});
+
 test("resolvePaths puts all state under the chosen home", () => {
   const home = path.join(os.tmpdir(), "duck-home");
   const models = path.join(os.tmpdir(), "duck-models");

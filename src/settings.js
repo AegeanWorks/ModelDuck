@@ -9,11 +9,11 @@ export class SettingsStore {
   constructor({ file, logger = console }) {
     this.#file = file;
     this.#logger = logger;
-    this.#value = { ...DEFAULT_SETTINGS };
+    this.#value = normalizeSettings({});
   }
 
   get value() {
-    return { ...this.#value };
+    return { ...this.#value, customStopTriggers: [...this.#value.customStopTriggers] };
   }
 
   async load() {
@@ -24,7 +24,8 @@ export class SettingsStore {
   }
 
   async update(patch) {
-    const next = normalizeSettings({ ...this.#value, ...(patch ?? {}) });
+    const safePatch = patch && typeof patch === "object" && !Array.isArray(patch) ? patch : {};
+    const next = normalizeSettings({ ...this.#value, ...safePatch });
     await writeJsonAtomic(this.#file, { version: 1, settings: next });
     this.#value = next;
     return this.value;

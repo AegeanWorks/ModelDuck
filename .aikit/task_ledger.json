@@ -2,10 +2,10 @@
   "version": 1,
   "active_task": {
     "task_id": "tuner-lit-followups",
-    "last_phase": "in_progress",
+    "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1793723239.1200454,
+    "updated_at": 1793809375.1877594,
     "owner": "kilo:1",
     "started_by": "kilo:1",
     "continuations": []
@@ -79,28 +79,6 @@
       "status": "superseded",
       "timestamp": 1793644272.4674096,
       "timestamp_str": "2026-11-02 21:31:12",
-      "agent": "kilo:1"
-    },
-    {
-      "task_id": "tuner-lit-followups",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/6] done: giveUpRate in score() beside truncationRate (empty=0 tokens or blank text, errors excluded) + failing-first test, full suite 416/416; prompt pruning analyzed: lists already literature-shaped, winner history too thin (1 profile, no prompt sweeps in run logs), no change; verification outcomes appended to lit-review notes",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793646893.4680202,
-      "timestamp_str": "2026-11-02 22:14:53",
-      "agent": "kilo:1"
-    },
-    {
-      "task_id": "tuner-lit-followups",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/6] done: mixed K/V label q8_0:q4_0 end-to-end (memory-fit split+mean bytes, engine key/value types at V2+load+context, config VALID, grid defaults drop symmetric q4_0, VALID keeps it opt-in); flash forced on for any quantized side; full suite 416/416",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793647192.1939511,
-      "timestamp_str": "2026-11-02 22:19:52",
       "agent": "kilo:1"
     },
     {
@@ -251,6 +229,34 @@
       "status": "in_progress",
       "timestamp": 1793723239.1200454,
       "timestamp_str": "2026-11-03 19:27:19",
+      "agent": "kilo:1"
+    },
+    {
+      "task_id": "tuner-lit-followups",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[Wave 40 plan 1/1] survey oldest 31-40 (tune run records, continue, statistics, API); harden settings normalization, KV guards and fit verdict; failing-first tests; full gates",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793809369.1858387,
+      "timestamp_str": "2026-11-04 19:22:49",
+      "agent": "kilo:1",
+      "impact_assessment": {
+        "why": "string settings (env/file) mis-parse via Boolean(), stop lists alias shared defaults, 'in' accepts proto names as KV types, missing/NaN estimates throw instead of unknown",
+        "benefits": "correct string/env settings, isolated stop lists, prototype-safe KV split, fail-safe fit verdict",
+        "risks": "contract: string booleans now parse, dryBase coerces numeric strings, fitVerdict unknown on bad estimate; dependency: none; concurrency: none; state: none",
+        "mitigation": "failing-first unit tests for each fix; full npm test plus aikit check before commit"
+      }
+    },
+    {
+      "task_id": "tuner-lit-followups",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[Wave 40] done: settings isolate stop lists and parse string booleans, dryBase coerces numerics, splitKvCache uses hasOwn, fitVerdict unknown on bad estimate; surveyed oldest 31-40, claims hold; suite 458/458; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793809375.1877594,
+      "timestamp_str": "2026-11-04 19:22:55",
       "agent": "kilo:1"
     }
   ]

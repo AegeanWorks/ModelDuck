@@ -497,8 +497,10 @@ modelduck/
 │   ├── history.mjs
 │   ├── report.mjs
 │   ├── link.mjs
+│   ├── context-curve.mjs
 │   ├── CHANGELOG.md
 │   ├── history.jsonl
+│   ├── curves/
 │   ├── baseline-model.json
 │   └── baseline-chat.json
 ├── tests/
@@ -545,6 +547,7 @@ modelduck/
 │   ├── benchmark-recommend.test.js
 │   ├── benchmark-stats.test.js
 │   ├── benchmark-flash.test.js
+│   ├── benchmark-context-curve.test.js
 │   ├── generation-manifest.test.js
 │   ├── engine-errors.test.js
 │   ├── engine-runtime.test.js

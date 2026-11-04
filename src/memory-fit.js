@@ -21,7 +21,7 @@ const KV_BYTES_PER_ELEMENT = Object.freeze({
  */
 export function splitKvCache(label) {
   const [key, value] = String(label ?? "f16").split(":");
-  const known = (part) => (part in KV_BYTES_PER_ELEMENT ? part : "f16");
+  const known = (part) => (Object.hasOwn(KV_BYTES_PER_ELEMENT, part) ? part : "f16");
   return { key: known(key), value: known(value ?? key) };
 }
 export const RUNTIME_RESERVE_BYTES = 256 * 1024 ** 2; // compute buffers and the runtime itself
@@ -158,7 +158,7 @@ export function budgetContext({ steps, modelBytes, shape, kvCache = "f16", avail
  * never blocks a load.
  */
 export function fitVerdict({ estimate, availableBytes, shape = null, modelBytes = estimate?.weights, kvCache = estimate?.kvCache }) {
-  if (estimate?.kv === null || !(availableBytes > 0)) {
+  if (!estimate || typeof estimate.total !== "number" || !Number.isFinite(estimate.total) || estimate?.kv === null || !(availableBytes > 0)) {
     return { verdict: "unknown", ratio: null, availableBytes: availableBytes ?? null, largestSafeContext: null };
   }
   const ratio = estimate.total / availableBytes;
