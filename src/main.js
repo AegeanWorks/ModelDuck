@@ -121,6 +121,7 @@ async function main() {
   const tunes = new TuneScheduler({ homeDir: paths.home, modelsDir: paths.models, profilesDir: paths.profiles, tuneStepsFile: paths.tuneGrid, queueFile: path.join(paths.home, "tune-queue.json") });
   await tunes.restore();
 
+  const instanceInfo = {};
   const server = createHttpServer({
     settings,
     registry,
@@ -133,16 +134,31 @@ async function main() {
     profilesDir: paths.profiles,
     tuneRunsDir: paths.tuneRuns,
     tuneStepsFile: paths.tuneGrid,
+    instance: instanceInfo,
   });
   const info = systemInfo();
 
-  await new Promise((resolve, reject) => {
-    server.once("error", reject);
-    server.listen(port, host, resolve);
-  });
+  // IDEA-1077: fall back to an ephemeral port when the saved one is taken,
+  // unless the operator named a port explicitly.
+  try {
+    await new Promise((resolve, reject) => {
+      server.once("error", reject);
+      server.listen(port, host, resolve);
+    });
+  } catch (error) {
+    if (error?.code !== "EADDRINUSE" || options.portExplicit) throw error;
+    console.warn?.(`[modelduck] Port ${port} is in use; falling back to an ephemeral port.`);
+    await new Promise((resolve, reject) => {
+      server.once("error", reject);
+      server.listen(0, host, resolve);
+    });
+  }
 
   const address = server.address();
   const actualPort = typeof address === "object" && address ? address.port : port;
+  // IDEA-1077: startup receipt so a second process (or the UI) finds this one.
+  Object.assign(instanceInfo, { host, port: actualPort, pid: process.pid, startedAt: new Date().toISOString() });
+  await fs.promises.writeFile(path.join(paths.home, "server.json"), JSON.stringify(instanceInfo, null, 2)).catch(() => {});
   const displayHost = host === "0.0.0.0" ? "127.0.0.1" : host;
   // hygiene: allow local loopback URL printed to the user
   const url = `http://${displayHost}:${actualPort}`;

@@ -19,6 +19,24 @@ export function wilson(passed, total, z = Z95) {
   return { low: round(centre - half), high: round(centre + half) };
 }
 
+/**
+ * IDEA-1232: an honest interval for a calibration subset of a larger matrix.
+ * The Wilson interval is shrunk by the finite-population correction, so a
+ * subset that is most of the matrix claims a tighter band than a small probe.
+ * Reports that ignore the subset size overstate their certainty.
+ */
+export function subsetInterval(passed, subsetTotal, populationTotal, z = Z95) {
+  const base = wilson(passed, subsetTotal, z);
+  const subset = Number(subsetTotal) || 0;
+  const population = Number(populationTotal) || 0;
+  if (!(subset > 0) || !(population > subset)) return { ...base, calibration: false };
+  const fpc = Math.sqrt(Math.max(0, (population - subset) / (population - 1)));
+  const mid = (base.low + base.high) / 2;
+  const half = ((base.high - base.low) / 2) * fpc;
+  const round = (value) => Number((Math.min(100, Math.max(0, value))).toFixed(1));
+  return { low: round(mid - half), high: round(mid + half), calibration: true };
+}
+
 function logChoose(n, k) {
   let sum = 0;
   for (let index = 1; index <= k; index += 1) sum += Math.log(n - k + index) - Math.log(index);

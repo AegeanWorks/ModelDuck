@@ -426,9 +426,9 @@ modelduck/
 │   ├── main.js <- CLI, startup, browser window, graceful shutdown
 │   ├── server.js <- routes, SSE tune stream, static files, security checks
 │   ├── engine.js <- node-llama-cpp session lifecycle and statistics
-│   ├── memory-fit.js <- pre-load memory estimate and fit verdict
-│   ├── model-profiles.js <- tuned per-model, per-task settings store
-│   ├── tuned-settings.js <- applies a profile at load and OpenAI/JIT time
+│   ├── memory-fit.js <- pre-load memory estimate, fit verdict, quant ladder, RSS calibration
+│   ├── model-profiles.js <- tuned per-model, per-task settings store, launch recipes
+│   ├── tuned-settings.js <- applies a profile at load and OpenAI/JIT time, diff helper
 │   ├── tune-steps.js    <- the user's tune step lists
 │   ├── tune-scheduler.js <- tunes several models in CPU and GPU lanes
 │   ├── tune-lock.js     <- pauses other tunes while one times answers
@@ -436,15 +436,15 @@ modelduck/
 │   ├── engine-errors.js <- actionable load and generation error mapping
 │   ├── model-registry.js <- GGUF scan/import/delete and metadata
 │   ├── gguf-guard.js <- bounded GGUF header check before any parser runs
-│   ├── downloader.js <- resumable Hugging Face downloads
-│   ├── settings.js <- validated persisted settings
-│   ├── generation-manifest.js <- prompt/history/template fingerprints
+│   ├── downloader.js <- resumable Hugging Face downloads, receipts, token broker
+│   ├── settings.js <- validated persisted settings, schema fence
+│   ├── generation-manifest.js <- prompt/history/template fingerprints, allocation attestation
 │   ├── benchmark-report.js <- report summary for the Bench panel
 │   ├── benchmark-runner.js <- one benchmark child, JSON progress
 │   ├── benchmark-base.js <- benchmark base choice
 │   ├── checkpoint-merge.js <- toy qwenFS checkpoint-merge math (offline analysis only)
-│   ├── openai.js <- OpenAI-compatible models/chat endpoints
-│   ├── http.js <- JSON, SSE, static serving, loopback guard
+│   ├── openai.js <- OpenAI-compatible models/chat endpoints, stop and param contract
+│   ├── http.js <- JSON, SSE, static serving, loopback guard, backpressure writer
 │   ├── jit.js <- just-in-time loading and idle unload
 │   ├── server-settings.js <- API keys, CORS, LAN and JIT settings
 │   ├── config.js <- paths, defaults and CLI parsing
@@ -452,7 +452,7 @@ modelduck/
 │   ├── fs-atomic.js <- atomic writes, backups, quarantine and home lock
 │   ├── model-catalog.js <- curated GGUF catalogue
 │   ├── recommend.js <- what to run on this PC: measured models and estimates
-│   └── system.js <- CPU, memory and platform snapshot
+│   └── system.js <- CPU, memory and platform snapshot, loop-lag health
 ├── public/
 │   ├── index.html <- the control panel
 │   ├── app.js <- state and interactions, no framework
@@ -554,6 +554,16 @@ modelduck/
 │   ├── gguf-guard.test.js
 │   ├── memory-fit.test.js
 │   ├── server-settings.test.js
+│   ├── engine-correctness.test.js
+│   ├── openai-contract.test.js
+│   ├── downloader-receipts.test.js
+│   ├── memory-load.test.js
+│   ├── settings-sse-links.test.js
+│   ├── profile-ux.test.js
+│   ├── runtime-gates.test.js
+│   ├── gated-downloads.test.js
+│   ├── manifest-bench.test.js
+│   ├── sampler-health.test.js
 │   ├── recommend.test.js
 │   └── server.test.js
 ├── assets/
@@ -572,6 +582,8 @@ modelduck/
 ├── LICENSE
 ├── COMMERCIAL.md
 ├── LICENSES/
+├── MODELDUCK_IDEA_ANALYSIS.md <- approved/proposed idea audit
+├── MODELDUCK_IMPLEMENT_LIST.md <- implementation waves
 └── REUSE.toml
 ```
 

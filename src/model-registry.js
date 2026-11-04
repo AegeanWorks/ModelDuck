@@ -59,6 +59,20 @@ function nameFromFile(file) {
     .trim();
 }
 
+/**
+ * IDEA-1093/1228: resolve which chat template an entry will use and flag
+ * compat risks. A missing template falls back to the model default; an
+ * underscore-prefixed file follows the private-HF convention where a rename
+ * may have detached the weights from the template they were tuned with.
+ */
+export function templateCompat(entry) {
+  const warnings = [];
+  const fileName = String(entry?.fileName ?? "");
+  if (!entry?.chatTemplate) warnings.push("This model has no chat template; replies use the runtime default.");
+  if (/^_/.test(fileName)) warnings.push("This file follows the private naming convention; confirm the template matches the weights.");
+  return { status: entry?.chatTemplate ? "model" : "fallback", warnings };
+}
+
 function hashId(relativePath) {
   return createHash("sha1")
     .update(relativePath.replaceAll("\\", "/").toLowerCase())
@@ -104,6 +118,17 @@ async function walkGgufFiles(directory, depth = 0, found = []) {
       !entry.name.toLowerCase().endsWith(`${MODEL_EXTENSION}.part`)
     ) {
       found.push(full);
+    } else if (
+      // IDEA-1072: Hugging Face cache blobs have no extension; a symlink to
+      // one still counts when the target carries the GGUF magic. Read-only:
+      // the scan never writes to the cache, and deletes remove the link.
+      entry.isSymbolicLink()
+    ) {
+      try {
+        if (await hasGgufMagic(full)) found.push(full);
+      } catch {
+        // Not a GGUF target; ignore it.
+      }
     }
   }
   return found;
@@ -119,7 +144,7 @@ function summarize(info, file, stats) {
   const declaredSize = typeof general.size_label === "string" ? general.size_label.trim() : "";
   const chatTemplate = info?.metadata?.tokenizer?.chat_template;
   const chatTemplateText = typeof chatTemplate === "string" ? chatTemplate : "";
-  return {
+  const summary = {
     name:
       typeof general.name === "string" && general.name.trim()
         ? general.name.trim()
@@ -134,10 +159,13 @@ function summarize(info, file, stats) {
     kvShape: kvShapeFromMetadata(architectureMetadata),
     chatTemplate: Boolean(chatTemplateText.trim()),
     chatTemplateHash: chatTemplateText.trim()
-      ? createHash("sha256").update(chatTemplateText).digest("hex").slice(0, 16)
+      // IDEA-1323: NFC identity so the same template hashes the same everywhere.
+      ? createHash("sha256").update(chatTemplateText.normalize("NFC")).digest("hex").slice(0, 16)
       : null,
     modifiedAt: new Date(stats.mtimeMs).toISOString(),
   };
+  summary.compat = templateCompat(summary);
+  return summary;
 }
 
 export function createModelRegistry({

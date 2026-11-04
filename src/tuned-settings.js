@@ -55,3 +55,20 @@ export class TunedSettings {
     };
   }
 }
+
+/**
+ * IDEA-1071: what a tuned patch would change, before it is applied. One row
+ * per key the profile sets differently from the current settings.
+ */
+export function diffSettings(current, patch) {
+  const rows = [];
+  for (const [key, to] of Object.entries(patch ?? {})) {
+    const from = current?.[key];
+    const same = Array.isArray(to) || Array.isArray(from)
+      ? JSON.stringify(from) === JSON.stringify(to)
+      : Object.is(from, to);
+    if (!same) rows.push({ key, from: from ?? null, to: to ?? null });
+  }
+  rows.sort((left, right) => String(left.key).localeCompare(String(right.key)));
+  return rows;
+}

@@ -8,6 +8,7 @@ import { estimateLoad, estimateLoadV2, fitVerdict, recordLoadSample, splitKvCach
 import {
   buildChatHistory,
   buildGenerationManifest,
+  detectLoop,
   buildSystemPrompt,
   canReuseSession,
   nextSessionHistoryLength,
@@ -75,6 +76,35 @@ export function replyBudget(promptTokens, contextSize, maxTokens) {
   const remaining = Math.floor(Number(contextSize) || 0) - Math.floor(Number(promptTokens) || 0);
   if (remaining <= 0) return 0;
   return Math.min(Number(maxTokens) || 0, remaining);
+}
+
+/** IDEA-1084: divide the remaining context across parallel sequences, so N slots cannot overbook it. */
+export function slotClamp(maxTokens, remaining, sequences) {
+  const slots = Math.max(1, Math.floor(Number(sequences) || 1));
+  const perSlot = Math.floor((Number(remaining) || 0) / slots);
+  if (perSlot <= 0) return 0;
+  return Math.min(Number(maxTokens) || 0, perSlot);
+}
+
+/** IDEA-1159: a GPU flip is allowed only when measured VRAM fits the weights. */
+export function vramFitsModel({ freeBytes, modelBytes, reserveBytes = 0 } = {}) {
+  const rawFree = freeBytes;
+  const free = Number(rawFree);
+  const weights = Number(modelBytes);
+  const reserve = Number(reserveBytes) || 0;
+  if (rawFree === null || rawFree === undefined || !Number.isFinite(free) || !(weights > 0)) return { fits: null, reason: "VRAM could not be measured; the load decides." };
+  const fits = weights + reserve <= free;
+  return {
+    fits,
+    reason: fits
+      ? "Measured VRAM fits the weights."
+      : `The weights need about ${weights + reserve} bytes but only ${free} are free on the GPU.`,
+  };
+}
+
+/** IDEA-1161: retry once without the grammar when constrained output came back empty. */
+export function needsEmptyRetry({ text, grammarUsed, aborted }) {
+  return Boolean(grammarUsed) && !aborted && String(text ?? "").trim().length === 0;
 }
 
 const KNOWN_SCHEMA_TYPES = new Set(["object", "array", "string", "number", "integer", "boolean", "null"]);
@@ -495,6 +525,19 @@ export class LlamaEngine {
         gpuLayers: gpuLayerValue,
       });
       this.#assertLoadAlive(epoch);
+      // IDEA-1159: a GPU flip is gated on measured VRAM, not on hope.
+      if (backend !== "cpu" && (gpuLayerValue === "auto" || gpuLayerValue === "max" || Number(gpuLayerValue) > 0)) {
+        const freeVram = await this.availableMemory({ gpuBackend: backend }).catch(() => null);
+        const gate = vramFitsModel({ freeBytes: freeVram, modelBytes: entry.size });
+        if (gate.fits === false && !force) {
+          throw new AppError("The GPU cannot fit this model", {
+            code: "gpu_vram_fit",
+            status: 507,
+            why: gate.reason,
+            fix: "Use fewer GPU layers, the q8_0 KV cache, or the CPU backend — or retry with force.",
+          });
+        }
+      }
       const trained = this.#model.trainContextSize || 4096;
       const wanted = Math.max(512, Math.min(Number(contextSize) || 4096, trained));
       const attempts = [...new Set([wanted, Math.min(wanted, 3072), 2048, 1024])];
@@ -733,6 +776,14 @@ export class LlamaEngine {
       settings: normalized,
       runtimeVersion: this.#state.runtimeVersion,
       chatTemplateHash: this.#state.model?.chatTemplateHash,
+      // IDEA-1229: attest what was actually allocated for this reply.
+      allocation: {
+        allocatedContext: this.#context?.contextSize ?? null,
+        requestedContext: Number(normalized.contextSize) || null,
+        backend: this.#gpuBackend ?? "cpu",
+        gpuLayers: this.#state.gpuLayers ?? null,
+        fallback: this.#state.contextFallback ?? null,
+      },
     });
     const startedAt = Date.now();
     let firstTokenAt = null;
@@ -773,9 +824,10 @@ export class LlamaEngine {
         });
       }
       const replyMax = replyBudget(promptCount, this.#context?.contextSize ?? 0, normalized.maxTokens);
-      const requestMax = Math.max(1, replyMax);
+      // IDEA-1084: parallel sequences share one context window; divide it.
+      const requestMax = Math.max(1, slotClamp(replyMax, (this.#context?.contextSize ?? 0) - promptCount, this.#maxConcurrent));
       const grammar = await this.#grammarFor(normalized);
-      const result = await session.promptWithMeta(promptText, {
+      const chatOptions = (activeGrammar) => ({
         maxTokens: requestMax, // aikit:allow-secret token limit, not a credential
         temperature: normalized.temperature,
         topP: normalized.topP,
@@ -813,6 +865,19 @@ export class LlamaEngine {
           outputTokens += tokens.length;
         },
       });
+      let result = await session.promptWithMeta(promptText, chatOptions(grammar));
+
+      // IDEA-1161: one grammar-drop retry on empty constrained output, sharing
+      // the empty outcome with IDEA-1265 instead of succeeding silently.
+      let retriedAfterEmpty = false;
+      if (needsEmptyRetry({ text, grammarUsed: grammar, aborted: controller.signal.aborted })) {
+        text = "";
+        outputTokens = 0;
+        stopReason = "eogToken";
+        firstTokenAt = null;
+        result = await session.promptWithMeta(promptText, chatOptions(undefined));
+        retriedAfterEmpty = true;
+      }
 
       if (!text && result?.responseText) text = result.responseText;
       stopReason = result?.stopReason ?? "eogToken";
@@ -830,6 +895,11 @@ export class LlamaEngine {
         firstTokenMs: firstTokenAt ? firstTokenAt - startedAt : null,
         ms: finishedAt - startedAt,
         stopReason,
+        // IDEA-1265: empty answers are flagged, never silent; IDEA-1161 shares it.
+        empty: text.trim().length === 0,
+        retriedAfterEmpty,
+        // IDEA-1164: a degenerate tail loop is flagged for the sampler stack.
+        loopDetected: detectLoop(text).loop,
       };
       this.#state = { ...this.#state, lastStats: stats };
       const aborted = controller.signal.aborted || stopReason === "abort";
@@ -944,6 +1014,14 @@ export class LlamaEngine {
       settings: normalized,
       runtimeVersion: this.#state.runtimeVersion,
       chatTemplateHash: this.#state.model?.chatTemplateHash,
+      // IDEA-1229: attest what was actually allocated for this reply.
+      allocation: {
+        allocatedContext: this.#context?.contextSize ?? null,
+        requestedContext: Number(normalized.contextSize) || null,
+        backend: this.#gpuBackend ?? "cpu",
+        gpuLayers: this.#state.gpuLayers ?? null,
+        fallback: this.#state.contextFallback ?? null,
+      },
     });
     const startedAt = Date.now();
     let firstTokenAt = null;
@@ -973,56 +1051,68 @@ export class LlamaEngine {
           fix: "Shorten the prompt, raise Context size, or set Context overflow to shift.",
         });
       }
-      const completionMax = Math.max(1, replyBudget(promptTokens, this.#context.contextSize ?? 0, normalized.maxTokens));
+      // IDEA-1084: same per-slot division on the completion path.
+      const completionMax = Math.max(1, slotClamp(replyBudget(promptTokens, this.#context.contextSize ?? 0, normalized.maxTokens), (this.#context.contextSize ?? 0) - promptTokens, this.#maxConcurrent));
       const grammar = await this.#grammarFor(normalized);
       // A lingering chat session occupies the only sequence with sequences=1.
       // Completions do not reuse chat history, so release idle sessions first.
       if ((this.#context.sequencesLeft ?? 0) === 0) this.#disposeIdleSessions();
       const sequence = await this.#acquireSequence();
       let completion = null;
+      const completionOptions = (activeGrammar) => ({
+        maxTokens: completionMax, // aikit:allow-secret token limit, not a credential
+        temperature: normalized.temperature,
+        topP: normalized.topP,
+        topK: normalized.topK,
+        minP: normalized.minP,
+        seed: normalized.seed >= 0 ? normalized.seed : undefined,
+        customStopTriggers: normalized.customStopTriggers.length ? normalized.customStopTriggers : undefined,
+        repeatPenalty:
+          normalized.repeatPenalty > 1
+            ? {
+                penalty: normalized.repeatPenalty,
+                lastTokens: normalized.repeatPenaltyTokens, // aikit:allow-secret repetition window, not a credential
+                penalizeNewLine: normalized.penalizeNewLine !== false,
+              }
+            : false,
+        dryRepeatPenalty:
+          normalized.dryStrength > 0
+            ? {
+                strength: normalized.dryStrength,
+                base: normalized.dryBase,
+                allowedLength: normalized.dryAllowedLength,
+              }
+            : false,
+        grammar: activeGrammar,
+        signal: controller.signal,
+        stopOnAbortSignal: true,
+        onTextChunk: (chunk) => {
+          if (!chunk) return;
+          if (firstTokenAt === null) firstTokenAt = Date.now();
+          text += chunk;
+          onToken(chunk);
+        },
+        onToken: (tokens) => {
+          outputTokens += tokens.length;
+        },
+      });
+      let retriedAfterEmpty = false;
       try {
         if (!this.#completionClass) throw new Error("The completion engine is not ready");
         completion = new this.#completionClass({
           contextSequence: sequence,
           autoDisposeSequence: true,
         });
-        const result = await completion.generateCompletionWithMeta(fullPrompt, {
-          maxTokens: completionMax, // aikit:allow-secret token limit, not a credential
-          temperature: normalized.temperature,
-          topP: normalized.topP,
-          topK: normalized.topK,
-          minP: normalized.minP,
-          seed: normalized.seed >= 0 ? normalized.seed : undefined,
-          customStopTriggers: normalized.customStopTriggers.length ? normalized.customStopTriggers : undefined,
-          repeatPenalty:
-            normalized.repeatPenalty > 1
-              ? {
-                  penalty: normalized.repeatPenalty,
-                  lastTokens: normalized.repeatPenaltyTokens, // aikit:allow-secret repetition window, not a credential
-                  penalizeNewLine: normalized.penalizeNewLine !== false,
-                }
-              : false,
-          dryRepeatPenalty:
-            normalized.dryStrength > 0
-              ? {
-                  strength: normalized.dryStrength,
-                  base: normalized.dryBase,
-                  allowedLength: normalized.dryAllowedLength,
-                }
-              : false,
-          grammar,
-          signal: controller.signal,
-          stopOnAbortSignal: true,
-          onTextChunk: (chunk) => {
-            if (!chunk) return;
-            if (firstTokenAt === null) firstTokenAt = Date.now();
-            text += chunk;
-            onToken(chunk);
-          },
-          onToken: (tokens) => {
-            outputTokens += tokens.length;
-          },
-        });
+        let result = await completion.generateCompletionWithMeta(fullPrompt, completionOptions(grammar));
+        // IDEA-1161: one grammar-drop retry on empty constrained output.
+        if (needsEmptyRetry({ text, grammarUsed: grammar, aborted: controller.signal.aborted })) {
+          text = "";
+          outputTokens = 0;
+          stopReason = "eogToken";
+          firstTokenAt = null;
+          result = await completion.generateCompletionWithMeta(fullPrompt, completionOptions(undefined));
+          retriedAfterEmpty = true;
+        }
         if (!text && result.response) text = result.response;
         stopReason = result.metadata?.stopReason ?? "eogToken";
       } finally {
@@ -1044,6 +1134,11 @@ export class LlamaEngine {
         firstTokenMs: firstTokenAt ? firstTokenAt - startedAt : null,
         ms: finishedAt - startedAt,
         stopReason,
+        // IDEA-1265: empty answers are flagged, never silent; IDEA-1161 shares it.
+        empty: text.trim().length === 0,
+        retriedAfterEmpty,
+        // IDEA-1164: a degenerate tail loop is flagged for the sampler stack.
+        loopDetected: detectLoop(text).loop,
       };
       this.#state = { ...this.#state, lastStats: stats };
       return {

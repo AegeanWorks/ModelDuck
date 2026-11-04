@@ -23,9 +23,9 @@ import {
   sseStart,
 } from "./http.js";
 import { publicCatalog } from "./model-catalog.js";
-import { currentFingerprint, importRecipe, isPartRun, listProfiles, loadProfile, profileIdFor, profileRecipe, saveProfile, typeWarnings } from "./model-profiles.js";
+import { currentFingerprint, importRecipe, isPartRun, launchRecipe, listProfiles, loadProfile, profileIdFor, profileRecipe, saveProfile, typeWarnings } from "./model-profiles.js";
 import { answersFile, answerPaceByProfile, listRuns, loadRun, summarizeAnswers } from "./tune-runs.js";
-import { TunedSettings } from "./tuned-settings.js";
+import { TunedSettings, diffSettings } from "./tuned-settings.js";
 import { readSteps, writeSteps } from "./tune-steps.js";
 import { DEFAULT_STEPS, estimateTune, expectedAnswers, settingNames } from "../benchmarks/tune-grid.mjs";
 import { STAGES } from "../benchmarks/tune.mjs";
@@ -87,6 +87,7 @@ export function createHttpServer({
   tuneRunsDir = null,
   profileFingerprint = currentFingerprint,
   tuneStepsFile = null,
+  instance = null,
 }) {
   const tuned = new TunedSettings({ profilesDir, registry, settings, fingerprint: profileFingerprint });
   const tunedInfo = (applied) => applied && { catalogId: applied.catalogId, task: applied.task, speedPreset: applied.speedPreset, stages: applied.stages, systemPrompt: applied.settings.systemPrompt ?? null, rate: applied.rate ?? null, typeWarnings: applied.typeWarnings ?? [], stale: applied.stale, warnings: applied.warnings };
@@ -284,6 +285,8 @@ export function createHttpServer({
         });
       }
       validateTuneSelection(requestedTasks, requestedStages);
+      // IDEA-1079: same preflight for model and chat benchmarks.
+      if (typeof engine?.startBackend === "function") await engine.startBackend(settings.value.gpuBackend);
       sendJson(res, 202, {
         job: benchmarks.start({
           phase: body.phase ?? "model",
@@ -472,6 +475,8 @@ export function createHttpServer({
         throw new AppError("Unknown setting", { code: "unknown_setting", status: 400, why: `${unknownSettings.join(", ")} is not a tunable setting.`, fix: `Use any of: ${settingNames().join(", ")}.` });
       }
       if (!models.length) throw new AppError("Choose a model to tune", { code: "tune_model_required", why: "No model was named.", fix: "Pick an installed model, or send models: \"all\"." });
+      // IDEA-1079: fail fast on a broken GPU before the first answer, not mid-run.
+      if (typeof engine?.startBackend === "function") await engine.startBackend(settings.value.gpuBackend);
       sendJson(res, 202, {
         job: tunes.start({
           models,
@@ -623,6 +628,43 @@ export function createHttpServer({
       return;
     }
 
+    // IDEA-1071: what a tuned profile would change, shown before it is applied.
+    const profileDiffMatch = pathname.match(/^\/api\/profiles\/([^/]+)\/diff$/);
+    if (profileDiffMatch && method === "GET") {
+      const id = decodeURIComponent(profileDiffMatch[1]);
+      const modelId = registry.listPublic().find((model) => profileIdFor(model.fileName) === id)?.id ?? null;
+      const applied = modelId ? await tuned.resolve(modelId) : null;
+      if (!applied) {
+        throw new AppError("This model has not been tuned", {
+          code: "profile_missing",
+          status: 404,
+          why: `There is no saved profile for ${id}.`,
+          fix: "Start a tune for it from the Bench panel, or run npm run tune -- --model <id>.",
+        });
+      }
+      sendJson(res, 200, { catalogId: applied.catalogId, task: applied.task, stale: applied.stale, warnings: applied.warnings, diff: diffSettings(settings.value, applied.settings) });
+      return;
+    }
+
+    // IDEA-1078/1193: a model-bound launch recipe with its capability preset.
+    const profileLaunchMatch = pathname.match(/^\/api\/profiles\/([^/]+)\/launch$/);
+    if (profileLaunchMatch && method === "GET") {
+      const id = decodeURIComponent(profileLaunchMatch[1]);
+      const entry = registry.listPublic().find((model) => profileIdFor(model.fileName) === id) ?? null;
+      const loaded = profilesDir ? await loadProfile(profilesDir, id, await profileFingerprint(entry)) : null;
+      if (!entry || !loaded) {
+        throw new AppError("This model has not been tuned", {
+          code: "profile_missing",
+          status: 404,
+          why: `There is no saved profile for ${id}.`,
+          fix: "Start a tune for it from the Bench panel, or run npm run tune -- --model <id>.",
+        });
+      }
+      const digest = profilesDir ? (await downloads?.receiptFor?.(entry.fileName))?.digest ?? null : null;
+      sendJson(res, 200, { recipe: launchRecipe(entry, loaded.profile, digest) });
+      return;
+    }
+
     const profileMatch = pathname.match(/^\/api\/profiles\/([^/]+)$/);
     if (profileMatch && method === "GET") {
       const id = decodeURIComponent(profileMatch[1]);
@@ -654,8 +696,32 @@ export function createHttpServer({
       return;
     }
 
+    // IDEA-1198: host-side health receipt. No event-loop monitor, no priority
+    // games: one round-trip lag, memory, and what is loaded.
+    if (pathname === "/api/health" && method === "GET") {
+      const { measureLoopLag } = await import("./system.js");
+      const info = systemInfo();
+      sendJson(res, 200, {
+        app: info.app,
+        version: info.version,
+        node: info.node,
+        platform: info.platform,
+        uptime: info.uptime,
+        memory: process.memoryUsage(),
+        loopLagMs: await measureLoopLag(),
+        loadedId: engine?.loadedId ?? null,
+      });
+      return;
+    }
+
     if (pathname === "/api/settings" && method === "GET") {
       sendJson(res, 200, { settings: settings.value });
+      return;
+    }
+
+    // IDEA-1077: which server this is, written to server.json at startup.
+    if (pathname === "/api/instance" && method === "GET") {
+      sendJson(res, 200, { instance: instance ?? { port: null, host: null, startedAt: null } });
       return;
     }
 

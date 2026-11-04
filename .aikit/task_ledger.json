@@ -1,122 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "approved-deepcheck-w1",
+    "task_id": "approved-deepcheck-w2",
     "last_phase": "in_progress",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1793814193.181692,
+    "updated_at": 1793815007.9654002,
     "owner": "kilo:main",
     "started_by": "kilo:main",
     "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "tuner-lit-followups",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[5/6] done: engine validation on SmolLM2 CPU (greedy, seed 42) \u2014 mixed q8_0:q4_0 loads OK, DRY/fence/newline runtime-accepted; newline true 42/101 beats false 35/101; DRY 39/101 vs 39/101 byte-identical (inert here, kept); fence 1/24 vs 7/24 off (recipe hurts small model, kept as rejectable candidate); outcomes appended to lit notes; full suite 421/421; deliberate baseline regen still pending approval",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793653100.0,
-      "timestamp_str": "2026-11-02 23:58:20",
-      "agent": "kilo:1"
-    },
-    {
-      "task_id": "tuner-lit-followups",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[5/6] done: 606-answer SmolLM2 short benchmarks (newline ON 42 vs OFF 35 p=0.016 mechanistic via less truncation; DRY 39/39 neutral with runtime acceptance verified; fence 39 vs 1 p\u22487e-12 replicated, axis REMOVED from search, plumbing kept); concurrent wave commits absorbed, suite 426/426, fence removal uncommitted",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793660126.433085,
-      "timestamp_str": "2026-11-03 01:55:26",
-      "agent": "kilo:1"
-    },
-    {
-      "task_id": "tuner-lit-followups",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[Wave 0] finish: fence axis removed (39 vs 1 p~7e-12, 7 vs 1 replication), DRY neutral kept, newline mechanistic; ledger history restored (3 checkpoints); suite 437/437; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793722655.8902004,
-      "timestamp_str": "2026-11-03 19:17:35",
-      "agent": "kilo:1"
-    },
-    {
-      "task_id": "tuner-lit-followups",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[Wave 10 plan 1/1] survey oldest commits 1-10 (suite v10/v11, part-runs, reasoning); fix speedItems holes on short prompt sets; failing-first test; full gates",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793723023.0909162,
-      "timestamp_str": "2026-11-03 19:23:43",
-      "agent": "kilo:1",
-      "impact_assessment": {
-        "why": "speedItems feeds estimate denominators and the speed workload; undefined holes inflate counts and crash scorers",
-        "benefits": "correct estimates and no undefined ids on small/custom suites",
-        "risks": "contract: speedItems return length changes for degenerate inputs only; dependency: none; concurrency: none; state: none",
-        "mitigation": "failing-first unit test on tiny prompt set; full npm test plus aikit check before commit"
-      }
-    },
-    {
-      "task_id": "tuner-lit-followups",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[Wave 10] done: speedItems drops missing slots (tiny suite gave 3 undefined holes, now compact); surveyed oldest 1-10; suite 438/438; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793723078.933987,
-      "timestamp_str": "2026-11-03 19:24:38",
-      "agent": "kilo:1"
-    },
-    {
-      "task_id": "tuner-lit-followups",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[Wave 20 plan 1/1] survey oldest commits 11-20 (reasoning stage, bench-ui, change-on-real-gains rule); guard score() rate on empty item sets; failing-first test; full gates",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793723090.7063203,
-      "timestamp_str": "2026-11-03 19:24:50",
-      "agent": "kilo:1",
-      "impact_assessment": {
-        "why": "score feeds choose() rate comparisons and reports; NaN poisons ordering and leaks into public stats",
-        "benefits": "total function on empty input: rate 0, no NaN propagation",
-        "risks": "contract: empty-input rate 0 instead of NaN; dependency: none; concurrency: none; state: none",
-        "mitigation": "failing-first unit test with stub measurements; full npm test plus aikit check before commit"
-      }
-    },
-    {
-      "task_id": "tuner-lit-followups",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[Wave 20] done: score() on no items returns rate 0 not NaN; surveyed oldest 11-20 (reasoning, bench-ui, change-on-real-gains); suite 439/439; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793723134.165801,
-      "timestamp_str": "2026-11-03 19:25:34",
-      "agent": "kilo:1"
-    },
-    {
-      "task_id": "tuner-lit-followups",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[Wave 30 plan 1/1] survey oldest commits 21-30 (context budget, time-left, warnings); refuse empty context steps loudly; failing-first test; full gates",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793723143.1715374,
-      "timestamp_str": "2026-11-03 19:25:43",
-      "agent": "kilo:1",
-      "impact_assessment": {
-        "why": "empty steps yield contextSize undefined, which poisons the tune winner silently",
-        "benefits": "fail-loud refusal with Why/Fix instead of undefined propagating",
-        "risks": "contract: direct-API empty steps now throw AppError; dependency: src/errors.js only; concurrency: none; state: none",
-        "mitigation": "failing-first unit test; normalized user steps can never be empty (cleanList fallback); full suite plus aikit check"
-      }
-    },
     {
       "task_id": "tuner-lit-followups",
       "phase": "in_progress",
@@ -266,6 +160,100 @@
       "status": "in_progress",
       "timestamp": 1793814193.181692,
       "timestamp_str": "2026-11-04 20:43:13",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "approved-deepcheck-w1",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'approved-deepcheck-w1' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793814223.162299,
+      "timestamp_str": "2026-11-04 20:43:43",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "approved-deepcheck-w2",
+      "phase": "planning",
+      "phase_num": 2,
+      "description": "[1/5] profile UX 1071 diff plus 1077 startup receipt plus 1078 recipe plus 1193 capability preset; [2/5] gates 1079 canary plus 1159 backend gate plus 1093 resolver plus 1228 compat plus 1084 slot budget; [3/5] downloads 1073 token broker plus 1072 HF cache read-only; [4/5] bench manifest 1232 interval plus 1229 attestation plus 1323 NFC plus 1265 thinking plus 1161 retry; [5/5] sampler observability 1164 repetition stack plus 1198 self-cost receipt",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793814319.9555752,
+      "timestamp_str": "2026-11-04 20:45:19",
+      "agent": "kilo:main",
+      "impact_assessment": {
+        "why": "Implement remaining actionable Approved ideas; wave 1 shipped 18, 6 are hold, these 18 are next-wave with unblocked deps (1072 after 1070, 1193 after 1078, 1161 with 1265)",
+        "benefits": "Profile diffs visible before load; startup receipt and port fallback; portable recipes; early runtime canary; backend and template gates; honest slot budgets; gated-model downloads; read-only HF cache; calibration intervals and manifest attestation; thinking metrics; repetition control; host health receipt",
+        "risks": "contract: profile and recipe JSON shapes additive, startup receipt file new; dependency: node-llama-cpp template introspection and backend probe may be unavailable; concurrency: canary and gates run pre-load only; state: recipes and receipts are new files, no migration of existing profiles",
+        "mitigation": "Failing-first unit tests per milestone; additive endpoints and files only; secret handling scoped to OS keychain or env, never logged; npm test plus aikit check per milestone"
+      },
+      "plan_digest": "5d43a19c65fb761a91c2554d605e40d6941a2dfe6e1bcf8486b8e417b9ecc0cd"
+    },
+    {
+      "task_id": "approved-deepcheck-w2",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[1/5] done: tuned 1071 diff plus route, main 1077 server.json receipt plus ephemeral fallback plus api instance, profiles 1078 launch recipe plus 1193 capability; tests/profile-ux 5/5",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793814473.9536064,
+      "timestamp_str": "2026-11-04 20:47:53",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "approved-deepcheck-w2",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/5] done: engine 1084 slot clamp both paths plus 1159 VRAM gate after runtime start, server 1079 canary on tune plus bench start, registry 1093 resolver plus 1228 compat; tests/runtime-gates 3/3",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793814585.5306413,
+      "timestamp_str": "2026-11-04 20:49:45",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "approved-deepcheck-w2",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[3/5] done: downloader 1073 broker plus 401 remedy, registry 1072 HF blob magic read-only; tests/gated-downloads 3/3",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793814637.158206,
+      "timestamp_str": "2026-11-04 20:50:37",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "approved-deepcheck-w2",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[4/5] done: manifest 1229 allocation attestation plus summary, digest plus registry 1323 NFC, stats 1232 subsetInterval FPC, engine 1265 empty flag plus 1161 grammar-drop retry both paths; tests/manifest-bench 4/4",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793814819.161238,
+      "timestamp_str": "2026-11-04 20:53:39",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "approved-deepcheck-w2",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[5/5] done: manifest 1164 sampler attestation plus detectLoop wired to stats, system plus server 1198 health receipt; tests/sampler-health 2/2",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793814907.66308,
+      "timestamp_str": "2026-11-04 20:55:07",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "approved-deepcheck-w2",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "All 5 milestones done; full suite 494/494; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793815007.9654002,
+      "timestamp_str": "2026-11-04 20:56:47",
       "agent": "kilo:main"
     }
   ]

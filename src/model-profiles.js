@@ -430,6 +430,48 @@ export function isPartRun(stages, only) {
   return Boolean(only?.length) || TUNE_STAGES.some((stage) => !(stages ?? TUNE_STAGES).includes(stage));
 }
 
+/**
+ * IDEA-1193: what a model can honestly do, bound to its installed entry.
+ * Coarse and documented: small models draft and explain code, large contexts
+ * carry multi-file work, and reasoning-model output needs the thinking
+ * pipeline (IDEA-0997) before its limits can be stated.
+ */
+export function capabilityFor(entry) {
+  const size = Number(entry?.size) || 0;
+  const contextLength = Number(entry?.contextLength) || 0;
+  const gb = size / 1024 ** 3;
+  return {
+    code: gb > 0 && gb <= 8,
+    chat: true,
+    longContext: contextLength >= 8192,
+    contextLength: contextLength || null,
+    sizeLabel: entry?.sizeLabel ?? null,
+    quant: entry?.quant ?? null,
+    note: "Capabilities describe this installed file, not the model family; re-tune after any swap.",
+  };
+}
+
+/**
+ * IDEA-1078: a model-bound launch recipe sidecar. The file hash binds the
+ * recipe to the exact bytes it was tuned for; without a hash the recipe is
+ * refused rather than applied to unknown weights.
+ */
+export function launchRecipe(entry, profile, digest = null) {
+  if (!entry) return null;
+  return {
+    kind: "modelduck-launch",
+    schema: 1,
+    catalogId: profile?.catalogId ?? profileIdFor(entry.fileName ?? ""),
+    file: entry.fileName ?? null,
+    size: entry.size ?? null,
+    digest,
+    chatTemplateHash: entry.chatTemplateHash ?? null,
+    capability: capabilityFor(entry),
+    load: profile?.load ?? null,
+    exportedAt: new Date().toISOString(),
+  };
+}
+
 export function planTune(saved, tasks, stages = TUNE_STAGES, only = null, { continueRun = false } = {}) {
   if (!saved) return { resume: null };
   // Continuing a run measures what is not done yet in its stages and keeps what is,

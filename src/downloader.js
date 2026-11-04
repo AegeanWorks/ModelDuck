@@ -17,6 +17,15 @@ function resumeIdentityPath(modelsDir, fileName) {
   return path.join(modelsDir, `${fileName}.part.resume.json`);
 }
 
+/** IDEA-1073: the token broker. A PAT comes only from HF_TOKEN (or an explicit
+ * argument) and is never logged, stored, or written to a receipt; it only
+ * rides the outgoing request headers. */
+export function gatedDownloadHeaders({ token } = {}) {
+  const pat = typeof token === "string" && token ? token : process.env.HF_TOKEN;
+  if (typeof pat === "string" && pat) return { Authorization: `Bearer ${pat}` };
+  return {};
+}
+
 /** IDEA-1067/1194: measured install receipt; null when no receipt was written. */
 export async function readInstallReceipt(modelsDir, fileName) {
   try {
@@ -225,7 +234,9 @@ export class DownloadManager {
     touch();
 
     try {
-      const headers = { "User-Agent": "ModelDuck/0.1 (+local)" };
+      // IDEA-1073: gated downloads authenticate; the token never lands in a log.
+      const auth = gatedDownloadHeaders();
+      const headers = { "User-Agent": "ModelDuck/0.1 (+local)", ...auth };
       if (partSize > 0) headers.Range = `bytes=${partSize}-`;
 
       let response = await this.#fetch(downloadUrl(this.#getModel(job.catalogId)), {
@@ -239,18 +250,23 @@ export class DownloadManager {
         partSize = 0;
         job.received = 0;
         response = await this.#fetch(downloadUrl(this.#getModel(job.catalogId)), {
-          headers: { "User-Agent": "ModelDuck/0.1 (+local)" },
+          headers: { "User-Agent": "ModelDuck/0.1 (+local)", ...gatedDownloadHeaders() },
           signal: job.controller.signal,
           redirect: "follow",
         });
       }
 
       if (!response.ok) {
+        const gated = response.status === 401 || response.status === 403;
         throw new AppError(`Download failed with HTTP ${response.status}`, {
-          code: "download_failed",
+          code: gated ? "download_unauthorized" : "download_failed",
           status: 502,
-          why: `Hugging Face returned HTTP ${response.status} for ${job.name}.`,
-          fix: "Check your internet connection, then try the download again.",
+          why: gated
+            ? `Hugging Face refused ${job.name} (HTTP ${response.status}); the model needs access approval.`
+            : `Hugging Face returned HTTP ${response.status} for ${job.name}.`,
+          fix: gated
+            ? "Approve the model on Hugging Face, set HF_TOKEN, then retry. The token is never stored."
+            : "Check your internet connection, then try the download again.",
         });
       }
 

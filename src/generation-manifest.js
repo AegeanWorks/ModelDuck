@@ -7,9 +7,11 @@ export const MAX_HISTORY_MESSAGES = 40;
 /**
  * SHA-256 over a JSON snapshot. Callers pass plain objects whose key order is
  * deterministic (the manifest builder constructs them field by field).
+ * IDEA-1323: NFC-normalize first so canonically identical text hashes
+ * identically no matter how it was encoded on ingest.
  */
 export function digest(value) {
-  return createHash("sha256").update(JSON.stringify(value)).digest("hex");
+  return createHash("sha256").update(JSON.stringify(value).normalize("NFC")).digest("hex");
 }
 
 /**
@@ -90,6 +92,26 @@ function historyTruncated(priorMessages, history) {
 }
 
 /**
+ * IDEA-1164: loop detection over the reply tail. A unit of minUnit+ characters
+ * repeating consecutively repeats+ times is a degenerate loop, not emphasis.
+ * Bounded to the tail so long honest answers never pay for the check.
+ */
+export function detectLoop(text, { minUnit = 12, repeats = 3, tail = 2000 } = {}) {
+  const tailText = String(text ?? "").slice(-Math.max(1, tail));
+  for (let unit = minUnit; unit <= Math.floor(tailText.length / repeats); unit += 1) {
+    const end = tailText.slice(-unit);
+    let count = 1;
+    let index = tailText.length - unit * 2;
+    while (index >= 0 && tailText.slice(index, index + unit) === end) {
+      count += 1;
+      if (count >= repeats) return { loop: true, unit: end };
+      index -= unit;
+    }
+  }
+  return { loop: false, unit: null };
+}
+
+/**
  * A generation manifest describes what the model actually sees for one reply.
  * It is independent from the benchmark test hash: the test hash describes the
  * experiment, while this manifest describes the generation that ran.
@@ -104,6 +126,7 @@ export function buildGenerationManifest({
   settings,
   runtimeVersion,
   chatTemplateHash,
+  allocation = null,
 }) {
   const priorMessages = messages ?? [];
   const historyJson = history ?? buildChatHistory(priorMessages);
@@ -158,6 +181,28 @@ export function buildGenerationManifest({
       digest: digest(prompt),
     },
     settings: settingsIdentity,
+    // IDEA-1164: the full sampler stack is attested, not just the classic
+    // repeat penalty. (XTC has no prompt-level knob in this runtime, so the
+    // manifest records DRY; a future sampler key extends this block.)
+    sampler: {
+      repeatPenalty: settings?.repeatPenalty ?? null,
+      repeatPenaltyTokens: settings?.repeatPenaltyTokens ?? null,
+      penalizeNewLine: settings?.penalizeNewLine ?? null,
+      dryStrength: settings?.dryStrength ?? null,
+      dryBase: settings?.dryBase ?? null,
+      dryAllowedLength: settings?.dryAllowedLength ?? null,
+    },
+    // IDEA-1229: what the engine actually allocated for this reply, so the
+    // manifest attests the context, backend and fallback instead of the ask.
+    allocation: allocation
+      ? {
+          allocatedContext: allocation.allocatedContext ?? null,
+          requestedContext: allocation.requestedContext ?? null,
+          backend: allocation.backend ?? null,
+          gpuLayers: allocation.gpuLayers ?? null,
+          fallback: allocation.fallback ?? null,
+        }
+      : null,
   };
   manifest.digest = digest(manifest);
   manifest.shortDigest = manifest.digest.slice(0, 16);
@@ -180,5 +225,8 @@ export function manifestSummary(manifest) {
     historyTruncated: manifest.history?.truncated ?? false,
     promptDigest: manifest.prompt?.digest ?? null,
     promptRepeat: manifest.prompt?.repeat ?? 1,
+    allocatedContext: manifest.allocation?.allocatedContext ?? null,
+    allocationBackend: manifest.allocation?.backend ?? null,
+    allocationFallback: manifest.allocation?.fallback ?? null,
   };
 }
