@@ -4,7 +4,7 @@ import { AppError } from "./errors.js";
 import { readJsonBody, sendJson, sseStart } from "./http.js";
 
 function sseJson(res, value) {
-  res.write(`data: ${JSON.stringify(value)}\n\n`);
+  return res.write(`data: ${JSON.stringify(value)}\n\n`);
 }
 
 function contentText(content, role) {
@@ -76,6 +76,12 @@ function toPrompt(body) {
   });
 }
 
+function normalizeStop(value) {
+  if (typeof value === "string" && value) return [value];
+  if (Array.isArray(value)) return value.filter((item) => typeof item === "string" && item).slice(0, 8);
+  return null;
+}
+
 function optionsFrom(body, settings) {
   return {
     temperature: body.temperature ?? settings.temperature,
@@ -88,7 +94,7 @@ function optionsFrom(body, settings) {
     dryBase: settings.dryBase,
     dryAllowedLength: settings.dryAllowedLength,
     responsePrefix: settings.responsePrefix,
-    customStopTriggers: settings.customStopTriggers,
+    customStopTriggers: normalizeStop(body.stop) ?? settings.customStopTriggers,
     maxTokens: body.max_tokens ?? body.max_completion_tokens ?? settings.maxTokens,
     contextSize: settings.contextSize,
     threads: settings.threads,
@@ -113,7 +119,22 @@ function usage(stats) {
 }
 
 function finishReason(stats) {
-  return stats?.stopReason === "maxTokens" ? "length" : "stop";
+  return finishReasonFrom(stats?.stopReason);
+}
+
+/** IDEA-1085: one finish taxonomy for every /v1 surface. */
+export function finishReasonFrom(stopReason) {
+  if (stopReason === "maxTokens") return "length";
+  return "stop";
+}
+
+/** IDEA-1264: never silently fake an unsupported parameter. */
+export function rejectedParam(body) {
+  if (!body || typeof body !== "object") return null;
+  if (Object.hasOwn(body, "logit_bias")) return "logit_bias";
+  if (body.tools !== undefined || body.tool_choice !== undefined) return "tools";
+  if (body.functions !== undefined || body.function_call !== undefined) return "functions";
+  return null;
 }
 
 async function ensureReady({ engine, jit, body, res }) {
@@ -320,6 +341,13 @@ export async function handleOpenAI(
   }
 
   const body = await readJsonBody(req, { limitBytes: 8 * 1024 * 1024 });
+  const refused = rejectedParam(body);
+  if (refused) {
+    openAiError(res, 400, `"${refused}" is not supported by this local server`, {
+      code: "unsupported_parameter",
+    });
+    return;
+  }
   const parsed = isChat ? toMessages(body) : { prompt: toPrompt(body) };
   const current = await ensureReady({ engine, jit, body, res });
   if (!current) return;
@@ -378,7 +406,7 @@ export async function handleOpenAI(
             index: 0,
             message: { role: "assistant", content: result.text },
             logprobs: null,
-            finish_reason: result.stats?.stopReason === "maxTokens" ? "length" : "stop",
+            finish_reason: finishReasonFrom(result.stats?.stopReason),
           },
         ],
         usage: usage(result.stats),
@@ -429,7 +457,7 @@ export async function handleOpenAI(
     if (!res.destroyed) {
       chunk(
         {},
-        result.stats?.stopReason === "maxTokens" ? "length" : "stop",
+        finishReasonFrom(result.stats?.stopReason),
         {
           system_fingerprint: result.manifest?.shortDigest ?? null,
           ...(body.stream_options?.include_usage ? { usage: usage(result.stats) } : {}),

@@ -133,7 +133,8 @@ async function tinyManager(t, body, { status = 200, part = null } = {}) {
 test("a download whose bytes match the catalog SHA-256 is promoted", async (t) => {
   const { directory, final } = await tinyManager(t, TINY_BYTES);
   assert.equal(final.status, "complete");
-  assert.deepEqual(await readdir(directory), [TINY.file]);
+  const files = await readdir(directory);
+  assert.ok(files.includes(TINY.file), files.join(","));
 });
 
 test("a right-sized download with the wrong content is rejected and removed", async (t) => {

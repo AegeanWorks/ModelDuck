@@ -4,7 +4,7 @@ import { AppError } from "./errors.js";
 import { normalizeSettings } from "./config.js";
 import { toGenerationError, toLoadError } from "./engine-errors.js";
 import { formatBytes } from "./fs-atomic.js";
-import { estimateLoad, estimateLoadV2, fitVerdict, splitKvCache } from "./memory-fit.js";
+import { estimateLoad, estimateLoadV2, fitVerdict, recordLoadSample, splitKvCache } from "./memory-fit.js";
 import {
   buildChatHistory,
   buildGenerationManifest,
@@ -48,6 +48,55 @@ function mapAttention(value) {
 export function validKvLabel(label) {
   const parts = String(label ?? "").split(":");
   return parts.length <= 2 && parts.every((part) => Object.hasOwn(KV_CACHE_TYPES, part)) ? parts.join(":") : "f16";
+}
+
+/** IDEA-1200: count tokens loudly; a tokenizer failure must never read as 0. */
+export function countTokensWith(model, text) {
+  if (!model || !text) return 0;
+  try {
+    return model.tokenize(text).length;
+  } catch (error) {
+    throw new AppError("Could not count tokens", {
+      code: "token_count_failed",
+      status: 500,
+      why: `The tokenizer failed: ${error?.message || error}`,
+      fix: "Reload the model, then try again. If it repeats, reinstall the model file.",
+    });
+  }
+}
+
+/** IDEA-1163: grammar cache key includes the model so a swap cannot reuse stale grammars. */
+export function grammarSignatureFor(modelId, settings) {
+  return `${modelId ?? "none"}|${settings?.structuredOutput ?? "none"}|${settings?.jsonSchema ?? ""}`;
+}
+
+/** IDEA-1160: clamp a reply to the context that remains; 0 means the prompt alone fills the window. */
+export function replyBudget(promptTokens, contextSize, maxTokens) {
+  const remaining = Math.floor(Number(contextSize) || 0) - Math.floor(Number(promptTokens) || 0);
+  if (remaining <= 0) return 0;
+  return Math.min(Number(maxTokens) || 0, remaining);
+}
+
+const KNOWN_SCHEMA_TYPES = new Set(["object", "array", "string", "number", "integer", "boolean", "null"]);
+
+/** IDEA-1162: reject unsupported JSON schemas before a session is created. */
+export function assertJsonSchemaSupported(schema) {
+  if (!schema || typeof schema !== "object" || Array.isArray(schema)) {
+    throw new AppError("The JSON schema is invalid", {
+      code: "invalid_json_schema",
+      status: 400,
+      why: "Structured output is set to json_schema, but the schema is not a JSON object.",
+      fix: "Fix the schema in Settings, or switch structured output to json_object.",
+    });
+  }
+  if (schema.type !== undefined && !KNOWN_SCHEMA_TYPES.has(schema.type)) {
+    throw new AppError("This JSON schema is not supported", {
+      code: "unsupported_json_schema",
+      status: 422,
+      why: `Schema type "${schema.type}" cannot be compiled to a constrained grammar.`,
+      fix: "Use a plain object/array/string/number/integer/boolean/null schema, or switch structured output to json_object.",
+    });
+  }
 }
 
 function mapMmap(value) {
@@ -121,6 +170,42 @@ export class LlamaEngine {
     contextFallback: null,
   };
   #loading = false;
+  #unloading = false;
+  #loadEpoch = 0;
+
+  /** IDEA-1095: the id deleteById refuses while loaded; was undefined before. */
+  get loadedId() {
+    return this.#state.model?.id ?? null;
+  }
+
+  /** IDEA-1158: one load/unload phase machine with terminal refusals. */
+  get phase() {
+    if (this.#unloading) return "unloading";
+    if (this.#loading) return "loading";
+    return this.#state.status;
+  }
+
+  get busy() {
+    return this.#running > 0 || this.#loading || this.#unloading;
+  }
+
+  /** IDEA-1094: cancel a load stuck between native awaits; the load throws canceled. */
+  cancelLoad() {
+    if (!this.#loading) return false;
+    this.#loadEpoch += 1;
+    return true;
+  }
+
+  #assertLoadAlive(epoch) {
+    if (epoch !== this.#loadEpoch) {
+      throw new AppError("The model load was canceled", {
+        code: "model_loading_canceled",
+        status: 409,
+        why: "The load was canceled while it was still starting.",
+        fix: "Load the model again if you still want it.",
+      });
+    }
+  }
 
   constructor({
     registry,
@@ -281,14 +366,6 @@ export class LlamaEngine {
     await this.#startRuntime(await this.#loadRuntime(), gpuBackend);
   }
 
-  get loadedId() {
-    return this.#state.model?.id ?? null;
-  }
-
-  get busy() {
-    return this.#running > 0;
-  }
-
   async status() {
     let memory = null;
     if (this.#llama) {
@@ -298,7 +375,7 @@ export class LlamaEngine {
         memory = null;
       }
     }
-    return { ...this.#state, memory };
+    return { ...this.#state, phase: this.phase, memory };
   }
 
   async load({
@@ -334,6 +411,14 @@ export class LlamaEngine {
         fix: "Give the current model a moment to finish loading.",
       });
     }
+    if (this.#unloading) {
+      throw new AppError("The model is unloading", {
+        code: "model_unloading",
+        status: 409,
+        why: "Wait for the unload to finish before loading another model.",
+        fix: "Give the current model a moment, then load again.",
+      });
+    }
     const entry = this.#registry.findById(modelId);
     if (!entry) {
       throw new AppError("Model not found", {
@@ -365,11 +450,14 @@ export class LlamaEngine {
     }
 
     this.#loading = true;
+    const epoch = ++this.#loadEpoch;
     await this.unload();
+    this.#assertLoadAlive(epoch);
     this.#state = { ...this.#state, status: "loading", model: publicModel(entry), error: null };
 
     try {
       const module = await this.#loadRuntime();
+      this.#assertLoadAlive(epoch);
       this.#chatSessionClass = module.LlamaChatSession;
       this.#completionClass = module.LlamaCompletion;
       const runtimeVersion = await module.getModuleVersion().catch(() => null);
@@ -406,6 +494,7 @@ export class LlamaEngine {
         useMmap: mmap,
         gpuLayers: gpuLayerValue,
       });
+      this.#assertLoadAlive(epoch);
       const trained = this.#model.trainContextSize || 4096;
       const wanted = Math.max(512, Math.min(Number(contextSize) || 4096, trained));
       const attempts = [...new Set([wanted, Math.min(wanted, 3072), 2048, 1024])];
@@ -415,6 +504,7 @@ export class LlamaEngine {
 
       let lastError = null;
       for (const attempt of attempts) {
+        this.#assertLoadAlive(epoch);
         try {
           const contextOptions = {
             contextSize: attempt,
@@ -472,6 +562,12 @@ export class LlamaEngine {
               }
             : null,
       };
+      // IDEA-1065: calibrate the memory reserve from the measured process size.
+      try {
+        recordLoadSample({ rssBytes: process.memoryUsage?.().rss, modelBytes: entry.size });
+      } catch {
+        // Calibration is best-effort; a load never fails because of it.
+      }
       return { ...this.#state };
     } catch (error) {
       await this.#disposeModel();
@@ -487,11 +583,43 @@ export class LlamaEngine {
   }
 
   async unload() {
+    if (this.#unloading) return { ...this.#state };
+    this.#unloading = true;
+    this.#state = { ...this.#state, status: "unloading" };
+    try {
+      await this.teardown();
+    } finally {
+      this.#unloading = false;
+    }
+    return { ...this.#state };
+  }
+
+  /**
+   * IDEA-1095: stop-confirmed teardown with a receipt; dispose errors are
+   * recorded instead of swallowed, and callers can prove the model is gone.
+   */
+  async teardown() {
+    const modelId = this.#state.model?.id ?? null;
     for (const controller of this.#active.values()) controller.abort();
     await Promise.allSettled([...this.#pending]);
     this.#active.clear();
     this.#disposeSessions();
-    await this.#disposeModel();
+    const errors = [];
+    try {
+      if (this.#context) await this.#context.dispose();
+    } catch (error) {
+      errors.push(`context: ${error?.message || error}`);
+    } finally {
+      this.#context = null;
+    }
+    try {
+      if (this.#model) await this.#model.dispose();
+    } catch (error) {
+      errors.push(`model: ${error?.message || error}`);
+    } finally {
+      this.#model = null;
+    }
+    this.#grammarCache = null; // IDEA-1163: a model swap must never reuse a stale grammar.
     this.#state = {
       status: "idle",
       model: null,
@@ -514,6 +642,7 @@ export class LlamaEngine {
       error: null,
       lastStats: null,
     };
+    return { modelId, disposedAt: new Date().toISOString(), errors };
   }
 
   abort(conversationId) {
@@ -632,9 +761,22 @@ export class LlamaEngine {
           fix: "Start a new chat, raise Context size, or set Context overflow to shift.",
         });
       }
+      // IDEA-1160: clamp the reply to the context that remains, even on the
+      // default shift path, so an impossible reply is never requested.
+      const remaining = (this.#context?.contextSize ?? 0) - promptCount;
+      if (remaining <= 0) {
+        throw new AppError("The context is full", {
+          code: "context_overflow",
+          status: 413,
+          why: `This conversation needs about ${promptCount} tokens but the model context is ${this.#context?.contextSize}, leaving no room for a reply.`,
+          fix: "Start a new chat, raise Context size, or shorten the conversation.",
+        });
+      }
+      const replyMax = replyBudget(promptCount, this.#context?.contextSize ?? 0, normalized.maxTokens);
+      const requestMax = Math.max(1, replyMax);
       const grammar = await this.#grammarFor(normalized);
       const result = await session.promptWithMeta(promptText, {
-        maxTokens: normalized.maxTokens, // aikit:allow-secret token limit, not a credential
+        maxTokens: requestMax, // aikit:allow-secret token limit, not a credential
         temperature: normalized.temperature,
         topP: normalized.topP,
         topK: normalized.topK,
@@ -680,7 +822,7 @@ export class LlamaEngine {
         : Math.max(1, finishedAt - startedAt);
       const stats = {
         promptTokens: promptCount, // aikit:allow-secret token count, not a credential
-        outputTokens: outputTokens || this.#countTokens(text),
+        outputTokens: outputTokens || this.#safeCountTokens(text),
         tokensPerSecond:
           outputTokens > 0
             ? Number((outputTokens / (generationMs / 1000)).toFixed(2))
@@ -710,7 +852,7 @@ export class LlamaEngine {
           aborted: true,
           stats: {
             promptTokens: this.#countPromptTokens(effectiveSystemPrompt, messages), // aikit:allow-secret token count
-            outputTokens: outputTokens || this.#countTokens(text),
+            outputTokens: outputTokens || this.#safeCountTokens(text),
             tokensPerSecond: 0,
             firstTokenMs: firstTokenAt ? firstTokenAt - startedAt : null,
             ms: Date.now() - startedAt,
@@ -822,6 +964,16 @@ export class LlamaEngine {
           fix: "Shorten the prompt, raise Context size, or set Context overflow to shift.",
         });
       }
+      // IDEA-1160: same reply clamp as the chat path.
+      if ((this.#context.contextSize ?? 0) - promptTokens <= 0) {
+        throw new AppError("The context is full", {
+          code: "context_overflow",
+          status: 413,
+          why: `This prompt needs about ${promptTokens} tokens but the model context is ${this.#context.contextSize}, leaving no room for a reply.`,
+          fix: "Shorten the prompt, raise Context size, or set Context overflow to shift.",
+        });
+      }
+      const completionMax = Math.max(1, replyBudget(promptTokens, this.#context.contextSize ?? 0, normalized.maxTokens));
       const grammar = await this.#grammarFor(normalized);
       // A lingering chat session occupies the only sequence with sequences=1.
       // Completions do not reuse chat history, so release idle sessions first.
@@ -835,7 +987,7 @@ export class LlamaEngine {
           autoDisposeSequence: true,
         });
         const result = await completion.generateCompletionWithMeta(fullPrompt, {
-          maxTokens: normalized.maxTokens, // aikit:allow-secret token limit, not a credential
+          maxTokens: completionMax, // aikit:allow-secret token limit, not a credential
           temperature: normalized.temperature,
           topP: normalized.topP,
           topK: normalized.topK,
@@ -881,7 +1033,7 @@ export class LlamaEngine {
       const generationMs = firstTokenAt
         ? Math.max(1, finishedAt - firstTokenAt)
         : Math.max(1, finishedAt - startedAt);
-      const generatedTokens = this.#countTokens(text) || outputTokens; // aikit:allow-secret token count
+      const generatedTokens = this.#safeCountTokens(text) || outputTokens; // aikit:allow-secret token count
       const stats = {
         promptTokens, // aikit:allow-secret token count, not a credential
         outputTokens: generatedTokens,
@@ -984,7 +1136,8 @@ export class LlamaEngine {
 
   async #grammarFor(settings) {
     if (settings.structuredOutput === "none") return undefined;
-    const grammarSignature = `${settings.structuredOutput}|${settings.jsonSchema}`;
+    const modelKey = this.#state.model?.id ?? this.#state.model?.fileName ?? "none";
+    const grammarSignature = grammarSignatureFor(modelKey, settings);
     if (this.#grammarCache?.key === grammarSignature) return this.#grammarCache.grammar;
     if (!this.#llama) return undefined;
     let grammar;
@@ -999,7 +1152,17 @@ export class LlamaEngine {
           fix: "Fix the schema in Settings, or switch structured output to json_object.",
         });
       }
-      grammar = await this.#llama.createGrammarForJsonSchema(schema);
+      assertJsonSchemaSupported(schema);
+      try {
+        grammar = await this.#llama.createGrammarForJsonSchema(schema);
+      } catch (error) {
+        throw new AppError("This JSON schema cannot be compiled", {
+          code: "grammar_compile_failed",
+          status: 422,
+          why: `The grammar compiler rejected the schema: ${error?.message || error}`,
+          fix: "Simplify the schema (plain types, no recursive refs), or switch structured output to json_object.",
+        });
+      }
     } else {
       grammar = await this.#llama.getGrammarFor("json");
     }
@@ -1008,8 +1171,12 @@ export class LlamaEngine {
   }
 
   #countTokens(text) {
-    if (!this.#model || !text) return 0;
+    return countTokensWith(this.#model, text);
+  }
+
+  #safeCountTokens(text) {
     try {
+      if (!this.#model || !text) return 0;
       return this.#model.tokenize(text).length;
     } catch {
       return 0;
@@ -1056,6 +1223,7 @@ export class LlamaEngine {
       await this.#model.dispose().catch(() => {});
       this.#model = null;
     }
+    this.#grammarCache = null; // IDEA-1163: drop grammars bound to the disposed model.
   }
 
   async dispose() {

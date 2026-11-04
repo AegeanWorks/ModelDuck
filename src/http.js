@@ -135,11 +135,32 @@ export function sseStart(res) {
 }
 
 export function sseSend(res, event, data) {
-  res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+  // IDEA-1197: return the write outcome so slow consumers apply backpressure.
+  return res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 }
 
 export function sseComment(res, text = "keep-alive") {
-  res.write(`: ${text}\n\n`);
+  return res.write(`: ${text}\n\n`);
+}
+
+/** IDEA-1197: one write for a burst of frames instead of one write per frame. */
+export function sseSendBatched(res, frames) {
+  if (!Array.isArray(frames) || frames.length === 0) return true;
+  return res.write(frames.join(""));
+}
+
+/** IDEA-1197: admit backpressure once the socket buffer passes the limit. */
+export function sseNeedsDrain(res, limitBytes = 65536) {
+  return (res.writableLength ?? 0) > limitBytes;
+}
+
+/** IDEA-1197: wait until the socket drains, errors, or closes. */
+export function sseWaitForDrain(res) {
+  return new Promise((resolve) => {
+    res.once("drain", resolve);
+    res.once("error", resolve);
+    res.once("close", resolve);
+  });
 }
 
 export async function readJsonBody(req, { limitBytes = 2 * 1024 * 1024 } = {}) {

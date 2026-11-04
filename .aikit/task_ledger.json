@@ -1,97 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "tuner-lit-followups",
-    "last_phase": "phase 4",
+    "task_id": "approved-deepcheck-w1",
+    "last_phase": "in_progress",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1793809748.0128307,
-    "owner": "kilo:1",
-    "started_by": "kilo:1",
+    "updated_at": 1793814193.181692,
+    "owner": "kilo:main",
+    "started_by": "kilo:main",
     "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "tuner-engine-validation",
-      "phase": "superseded",
-      "phase_num": 4,
-      "description": "Superseded by 'tuner-long-context' without --complete or --reset",
-      "status": "superseded",
-      "timestamp": 1793634037.0717402,
-      "timestamp_str": "2026-11-02 18:40:37",
-      "agent": "kilo:1"
-    },
-    {
-      "task_id": "tuner-long-context",
-      "phase": "implementation",
-      "phase_num": 4,
-      "description": "[M6] 3 seeded long-context needles (4k/8k/16k) excluded from search/speed/holdout; quality-stage KV confirmation with revert; suite v17, tuner v7, ADR-079; full suite 412/412",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793634375.1727617,
-      "timestamp_str": "2026-11-02 18:46:15",
-      "agent": "kilo:1"
-    },
-    {
-      "task_id": "tuner-long-context",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[1/5] Qwen M5 replication on local qwen2.5-0.5b file: 1.1 vs 1.0 on 48 code items, greedy; run1 36/48 vs 35/48 (2 fixed 3 broken p=1.0), run2 33/48 vs 35/48 (5 fixed 3 broken p=0.73); effect small and n.s., same as SmolLM2; keep search axis [1..1.2], no default change",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793643497.3751216,
-      "timestamp_str": "2026-11-02 21:18:17",
-      "agent": "kilo:1"
-    },
-    {
-      "task_id": "tuner-long-context",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[5/5] baseline pilot running: tune:gate --update-baseline --models smollm2-135m-instruct-q4 --passes 1 --models-dir <home>/.modelduck/models (models-dir required: gate uses temp home); device->vulkan/23layers quality->ctx8192 so far; full suite 412/412 before pilot",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793643863.6933963,
-      "timestamp_str": "2026-11-02 21:24:23",
-      "agent": "kilo:1"
-    },
-    {
-      "task_id": "tuner-lit-followups",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/6] sampler profiles with low top-p combos, drop freq/presence axes for code; [2/6] code repeat-1.0 default + DRY axis wiring + sampler-order fingerprint; [3/6] mixed K/V grid points, thoughtTokens steps, prefix/stop axis; [4/6] give-up metric + prompt pruning; [5/6] engine validation deferred until pilot done; [6/6] full tests, ADR, CHANGELOG, report",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793644272.4674096,
-      "timestamp_str": "2026-11-02 21:31:12",
-      "agent": "kilo:1",
-      "impact_assessment": {
-        "why": "Lit review finds top-p dominates T for code, RP harms code, K-q8/V-q4 Pareto, thinking caps, prefix+stop recipes; none are in the tuner grid",
-        "benefits": "Sampler grid covers literature-optimal regions; code defaults stop paying the RP tax; DRY/KV/thinking/prefix knobs become measurable; engine runs deferred so pilot timings stay clean",
-        "risks": "contract: tune-grid steps change search behavior, TUNER_VERSION bump marks profiles stale; dependency: node-llama-cpp DRY/KV/pass-through must exist or axis is dead; concurrency: no engine runs while pilot tunes; state: grid-only changes, no profile migration",
-        "mitigation": "Failing-first unit tests per milestone; TUNER_VERSION bump for staleness; engine validation as deferred milestone after pilot; code-only changes, no model loads"
-      }
-    },
-    {
-      "task_id": "tuner-long-context",
-      "phase": "superseded",
-      "phase_num": 4,
-      "description": "Superseded by 'tuner-lit-followups' without --complete or --reset",
-      "status": "superseded",
-      "timestamp": 1793644272.4674096,
-      "timestamp_str": "2026-11-02 21:31:12",
-      "agent": "kilo:1"
-    },
-    {
-      "task_id": "tuner-lit-followups",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[6/6] partial: ADR-080 accepted, CHANGELOG tuner-v8 row, lit notes verification incl. engine outcomes; kit REPORT.md absent from worktree so no row; deliberate baseline regen pending approval; commit of v8 tree next",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793653020.0,
-      "timestamp_str": "2026-11-02 23:57:00",
-      "agent": "kilo:1"
-    },
     {
       "task_id": "tuner-lit-followups",
       "phase": "in_progress",
@@ -264,6 +183,90 @@
       "timestamp": 1793809748.0128307,
       "timestamp_str": "2026-11-04 19:29:08",
       "agent": "kilo:1"
+    },
+    {
+      "task_id": "tuner-lit-followups",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'tuner-lit-followups' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793813633.188053,
+      "timestamp_str": "2026-11-04 20:33:53",
+      "agent": "kilo:main",
+      "continued_from": "kilo:1"
+    },
+    {
+      "task_id": "approved-deepcheck-w1",
+      "phase": "planning",
+      "phase_num": 2,
+      "description": "[1/5] Correctness package 1200/1163/1160/1162; [2/5] OpenAI contract 1080/1085/1264; [3/5] Provenance receipts 1067/1194/1195; [4/5] Settings library SSE 1070/1097/1197; [5/5] Memory load trio ladder 1064/1065/1094/1095/1158",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793813643.0318527,
+      "timestamp_str": "2026-11-04 20:34:03",
+      "agent": "kilo:main",
+      "impact_assessment": {
+        "why": "Implement deep-checked Approved ModelDuck ideas with open code gaps; smallest high-value correctness and contract fixes first",
+        "benefits": "Silent guard-disable and grammar-cache bugs fixed; OpenAI stop/finish/param honesty; install artifact resume receipts; symlink settings SSE; memory-fit honesty and cancelable load",
+        "risks": "contract: OpenAI /v1 error and finish shapes change, SSE backpressure alters timing; dependency: node-llama-cpp native calls unabortable, grammar and template behavior loader-gated; concurrency: single-session engine, load/unload phase machine must not race JIT; state: settings version migration, receipt files, profile keys must stay backward compatible",
+        "mitigation": "Failing-first unit tests per idea; additive typed refusals never fake params; receipts written atomically via fs-atomic; feature flags and Load anyway overrides preserved; npm test plus tune:gate per milestone"
+      },
+      "plan_digest": "f0a5013931cc51906c076b5cfbc35550ae32e5d43e7f9c658b9afccb86b1858c"
+    },
+    {
+      "task_id": "approved-deepcheck-w1",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[1/5] done: engine 1200 loud token count, 1163 model-keyed grammar plus unload clear, 1160 replyBudget clamp both paths, 1162 schema preflight; tests/engine-correctness.test.js 4/4; full suite 464/464",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793813810.7584727,
+      "timestamp_str": "2026-11-04 20:36:50",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "approved-deepcheck-w1",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/5] done: openai 1080 stop wiring, 1085 finishReasonFrom taxonomy, 1264 logit_bias tools functions 400; tests/openai-contract.test.js 4/4",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793813867.7547429,
+      "timestamp_str": "2026-11-04 20:37:47",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "approved-deepcheck-w1",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[3/5] done: downloader 1067 receipt 1194 artifact binding 1195 resume identity with legacy compat; tests downloader-receipts 2/2 plus downloader suite green",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793813946.0260632,
+      "timestamp_str": "2026-11-04 20:39:06",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "approved-deepcheck-w1",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[4/5] done: registry 1070 symlink filter, settings 1097 fence plus deep merge, http 1197 backpressure primitives plus batched writer; tests/settings-sse-links 3/3",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793814026.7167683,
+      "timestamp_str": "2026-11-04 20:40:26",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "approved-deepcheck-w1",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[5/5] done: memory-fit 1064 ladder plus 1065 RSS calibration, engine 1094 epoch cancel 1095 teardown receipt 1158 phase machine plus loadedId; tests/memory-load 4/4; full suite 477/477; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793814193.181692,
+      "timestamp_str": "2026-11-04 20:43:13",
+      "agent": "kilo:main"
     }
   ]
 }

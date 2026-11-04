@@ -94,7 +94,12 @@ async function walkGgufFiles(directory, depth = 0, found = []) {
     if (entry.isDirectory()) {
       await walkGgufFiles(full, depth + 1, found);
     } else if (
-      entry.isFile() &&
+      // IDEA-1070: symlinked models count. The link itself must live in the
+      // library; its target is resolved at stat time, and deletes remove the
+      // link (deleteById already refuses paths outside the models folder).
+      // Symlinked directories are never recursed into, so a link loop cannot
+      // trap the scan.
+      (entry.isFile() || entry.isSymbolicLink()) &&
       entry.name.toLowerCase().endsWith(MODEL_EXTENSION) &&
       !entry.name.toLowerCase().endsWith(`${MODEL_EXTENSION}.part`)
     ) {

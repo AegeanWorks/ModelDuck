@@ -9,6 +9,23 @@ import { downloadUrl, getCatalogModel } from "./model-catalog.js";
 const MAX_ACTIVE = 2;
 const IDLE_TIMEOUT_MS = 60_000;
 
+function receiptPath(modelsDir, fileName) {
+  return path.join(modelsDir, `${fileName}.receipt.json`);
+}
+
+function resumeIdentityPath(modelsDir, fileName) {
+  return path.join(modelsDir, `${fileName}.part.resume.json`);
+}
+
+/** IDEA-1067/1194: measured install receipt; null when no receipt was written. */
+export async function readInstallReceipt(modelsDir, fileName) {
+  try {
+    return JSON.parse(await fs.promises.readFile(receiptPath(modelsDir, fileName), "utf8"));
+  } catch {
+    return null;
+  }
+}
+
 export class DownloadManager {
   #modelsDir;
   #logger;
@@ -148,11 +165,16 @@ export class DownloadManager {
     };
   }
 
+  async receiptFor(fileName) {
+    return readInstallReceipt(this.#modelsDir, fileName);
+  }
+
   async #run(job) {
     if (job.status === "canceled") return;
     await ensureDirectory(this.#modelsDir);
     const finalPath = path.join(this.#modelsDir, job.fileName);
     const partPath = `${finalPath}.part`;
+    const resumePath = resumeIdentityPath(this.#modelsDir, job.fileName);
     let partSize = 0;
     try {
       partSize = (await fs.promises.stat(partPath)).size;
@@ -160,12 +182,36 @@ export class DownloadManager {
       partSize = 0;
     }
 
+    // IDEA-1195: when an identity receipt exists it must name this exact
+    // catalog entry; another model's bytes are never appended. Parts written
+    // before receipts existed have no receipt and resume once (the end-to-end
+    // SHA-256 still guards them); the receipt written below covers next time.
+    const model = this.#getModel(job.catalogId);
+    const identity = { catalogId: job.catalogId, file: job.fileName, size: job.size, sha256: job.sha256 ?? null };
+    if (partSize > 0) {
+      try {
+        const prior = JSON.parse(await fs.promises.readFile(resumePath, "utf8"));
+        if (prior?.catalogId !== identity.catalogId || prior?.size !== identity.size || (prior?.sha256 ?? null) !== identity.sha256) {
+          await fs.promises.truncate(partPath, 0).catch(() => {});
+          partSize = 0;
+        }
+      } catch (error) {
+        if (error?.code !== "ENOENT") {
+          await fs.promises.truncate(partPath, 0).catch(() => {});
+          partSize = 0;
+        }
+      }
+    }
+    await fs.promises.rm(resumePath, { force: true }).catch(() => {});
+
     if (job.status === "canceled") return;
     await assertDiskSpace(this.#modelsDir, Math.max(0, job.size - partSize));
     if (job.status === "canceled") return;
     job.status = "downloading";
     job.received = partSize;
     job.controller = new AbortController();
+    // Record whose bytes the .part file holds before any byte is appended.
+    await fs.promises.writeFile(resumePath, JSON.stringify({ ...identity, url: downloadUrl(model), startedAt: new Date().toISOString() })).catch(() => {});
     // A connection that stops sending data would otherwise stay "downloading" forever
     // and hold one of the two download slots; the .part file is kept for resume.
     let idleTimer = null;
@@ -264,6 +310,7 @@ export class DownloadManager {
       const digest = hash.digest("hex");
       if (job.sha256 && digest !== job.sha256) {
         await fs.promises.unlink(partPath).catch(() => {});
+        await fs.promises.rm(resumePath, { force: true }).catch(() => {});
         throw new AppError("The downloaded file is corrupt", {
           code: "download_corrupt",
           status: 502,
@@ -273,6 +320,22 @@ export class DownloadManager {
       }
 
       await fs.promises.rename(partPath, finalPath);
+      await fs.promises.rm(resumePath, { force: true }).catch(() => {});
+      // IDEA-1067/1194: measured artifact receipt binds digest, quant and source.
+      const catalogEntry = this.#getModel(job.catalogId);
+      await fs.promises.writeFile(
+        receiptPath(this.#modelsDir, job.fileName),
+        JSON.stringify({
+          catalogId: job.catalogId,
+          file: job.fileName,
+          size: job.size,
+          sha256: job.sha256 ?? null,
+          digest,
+          quant: catalogEntry?.quant ?? null,
+          url: catalogEntry ? downloadUrl(catalogEntry) : null,
+          downloadedAt: new Date().toISOString(),
+        }),
+      ).catch(() => {});
       job.status = "complete";
       job.finishedAt = new Date().toISOString();
       job.received = job.size;

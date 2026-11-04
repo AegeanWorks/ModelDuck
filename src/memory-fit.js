@@ -33,6 +33,60 @@ export const MEMORY_RESERVE_BYTES = 1 * 1024 ** 3;
 export const FIT_LIMIT_RATIO = 0.75;
 const CONTEXT_STEP = 512;
 
+/** IDEA-1064: installed-variant quant ladder; higher fidelity first. */
+export const QUANT_LADDER_RANK = Object.freeze({
+  q8_0: 4,
+  q5_k_m: 3,
+  q5_0: 3,
+  q4_k_m: 2,
+  q4_0: 2,
+  q3_k_m: 1,
+});
+
+export function ladderRank(quant) {
+  return QUANT_LADDER_RANK[String(quant ?? "").toLowerCase()] ?? 0;
+}
+
+/**
+ * IDEA-1064: rank installed variants that fit: higher quant first, then the
+ * larger context, then the smaller footprint. Pure so the tuner can reuse it.
+ */
+export function rankLadder(variants, { availableBytes = 0 } = {}) {
+  const fitting = (variants ?? []).filter((variant) => {
+    if (!variant || typeof variant.estimateTotal !== "number") return false;
+    if (!(availableBytes > 0)) return true;
+    return variant.estimateTotal <= availableBytes * FIT_LIMIT_RATIO;
+  });
+  return [...fitting].sort((left, right) =>
+    ladderRank(right.quant) - ladderRank(left.quant) ||
+    (Number(right.contextSize) || 0) - (Number(left.contextSize) || 0) ||
+    (Number(left.estimateTotal) || 0) - (Number(right.estimateTotal) || 0) ||
+    String(left.id ?? "").localeCompare(String(right.id ?? "")));
+}
+
+/** IDEA-1065: measured-RSS calibration samples; the reserve stays honest on real machines. */
+const rssSamples = [];
+
+export function recordLoadSample({ rssBytes, modelBytes } = {}) {
+  const rss = Number(rssBytes);
+  const weights = Number(modelBytes);
+  if (!(rss > 0) || !(weights >= 0) || rss < weights) return rssSamples.length;
+  rssSamples.push(rss - weights);
+  if (rssSamples.length > 32) rssSamples.shift();
+  return rssSamples.length;
+}
+
+export function calibratedReserveBytes(fallback = MEMORY_RESERVE_BYTES) {
+  if (!rssSamples.length) return fallback;
+  const sorted = [...rssSamples].sort((a, b) => a - b);
+  const median = sorted[Math.floor(sorted.length / 2)];
+  return Math.max(0, Math.round(median));
+}
+
+export function resetCalibration() {
+  rssSamples.length = 0;
+}
+
 /** Reads the KV shape from GGUF architecture metadata; null when it is incomplete. */
 export function kvShapeFromMetadata(architectureMetadata) {
   const layers = Number(architectureMetadata?.block_count);
