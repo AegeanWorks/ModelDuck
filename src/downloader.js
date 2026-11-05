@@ -5,11 +5,14 @@ import path from "node:path";
 
 import { AppError } from "./errors.js";
 import { assertDiskSpace, ensureDirectory, formatBytes, promoteFileAtomic } from "./fs-atomic.js";
-import { checkDownloadFit } from "./gguf-guard.js";
+import { checkDownloadFit, inspectGgufHeader } from "./gguf-guard.js";
 import { downloadUrl, getCatalogModel } from "./model-catalog.js";
 
 const MAX_ACTIVE = 2;
 const IDLE_TIMEOUT_MS = 60_000;
+// Hugging Face resolve URLs redirect to its own CDN hosts; the token stays
+// only on Hugging Face infrastructure, never on a third-party host.
+const MAX_REDIRECT_HOPS = 5;
 
 function receiptPath(modelsDir, fileName) {
   return path.join(modelsDir, `${fileName}.receipt.json`);
@@ -192,6 +195,40 @@ export class DownloadManager {
     return readInstallReceipt(this.#modelsDir, fileName);
   }
 
+  /**
+   * IDEA-1073: follow redirects without leaking the token. The Authorization
+   * header rides only to Hugging Face hosts (the resolve host and its own
+   * *.huggingface.co CDN); any other redirect target — or an https-to-http
+   * downgrade — drops it before the request is sent.
+   */
+  async #fetchFollowingRedirects(url, { headers = {}, signal } = {}) {
+    const originHost = new URL(url).hostname.toLowerCase();
+    let current = url;
+    let outgoing = { ...headers };
+    for (let hop = 0; hop <= MAX_REDIRECT_HOPS; hop += 1) {
+      const response = await this.#fetch(current, { headers: outgoing, signal, redirect: "manual" });
+      const location = response.headers?.get?.("location");
+      if (![301, 302, 303, 307, 308].includes(response.status) || !location) return response;
+      const next = new URL(location, current);
+      const nextHost = next.hostname.toLowerCase();
+      const staysOnHuggingFace = nextHost === originHost || nextHost.endsWith(".huggingface.co");
+      const downgraded = new URL(current).protocol === "https:" && next.protocol !== "https:";
+      if (staysOnHuggingFace && !downgraded) {
+        outgoing = { ...outgoing };
+      } else {
+        const { Authorization: _dropped, authorization: _droppedLower, ...rest } = outgoing;
+        outgoing = rest;
+      }
+      current = next.toString();
+    }
+    throw new AppError("Too many redirects", {
+      code: "download_redirect_loop",
+      status: 502,
+      why: `Hugging Face redirected ${url} more than ${MAX_REDIRECT_HOPS} times.`,
+      fix: "Check your internet connection, then try the download again.",
+    });
+  }
+
   async #run(job) {
     if (job.status === "canceled") return;
     await ensureDirectory(this.#modelsDir);
@@ -253,20 +290,18 @@ export class DownloadManager {
       const headers = { "User-Agent": "ModelDuck/0.1 (+local)", ...auth };
       if (partSize > 0) headers.Range = `bytes=${partSize}-`;
 
-      let response = await this.#fetch(downloadUrl(this.#getModel(job.catalogId)), {
+      let response = await this.#fetchFollowingRedirects(downloadUrl(this.#getModel(job.catalogId)), {
         headers,
         signal: job.controller.signal,
-        redirect: "follow",
       });
 
       if (response.status === 416 && partSize > 0) {
         await fs.promises.truncate(partPath, 0).catch(() => {});
         partSize = 0;
         job.received = 0;
-        response = await this.#fetch(downloadUrl(this.#getModel(job.catalogId)), {
+        response = await this.#fetchFollowingRedirects(downloadUrl(this.#getModel(job.catalogId)), {
           headers: { "User-Agent": "ModelDuck/0.1 (+local)", ...gatedDownloadHeaders() },
           signal: job.controller.signal,
-          redirect: "follow",
         });
       }
 
@@ -346,6 +381,21 @@ export class DownloadManager {
           status: 502,
           why: `${job.name} has the right size but its SHA-256 did not match the catalog (got ${digest.slice(0, 12)}…, expected ${job.sha256.slice(0, 12)}…).`,
           fix: "The partial file was removed. Click Download to fetch it again; if it repeats, check for a proxy or antivirus rewriting downloads.",
+        });
+      }
+
+      // IDEA-1637: a corrupt header fails the download loudly instead of
+      // promoting a file the library scan would only block later.
+      try {
+        await inspectGgufHeader(partPath);
+      } catch (error) {
+        await fs.promises.unlink(partPath).catch(() => {});
+        await fs.promises.rm(resumePath, { force: true }).catch(() => {});
+        throw new AppError("This GGUF file was blocked", {
+          code: "gguf_header_rejected",
+          status: 502,
+          why: error?.why || error?.message || "The header could not be read.",
+          fix: "Delete that file manually if it exists, then download the model again from a source you trust.",
         });
       }
 

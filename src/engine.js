@@ -79,12 +79,39 @@ export function replyBudget(promptTokens, contextSize, maxTokens) {
   return Math.min(Number(maxTokens) || 0, remaining);
 }
 
-/** IDEA-1084: divide the remaining context across parallel sequences, so N slots cannot overbook it. */
+/**
+ * IDEA-1084: divide the remaining context across parallel sequences, so N
+ * slots cannot overbook it. Returns 0 only when nothing remains; otherwise
+ * at least 1 so a generation can always make progress (a 0-token cap would
+ * fail in the runtime). Callers use the return value directly.
+ */
 export function slotClamp(maxTokens, remaining, sequences) {
   const slots = Math.max(1, Math.floor(Number(sequences) || 1));
-  const perSlot = Math.floor((Number(remaining) || 0) / slots);
-  if (perSlot <= 0) return 0;
+  const budget = Math.floor(Number(remaining) || 0);
+  if (budget <= 0) return 0;
+  const perSlot = Math.floor(budget / slots);
+  if (perSlot <= 0) return Math.min(Number(maxTokens) || 0, budget) > 0 ? 1 : 0;
   return Math.min(Number(maxTokens) || 0, perSlot);
+}
+
+/**
+ * IDEA-1082: keep the tail of an overflowing prompt so a single huge input
+ * proceeds instead of failing. Binary-searches the shortest tail within
+ * budget; a leading lone surrogate from a split pair is stripped so the
+ * tail is always valid UTF-16. Returns the original text when it fits.
+ */
+export function truncatePromptTail(text, countTokens, budget) {
+  const source = String(text ?? "");
+  if (countTokens(source) <= Math.max(0, budget)) return source;
+  let lo = 0;
+  let hi = source.length;
+  while (lo < hi) {
+    const mid = Math.floor((lo + hi) / 2);
+    if (countTokens(source.slice(mid)) <= budget) hi = mid;
+    else lo = mid + 1;
+  }
+  // A slice can split a UTF-16 surrogate pair; drop the orphaned low half.
+  return source.slice(lo).replace(/^[\uDC00-\uDFFF]/, "");
 }
 
 /** IDEA-1159: a GPU flip is allowed only when measured VRAM fits the weights. */
@@ -480,6 +507,12 @@ export class LlamaEngine {
         fix: "Delete the file and download the model again from a source you trust.",
       });
     }
+    // IDEA-1093/1228: the scan already resolved the template compat; surface
+    // its warnings at load so a fallback template or rename risk is visible.
+    // Selection still prefers the model default (see summarize/templateCompat).
+    for (const warning of entry.compat?.warnings ?? []) {
+      this.#logger.warn?.(`[modelduck] Template: ${warning} (${entry.fileName})`);
+    }
     const fit = await this.#planFit(entry, { contextSize, kvCache, gpuLayers, batchSize, sequences, flashAttention });
     if (fit.verdict === "will_not_fit" && !force) {
       const safer = fit.largestSafeContext >= 512
@@ -785,23 +818,43 @@ export class LlamaEngine {
     const effectiveSettings = normalizeSettings(withModel);
     const effectiveSystemPrompt = buildSystemPrompt(systemPrompt, effectiveSettings.reasoning);
     let priorMessages = messages.slice(0, -1);
+    let effectiveLast = last;
     let truncatedHistory = false;
     // IDEA-1082: truncate mode drops the oldest history (keeping the newest
-    // turns) so a long chat survives overflow; the session is invalidated
-    // because the stored history no longer matches.
+    // turns) so a long chat survives overflow. Budgets below use the
+    // effective (truncated) messages, and the session record stores the
+    // truncated length, so a dropped history can never silently reuse a
+    // session that holds different turns.
     if (effectiveSettings.contextOverflow === "truncate") {
       const contextSize = this.#context?.contextSize ?? 0;
-      let probe = this.#countPromptTokens(effectiveSystemPrompt, [...priorMessages, last]);
+      let probe = this.#countPromptTokens(effectiveSystemPrompt, [...priorMessages, effectiveLast]);
       while (priorMessages.length > 0 && probe + effectiveSettings.maxTokens > contextSize) {
         priorMessages = priorMessages.slice(1);
         truncatedHistory = true;
-        probe = this.#countPromptTokens(effectiveSystemPrompt, [...priorMessages, last]);
+        probe = this.#countPromptTokens(effectiveSystemPrompt, [...priorMessages, effectiveLast]);
       }
-      if (truncatedHistory) this.dropSession(conversationId);
+      if (probe + effectiveSettings.maxTokens > contextSize && priorMessages.length === 0) {
+        // One huge turn alone overflows: keep its tail (the newest tokens,
+        // mirroring the completion path) instead of refusing outright.
+        const tail = truncatePromptTail(
+          effectiveLast.content,
+          (count) => this.#countPromptTokens(effectiveSystemPrompt, [{ ...effectiveLast, content: count }]),
+          Math.max(0, contextSize - effectiveSettings.maxTokens),
+        );
+        if (tail !== effectiveLast.content) {
+          effectiveLast = { ...effectiveLast, content: tail };
+          truncatedHistory = true;
+          probe = this.#countPromptTokens(effectiveSystemPrompt, [effectiveLast]);
+        }
+      }
+      // No explicit dropSession here: dropSession early-returns while this
+      // conversation is active. Invalidation flows through the truncated
+      // history length instead (see #sessionFor and the finally below).
     }
+    const effectiveMessages = truncatedHistory ? [...priorMessages, effectiveLast] : messages;
     let history = buildChatHistory(priorMessages);
     const historyComplete = history.length === priorMessages.length;
-    const promptText = repeatPrompt(last.content, effectiveSettings.promptRepeat);
+    const promptText = repeatPrompt(effectiveLast.content, effectiveSettings.promptRepeat);
     const manifest = buildGenerationManifest({
       model: this.#state.model,
       originalSystemPrompt: systemPrompt,
@@ -812,6 +865,9 @@ export class LlamaEngine {
       settings: effectiveSettings,
       runtimeVersion: this.#state.runtimeVersion,
       chatTemplateHash: this.#state.model?.chatTemplateHash,
+      // IDEA-1082: the digest covers the dropped history, so a truncated
+      // turn never shares a cache key with a complete one.
+      forceHistoryTruncated: truncatedHistory,
       // IDEA-1229: attest what was actually allocated for this reply.
       allocation: {
         allocatedContext: this.#context?.contextSize ?? null,
@@ -821,8 +877,6 @@ export class LlamaEngine {
         fallback: this.#state.contextFallback ?? null,
       },
     });
-    // IDEA-1082: the manifest records that older turns were dropped.
-    if (truncatedHistory) manifest.history.truncated = true;
     // IDEA-1076: exact-repeat deterministic answers skip regeneration entirely.
     // The store is memory-only and cleared on unload, so nothing private persists.
     const cacheable = eligibleForCache(effectiveSettings);
@@ -851,12 +905,14 @@ export class LlamaEngine {
     try {
       const session = await this.#sessionFor(
         conversationId,
-        messages,
+        effectiveMessages,
         effectiveSystemPrompt,
         effectiveSettings,
         history,
       );
-      const promptCount = this.#countPromptTokens(effectiveSystemPrompt, messages);
+      // Budgets measure what the session actually holds: the truncated
+      // messages in truncate mode, the full conversation otherwise.
+      const promptCount = this.#countPromptTokens(effectiveSystemPrompt, effectiveMessages);
       if (
         effectiveSettings.contextOverflow === "strict" &&
         promptCount + effectiveSettings.maxTokens > (this.#context?.contextSize ?? 0)
@@ -881,7 +937,8 @@ export class LlamaEngine {
       }
       const replyMax = replyBudget(promptCount, this.#context?.contextSize ?? 0, effectiveSettings.maxTokens);
       // IDEA-1084: parallel sequences share one context window; divide it.
-      const requestMax = Math.max(1, slotClamp(replyMax, (this.#context?.contextSize ?? 0) - promptCount, this.#maxConcurrent));
+      // slotClamp itself guarantees progress (>= 1 while anything remains).
+      const requestMax = slotClamp(replyMax, (this.#context?.contextSize ?? 0) - promptCount, this.#maxConcurrent);
       const grammar = await this.#grammarFor(effectiveSettings);
       // IDEA-1520: single canonical ordered sampler chain
       // (temperature -> topP -> topK -> minP -> repeat -> dry -> seed);
@@ -891,7 +948,8 @@ export class LlamaEngine {
         ...samplerOptions(effectiveSettings),
         responsePrefix: effectiveSettings.responsePrefix || undefined,
         customStopTriggers: effectiveSettings.customStopTriggers.length ? effectiveSettings.customStopTriggers : undefined,
-        grammar,
+        // IDEA-1161: the retry drops the constraint by passing undefined here.
+        grammar: activeGrammar,
         signal: controller.signal,
         stopOnAbortSignal: true,
         onTextChunk: (chunk) => {
@@ -946,7 +1004,7 @@ export class LlamaEngine {
       sessionValid = !aborted;
       if (sessionValid && historyComplete) {
         const record = this.#sessions.get(conversationId);
-        const nextLength = nextSessionHistoryLength(messages.length, historyComplete);
+        const nextLength = nextSessionHistoryLength(effectiveMessages.length, historyComplete);
         if (record && nextLength !== null) record.historyLength = nextLength;
       }
       // IDEA-1076: store exact-repeat deterministic answers, memory-only.
@@ -968,7 +1026,7 @@ export class LlamaEngine {
           text,
           aborted: true,
           stats: {
-            promptTokens: this.#countPromptTokens(effectiveSystemPrompt, messages), // aikit:allow-secret token count
+            promptTokens: this.#countPromptTokens(effectiveSystemPrompt, effectiveMessages), // aikit:allow-secret token count
             outputTokens: outputTokens || this.#safeCountTokens(text),
             tokensPerSecond: 0,
             firstTokenMs: firstTokenAt ? firstTokenAt - startedAt : null,
@@ -1056,6 +1114,22 @@ export class LlamaEngine {
     // (the code-fence axis) is prefilled by continuing the prompt with it,
     // mirroring the chat path where the assistant turn starts with it.
     let fullPrompt = promptText + (effectiveSettings.responsePrefix || "");
+    let truncatedPrompt = false;
+    // IDEA-1082: truncate mode keeps the prompt tail so a completion can
+    // proceed instead of failing. Truncation runs BEFORE the manifest is
+    // built, so the cache key, the manifest and the stored entry all
+    // describe the same tail — a hit and a miss never disagree.
+    if (
+      effectiveSettings.contextOverflow === "truncate" &&
+      this.#countTokens(fullPrompt) + effectiveSettings.maxTokens > (this.#context?.contextSize ?? 0)
+    ) {
+      const budget = Math.max(1, (this.#context?.contextSize ?? 0) - effectiveSettings.maxTokens);
+      const tail = truncatePromptTail(fullPrompt, (text) => this.#countTokens(text), budget);
+      if (tail !== fullPrompt) {
+        fullPrompt = tail;
+        truncatedPrompt = true;
+      }
+    }
     const manifest = buildGenerationManifest({
       model: this.#state.model,
       originalSystemPrompt: "",
@@ -1066,6 +1140,7 @@ export class LlamaEngine {
       settings: effectiveSettings,
       runtimeVersion: this.#state.runtimeVersion,
       chatTemplateHash: this.#state.model?.chatTemplateHash,
+      forcePromptTruncated: truncatedPrompt,
       // IDEA-1229: attest what was actually allocated for this reply.
       allocation: {
         allocatedContext: this.#context?.contextSize ?? null,
@@ -1098,28 +1173,7 @@ export class LlamaEngine {
     let stopReason = "eogToken";
 
     try {
-      let promptTokens = this.#countTokens(fullPrompt); // aikit:allow-secret token count, not a credential
-      // IDEA-1082: truncate mode keeps the prompt tail so a completion can
-      // proceed instead of failing; the manifest prompt reflects the tail.
-      if (
-        effectiveSettings.contextOverflow === "truncate" &&
-        promptTokens + effectiveSettings.maxTokens > (this.#context?.contextSize ?? 0)
-      ) {
-        const budget = Math.max(1, (this.#context?.contextSize ?? 0) - effectiveSettings.maxTokens);
-        let lo = 0;
-        let hi = fullPrompt.length;
-        while (lo < hi) {
-          const mid = Math.floor((lo + hi) / 2);
-          const tail = fullPrompt.slice(mid);
-          if (this.#countTokens(tail) <= budget) hi = mid;
-          else lo = mid + 1;
-        }
-        const tail = fullPrompt.slice(lo);
-        promptTokens = this.#countTokens(tail);
-        fullPrompt = tail;
-        manifest.prompt.text = tail;
-        manifest.prompt.truncated = true;
-      }
+      const promptTokens = this.#countTokens(fullPrompt); // aikit:allow-secret token count, not a credential
       if (
         effectiveSettings.contextOverflow === "strict" &&
         promptTokens + effectiveSettings.maxTokens > (this.#context.contextSize ?? 0)
@@ -1141,7 +1195,7 @@ export class LlamaEngine {
         });
       }
       // IDEA-1084: same per-slot division on the completion path.
-      const completionMax = Math.max(1, slotClamp(replyBudget(promptTokens, this.#context.contextSize ?? 0, effectiveSettings.maxTokens), (this.#context.contextSize ?? 0) - promptTokens, this.#maxConcurrent));
+      const completionMax = slotClamp(replyBudget(promptTokens, this.#context.contextSize ?? 0, effectiveSettings.maxTokens), (this.#context.contextSize ?? 0) - promptTokens, this.#maxConcurrent);
       const grammar = await this.#grammarFor(effectiveSettings);
       // A lingering chat session occupies the only sequence with sequences=1.
       // Completions do not reuse chat history, so release idle sessions first.

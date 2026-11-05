@@ -274,11 +274,19 @@ export function compareRuns(current, baseline, { enforceCeiling = false } = {}) 
   const declines = variants.filter((variant) => variant.regressed.length > 0);
   let verdict = reasons.length ? "fail" : declines.length ? "warn" : "pass";
   const mergedReasons = [...reasons];
+  // No shared variants means nothing to compare: warn instead of passing a
+  // vacuous gate (a run whose models all failed still fails above).
+  if (variants.length === 0 && (current.models ?? []).length > 0 && verdict === "pass") {
+    verdict = "warn";
+    mergedReasons.push("No shared variants: the runs share no model ids, so there is nothing to compare.");
+  }
   if (enforceCeiling && ceiling.verdict === "fail") {
     verdict = "fail";
     mergedReasons.push(...ceiling.reasons);
-  } else if (enforceCeiling && ceiling.verdict === "warn" && verdict === "pass") {
-    verdict = "warn";
+  } else if (enforceCeiling && ceiling.verdict === "warn") {
+    // A ceiling shortfall warns even alongside minor regressions: the tie
+    // cannot be called either way regardless of the pairwise verdict.
+    if (verdict === "pass") verdict = "warn";
     mergedReasons.push(...ceiling.reasons);
   }
   return { verdict, reasons: mergedReasons, currentRate, baselineRate, drop, variants, failed, ceiling };

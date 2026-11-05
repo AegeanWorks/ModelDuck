@@ -127,6 +127,13 @@ export function buildGenerationManifest({
   runtimeVersion,
   chatTemplateHash,
   allocation = null,
+  // Truncation decided outside the history budget (e.g. IDEA-1082 dropping
+  // old turns) still marks the manifest; the digest covers it, so a dropped
+  // history never shares a key with a complete one.
+  forceHistoryTruncated = false,
+  // Same for a truncated completion prompt: marked only when truncated, so
+  // complete prompts that fit keep their existing digest.
+  forcePromptTruncated = false,
 }) {
   const priorMessages = messages ?? [];
   const historyJson = history ?? buildChatHistory(priorMessages);
@@ -155,13 +162,17 @@ export function buildGenerationManifest({
     structuredOutput: settings?.structuredOutput ?? "none",
     jsonSchema: settings?.jsonSchema ?? "",
     contextOverflow: settings?.contextOverflow ?? "shift",
+    // IDEA-1076: stops and the chat prefix change what comes out, so they
+    // are part of the exact-repeat cache key. Different stops must never
+    // share a cached answer.
+    customStopTriggers: Array.isArray(settings?.customStopTriggers) ? [...settings.customStopTriggers] : [],
+    responsePrefix: settings?.responsePrefix ?? "",
   };
   const manifest = {
     fingerprintVersion: PROMPT_FINGERPRINT_VERSION,
     runtime: {
       nodeLlamaCpp: runtimeVersion ?? "unknown",
-    },
-    model: {
+    },    model: {
       ...modelIdentity,
       digest: digest(modelIdentity),
     },
@@ -172,7 +183,7 @@ export function buildGenerationManifest({
     },
     history: {
       count: historyJson.length,
-      truncated: historyTruncated(priorMessages, historyJson),
+      truncated: historyTruncated(priorMessages, historyJson) || Boolean(forceHistoryTruncated),
       digest: digest(historyJson),
     },
     prompt: {
@@ -204,6 +215,7 @@ export function buildGenerationManifest({
         }
       : null,
   };
+  if (forcePromptTruncated) manifest.prompt.truncated = true;
   manifest.digest = digest(manifest);
   manifest.shortDigest = manifest.digest.slice(0, 16);
   return manifest;
@@ -226,7 +238,11 @@ export function manifestSummary(manifest) {
     promptDigest: manifest.prompt?.digest ?? null,
     promptRepeat: manifest.prompt?.repeat ?? 1,
     allocatedContext: manifest.allocation?.allocatedContext ?? null,
+    // IDEA-1229: the summary keeps the ask beside the grant, so a clipped
+    // context is visible without opening the full manifest.
+    requestedContext: manifest.allocation?.requestedContext ?? null,
     allocationBackend: manifest.allocation?.backend ?? null,
+    allocationGpuLayers: manifest.allocation?.gpuLayers ?? null,
     allocationFallback: manifest.allocation?.fallback ?? null,
   };
 }

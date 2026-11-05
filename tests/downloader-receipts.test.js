@@ -8,7 +8,13 @@ import test from "node:test";
 import { DownloadManager, readInstallReceipt } from "../src/downloader.js";
 
 const logger = { warn() {}, error() {} };
-const TINY_BYTES = Buffer.from("GGUFduck");
+// Same minimal valid GGUF header as downloader.test.js: the download path
+// checks the header before promotion, so fixtures must pass it.
+const TINY_BYTES = (() => {
+  const version = Buffer.alloc(4);
+  version.writeUInt32LE(2);
+  return Buffer.concat([Buffer.from("GGUF"), version, Buffer.alloc(16)]);
+})();
 const TINY = {
   id: "tiny",
   name: "Tiny Duck",

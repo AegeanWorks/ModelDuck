@@ -9,7 +9,9 @@
  * then the repetition penalties, then the deterministic seed. Presets in
  * src/config.js keep mapping onto these same keys, so a preset is just a
  * named entry point into this chain (subsumes IDEA-1380/1523, which each
- * covered only one filter in isolation).
+ * covered only one filter in isolation). Steps a single evaluation cannot set
+ * (greedy bypasses, topK candidate effects, multi-token minP) are not probed
+ * at runtime — the chain documents the shared request order.
  *
  * Both engine paths build their node-llama-cpp options through
  * `samplerOptions()` below, so the key insertion order — and therefore the

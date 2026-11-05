@@ -103,7 +103,14 @@ test("a download that stops sending data fails as stalled and keeps its partial 
   assert.ok(files.some((name) => name.endsWith(".part")), files.join(","));
 });
 
-const TINY_BYTES = Buffer.from("GGUFduck");
+// A minimal valid GGUF header (magic, version 2, zero tensors, zero KV
+// entries) so downloads exercise the post-download header check.
+const TINY_HEADER = (() => {
+  const version = Buffer.alloc(4);
+  version.writeUInt32LE(2);
+  return Buffer.concat([Buffer.from("GGUF"), version, Buffer.alloc(16)]);
+})();
+const TINY_BYTES = TINY_HEADER;
 const TINY = {
   id: "tiny",
   name: "Tiny Duck",
@@ -138,7 +145,7 @@ test("a download whose bytes match the catalog SHA-256 is promoted", async (t) =
 });
 
 test("a right-sized download with the wrong content is rejected and removed", async (t) => {
-  const { directory, final } = await tinyManager(t, Buffer.from("AAAAAAAA"));
+  const { directory, final } = await tinyManager(t, Buffer.alloc(TINY_BYTES.length, 65));
   assert.equal(final.status, "error");
   assert.match(final.error.message, /corrupt|did not match/i);
   assert.deepEqual(await readdir(directory), []);
@@ -149,9 +156,85 @@ test("a resumed download hashes the existing partial bytes too", async (t) => {
   assert.equal(final.status, "complete");
 });
 
+test("a download that ends short of the catalog size is resumable, not corrupt", async (t) => {
+  const { directory, final } = await tinyManager(t, TINY_BYTES.subarray(0, 8));
+  assert.equal(final.status, "error");
+  assert.match(final.error.message, /incomplete/i);
+  assert.deepEqual(await readdir(directory), [`${TINY.file}.part`, `${TINY.file}.part.resume.json`], "the partial bytes survive for resume");
+});
+
 test("every catalog model pins a SHA-256 from its Hugging Face LFS pointer", async () => {
   const { MODEL_CATALOG } = await import("../src/model-catalog.js");
   for (const model of MODEL_CATALOG) assert.match(model.sha256 ?? "", /^[0-9a-f]{64}$/, model.id);
+});
+
+// IDEA-1073: the token follows Hugging Face redirects but never a third party.
+test("redirects keep the token on Hugging Face hosts only", async (t) => {
+  const saved = process.env.HF_TOKEN;
+  process.env.HF_TOKEN = "secret-token";
+  try {
+    for (const [target, expectAuth] of [
+      ["https://cdn.example.com/file.gguf", false],
+      ["https://cdn-lfs.huggingface.co/file.gguf", true],
+      ["http://huggingface.co/file.gguf", false],
+    ]) {
+      const seen = [];
+      const directory = await mkdtemp(path.join(os.tmpdir(), "modelduck-redirect-"));
+      t.after(() => rm(directory, { recursive: true, force: true }));
+      const manager = new DownloadManager({
+        modelsDir: directory,
+        logger,
+        getModel: (id) => (id === TINY.id ? TINY : null),
+        fetchImpl: async (url, init) => {
+          seen.push({ url: String(url), auth: init?.headers?.Authorization ?? init?.headers?.authorization ?? null });
+          if (seen.length === 1) return new Response(null, { status: 302, headers: { location: target } });
+          return new Response(TINY_BYTES, { status: 200 });
+        },
+      });
+      const job = await manager.start(TINY.id);
+      for (let index = 0; index < 100 && ["queued", "downloading"].includes(manager.get(job.id).status); index += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 5));
+      }
+      assert.equal(manager.get(job.id).status, "complete", target);
+      assert.equal(seen.length, 2, target);
+      assert.ok(seen[0].auth, `the resolve request authenticates (${target})`);
+      assert.equal(Boolean(seen[1].auth), expectAuth, `redirect to ${target}`);
+      assert.ok(!JSON.stringify(manager.get(job.id)).includes("secret-token"), "the token never lands in job state");
+    }
+  } finally {
+    if (saved === undefined) delete process.env.HF_TOKEN;
+    else process.env.HF_TOKEN = saved;
+  }
+});
+
+// IDEA-1637: bytes with the right size and hash but a broken header fail the
+// download instead of promoting a file the scan would only block later.
+test("a size-and-hash-correct download with a broken header is blocked", async (t) => {
+  const zeros = Buffer.alloc(TINY_BYTES.length, 0);
+  const bad = {
+    id: "bad-header",
+    name: "Bad Header",
+    file: "bad.gguf",
+    repo: "duck/bad",
+    size: zeros.length,
+    sha256: createHash("sha256").update(zeros).digest("hex"),
+  };
+  const directory = await mkdtemp(path.join(os.tmpdir(), "modelduck-badheader-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const manager = new DownloadManager({
+    modelsDir: directory,
+    logger,
+    getModel: (id) => (id === bad.id ? bad : null),
+    fetchImpl: async () => new Response(zeros, { status: 200 }),
+  });
+  const job = await manager.start(bad.id);
+  for (let index = 0; index < 100 && ["queued", "downloading"].includes(manager.get(job.id).status); index += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+  const final = manager.get(job.id);
+  assert.equal(final.status, "error");
+  assert.match(final.error.message, /blocked/i);
+  assert.deepEqual(await readdir(directory), [], "neither the model nor its partial file survives");
 });
 
 // IDEA-1381: durable promotion fsyncs the file and directory before exposing it.

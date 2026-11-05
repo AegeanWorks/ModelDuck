@@ -58,6 +58,7 @@ test("HF cache blobs resolve read-only through links", async (t) => {
   try {
     await symlink(blob, path.join(directory, "snapshot-link"));
   } catch {
+    t.skip("this platform cannot create symlinks here");
     return;
   }
   const registry = createModelRegistry({ modelsDir: directory, readMetadata: async () => FAKE_INFO, logger: SILENT });

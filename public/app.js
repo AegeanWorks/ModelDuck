@@ -152,7 +152,7 @@ const SETTING_HELP = {
   "setting-minp": "Drop tokens below this fraction of the best token's probability; 0 disables it.",
   "setting-repeat": "Penalty for repeating tokens; 1 disables it.",
   "setting-reasoning": "Adds a reasoning instruction. Auto is a short nudge; Deep asks the model to work through the problem first.",
-  "setting-overflow": "What to do when the prompt exceeds the context: Shift drops the oldest tokens; Strict refuses instead.",
+  "setting-overflow": "What to do when the prompt exceeds the context: Shift drops the oldest tokens; Truncate drops the oldest turns first; Strict refuses instead.",
   "setting-structured": "Constrain the reply to a JSON object or the JSON schema below.",
   "setting-schema": "The JSON Schema used when structured output is JSON schema. Invalid schemas are refused before generation.",
   "setting-max": "Maximum number of tokens generated for one answer.",

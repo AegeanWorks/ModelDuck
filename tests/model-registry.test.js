@@ -5,7 +5,7 @@ import path from "node:path";
 import test from "node:test";
 
 import { AppError } from "../src/errors.js";
-import { createModelRegistry } from "../src/model-registry.js";
+import { createModelRegistry, resolveModelSettings } from "../src/model-registry.js";
 
 const logger = { warn() {} };
 const INFO = {
@@ -96,8 +96,7 @@ test("import rejects a non-GGUF file with an actionable error", async (t) => {
   );
 });
 
-test("delete refuses a loaded model and paths outside the library", async (t) => {
-  const { directory, registry } = await makeRegistry(t);
+test("delete refuses a loaded model and paths outside the library", async (t) => {  const { directory, registry } = await makeRegistry(t);
   await writeFile(path.join(directory, "loaded.gguf"), Buffer.from("GGUF12345678"));
   const [model] = await registry.scan();
   await assert.rejects(
@@ -109,4 +108,35 @@ test("delete refuses a loaded model and paths outside the library", async (t) =>
     (error) => error instanceof AppError && error.status === 404,
   );
   assert.deepEqual(await readdir(directory), ["loaded.gguf"]);
+});
+
+// IDEA-1675: per-model stops die with the model instead of attaching to the
+// next file that reuses the folder.
+test("per-model sampling overrides are pruned on delete and rescan", async (t) => {
+  const { directory, registry } = await makeRegistry(t);
+  await writeFile(path.join(directory, "a.gguf"), Buffer.from("GGUF12345678"));
+  const [model] = await registry.scan();
+  assert.deepEqual(
+    registry.setModelSampling(model.id, { temperature: 0.2, customStopTriggers: ["```"] }),
+    { temperature: 0.2, customStopTriggers: ["```"] },
+  );
+  assert.deepEqual(registry.getModelSampling(model.id), { temperature: 0.2, customStopTriggers: ["```"] });
+  const resolved = resolveModelSettings({ temperature: 0.7 }, registry.getModelSampling(model.id));
+  assert.equal(resolved.temperature, 0.2, "the standalone merge helper takes (global, override) and the override wins");
+
+  // Unknown keys never make it into the store.
+  assert.deepEqual(registry.setModelSampling(model.id, { maxTokens: 1 }), {});
+
+  // Delete drops the override with the file.
+  await registry.deleteById(model.id);
+  assert.equal(registry.getModelSampling(model.id), null);
+
+  // And a rescan drops overrides for models that vanished outside the API.
+  await writeFile(path.join(directory, "b.gguf"), Buffer.from("GGUF12345678"));
+  const [again] = await registry.scan();
+  registry.setModelSampling(again.id, { temperature: 0.1 });
+  assert.ok(registry.getModelSampling(again.id));
+  await rm(path.join(directory, "b.gguf"));
+  await registry.scan();
+  assert.equal(registry.getModelSampling(again.id), null, "a rescan prunes overrides for missing files");
 });

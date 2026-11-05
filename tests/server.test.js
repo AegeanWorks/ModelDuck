@@ -427,6 +427,24 @@ test("tuned profiles are listed and read with what changed since they were measu
   assert.equal((await missing.json()).error.code, "profile_missing");
 });
 
+test("a malformed route escape is a 400, never a 500", async (t) => {
+  const harness = await makeHarness(t);
+  const body = await new Promise((resolve, reject) => {
+    const request = http.request(
+      { hostname: "127.0.0.1", port: harness.port, path: "/api/profiles/%E0%A4%A", method: "GET" },
+      (response) => {
+        let text = "";
+        response.on("data", (chunk) => { text += chunk; });
+        response.on("end", () => resolve({ status: response.statusCode, text }));
+      },
+    );
+    request.on("error", reject);
+    request.end();
+  });
+  assert.equal(body.status, 400);
+  assert.equal(JSON.parse(body.text).error.code, "route_id_invalid");
+});
+
 test("recommendations rank installed models and list fitting catalog models", async (t) => {
   const harness = await makeHarness(t);
   const response = await fetch(`${harness.base}/api/recommendations?task=recall`);

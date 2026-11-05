@@ -55,6 +55,11 @@ test("the control panel is wired and the chat shell is gone", () => {
     assert.ok(!htmlIds.includes(id), `legacy chat id is still in the page: ${id}`);
   }
 
+  // The overflow select must offer every mode the settings schema accepts.
+  const overflowOptions = [...html.matchAll(/<select id="setting-overflow">([\s\S]*?)<\/select>/g)]
+    .flatMap((match) => [...match[1].matchAll(/value="([^"]+)"/g)].map((option) => option[1]));
+  assert.deepEqual(overflowOptions, ["shift", "truncate", "strict"]);
+
   assert.doesNotMatch(app, /\/api\/(?:chat|conversations)\b/, "app.js still calls a removed chat route");
   assert.doesNotMatch(app, /renderMarkdown|SUGGESTIONS|renderSidebar/, "app.js still has chat-only code");
 

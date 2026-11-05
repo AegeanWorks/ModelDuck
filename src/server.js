@@ -56,6 +56,21 @@ function validateTuneSelection(tasks, stages) {
   }
 }
 
+// Route ids come from the URL path: a malformed escape is a 400 on the
+// request, never a 500 from decodeURIComponent.
+function decodeRouteId(raw) {
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    throw new AppError("Bad route id", {
+      code: "route_id_invalid",
+      status: 400,
+      why: "That path segment is not valid URL encoding.",
+      fix: "Use the ids listed by the API instead of hand-writing the URL.",
+    });
+  }
+}
+
 // Live tune updates: changes within this window go out together; a comment keeps idle connections open.
 const STREAM_BATCH_MS = 250;
 const STREAM_HEARTBEAT_MS = 15_000;
@@ -354,7 +369,7 @@ export function createHttpServer({
     }
     const runMatch = pathname.match(/^\/api\/tune\/runs\/([^/]+)(\/answers)?$/);
     if (runMatch && method === "GET") {
-      const id = decodeURIComponent(runMatch[1]);
+      const id = decodeRouteId(runMatch[1]);
       const run = tuneRunsDir ? await loadRun(tuneRunsDir, id) : null;
       if (!run) {
         throw new AppError("Tune run not found", { code: "tune_run_missing", status: 404, why: `There is no saved tune run ${id}.`, fix: "Pick a run from the list of tune runs." });
@@ -586,7 +601,7 @@ export function createHttpServer({
     const profileExport = pathname.match(/^\/api\/profiles\/([^/]+)\/export$/);
     if (profileExport && method === "GET") {
       if (!profilesDir) throw new AppError("Profiles are unavailable", { status: 503 });
-      const id = decodeURIComponent(profileExport[1]);
+      const id = decodeRouteId(profileExport[1]);
       const entry = registry.listPublic().find((model) => profileIdFor(model.fileName) === id) ?? null;
       const loaded = await loadProfile(profilesDir, id, await profileFingerprint(entry));
       if (!loaded) {
@@ -631,7 +646,7 @@ export function createHttpServer({
     // IDEA-1071: what a tuned profile would change, shown before it is applied.
     const profileDiffMatch = pathname.match(/^\/api\/profiles\/([^/]+)\/diff$/);
     if (profileDiffMatch && method === "GET") {
-      const id = decodeURIComponent(profileDiffMatch[1]);
+      const id = decodeRouteId(profileDiffMatch[1]);
       const modelId = registry.listPublic().find((model) => profileIdFor(model.fileName) === id)?.id ?? null;
       const applied = modelId ? await tuned.resolve(modelId) : null;
       if (!applied) {
@@ -649,7 +664,7 @@ export function createHttpServer({
     // IDEA-1078/1193: a model-bound launch recipe with its capability preset.
     const profileLaunchMatch = pathname.match(/^\/api\/profiles\/([^/]+)\/launch$/);
     if (profileLaunchMatch && method === "GET") {
-      const id = decodeURIComponent(profileLaunchMatch[1]);
+      const id = decodeRouteId(profileLaunchMatch[1]);
       const entry = registry.listPublic().find((model) => profileIdFor(model.fileName) === id) ?? null;
       const loaded = profilesDir ? await loadProfile(profilesDir, id, await profileFingerprint(entry)) : null;
       if (!entry || !loaded) {
@@ -667,7 +682,7 @@ export function createHttpServer({
 
     const profileMatch = pathname.match(/^\/api\/profiles\/([^/]+)$/);
     if (profileMatch && method === "GET") {
-      const id = decodeURIComponent(profileMatch[1]);
+      const id = decodeRouteId(profileMatch[1]);
       const entry = registry.listPublic().find((model) => profileIdFor(model.fileName) === id) ?? null;
       const loaded = profilesDir ? await loadProfile(profilesDir, id, await profileFingerprint(entry)) : null;
       if (!loaded) {
@@ -773,7 +788,7 @@ export function createHttpServer({
     if (routeMatch && method === "DELETE") {
       if (!serverSettings) throw new AppError("Server settings unavailable", { status: 503 });
       if (!isLoopbackRequest(req)) throw new AppError("Server settings are local only", { code: "server_settings_local_only", status: 403, why: "Remote clients cannot revoke API keys.", fix: "Open Server settings on the computer running ModelDuck." });
-      const deleted = await serverSettings.revokeKey(decodeURIComponent(routeMatch[1]));
+      const deleted = await serverSettings.revokeKey(decodeRouteId(routeMatch[1]));
       if (!deleted) {
         throw new AppError("API key not found", {
           code: "api_key_not_found",
@@ -819,7 +834,7 @@ export function createHttpServer({
     if (loadMatch && method === "POST") {
       if (!engine) throw new AppError("Inference engine unavailable", { status: 503 });
       const body = await readJsonBody(req);
-      const modelId = decodeURIComponent(loadMatch[1]);
+      const modelId = decodeRouteId(loadMatch[1]);
       const applied = await tuned.resolve(modelId);
       const loaded = await engine.load({
         modelId,
@@ -847,7 +862,7 @@ export function createHttpServer({
     const modelMatch = pathname.match(/^\/api\/models\/([^/]+)$/);
     if (modelMatch && method === "DELETE") {
       if (!registry) throw new AppError("Model library unavailable", { status: 503 });
-      const deleted = await registry.deleteById(decodeURIComponent(modelMatch[1]), {
+      const deleted = await registry.deleteById(decodeRouteId(modelMatch[1]), {
         loadedId: engine?.loadedId ?? null,
       });
       sendJson(res, 200, { deleted, models: await registry.scan() });
@@ -880,7 +895,7 @@ export function createHttpServer({
     const downloadMatch = pathname.match(/^\/api\/downloads\/([^/]+)$/);
     if (downloadMatch && method === "DELETE") {
       if (!downloads) throw new AppError("Downloads unavailable", { status: 503 });
-      const job = await downloads.cancel(decodeURIComponent(downloadMatch[1]));
+      const job = await downloads.cancel(decodeRouteId(downloadMatch[1]));
       sendJson(res, 200, { download: job });
       return;
     }

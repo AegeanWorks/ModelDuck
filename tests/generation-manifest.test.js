@@ -127,6 +127,31 @@ test("runtime, chat template and sampling changes each change the fingerprint", 
   assert.equal(runtime.runtime.nodeLlamaCpp, "3.23.0");
 });
 
+test("IDEA-1076: stops and the chat prefix are cache-keyed, never shared", () => {
+  const base = manifest();
+  const stopped = manifest({ settings: { ...SETTINGS, customStopTriggers: ["```"] } });
+  const prefixed = manifest({ settings: { ...SETTINGS, responsePrefix: "```js\n" } });
+  assert.notEqual(base.digest, stopped.digest);
+  assert.notEqual(base.digest, prefixed.digest);
+  assert.notEqual(stopped.digest, prefixed.digest);
+  assert.deepEqual(stopped.settings.customStopTriggers, ["```"]);
+  assert.equal(prefixed.settings.responsePrefix, "```js\n");
+  // The identity copies the stops so later mutation cannot alias the key.
+  const mutable = { ...SETTINGS, customStopTriggers: ["a"] };
+  const keyed = manifest({ settings: mutable });
+  mutable.customStopTriggers.push("b");
+  assert.deepEqual(keyed.settings.customStopTriggers, ["a"]);
+});
+
+test("IDEA-1082: dropped history is marked without rebuilding the manifest", () => {
+  const messages = [{ role: "user", content: "hello" }];
+  const plain = manifest({ messages });
+  assert.equal(plain.history.truncated, false);
+  const dropped = manifest({ messages, forceHistoryTruncated: true });
+  assert.equal(dropped.history.truncated, true);
+  assert.notEqual(plain.digest, dropped.digest);
+});
+
 test("the summary carries only digests and counts", () => {
   const summary = manifestSummary(manifest());
   assert.equal(summary.fingerprintVersion, 1);

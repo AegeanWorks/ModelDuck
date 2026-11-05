@@ -103,6 +103,13 @@ export function fenceModelSamplingPatch(patch) {
   return fenced;
 }
 
+/**
+ * Merge a per-model sampling patch over global settings. Overrides are
+ * keyed by model id and fall back to the global settings when a model has
+ * none, so one model's fence stop cannot bleed into another model's
+ * generation. Unknown keys are fenced out; the stops array is copied so
+ * later mutation cannot alias the stored override.
+ */
 export function resolveModelSettings(globalSettings, override) {
   const base = globalSettings && typeof globalSettings === "object" ? globalSettings : {};
   const patch = fenceModelSamplingPatch(override);
@@ -272,6 +279,11 @@ export function createModelRegistry({
     entries = nextEntries;
     cache.clear();
     for (const [key, value] of nextCache) cache.set(key, value);
+    // Overrides keyed by a model that no longer exists would attach to a
+    // future model reusing the folder: prune them on every scan.
+    for (const id of [...samplingOverrides.keys()]) {
+      if (!entries.has(id)) samplingOverrides.delete(id);
+    }
     return listPublic();
   }
 
@@ -411,6 +423,7 @@ export function createModelRegistry({
     await fs.promises.unlink(target);
     await fs.promises.unlink(`${target}.part`).catch(() => {});
     entries.delete(id);
+    samplingOverrides.delete(id);
     return publicEntry(entry);
   }
 
@@ -440,15 +453,7 @@ export function createModelRegistry({
   }
 
   function resolveModelSettingsForId(modelId, globalSettings) {
-    const base = globalSettings && typeof globalSettings === "object" ? globalSettings : {};
-    const override = samplingOverrides.get(modelId) ?? null;
-    const patch = fenceModelSamplingPatch(override);
-    if (!Object.keys(patch).length) return { ...base };
-    const merged = { ...base, ...patch };
-    if (Array.isArray(patch.customStopTriggers)) {
-      merged.customStopTriggers = [...patch.customStopTriggers];
-    }
-    return merged;
+    return resolveModelSettings(globalSettings, samplingOverrides.get(modelId) ?? null);
   }
 
   return {

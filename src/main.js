@@ -210,6 +210,9 @@ async function main() {
     benchmarks.dispose();
     tunes.dispose();
     await lock.release().catch(() => {});
+    // IDEA-1077: a shut-down server must not leave a receipt that points at
+    // a dead process; a fresh start rewrites it.
+    await fs.promises.rm(path.join(paths.home, "server.json"), { force: true }).catch(() => {});
     process.exit(0);
   };
 

@@ -117,3 +117,21 @@ test("improvements and new variants never fail the gate", () => {
   assert.equal(result.verdict, "pass");
   assert.equal(result.variants.length, 1);
 });
+
+test("disjoint matrices warn instead of passing a vacuous gate", () => {
+  const baseline = run({ v: [["a", true], ["b", true]] });
+  const current = run({ w: [["a", true], ["b", true]] });
+  const result = compareRuns(current, baseline);
+  assert.equal(result.verdict, "warn");
+  assert.match(result.reasons.join("; "), /No shared variants/);
+});
+
+test("a ceiling shortfall is reported even alongside minor regressions", () => {
+  const ids = Array.from({ length: 40 }, (_v, index) => `i${index}`);
+  const baseline = run({ v: ids.map((id) => [id, true]) });
+  const current = run({ v: ids.map((id, index) => [id, index !== 3]) });
+  const result = compareRuns(current, baseline, { enforceCeiling: true });
+  assert.equal(result.verdict, "warn");
+  assert.ok(result.reasons.some((reason) => /ceiling/.test(reason)), result.reasons.join("; "));
+  assert.deepEqual(result.variants[0].regressed, ["i3"], "the pairwise regression is still reported");
+});

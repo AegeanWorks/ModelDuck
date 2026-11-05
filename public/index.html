@@ -250,9 +250,10 @@
               <span>Context overflow</span>
               <select id="setting-overflow">
                 <option value="shift">Shift — drop oldest tokens</option>
+                <option value="truncate">Truncate — drop oldest turns</option>
                 <option value="strict">Strict — refuse an overflow</option>
               </select>
-              <small>Shift keeps going; strict protects the prompt exactly.</small>
+              <small>Shift keeps going; truncate drops whole turns first; strict protects the prompt exactly.</small>
             </label>
             <label class="field">
               <span>Structured output</span>
