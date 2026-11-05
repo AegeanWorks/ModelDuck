@@ -104,22 +104,7 @@ device. It is off by default so a missing driver never prevents local inference 
   own page is a control panel for Models, Bench & Tune, Settings and Server.
 - **Benchmark** — its own tab and gate: run either phase and read per-test rates;
   older-suite reports appear only when asked.
-- **Settings tuner** - **Bench & Tune → Tune** finds the best settings for each installed
-  model, in order: device (CPU or GPU, measured, with a partial offload when the
-  full one will not fit), context (largest that
-  fits in free memory) and KV cache, speed settings (threads, batch, flash, mmap), then sampling and prompt per task (code, comprehension, long context). A setting changes only on a clear paired gain (Holm-corrected), a value that falls significantly behind stops early, each preset is checked on unseen items, and a model that cannot load stops the tune. A re-tune skips items no earlier setting has flipped. Profiles export and import as checked recipes, and clearly worse question types are named. For code, it tries coding directives, searches on our own items, and keeps every coding view in mind.
-  Each step is saved and applied, so a
-  tune can stop anywhere, a stage or task can run again alone, a table names
-  each task's best model, and
-  **Run all** tunes models in CPU and GPU lanes, live;
-  **Runs** keeps every run and answer; stopped runs continue. **Tune
-  settings** edits the values each setting is tried at and the lanes for this PC. **Benchmark** lists each task's question types and checks.
-  Stages run Device → Quality → Speed → Sampling → Prompt: Quality sets the context and KV cache first so Speed is measured on the final load shape.
-  Choose tasks; the Tune panel shows quick/full estimates from measured run pace, offers **Quick pass**, pauses/resumes and reorders a durable queue, can stop one task or the whole queue on a regression, and can run in the background.
-  **Recommended for this PC** ranks installed models by measured answers and speed, then catalog estimates.
-  The client chooses a preset per task with `x-modelduck-task`; **Settings** has the tuned on/off switch
-  and Fastest/Light/Quiet. A collapsible **How tuning works** section in Tune explains the five stages, the
-  increasing rungs, the clear-gain rule, the held-back check and what tuning does not do. Tune with heavy programs closed.
+- **Settings tuner** — **Bench & Tune → Tune** finds each model's best settings in order: device (CPU/GPU, partial offload when full won't fit), context + KV cache, speed (threads, batch, flash, mmap), then sampling and prompt per task. A setting changes only on a clear paired gain (Holm-corrected); laggards stop early, presets are checked on unseen items, and every step is saved so a tune can stop and resume anywhere. **Run all** tunes CPU and GPU lanes; **Runs** keeps every run; the Tune panel shows quick/full estimates, a pausable queue, and **Quick pass**. **Recommended for this PC** ranks models by measured quality and speed; details live in the Tune panel's **How tuning works** section.
 - **Small surface area** — Node's HTTP server and a vanilla UI; no build or CDN.
 - **AI benchmark gate** - two phases: model reload/quantization/KV-cache settings,
   then sampling/prompting settings, with test hashes so test edits show.
@@ -602,15 +587,9 @@ modelduck/
 │   ├── gated-downloads.test.js
 │   ├── manifest-bench.test.js
 │   ├── sampler-health.test.js
-│   ├── sampler-chain.test.js
-│   ├── gguf-preflight.test.js
-│   ├── matrix-determinism.test.js
 │   ├── matrix-sharding.test.js
+│   ├── merge-shards.test.js
 │   ├── test-parallel-shards.test.js
-│   ├── tune-quota.test.js
-│   ├── benchmark-bench-honesty.test.js
-│   ├── wave3-settings-docs.test.js
-│   ├── cache-truncate.test.js
 │   ├── cache-truncate.test.js
 │   ├── recommend.test.js
 │   └── server.test.js

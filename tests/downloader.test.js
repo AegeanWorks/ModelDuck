@@ -174,9 +174,9 @@ test("redirects keep the token on Hugging Face hosts only", async (t) => {
   process.env.HF_TOKEN = "secret-token";
   try {
     for (const [target, expectAuth] of [
-      ["https://cdn.example.com/file.gguf", false],
-      ["https://cdn-lfs.huggingface.co/file.gguf", true],
-      ["http://huggingface.co/file.gguf", false],
+      ["https://cdn.example.com/file.gguf", false], // hygiene: allow test fixture URL for redirect-host unit test, never fetched
+      ["https://cdn-lfs.huggingface.co/file.gguf", true], // hygiene: allow test fixture URL for redirect-host unit test, never fetched
+      ["http://huggingface.co/file.gguf", false], // hygiene: allow test fixture URL for redirect-host unit test, never fetched
     ]) {
       const seen = [];
       const directory = await mkdtemp(path.join(os.tmpdir(), "modelduck-redirect-"));
