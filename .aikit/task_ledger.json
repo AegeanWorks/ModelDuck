@@ -3,25 +3,15 @@
   "active_task": {
     "task_id": "verify-12push",
     "last_phase": "phase 4",
-    "active_phase": 4,
-    "status": "in_progress",
+    "active_phase": 5,
+    "status": "completed",
     "updated_at": 1793916055.7213645,
     "owner": "kilo:goal",
     "started_by": "kilo:goal",
-    "continuations": []
+    "continuations": [],
+    "completed_at": 1793916105.1481762
   },
   "checkpoints": [
-    {
-      "task_id": "approved-deepcheck-w2",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/5] done: engine 1084 slot clamp both paths plus 1159 VRAM gate after runtime start, server 1079 canary on tune plus bench start, registry 1093 resolver plus 1228 compat; tests/runtime-gates 3/3",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793814585.5306413,
-      "timestamp_str": "2026-11-04 20:49:45",
-      "agent": "kilo:main"
-    },
     {
       "task_id": "approved-deepcheck-w2",
       "phase": "in_progress",
@@ -251,6 +241,16 @@
       "status": "in_progress",
       "timestamp": 1793916055.7213645,
       "timestamp_str": "2026-11-06 01:00:55",
+      "agent": "kilo:goal"
+    },
+    {
+      "task_id": "verify-12push",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-12push' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793916105.1481776,
+      "timestamp_str": "2026-11-06 01:01:45",
       "agent": "kilo:goal"
     }
   ]
