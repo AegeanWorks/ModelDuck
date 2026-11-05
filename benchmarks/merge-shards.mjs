@@ -137,7 +137,7 @@ async function main() {
     } catch (error) {
       throw new Error(`Cannot read shard file ${file} (${error?.code ?? error?.message}).`);
     }
-    if (!result || typeof result !== "object" || !Array.isArray(result.models)) {
+    if (!result || typeof result !== "object" || !Array.isArray(result.models) || result.models.length === 0) {
       throw new Error(`Shard file ${file} is not a bench result (missing models array); delete it and rerun that shard.`);
     }
     shards.push({ file, tag, result });
