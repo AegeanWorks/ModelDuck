@@ -913,8 +913,10 @@ async function main() {
     .sort((left, right) => left.id.localeCompare(right.id));
   // The scope names the matrix a run measured; a repro prefix marks batch-1
   // noise-floor runs so no consumer mistakes them for speed-default results.
+  // Shard segments share one scope (the segment index lives in
+  // settings.shard) so merges can require scope agreement across segments.
   const scopeCore = shard
-    ? `shard:${shard.index}/${shard.total}`
+    ? "shard"
     : options.flash
       ? "flash"
       : singleModel

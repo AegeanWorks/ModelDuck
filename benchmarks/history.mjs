@@ -437,7 +437,7 @@ export async function linkRun({ dbPath, historyPath, uid = null, commit, linkedA
     await appendRecord(historyPath, link);
     applyLink(db, link);
     const scope = db.prepare("SELECT run_scope FROM runs WHERE uid = ?").get(target)?.run_scope ?? null;
-    return { linked: true, uid: target, commit, runScope: scope };
+    return { linked: true, uid: target, commit, run_scope: scope };
   } finally {
     db.close();
   }

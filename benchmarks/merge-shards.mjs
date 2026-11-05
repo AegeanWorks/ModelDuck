@@ -77,10 +77,11 @@ function shardFilePattern(index, total, phase) {
 /**
  * A shard counts as repro from its tag or its content, so an all-failed
  * repro shard (whose variants carry no flags) still classifies correctly.
- * Null-safe: a corrupt shard file parses but never classifies as standard.
+ * Null-safe so corrupt inputs cannot crash classification; main() rejects
+ * non-result files with a clean validation error before this is consulted.
  */
 export function isReproShard({ tag, result } = {}) {
-  return (tag ?? "").endsWith("-repro") || result?.reproRun ||
+  return (tag ?? "").endsWith("-repro") || Boolean(result?.reproRun) ||
     (result?.models ?? []).some((model) => model?.deterministicRepro);
 }
 
@@ -88,14 +89,18 @@ export function isReproShard({ tag, result } = {}) {
  * Where a merged result goes. A repro merge never touches the shared
  * latest files; an explicit --out pointing at a canonical latest name is
  * refused for repro merges instead of silently clobbering the baseline
- * inputs the Bench panel and reports read.
+ * inputs the Bench panel and reports read. Repro-scoped names
+ * (latest-repro-*) stay allowed; comparison is case-insensitive because
+ * the check protects case-insensitive filesystems too.
  */
 export function mergedOutFile({ phase, tag, isRepro, out }) {
   if (out) {
     if (isRepro) {
-      const base = path.basename(out);
-      if (base === "latest.json" || base.startsWith("latest-")) {
-        throw new Error(`Refusing to write a repro merge to canonical file ${base}; use a results/latest-repro-* name or omit --out.`);
+      const base = path.basename(out).toLowerCase();
+      const canonical = base === "latest.json" ||
+        (base.startsWith("latest-") && !base.startsWith("latest-repro-"));
+      if (canonical) {
+        throw new Error(`Refusing to write a repro merge to canonical file ${path.basename(out)}; use a latest-repro-* name or omit --out.`);
       }
     }
     return out;
@@ -126,11 +131,16 @@ async function main() {
       throw new Error(`Shard ${i} has no --tag ${options.tag} (found: ${tags.join(", ")}); run that shard scope first.`);
     }
     const file = path.join(RESULTS_DIR, `latest-shard-${i}-of-${options.total}-${options.phase}-${tag}.json`);
+    let result;
     try {
-      shards.push({ file, tag, result: JSON.parse(await readFile(file, "utf8")) });
+      result = JSON.parse(await readFile(file, "utf8"));
     } catch (error) {
       throw new Error(`Cannot read shard file ${file} (${error?.code ?? error?.message}).`);
     }
+    if (!result || typeof result !== "object" || !Array.isArray(result.models)) {
+      throw new Error(`Shard file ${file} is not a bench result (missing models array); delete it and rerun that shard.`);
+    }
+    shards.push({ file, tag, result });
   }
 
   const [first] = shards;

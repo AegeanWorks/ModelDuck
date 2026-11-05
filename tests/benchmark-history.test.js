@@ -150,7 +150,7 @@ test("run scopes label provenance without corrupting trends or links", async (t)
       commit: { hash: "def456", subject: "the change", branch: "main", dirty: false },
     });
   assert.equal(linked.linked, true);
-  assert.equal(linked.runScope, "standard");
+  assert.equal(linked.run_scope, "standard");
     assert.equal(linked.uid, standard.uid);
     assert.notEqual(linked.uid, shard.uid);
     assert.notEqual(linked.uid, repro.uid);

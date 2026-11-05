@@ -11,8 +11,9 @@ test("a shard counts as repro from its tag or its content", () => {
     true,
   );
   assert.equal(isReproShard({ tag: "core", result: { models: [{}] } }), false);
-  // Corrupt inputs never classify as standard-speed data by accident;
-  // null results are repro-conservative, null models are not crashes.
+  // Corrupt inputs classify as non-repro; main() rejects them earlier with
+  // the "not a bench result" validation, so they never reach a merge.
+  // null models are not crashes.
   assert.equal(isReproShard({ tag: "core", result: null }), false);
   assert.equal(isReproShard({ tag: "core", result: { models: null } }), false);
   assert.equal(isReproShard({ tag: "core", result: { models: [null] } }), false);
