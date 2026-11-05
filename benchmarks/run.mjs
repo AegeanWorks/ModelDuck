@@ -271,6 +271,10 @@ function failedVariant(entry, spec, error) {
     threads: spec.threads ?? 8,
     maxThreads: spec.maxThreads ?? spec.threads ?? 8,
     batchSize: spec.batchSize ?? 512,
+    // Failed variants keep the repro provenance so merges classify them
+    // the same way successful ones classify.
+    deterministicRepro: spec.deterministicRepro ?? false,
+    reproRuns: spec.reproRuns ?? 1,
     sequences: spec.sequences ?? 1,
     flashAttention: spec.flashAttention ?? "auto",
     useMmap: spec.useMmap ?? "auto",
@@ -443,7 +447,9 @@ async function runModel(engine, entry, spec, options, { index = 0, total = 0 } =
         tokensPerSecond: meanTokens(runPrompts),
       })),
     );
-    if (repro.stable) {
+    if (!repro.measured) {
+      log(options, `  repro WARNING: no usable measurements (every run aborted or lost its stats) — treat this variant as unmeasured`);
+    } else if (repro.stable) {
       log(options, `  repro: quality identical across ${repro.runs} runs, tok/s spread ${repro.spreadPct === null ? "n/a" : `${repro.spreadPct.toFixed(1)}%`} (floor ${DETERMINISM_LOCKDOWN.maxSpreadPct}%)`);
     } else {
       log(options, `  repro WARNING: runs disagree (quality stable: ${repro.qualityStable}, tok/s spread: ${repro.spreadPct === null ? "n/a" : `${repro.spreadPct.toFixed(1)}%`}) — treat deltas as noise`);
@@ -473,8 +479,9 @@ async function runModel(engine, entry, spec, options, { index = 0, total = 0 } =
     batchSize: spec.batchSize ?? 512,
     // IDEA-1627: repro provenance rides with the variant; prompts always
     // come from the primary run so the result schema never changes shape.
+    // The recorded count is the sanitized run count that actually ran.
     deterministicRepro: spec.deterministicRepro ?? false,
-    reproRuns: spec.reproRuns ?? 1,
+    reproRuns: runCount,
     repro,
     sequences: spec.sequences ?? 1,
     flashAttention: spec.flashAttention ?? "auto",
@@ -904,6 +911,17 @@ async function main() {
       percent: test.total ? Number(((test.passed / test.total) * 100).toFixed(1)) : 0,
     }))
     .sort((left, right) => left.id.localeCompare(right.id));
+  // The scope names the matrix a run measured; a repro prefix marks batch-1
+  // noise-floor runs so no consumer mistakes them for speed-default results.
+  const scopeCore = shard
+    ? `shard:${shard.index}/${shard.total}`
+    : options.flash
+      ? "flash"
+      : singleModel
+        ? `single:${singleModel.catalogId}`
+        : options.phase === "model"
+          ? options.fullMatrix ? "full" : "core"
+          : "chat";
   const result = {
     schema: 3,
     phase: options.phase,
@@ -923,15 +941,7 @@ async function main() {
     settings: {
       matrix: true,
       shard: shard ? { ...shard } : null,
-      matrixScope: shard
-        ? `shard:${shard.index}/${shard.total}`
-        : options.flash
-        ? "flash"
-        : singleModel
-          ? `single:${singleModel.catalogId}`
-          : options.phase === "model"
-            ? options.fullMatrix ? "full" : "core"
-            : "chat",
+      matrixScope: options.deterministic ? `repro:${scopeCore}` : scopeCore,
       contextSizeOverride: options.contextSize,
       threadsOverride: options.threads,
       temperature: 0,
@@ -981,6 +991,9 @@ async function main() {
   };
   if (shard) {
     result.shard = { ...shard };
+    // A deterministic shard is batch-1 provenance like a direct repro run,
+    // so the history scopes it as repro instead of a comparable segment.
+    if (options.deterministic) result.reproRun = true;
     const shardName = `latest-shard-${shard.index}-of-${shard.total}-${options.phase}-${shard.tag}.json`;
     await writeFile(path.join(RESULTS_DIR, shardName), `${JSON.stringify(result, null, 2)}\n`, "utf8");
     log(options, `\nShard result: ${path.join("results", shardName)} (merge all ${shard.total} shards with node benchmarks/merge-shards.mjs -- --phase ${options.phase} --total ${shard.total} --tag ${shard.tag})`);

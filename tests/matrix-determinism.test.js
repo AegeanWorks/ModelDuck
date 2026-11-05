@@ -83,6 +83,7 @@ test("aggregateReproRuns gates quality repeats and the noise floor", () => {
   ]);
   assert.equal(steady.stable, true);
   assert.equal(steady.qualityStable, true);
+  assert.equal(steady.measured, true);
   assert.deepEqual(steady.checks, [40, 40, 40]);
 
   const flaky = aggregateReproRuns([
@@ -101,6 +102,24 @@ test("aggregateReproRuns gates quality repeats and the noise floor", () => {
   assert.equal(noisy.qualityStable, true);
   assert.equal(noisy.stable, false);
   assert.ok(noisy.spreadPct > 5);
+
+  // Same passes over different totals is instability, not a repeat.
+  const shifting = aggregateReproRuns([
+    { checksPassed: 39, checksTotal: 40, tokensPerSecond: 100 },
+    { checksPassed: 39, checksTotal: 41, tokensPerSecond: 101 },
+    { checksPassed: 39, checksTotal: 40, tokensPerSecond: 100 },
+  ]);
+  assert.equal(shifting.qualityStable, false);
+  assert.equal(shifting.stable, false);
+
+  // Non-finite speeds are bogus data, not fast runs.
+  const infinite = aggregateReproRuns([
+    { checksPassed: 40, checksTotal: 40, tokensPerSecond: 100 },
+    { checksPassed: 40, checksTotal: 40, tokensPerSecond: Number.POSITIVE_INFINITY },
+    { checksPassed: 40, checksTotal: 40, tokensPerSecond: 100 },
+  ]);
+  assert.equal(infinite.measured, false);
+  assert.equal(infinite.stable, false);
 });
 
 // IDEA-1627: a triple that measured nothing cannot stand, however equal.

@@ -103,6 +103,23 @@ async function main() {
   }
 
   const [first] = shards;
+  // Every shard must come from the same scope: batch-1 repro segments and
+  // speed-default segments measure different things and must never merge.
+  // A shard counts as repro from its tag or its content, so an all-failed
+  // repro shard (whose variants carry no flags) still classifies correctly.
+  const shardRepro = ({ tag, result }) =>
+    (tag ?? "").endsWith("-repro") || result.reproRun ||
+    (result.models ?? []).some((model) => model.deterministicRepro);
+  for (const { file, tag } of shards) {
+    if (tag !== first.tag) {
+      throw new Error(`${file}: scope ${tag} differs from ${first.tag}; merge one scope at a time (pass --tag to choose).`);
+    }
+  }
+  const reproFlags = shards.map(shardRepro);
+  if (reproFlags.some(Boolean) && !reproFlags.every(Boolean)) {
+    throw new Error("Mixed repro and speed-default shards refuse to merge; measure one scope and merge it separately.");
+  }
+  const isRepro = reproFlags.every(Boolean);
   const same = (pick, label) => {
     const want = JSON.stringify(pick(first.result));
     for (const { file, result } of shards) {
@@ -175,8 +192,6 @@ async function main() {
   // A merged repro run measures the noise floor on batch 1: like a direct
   // repro run it never touches the shared latest files, and the history
   // scopes it as repro from the flag below.
-  const isRepro = (first.tag ?? "").endsWith("-repro") ||
-    shards.every(({ result }) => result.reproRun || (result.models ?? []).some((model) => model.deterministicRepro));
   const merged = {
     schema: 3,
     phase: options.phase,
@@ -205,7 +220,7 @@ async function main() {
     models,
   };
 
-  const outFile = options.out ?? path.join(RESULTS_DIR, isRepro ? `latest-repro-${options.phase}-${first.tag}.json` : `latest-${options.phase}.json`);
+  const outFile = options.out ?? path.join(RESULTS_DIR, isRepro ? `latest-repro-merged-${options.phase}-${first.tag}.json` : `latest-${options.phase}.json`);
   await writeFile(outFile, `${JSON.stringify(merged, null, 2)}\n`);
   if (!options.out && !isRepro) await writeFile(path.join(RESULTS_DIR, "latest.json"), `${JSON.stringify(merged, null, 2)}\n`);
 

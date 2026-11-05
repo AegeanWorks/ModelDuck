@@ -55,7 +55,9 @@ Run this after committing the benchmarked change. It updates the run's commit
 hash in history.sqlite and appends a link event to history.jsonl.
 
 Options:
-  --uid <run>      Link a specific run UID (default: latest pending run)
+  --uid <run>      Link a specific run UID (default: latest pending standard run).
+                     An explicit UID links anything, including shard or
+                     repro runs; the default never does.
   --force          Allow linking while tracked files are dirty
   --db <path>      Override the SQLite path
   --history <path> Override the JSONL history path

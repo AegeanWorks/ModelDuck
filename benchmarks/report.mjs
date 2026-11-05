@@ -220,7 +220,10 @@ async function main() {
       if (!latest) continue;
       const tests = testResults(db, latest.uid);
       if (!tests.length) continue;
-      process.stdout.write(`\nLatest ${phase} test checks (${shortCommit(latest)})\n`);
+      // The fallback can surface a shard or repro run; label it so partial
+      // or batch-1 checks are never mistaken for canonical ones.
+      const latestScope = latest.run_scope && latest.run_scope !== "standard" ? ` [${latest.run_scope}]` : "";
+      process.stdout.write(`\nLatest ${phase} test checks (${shortCommit(latest)}${latestScope})\n`);
       for (const test of tests) {
         process.stdout.write(
           `  ${String(test.label || test.prompt_id).padEnd(28)} ` +

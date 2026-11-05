@@ -340,21 +340,26 @@ export function withDeterministicRepro(matrix, { enabled = false } = {}) {
  */
 export function aggregateReproRuns(runs) {
   const list = [...(runs ?? [])];
-  const checks = list.map((run) => run?.checksPassed ?? 0);
+  // Quality compares passed/total pairs: same prompts mean same totals, so
+  // a differing total is instability, not a pass.
+  const pairs = list.map((run) => `${run?.checksPassed ?? 0}/${run?.checksTotal ?? 0}`);
   const tokensPerSecond = list.map((run) => run?.tokensPerSecond ?? 0);
-  const qualityStable = checks.length > 0 && checks.every((value) => value === checks[0]);
+  const qualityStable = pairs.length > 0 && pairs.every((value) => value === pairs[0]);
   const noise = isNoiseFloorStable(tokensPerSecond);
-  // A triple with no positive speed signal measured nothing (every run
-  // aborted or lost its stats): it cannot stand, however equal the zeros.
-  const measured = tokensPerSecond.some((value) => value > 0);
+  // Non-finite speeds are bogus data, not fast runs; a triple with no
+  // positive finite speed measured nothing and cannot stand.
+  const measured = tokensPerSecond.length > 0 &&
+    tokensPerSecond.every((value) => Number.isFinite(value)) &&
+    tokensPerSecond.some((value) => value > 0);
   return {
     runs: list.length,
-    checks,
+    checks: list.map((run) => run?.checksPassed ?? 0),
     tokensPerSecond,
     qualityStable,
     meanTokensPerSecond: noise.mean,
     spreadTokensPerSecond: noise.spread,
     spreadPct: noise.spreadPct,
+    measured,
     stable: qualityStable && noise.stable && measured,
   };
 }
