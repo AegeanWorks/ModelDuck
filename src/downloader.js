@@ -15,11 +15,11 @@ const IDLE_TIMEOUT_MS = 60_000;
 const MAX_REDIRECT_HOPS = 5;
 
 function receiptPath(modelsDir, fileName) {
-  return path.join(modelsDir, `${fileName}.receipt.json`);
+  return path.join(modelsDir, `${path.basename(String(fileName ?? ""))}.receipt.json`);
 }
 
 function resumeIdentityPath(modelsDir, fileName) {
-  return path.join(modelsDir, `${fileName}.part.resume.json`);
+  return path.join(modelsDir, `${path.basename(String(fileName ?? ""))}.part.resume.json`);
 }
 
 /** IDEA-1073: the token broker. A PAT comes only from HF_TOKEN (or an explicit
@@ -251,7 +251,8 @@ export class DownloadManager {
     if (partSize > 0) {
       try {
         const prior = JSON.parse(await fs.promises.readFile(resumePath, "utf8"));
-        if (prior?.catalogId !== identity.catalogId || prior?.size !== identity.size || (prior?.sha256 ?? null) !== identity.sha256) {
+        const wantUrl = (() => { try { return downloadUrl(model); } catch { return null; } })();
+        if (prior?.catalogId !== identity.catalogId || prior?.size !== identity.size || (prior?.sha256 ?? null) !== identity.sha256 || (wantUrl && prior?.url && prior.url !== wantUrl)) {
           await fs.promises.truncate(partPath, 0).catch(() => {});
           partSize = 0;
         }

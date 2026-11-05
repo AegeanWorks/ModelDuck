@@ -157,9 +157,19 @@ export function sseNeedsDrain(res, limitBytes = 65536) {
 /** IDEA-1197: wait until the socket drains, errors, or closes. */
 export function sseWaitForDrain(res) {
   return new Promise((resolve) => {
-    res.once("drain", resolve);
-    res.once("error", resolve);
-    res.once("close", resolve);
+    const off = (event, fn) => {
+      if (typeof res.removeListener === "function") res.removeListener(event, fn);
+      else if (typeof res.off === "function") res.off(event, fn);
+    };
+    const done = () => {
+      off("drain", done);
+      off("error", done);
+      off("close", done);
+      resolve();
+    };
+    res.once("drain", done);
+    res.once("error", done);
+    res.once("close", done);
   });
 }
 

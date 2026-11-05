@@ -422,6 +422,8 @@ export function createModelRegistry({
     }
     await fs.promises.unlink(target);
     await fs.promises.unlink(`${target}.part`).catch(() => {});
+    await fs.promises.unlink(`${target}.receipt.json`).catch(() => {});
+    await fs.promises.unlink(`${target}.part.resume.json`).catch(() => {});
     entries.delete(id);
     samplingOverrides.delete(id);
     return publicEntry(entry);

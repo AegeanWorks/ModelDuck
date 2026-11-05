@@ -35,7 +35,11 @@ const CONTEXT_STEP = 512;
 
 /** IDEA-1064: installed-variant quant ladder; higher fidelity first. */
 export const QUANT_LADDER_RANK = Object.freeze({
+  f32: 6,
+  f16: 5,
+  bf16: 5,
   q8_0: 4,
+  q6_k: 4,
   q5_k_m: 3,
   q5_0: 3,
   q4_k_m: 2,
@@ -70,7 +74,7 @@ const rssSamples = [];
 export function recordLoadSample({ rssBytes, modelBytes } = {}) {
   const rss = Number(rssBytes);
   const weights = Number(modelBytes);
-  if (!(rss > 0) || !(weights >= 0) || rss < weights) return rssSamples.length;
+  if (!(rss > 0) || !(weights > 0) || !(rss > weights)) return rssSamples.length;
   rssSamples.push(rss - weights);
   if (rssSamples.length > 32) rssSamples.shift();
   return rssSamples.length;

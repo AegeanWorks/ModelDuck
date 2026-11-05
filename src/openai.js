@@ -78,7 +78,10 @@ function toPrompt(body) {
 
 function normalizeStop(value) {
   if (typeof value === "string" && value) return [value];
-  if (Array.isArray(value)) return value.filter((item) => typeof item === "string" && item).slice(0, 8);
+  if (Array.isArray(value)) {
+    const kept = value.filter((item) => typeof item === "string" && item).slice(0, 8);
+    return kept.length ? kept : null;
+  }
   return null;
 }
 

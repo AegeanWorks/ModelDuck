@@ -1,39 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-12push",
+    "task_id": "verify-15push",
     "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1793916055.7213645,
+    "active_phase": 4,
+    "status": "in_progress",
+    "updated_at": 1793916467.7499692,
     "owner": "kilo:goal",
     "started_by": "kilo:goal",
-    "continuations": [],
-    "completed_at": 1793916105.1481762
+    "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "approved-deepcheck-w2",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[3/5] done: downloader 1073 broker plus 401 remedy, registry 1072 HF blob magic read-only; tests/gated-downloads 3/3",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793814637.158206,
-      "timestamp_str": "2026-11-04 20:50:37",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "approved-deepcheck-w2",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[4/5] done: manifest 1229 allocation attestation plus summary, digest plus registry 1323 NFC, stats 1232 subsetInterval FPC, engine 1265 empty flag plus 1161 grammar-drop retry both paths; tests/manifest-bench 4/4",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793814819.161238,
-      "timestamp_str": "2026-11-04 20:53:39",
-      "agent": "kilo:main"
-    },
     {
       "task_id": "approved-deepcheck-w2",
       "phase": "in_progress",
@@ -251,6 +228,35 @@
       "status": "completed",
       "timestamp": 1793916105.1481776,
       "timestamp_str": "2026-11-06 01:01:45",
+      "agent": "kilo:goal"
+    },
+    {
+      "task_id": "verify-15push",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/2] Verify last 15 pushes for wave correctness gaps",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793916448.461014,
+      "timestamp_str": "2026-11-06 01:07:28",
+      "agent": "kilo:goal",
+      "impact_assessment": {
+        "why": "Goal asks 15 pushes back with fixes before push",
+        "benefits": "Fence stops preserved, SSE listeners cleaned, grammar cache exact, registry sidecars removed, quant ladder honest",
+        "risks": "contract: additive helpers only; dependency: none; concurrency: none; state: working tree plus ledger",
+        "mitigation": "Failing-first 15-push test plus full npm test"
+      },
+      "plan_digest": "960bf5393d1c267a8fdbdf170bb50a9e10c4a27ea14dd8f97a8e647f8ab90e3c"
+    },
+    {
+      "task_id": "verify-15push",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[2/2] checklists: passed; 4/4 gates green (npm test 572 pass, hygiene, guidelines, secrets); fixed stop fence empty, SSE drain leak, grammar object sig, registry sidecars, quant ladder, resume url",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793916467.7499692,
+      "timestamp_str": "2026-11-06 01:07:47",
       "agent": "kilo:goal"
     }
   ]

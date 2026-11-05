@@ -69,7 +69,9 @@ export function countTokensWith(model, text) {
 
 /** IDEA-1163: grammar cache key includes the model so a swap cannot reuse stale grammars. */
 export function grammarSignatureFor(modelId, settings) {
-  return `${modelId ?? "none"}|${settings?.structuredOutput ?? "none"}|${settings?.jsonSchema ?? ""}`;
+  const schema = settings?.jsonSchema ?? "";
+  const schemaText = typeof schema === "string" ? schema : (() => { try { return JSON.stringify(schema); } catch { return String(schema); } })();
+  return `${modelId ?? "none"}|${settings?.structuredOutput ?? "none"}|${schemaText}`;
 }
 
 /** IDEA-1160: clamp a reply to the context that remains; 0 means the prompt alone fills the window. */
