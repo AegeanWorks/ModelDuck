@@ -344,6 +344,9 @@ export function aggregateReproRuns(runs) {
   const tokensPerSecond = list.map((run) => run?.tokensPerSecond ?? 0);
   const qualityStable = checks.length > 0 && checks.every((value) => value === checks[0]);
   const noise = isNoiseFloorStable(tokensPerSecond);
+  // A triple with no positive speed signal measured nothing (every run
+  // aborted or lost its stats): it cannot stand, however equal the zeros.
+  const measured = tokensPerSecond.some((value) => value > 0);
   return {
     runs: list.length,
     checks,
@@ -352,8 +355,20 @@ export function aggregateReproRuns(runs) {
     meanTokensPerSecond: noise.mean,
     spreadTokensPerSecond: noise.spread,
     spreadPct: noise.spreadPct,
-    stable: qualityStable && noise.stable,
+    stable: qualityStable && noise.stable && measured,
   };
+}
+
+/**
+ * IDEA-1627: how many times a deterministic variant runs. Sanitized so a
+ * hand-written matrix cannot stall the bench with 0 runs or hang it with
+ * Infinity: at least 1, at most 9, whole runs only.
+ */
+export function reproRunCount(spec, enabled) {
+  if (!enabled) return 1;
+  const wanted = Number(spec?.reproRuns ?? DETERMINISM_LOCKDOWN.runs);
+  if (!Number.isFinite(wanted)) return 1;
+  return Math.min(9, Math.max(1, Math.floor(wanted)));
 }
 
 /** One batch-1 repro variant for `catalogId`, for direct repro comparisons. */

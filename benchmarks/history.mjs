@@ -164,11 +164,14 @@ export async function openDatabase(dbPath) {
   ]);
   // Backfill scopes for databases written before the column existed. The
   // result JSON already carries the markers, so old shard and repro rows
-  // are labeled without touching the append-only log.
+  // are labeled without touching the append-only log. The models check
+  // covers repro runs from before the top-level flag existed.
   db.exec(
     `UPDATE runs SET run_scope = CASE
        WHEN json_extract(result_json, '$.reproRun') IS NOT NULL
          AND json_extract(result_json, '$.reproRun') != 0 THEN 'repro'
+       WHEN EXISTS (SELECT 1 FROM json_each(result_json, '$.models')
+         WHERE json_extract(value, '$.deterministicRepro') = 1) THEN 'repro'
        WHEN json_extract(result_json, '$.shard') IS NOT NULL THEN 'shard'
        ELSE 'standard'
      END WHERE run_scope IS NULL AND json_valid(result_json)`,
@@ -483,6 +486,7 @@ export function modelProgress(db, modelKey, limit = 20) {
               m.memory_bytes
        FROM model_results m JOIN runs r ON r.uid = m.run_uid
        WHERE m.model_key = ? AND (r.run_scope = 'standard' OR r.run_scope = 'shard')
+         AND (m.batch_size IS NULL OR m.batch_size <> 1)
        ORDER BY r.recorded_at DESC, r.id DESC LIMIT ?`,
     )
     .all(modelKey, limit)

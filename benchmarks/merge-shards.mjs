@@ -19,9 +19,12 @@ runtimes, or run settings. Writes results/latest-<phase>.json (plus
 results/latest.json) and records history.
 
 The tag is printed by each shard run (core, full, flash, single-<id>, chat,
-...). When shards were --full-matrix or --flash, pass the same tag here so
-the merge picks up the right files; without --tag every matching tag group
-must agree on exactly one tag.
+..., each optionally suffixed with -repro). When shards were --full-matrix,
+--flash, or --deterministic, pass the same tag here so the merge picks up
+the right files; without --tag every matching tag group must agree on
+exactly one tag. Merging deterministic shards keeps the repro scope: the
+output goes to results/latest-repro-<phase>-<tag>.json and never touches the
+shared latest files.
 `;
 
 function parseArgs(argv) {
@@ -169,6 +172,11 @@ async function main() {
     .map((test) => ({ ...test, percent: test.total ? Number(((test.passed / test.total) * 100).toFixed(1)) : 0 }))
     .sort((a, b) => a.id.localeCompare(b.id));
 
+  // A merged repro run measures the noise floor on batch 1: like a direct
+  // repro run it never touches the shared latest files, and the history
+  // scopes it as repro from the flag below.
+  const isRepro = (first.tag ?? "").endsWith("-repro") ||
+    shards.every(({ result }) => result.reproRun || (result.models ?? []).some((model) => model.deterministicRepro));
   const merged = {
     schema: 3,
     phase: options.phase,
@@ -182,7 +190,8 @@ async function main() {
     wallClockNote: "sum of shard runtimes; wall-clock was less when shards ran in parallel",
     machine: first.result.machine,
     machines: shards.map(({ result }, i) => ({ shard: i + 1, ...(result.machine ?? {}) })),
-    settings: { ...(first.result.settings ?? {}), matrix: true, shard: null, matrixScope: `merged:${options.total}`, mergedFrom: options.total },
+    settings: { ...(first.result.settings ?? {}), matrix: true, shard: null, matrixScope: isRepro ? `merged-repro:${options.total}` : `merged:${options.total}`, mergedFrom: options.total },
+    ...(isRepro ? { reproRun: true } : {}),
     overall: {
       score: checksTotal ? Number(((checksPassed / checksTotal) * 100).toFixed(2)) : 0,
       checksPassed,
@@ -196,9 +205,9 @@ async function main() {
     models,
   };
 
-  const outFile = options.out ?? path.join(RESULTS_DIR, `latest-${options.phase}.json`);
+  const outFile = options.out ?? path.join(RESULTS_DIR, isRepro ? `latest-repro-${options.phase}-${first.tag}.json` : `latest-${options.phase}.json`);
   await writeFile(outFile, `${JSON.stringify(merged, null, 2)}\n`);
-  if (!options.out) await writeFile(path.join(RESULTS_DIR, "latest.json"), `${JSON.stringify(merged, null, 2)}\n`);
+  if (!options.out && !isRepro) await writeFile(path.join(RESULTS_DIR, "latest.json"), `${JSON.stringify(merged, null, 2)}\n`);
 
   const history = await recordRun({
     dbPath: path.join(HERE, "history.sqlite"),
@@ -212,7 +221,11 @@ async function main() {
   process.stdout.write(`Overall: ${merged.overall.score}% · ${merged.overall.checksPassed}/${merged.overall.checksTotal} checks · run ${history.uid}\n`);
   if (missing.length) process.stdout.write(`WARNING: ${missing.length} expected variants missing: ${missing.slice(0, 8).join(", ")}${missing.length > 8 ? " ..." : ""}\n`);
   if (extra.length) process.stdout.write(`NOTE: ${extra.length} variants not in the default matrix: ${extra.slice(0, 8).join(", ")}${extra.length > 8 ? " ..." : ""}\n`);
-  process.stdout.write("Compare against the baseline with a full (unsharded) read or npm run bench:report.\n");
+  if (isRepro) {
+    process.stdout.write("Repro merge: batch-1 noise-floor measurement, informational only — it never compares to a baseline.\n");
+  } else {
+    process.stdout.write("Compare against the baseline with a full (unsharded) read or npm run bench:report.\n");
+  }
 }
 
 const invokedDirectly = (() => {

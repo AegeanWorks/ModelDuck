@@ -12,7 +12,7 @@ import { getCatalogModel } from "../src/model-catalog.js";
 import { createModelRegistry } from "../src/model-registry.js";
 import { systemInfo } from "../src/system.js";
 import { currentGitInfo, recordRun } from "./history.mjs";
-import { MODEL_MATRIX, aggregateReproRuns, buildChatMatrix, flashMatrix, modelMatrix, modelMatrixFor, promptListFor, resultFileName, parseShardSpec, shardMatrix, withDeterministicRepro, DETERMINISM_LOCKDOWN } from "./matrix.mjs";
+import { MODEL_MATRIX, aggregateReproRuns, buildChatMatrix, flashMatrix, modelMatrix, modelMatrixFor, promptListFor, reproRunCount, resultFileName, parseShardSpec, shardMatrix, withDeterministicRepro, DETERMINISM_LOCKDOWN } from "./matrix.mjs";
 import { BENCHMARK_MODELS, PROMPTS, SUITE_VERSION, SYSTEM_PROMPT, checkCount, evaluateResponse } from "./suite.mjs";
 import { compareRuns, itemSummary, losslessCeilingGate, promptOrigin } from "./stats.mjs";
 import { benchmarkTestHash, modelIdentityChanges } from "./test-hash.mjs";
@@ -322,7 +322,7 @@ async function runModel(engine, entry, spec, options, { index = 0, total = 0 } =
   const memoryBytes = (await engine.status())?.memory?.cpuRam ?? null;
   const systemPrompt = spec.systemPrompt ?? SYSTEM_PROMPT;
   const runCount = options.deterministic && spec.deterministicRepro
-    ? Math.max(1, spec.reproRuns ?? DETERMINISM_LOCKDOWN.runs)
+    ? reproRunCount(spec, true)
     : 1;
   async function runPromptsOnce(runIndex) {
     const prompts = [];
@@ -369,10 +369,12 @@ async function runModel(engine, entry, spec, options, { index = 0, total = 0 } =
           signal: controller.signal,
           onToken: () => {},
         });
-      } catch (caught) {
-        error = caught;
-        result = { text: "", aborted: false, stats: { ms: Date.now() - started } };
-      } finally {
+    } catch (caught) {
+      error = caught;
+      // A timeout aborts the controller, so an aborted throw is recorded as
+      // aborted instead of vanishing into a generic error.
+      result = { text: "", aborted: controller.signal.aborted, stats: { ms: Date.now() - started } };
+    } finally {
         clearTimeout(timeout);
         engine.dropSession(`bench-${entry.id}-${spec.id}-${prompt.id}${runCount > 1 ? `-r${runIndex + 1}` : ""}`);
       }
@@ -560,6 +562,23 @@ function compareToBaseline(result, baseline) {
   return { deltas, qualityDelta, speedDelta };
 }
 
+/**
+ * The matrix scope shared by shard filenames and repro outputs, so
+ * flash/full/single-model/chat/repro result sets never clobber each other.
+ * merge-shards matches shard files on this tag.
+ */
+function matrixScopeTag({ options, singleModel, chatBase }) {
+  return [
+    options.flash ? "flash" : null,
+    singleModel ? `single-${singleModel.catalogId}` : options.phase === "model" ? (options.fullMatrix ? "full" : "core") : "chat",
+    options.phase === "chat" && chatBase ? `base-${chatBase.variantId}` : null,
+    options.deterministic ? "repro" : null,
+  ]
+    .filter(Boolean)
+    .join("-")
+    .replace(/[^a-zA-Z0-9._-]+/g, "_");
+}
+
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   if (options.help) {
@@ -638,15 +657,7 @@ async function main() {
     // The filename carries the matrix scope so flash/full/single-model shard
     // sets never clobber each other; merge-shards matches on this tag. A
     // repro run measures batch 1 three times, so it gets its own scope.
-    shard.tag = [
-      options.flash ? "flash" : null,
-      singleModel ? `single-${singleModel.catalogId}` : options.phase === "model" ? (options.fullMatrix ? "full" : "core") : "chat",
-      options.phase === "chat" && chatBase ? `base-${chatBase.variantId}` : null,
-      options.deterministic ? "repro" : null,
-    ]
-      .filter(Boolean)
-      .join("-")
-      .replace(/[^a-zA-Z0-9._-]+/g, "_");
+    shard.tag = matrixScopeTag({ options, singleModel, chatBase });
   }
   if (options.deterministic && options.updateBaseline) {
     throw new AppError("A deterministic repro run cannot replace the baseline", {
@@ -976,8 +987,10 @@ async function main() {
   } else if (options.deterministic) {
     // A repro run measures the noise floor on batch 1: it never touches the
     // shared latest files, which always describe the speed-default matrix.
+    // The filename carries the scope so core/flash/single scopes never
+    // clobber each other.
     result.reproRun = true;
-    const reproName = `latest-repro-${options.phase}.json`;
+    const reproName = `latest-repro-${options.phase}-${matrixScopeTag({ options, singleModel, chatBase })}.json`;
     await writeFile(path.join(RESULTS_DIR, reproName), `${JSON.stringify(result, null, 2)}\n`, "utf8");
     log(options, `\nRepro result: ${path.join("results", reproName)} (informational only — the shared baseline was not read, compared or replaced)`);
   } else {

@@ -74,9 +74,13 @@ export function withDeterminismLockdown(settings = {}) {
   return { ...settings, batchSize: DETERMINISM_LOCKDOWN.batchSize, deterministicRepro: true };
 }
 
-/** True when a settings object already asks for the batch-1 repro path. */
+/**
+ * True when a settings object explicitly opts into the batch-1 repro path.
+ * A bare batchSize of 1 is a mistyped fast setting, not an opt-in, so the
+ * flag alone decides.
+ */
 export function isDeterministicRepro(settings = {}) {
-  return settings?.deterministicRepro === true || Number(settings?.batchSize) === DETERMINISM_LOCKDOWN.batchSize;
+  return settings?.deterministicRepro === true;
 }
 
 export const SETTING_PRESETS = Object.freeze({

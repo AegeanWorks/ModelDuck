@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { aggregateReproRuns, buildChatMatrix, DETERMINISM_LOCKDOWN, isNoiseFloorStable, modelMatrix, modelMatrixFor, reproVariant, withDeterministicRepro } from "../benchmarks/matrix.mjs";
+import { aggregateReproRuns, buildChatMatrix, DETERMINISM_LOCKDOWN, isNoiseFloorStable, modelMatrix, modelMatrixFor, reproRunCount, reproVariant, withDeterministicRepro } from "../benchmarks/matrix.mjs";
 import { DETERMINISM_LOCKDOWN as CONFIG_LOCKDOWN, isDeterministicRepro, withDeterminismLockdown } from "../src/config.js";
 
 // IDEA-1627: determinism lockdown (batch-1 + triple-run noise-floor gate).
@@ -55,6 +55,8 @@ test("IDEA-1627: config helper opts settings into batch-1 repro", () => {
   assert.equal(repro.batchSize, 1);
   assert.equal(isDeterministicRepro(repro), true);
   assert.equal(repro.deterministicRepro, true);
+  // A bare batchSize of 1 is a mistyped fast setting, not an opt-in.
+  assert.equal(isDeterministicRepro({ batchSize: 1 }), false);
 });
 
 test("IDEA-1627: the repro wrapper also covers the chat phase", () => {
@@ -99,4 +101,30 @@ test("aggregateReproRuns gates quality repeats and the noise floor", () => {
   assert.equal(noisy.qualityStable, true);
   assert.equal(noisy.stable, false);
   assert.ok(noisy.spreadPct > 5);
+});
+
+// IDEA-1627: a triple that measured nothing cannot stand, however equal.
+test("aggregateReproRuns refuses empty and all-zero triples", () => {
+  assert.equal(aggregateReproRuns([]).stable, false);
+  const zeros = aggregateReproRuns([
+    { checksPassed: 0, checksTotal: 40, tokensPerSecond: 0 },
+    { checksPassed: 0, checksTotal: 40, tokensPerSecond: 0 },
+    { checksPassed: 0, checksTotal: 40, tokensPerSecond: 0 },
+  ]);
+  assert.equal(zeros.qualityStable, true, "equal zeros repeat");
+  assert.equal(zeros.stable, false, "but nothing was measured");
+});
+
+// IDEA-1627: the run count is sanitized so a hand-written matrix cannot
+// stall the bench with 0 runs or hang it with Infinity.
+test("reproRunCount clamps to whole runs within bounds", () => {
+  assert.equal(reproRunCount({}, false), 1);
+  assert.equal(reproRunCount({ reproRuns: 3 }, true), 3);
+  assert.equal(reproRunCount({}, true), 3);
+  assert.equal(reproRunCount({ reproRuns: 0 }, true), 1);
+  assert.equal(reproRunCount({ reproRuns: -2 }, true), 1);
+  assert.equal(reproRunCount({ reproRuns: 2.7 }, true), 2);
+  assert.equal(reproRunCount({ reproRuns: Number.NaN }, true), 1);
+  assert.equal(reproRunCount({ reproRuns: Number.POSITIVE_INFINITY }, true), 1, "non-finite falls back to a single run instead of hanging");
+  assert.equal(reproRunCount({ reproRuns: 99 }, true), 9, "runaway counts are capped");
 });

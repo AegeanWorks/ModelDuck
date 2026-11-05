@@ -166,6 +166,16 @@ test("pre-scope history rows gain their scope on open", async (t) => {
     result: { ...RESULT, shard: { index: 2, total: 2, tag: "core" } },
     git: { hash: "abc123", subject: "parent", branch: "main", dirty: true },
   });
+  // A pre-flag batch-1 repro run carries the marker on its variants only.
+  await recordRun({
+    ...paths,
+    result: {
+      ...RESULT,
+      testHash: "repro-hash",
+      models: [{ ...RESULT.models[0], key: "repro-model", deterministicRepro: true, batchSize: 1 }],
+    },
+    git: { hash: "abc123", subject: "parent", branch: "main", dirty: true },
+  });
   const { DatabaseSync } = await import("node:sqlite");
   const raw = new DatabaseSync(paths.dbPath);
   try {
@@ -175,7 +185,32 @@ test("pre-scope history rows gain their scope on open", async (t) => {
   }
   const db = await openDatabase(paths.dbPath);
   try {
-    assert.equal(listRuns(db, 5)[0].run_scope, "shard");
+    const runs = listRuns(db, 5);
+    assert.equal(runs.find((run) => run.test_hash === "repro-hash").run_scope, "repro");
+  } finally {
+    db.close();
+  }
+});
+
+// Batch-1 rows never join per-model speed trends, whatever their scope.
+test("modelProgress skips batch-1 measurements", async (t) => {
+  const paths = await tempPaths(t);
+  const git = { hash: "abc123", subject: "parent", branch: "main", dirty: true };
+  await recordRun({ ...paths, result: RESULT, git });
+  await recordRun({
+    ...paths,
+    result: {
+      ...RESULT,
+      testHash: "repro-hash",
+      models: [{ ...RESULT.models[0], deterministicRepro: true, batchSize: 1, tokensPerSecond: 999 }],
+    },
+    git,
+  });
+  const db = await openDatabase(paths.dbPath);
+  try {
+    const progress = modelProgress(db, "test-model", 10);
+    assert.equal(progress.length, 1);
+    assert.notEqual(progress[0].tokens_per_second, 999);
   } finally {
     db.close();
   }
