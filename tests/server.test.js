@@ -797,7 +797,12 @@ test("a tune is streamed live: the job at once, then each change, until the page
   for (const listener of listeners) listener();
   assert.equal((await nextEvent()).job.items[0].live.answers, 12, "the change, pushed");
   controller.abort();
-  await new Promise((resolve) => setTimeout(resolve, 50));
+  // The abort propagates through the request stream; poll instead of hoping
+  // a fixed sleep covers a loaded machine.
+  const abortedAt = Date.now();
+  while (listeners.size !== 0 && Date.now() - abortedAt < 5000) {
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
   assert.equal(listeners.size, 0, "a closed page stops listening");
 });
 

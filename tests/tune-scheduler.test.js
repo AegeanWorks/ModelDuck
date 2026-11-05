@@ -37,6 +37,20 @@ const tick = () => new Promise((resolve) => setImmediate(resolve));
 const settle = async () => {
   for (let index = 0; index < 5; index += 1) await tick();
 };
+// Fixed sleeps flake under parallel load (16 test shards share the machine):
+// poll for the expected state instead of hoping a timer was long enough.
+async function waitFor(condition, { timeoutMs = 5000, intervalMs = 10 } = {}) {
+  const started = Date.now();
+  for (;;) {
+    try {
+      if (await condition()) return true;
+    } catch {
+      // The state is not observable yet; keep polling.
+    }
+    if (Date.now() - started > timeoutMs) return false;
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+}
 const MODELS = [
   { id: "a", fileName: "smol.gguf", profileId: "smol", name: "Smol" },
   { id: "b", fileName: "qwen.gguf", profileId: "qwen", name: "Qwen" },
@@ -184,8 +198,7 @@ test("pause holds the queue until resume", async () => {
   await settle();
   assert.equal(spawn.children.length, 1, "no second model starts while paused");
   runner.resume();
-  await new Promise((resolve) => setTimeout(resolve, 150));
-  assert.equal(spawn.children.length, 2, "resume starts the queued model");
+  assert.ok(await waitFor(() => spawn.children.length === 2), "resume starts the queued model");
   spawn.children[1].finish(0);
   await settle();
   assert.equal(runner.get().status, "complete");
@@ -208,7 +221,7 @@ test("the pending queue can be reordered and survives a restart paused", async (
   });
   const runner = make();
   runner.start({ models: MODELS.slice(0, 2), stages: ["quality"] });
-  await new Promise((resolve) => setTimeout(resolve, 100));
+  assert.ok(await waitFor(() => spawn.children.length >= 1), "the first tune spawns before the reorder");
   await runner.move(MODELS[1].profileId, "up");
   assert.deepEqual(runner.get().order, [MODELS[1].profileId, MODELS[0].profileId]);
 
@@ -258,7 +271,16 @@ test("starting over a restored paused queue is refused", async () => {
     logger: { warn() {} },
   });
   make().start({ models: MODELS.slice(0, 1), stages: ["quality"] });
-  await new Promise((resolve) => setTimeout(resolve, 100));
+  assert.ok(
+    await waitFor(() => {
+      try {
+        return JSON.parse(fs.readFileSync(queueFile, "utf8")).job?.status === "running";
+      } catch {
+        return false;
+      }
+    }),
+    "the queue file is written before the restore",
+  );
   const restored = make();
   const job = await restored.restore();
   assert.equal(job.status, "paused");
@@ -311,8 +333,19 @@ test("a resumed queue keeps per-model force", async () => {
   const make = (impl) => new TuneScheduler({ homeDir: dir, modelsDir: "models", queueFile, scriptPath: "tune-run.mjs", spawnImpl: impl, readLanes: async () => ({ cpu: 1, gpu: 0 }), readLane: async () => "cpu", logger: { warn() {} } });
   const first = make(spawn.spawnImpl);
   first.start({ models: [{ ...MODELS[0], force: true }], stages: ["quality"] });
-  await new Promise((resolve) => setTimeout(resolve, 100));
-  assert.equal(first.get().items[0].force, true, "force is kept on the queued item");
+  // restore() reads the queue file, so wait for the persisted running item —
+  // not just the in-memory flag — before restoring over it.
+  assert.ok(
+    await waitFor(() => {
+      try {
+        const job = JSON.parse(fs.readFileSync(queueFile, "utf8")).job;
+        return job?.status === "running" && job.items?.[0]?.force === true;
+      } catch {
+        return false;
+      }
+    }),
+    "the queue file records the forced running item",
+  );
   const next = spawner();
   const runner = make(next.spawnImpl);
   await runner.restore();

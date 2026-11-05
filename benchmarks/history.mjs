@@ -158,7 +158,21 @@ export async function openDatabase(dbPath) {
     ["runtime_ms", "INTEGER"],
     ["runtime_version", "TEXT"],
     ["prompt_fingerprint_version", "INTEGER"],
+    // Partial shard rows and batch-1 repro rows share the history with
+    // canonical runs; the scope keeps trends and links on comparable data.
+    ["run_scope", "TEXT"],
   ]);
+  // Backfill scopes for databases written before the column existed. The
+  // result JSON already carries the markers, so old shard and repro rows
+  // are labeled without touching the append-only log.
+  db.exec(
+    `UPDATE runs SET run_scope = CASE
+       WHEN json_extract(result_json, '$.reproRun') IS NOT NULL
+         AND json_extract(result_json, '$.reproRun') != 0 THEN 'repro'
+       WHEN json_extract(result_json, '$.shard') IS NOT NULL THEN 'shard'
+       ELSE 'standard'
+     END WHERE run_scope IS NULL AND json_valid(result_json)`,
+  );
   return db;
 }
 
@@ -189,6 +203,7 @@ function insertRun(db, record) {
   if (existing) return { inserted: false, runId: Number(existing.id) };
 
   insertCommit(db, git, record.recordedAt);
+  const scope = result.reproRun ? "repro" : result.shard ? "shard" : "standard";
   const info = db
     .prepare(
       `INSERT INTO runs (
@@ -196,8 +211,9 @@ function insertRun(db, record) {
         prompt_fingerprint_version, phase, commit_hash, commit_subject,
         commit_branch, commit_dirty, commit_pending, machine_cpu, machine_platform,
         context_size, threads, overall_score, checks_passed, checks_total,
-        tokens_per_second, first_token_ms, runtime_ms, by_category_json, result_json, baseline
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        tokens_per_second, first_token_ms, runtime_ms, by_category_json, result_json, baseline,
+        run_scope
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
       record.uid,
@@ -226,6 +242,7 @@ function insertRun(db, record) {
       JSON.stringify(result.overall?.byCategory ?? {}),
       JSON.stringify(result),
       record.baseline ? 1 : 0,
+      scope,
     );
   const runId = Number(info.lastInsertRowid);
 
@@ -397,8 +414,11 @@ export async function linkRun({ dbPath, historyPath, uid = null, commit, linkedA
     await importHistory(db, historyPath, logger);
     let target = uid;
     if (!target) {
+      // Only a complete, comparable run links to a commit: partial shards
+      // and batch-1 repro rows stay visible as provenance, never as the
+      // commit's benchmark.
       const latest = db
-        .prepare("SELECT uid FROM runs WHERE commit_pending = 1 ORDER BY recorded_at DESC, id DESC LIMIT 1")
+        .prepare("SELECT uid FROM runs WHERE commit_pending = 1 AND run_scope = 'standard' ORDER BY recorded_at DESC, id DESC LIMIT 1")
         .get();
       target = latest?.uid ?? null;
     }
@@ -425,7 +445,7 @@ export function listRuns(db, limit = 20) {
       `SELECT id, uid, recorded_at, suite_version, test_hash, app_version, phase, commit_hash, commit_subject,
               commit_branch, commit_dirty, commit_pending, commit_linked_at, machine_cpu,
               context_size, threads, overall_score, checks_passed, checks_total,
-              tokens_per_second, first_token_ms, runtime_ms, by_category_json, baseline
+              tokens_per_second, first_token_ms, runtime_ms, by_category_json, baseline, run_scope
        FROM runs ORDER BY recorded_at DESC, id DESC LIMIT ?`,
     )
     .all(limit);
@@ -462,7 +482,7 @@ export function modelProgress(db, modelKey, limit = 20) {
               m.context_size, m.threads, m.score, m.tokens_per_second, m.first_token_ms,
               m.memory_bytes
        FROM model_results m JOIN runs r ON r.uid = m.run_uid
-       WHERE m.model_key = ?
+       WHERE m.model_key = ? AND (r.run_scope = 'standard' OR r.run_scope = 'shard')
        ORDER BY r.recorded_at DESC, r.id DESC LIMIT ?`,
     )
     .all(modelKey, limit)

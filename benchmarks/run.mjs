@@ -153,7 +153,8 @@ Options:
                         replaces a baseline.
   --deterministic     Repro mode: batch 1 with each variant measured three times
                         and the noise-floor spread reported (slower, default
-                        off). Never compares or replaces a baseline.
+                        off). Writes results/latest-repro-<phase>.json and never
+                        compares or replaces a baseline.
   --json              Print only the machine-readable result
   --events            Stream JSON progress lines on stdout (for the app)
   -h, --help          Show this help
@@ -321,7 +322,7 @@ async function runModel(engine, entry, spec, options, { index = 0, total = 0 } =
   const memoryBytes = (await engine.status())?.memory?.cpuRam ?? null;
   const systemPrompt = spec.systemPrompt ?? SYSTEM_PROMPT;
   const runCount = options.deterministic && spec.deterministicRepro
-    ? spec.reproRuns ?? DETERMINISM_LOCKDOWN.runs
+    ? Math.max(1, spec.reproRuns ?? DETERMINISM_LOCKDOWN.runs)
     : 1;
   async function runPromptsOnce(runIndex) {
     const prompts = [];
@@ -766,7 +767,7 @@ async function main() {
   }
 
   let baseline = null;
-  if (!singleModel && !options.flash && !shard) {
+  if (!singleModel && !options.flash && !shard && !options.deterministic) {
     try {
       baseline = JSON.parse(await readFile(baselinePath, "utf8"));
     } catch {
@@ -972,6 +973,13 @@ async function main() {
     const shardName = `latest-shard-${shard.index}-of-${shard.total}-${options.phase}-${shard.tag}.json`;
     await writeFile(path.join(RESULTS_DIR, shardName), `${JSON.stringify(result, null, 2)}\n`, "utf8");
     log(options, `\nShard result: ${path.join("results", shardName)} (merge all ${shard.total} shards with node benchmarks/merge-shards.mjs -- --phase ${options.phase} --total ${shard.total} --tag ${shard.tag})`);
+  } else if (options.deterministic) {
+    // A repro run measures the noise floor on batch 1: it never touches the
+    // shared latest files, which always describe the speed-default matrix.
+    result.reproRun = true;
+    const reproName = `latest-repro-${options.phase}.json`;
+    await writeFile(path.join(RESULTS_DIR, reproName), `${JSON.stringify(result, null, 2)}\n`, "utf8");
+    log(options, `\nRepro result: ${path.join("results", reproName)} (informational only — the shared baseline was not read, compared or replaced)`);
   } else {
     if (!options.flash) {
       await writeFile(LATEST, `${JSON.stringify(result, null, 2)}\n`, "utf8");
@@ -1068,6 +1076,8 @@ async function main() {
     log(options, "\nFlash run: base variants on the smoke set. Informational only — the shared baseline was not read, compared or replaced.");
   } else if (shard) {
     log(options, `\nShard run ${shard.index}/${shard.total}: partial matrix, informational only — merge all shards before comparing to a baseline.`);
+  } else if (options.deterministic) {
+    log(options, "\nDeterministic repro run: batch-1 noise-floor measurement, informational only — the shared baseline was not read, compared or replaced.");
   } else if (singleModel) {
     log(options, "\nSingle-model settings sweep: the shared baseline was not read, compared or replaced.");
   } else {

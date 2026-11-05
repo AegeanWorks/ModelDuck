@@ -168,6 +168,7 @@ async function main() {
       const models = run.models
         .map((model) => `${model.label ?? model.model_key} ${Number(model.score).toFixed(0)}%`)
         .join(" · ");
+      const scopeTag = run.run_scope && run.run_scope !== "standard" ? `  [${run.run_scope}]` : "";
       process.stdout.write(
         `  ${shortCommit(run).padEnd(10)} ${date(run.recorded_at).padEnd(16)} ` +
           `${`v${run.suite_version}:${String(run.test_hash || "--------").slice(0, 8)}`.padEnd(13)} ` +
@@ -175,7 +176,7 @@ async function main() {
           `${String(Number(run.overall_score).toFixed(1) + "%").padStart(6)} ` +
           `${String(Number(run.tokens_per_second).toFixed(1)).padStart(6)} tok/s  ` +
           `${String(Math.round((Number(run.runtime_ms) || 0) / 1000) + "s").padStart(6)}  ` +
-          `${models}${run.baseline ? "  [baseline]" : ""}\n`,
+          `${models}${run.baseline ? "  [baseline]" : ""}${scopeTag}\n`,
       );
     }
 
@@ -211,7 +212,11 @@ async function main() {
     }
 
     for (const phase of ["model", "chat"]) {
-      const latest = runs.find((run) => (run.phase || "model") === phase);
+      // A partial shard or a batch-1 repro never stands in as the phase's
+      // checks: prefer the latest standard run, fall back to anything.
+      const latest =
+        runs.find((run) => (run.phase || "model") === phase && (!run.run_scope || run.run_scope === "standard")) ??
+        runs.find((run) => (run.phase || "model") === phase);
       if (!latest) continue;
       const tests = testResults(db, latest.uid);
       if (!tests.length) continue;

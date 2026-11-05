@@ -39,7 +39,9 @@ test("sse writer returns write outcomes and batches frames", async () => {
   let drained = false;
   await Promise.race([
     sseWaitForDrain({ once(event, fn) { if (event === "drain") setTimeout(fn, 1); } }).then(() => { drained = true; }),
-    new Promise((resolve) => setTimeout(resolve, 100)),
+    // Generous on purpose: under a 16-way parallel suite the event loop can
+    // stall well past triple digits; the drain itself resolves in ~1ms.
+    new Promise((resolve) => setTimeout(resolve, 5000)),
   ]);
   assert.equal(drained, true);
 });

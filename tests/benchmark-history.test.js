@@ -119,6 +119,68 @@ test("a run is recorded in SQLite and append-only JSONL, then linked to a commit
   assert.equal(lines[1].commit.hash, "def456");
 });
 
+// Partial shard rows and batch-1 repro runs share the history as provenance,
+// but trends, links and latest-checks stay on comparable standard runs.
+test("run scopes label provenance without corrupting trends or links", async (t) => {
+  const paths = await tempPaths(t);
+  const git = { hash: "abc123", subject: "parent", branch: "main", dirty: true };
+  const standard = await recordRun({ ...paths, result: RESULT, git, pending: true });
+  const shard = await recordRun({
+    ...paths,
+    result: { ...RESULT, shard: { index: 1, total: 2, tag: "core" } },
+    git,
+    pending: true,
+  });
+  const repro = await recordRun({ ...paths, result: { ...RESULT, reproRun: true }, git, pending: true });
+
+  const db = await openDatabase(paths.dbPath);
+  try {
+    const runs = listRuns(db, 10);
+    assert.deepEqual(
+      runs.map((run) => run.run_scope).sort(),
+      ["repro", "shard", "standard"],
+    );
+    // Repro rows use batch 1, so per-model speed trends skip them; shard
+    // rows measure the same settings, so they stay.
+    assert.equal(modelProgress(db, "test-model", 10).length, 2);
+    // Linking picks the latest comparable run, never a partial or repro row.
+    const linked = await linkRun({
+      dbPath: paths.dbPath,
+      historyPath: paths.historyPath,
+      commit: { hash: "def456", subject: "the change", branch: "main", dirty: false },
+    });
+    assert.equal(linked.linked, true);
+    assert.equal(linked.uid, standard.uid);
+    assert.notEqual(linked.uid, shard.uid);
+    assert.notEqual(linked.uid, repro.uid);
+  } finally {
+    db.close();
+  }
+});
+
+// Databases written before the scope column backfill from the stored JSON.
+test("pre-scope history rows gain their scope on open", async (t) => {
+  const paths = await tempPaths(t);
+  await recordRun({
+    ...paths,
+    result: { ...RESULT, shard: { index: 2, total: 2, tag: "core" } },
+    git: { hash: "abc123", subject: "parent", branch: "main", dirty: true },
+  });
+  const { DatabaseSync } = await import("node:sqlite");
+  const raw = new DatabaseSync(paths.dbPath);
+  try {
+    raw.exec("UPDATE runs SET run_scope = NULL");
+  } finally {
+    raw.close();
+  }
+  const db = await openDatabase(paths.dbPath);
+  try {
+    assert.equal(listRuns(db, 5)[0].run_scope, "shard");
+  } finally {
+    db.close();
+  }
+});
+
 test("history.sqlite can be rebuilt from the append-only log", async (t) => {
   const paths = await tempPaths(t);
   await recordRun({
