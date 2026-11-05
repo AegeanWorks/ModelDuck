@@ -12,7 +12,7 @@ import { getCatalogModel } from "../src/model-catalog.js";
 import { createModelRegistry } from "../src/model-registry.js";
 import { systemInfo } from "../src/system.js";
 import { currentGitInfo, recordRun } from "./history.mjs";
-import { MODEL_MATRIX, buildChatMatrix, flashMatrix, modelMatrix, modelMatrixFor, promptListFor, resultFileName, parseShardSpec, shardMatrix } from "./matrix.mjs";
+import { MODEL_MATRIX, aggregateReproRuns, buildChatMatrix, flashMatrix, modelMatrix, modelMatrixFor, promptListFor, resultFileName, parseShardSpec, shardMatrix, withDeterministicRepro, DETERMINISM_LOCKDOWN } from "./matrix.mjs";
 import { BENCHMARK_MODELS, PROMPTS, SUITE_VERSION, SYSTEM_PROMPT, checkCount, evaluateResponse } from "./suite.mjs";
 import { compareRuns, itemSummary, losslessCeilingGate, promptOrigin } from "./stats.mjs";
 import { benchmarkTestHash, modelIdentityChanges } from "./test-hash.mjs";
@@ -55,6 +55,7 @@ function parseArgs(argv) {
     model: null,
     flash: false,
     shard: null,
+    deterministic: false,
   };
   for (let index = 0; index < argv.length; index += 1) {
     const [flag, inline] = argv[index].includes("=")
@@ -113,6 +114,9 @@ function parseArgs(argv) {
       case "--shard":
         options.shard = take();
         break;
+      case "--deterministic":
+        options.deterministic = true;
+        break;
       default:
         throw new AppError(`Unknown option: ${flag}`, { fix: "Run npm run bench -- --help." });
     }
@@ -147,6 +151,9 @@ Options:
                         parallel on separate machines/homes, then merge with
                         node benchmarks/merge-shards.mjs. Never compares or
                         replaces a baseline.
+  --deterministic     Repro mode: batch 1 with each variant measured three times
+                        and the noise-floor spread reported (slower, default
+                        off). Never compares or replaces a baseline.
   --json              Print only the machine-readable result
   --events            Stream JSON progress lines on stdout (for the app)
   -h, --help          Show this help
@@ -298,6 +305,9 @@ async function runModel(engine, entry, spec, options, { index = 0, total = 0 } =
     threads,
     maxThreads: spec.maxThreads ?? threads,
     batchSize: spec.batchSize ?? 512,
+    // IDEA-1627: only the explicit repro path may use batch 1; the engine
+    // keeps the 32 floor for everything else.
+    deterministicRepro: spec.deterministicRepro ?? false,
     sequences: spec.sequences ?? 1,
     flashAttention: spec.flashAttention ?? "auto",
     useMmap: spec.useMmap ?? "auto",
@@ -310,92 +320,132 @@ async function runModel(engine, entry, spec, options, { index = 0, total = 0 } =
   });
   const memoryBytes = (await engine.status())?.memory?.cpuRam ?? null;
   const systemPrompt = spec.systemPrompt ?? SYSTEM_PROMPT;
-  const prompts = [];
-  for (const [promptIndex, prompt] of promptList.entries()) {
-    emit(options, {
-      type: "prompt-start",
-      phase: options.phase,
-      variantId: spec.id,
-      variantIndex: index,
-      variantsTotal: total,
-      label: prompt.label,
-      index: promptIndex + 1,
-      total: promptList.length,
-    });
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 120_000);
-    const started = Date.now();
-    let result;
-    let error = null;
-    try {
-      result = await engine.chat({
-        conversationId: `bench-${entry.id}-${spec.id}-${prompt.id}`,
-        messages: [{ role: "user", content: prompt.prompt }],
-        systemPrompt,
-        settings: {
-          temperature: spec.temperature ?? 0,
-          topP: spec.topP ?? 1,
-          topK: spec.topK ?? 40,
-          minP: spec.minP ?? 0.05,
-          repeatPenalty: spec.repeatPenalty ?? 1.1,
-          promptRepeat: spec.promptRepeat ?? 1,
-          reasoning: spec.reasoning ?? "off",
-          structuredOutput: spec.structuredOutput ?? "none",
-          jsonSchema: spec.jsonSchema ?? "",
-          seed: spec.seed ?? 42,
-          contextOverflow: spec.contextOverflow ?? "shift",
-          maxTokens: prompt.maxTokens,
-          contextSize,
-          threads,
-          kvCache,
-        },
-        signal: controller.signal,
-        onToken: () => {},
+  const runCount = options.deterministic && spec.deterministicRepro
+    ? spec.reproRuns ?? DETERMINISM_LOCKDOWN.runs
+    : 1;
+  async function runPromptsOnce(runIndex) {
+    const prompts = [];
+    for (const [promptIndex, prompt] of promptList.entries()) {
+      emit(options, {
+        type: "prompt-start",
+        phase: options.phase,
+        variantId: spec.id,
+        variantIndex: index,
+        variantsTotal: total,
+        label: prompt.label,
+        index: promptIndex + 1,
+        total: promptList.length,
+        run: runIndex + 1,
+        runs: runCount,
       });
-    } catch (caught) {
-      error = caught;
-      result = { text: "", aborted: false, stats: { ms: Date.now() - started } };
-    } finally {
-      clearTimeout(timeout);
-      engine.dropSession(`bench-${entry.id}-${spec.id}-${prompt.id}`);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 120_000);
+      const started = Date.now();
+      let result;
+      let error = null;
+      try {
+        result = await engine.chat({
+          conversationId: `bench-${entry.id}-${spec.id}-${prompt.id}${runCount > 1 ? `-r${runIndex + 1}` : ""}`,
+          messages: [{ role: "user", content: prompt.prompt }],
+          systemPrompt,
+          settings: {
+            temperature: spec.temperature ?? 0,
+            topP: spec.topP ?? 1,
+            topK: spec.topK ?? 40,
+            minP: spec.minP ?? 0.05,
+            repeatPenalty: spec.repeatPenalty ?? 1.1,
+            promptRepeat: spec.promptRepeat ?? 1,
+            reasoning: spec.reasoning ?? "off",
+            structuredOutput: spec.structuredOutput ?? "none",
+            jsonSchema: spec.jsonSchema ?? "",
+            seed: spec.seed ?? 42,
+            contextOverflow: spec.contextOverflow ?? "shift",
+            maxTokens: prompt.maxTokens,
+            contextSize,
+            threads,
+            kvCache,
+          },
+          signal: controller.signal,
+          onToken: () => {},
+        });
+      } catch (caught) {
+        error = caught;
+        result = { text: "", aborted: false, stats: { ms: Date.now() - started } };
+      } finally {
+        clearTimeout(timeout);
+        engine.dropSession(`bench-${entry.id}-${spec.id}-${prompt.id}${runCount > 1 ? `-r${runIndex + 1}` : ""}`);
+      }
+      const evaluation = error
+        ? { passed: 0, total: checkCount(prompt), checks: Array.from({ length: checkCount(prompt) }, () => ({ type: "error", passed: false, detail: error.message })) }
+        : await evaluateResponse(prompt, result.text);
+      prompts.push({
+        id: prompt.id,
+        label: prompt.label,
+        category: prompt.category,
+        source: prompt.source ?? null,
+        passed: evaluation.passed,
+        total: evaluation.total,
+        checks: evaluation.checks,
+        text: String(result.text ?? "").slice(0, 4000),
+        aborted: Boolean(result.aborted),
+        error: error ? error.message : null,
+        stats: result.stats,
+        manifest: manifestSummary(result.manifest),
+      });
+      const score = evaluation.total ? Math.round((evaluation.passed / evaluation.total) * 100) : 0;
+      emit(options, {
+        type: "prompt",
+        phase: options.phase,
+        variantId: spec.id,
+        promptId: prompt.id,
+        label: prompt.label,
+        index: promptIndex + 1,
+        total: promptList.length,
+        run: runIndex + 1,
+        runs: runCount,
+        passed: evaluation.passed,
+        checks: evaluation.total,
+        score,
+        tokensPerSecond: result.stats?.tokensPerSecond ?? 0,
+      });
+      log(
+        options,
+        `  ${runCount > 1 ? `[run ${runIndex + 1}/${runCount}] ` : ""}${score === 100 ? "PASS" : score === 0 ? "FAIL" : "PART"} ${prompt.label} (${evaluation.passed}/${evaluation.total}) ${result.stats?.tokensPerSecond ?? 0} tok/s`,
+      );
     }
-    const evaluation = error
-      ? { passed: 0, total: checkCount(prompt), checks: Array.from({ length: checkCount(prompt) }, () => ({ type: "error", passed: false, detail: error.message })) }
-      : await evaluateResponse(prompt, result.text);
-    prompts.push({
-      id: prompt.id,
-      label: prompt.label,
-      category: prompt.category,
-      source: prompt.source ?? null,
-      passed: evaluation.passed,
-      total: evaluation.total,
-      checks: evaluation.checks,
-      text: String(result.text ?? "").slice(0, 4000),
-      aborted: Boolean(result.aborted),
-      error: error ? error.message : null,
-      stats: result.stats,
-      manifest: manifestSummary(result.manifest),
-    });
-    const score = evaluation.total ? Math.round((evaluation.passed / evaluation.total) * 100) : 0;
-    emit(options, {
-      type: "prompt",
-      phase: options.phase,
-      variantId: spec.id,
-      promptId: prompt.id,
-      label: prompt.label,
-      index: promptIndex + 1,
-      total: promptList.length,
-      passed: evaluation.passed,
-      checks: evaluation.total,
-      score,
-      tokensPerSecond: result.stats?.tokensPerSecond ?? 0,
-    });
-    log(
-      options,
-      `  ${score === 100 ? "PASS" : score === 0 ? "FAIL" : "PART"} ${prompt.label} (${evaluation.passed}/${evaluation.total}) ${result.stats?.tokensPerSecond ?? 0} tok/s`,
-    );
+    return prompts;
+  }
+  // IDEA-1627: the model loads once; each repro run re-asks every prompt in a
+  // fresh conversation so the triple measures run-to-run noise, not session
+  // reuse. The first run is the primary record; the others only feed `repro`.
+  const promptRuns = [];
+  for (let run = 0; run < runCount; run += 1) {
+    promptRuns.push(await runPromptsOnce(run));
   }
   await engine.unload();
+  const prompts = promptRuns[0];
+  let repro = null;
+  if (promptRuns.length > 1) {
+    const meanTokens = (runPrompts) => {
+      const values = runPrompts
+        .map((prompt) => prompt.stats?.tokensPerSecond)
+        .filter((value) => Number.isFinite(value) && value > 0);
+      if (!values.length) return 0;
+      return values.reduce((sum, value) => sum + value, 0) / values.length;
+    };
+    repro = aggregateReproRuns(
+      promptRuns.map((runPrompts) => ({
+        checksPassed: runPrompts.reduce((sum, prompt) => sum + prompt.passed, 0),
+        checksTotal: runPrompts.reduce((sum, prompt) => sum + prompt.total, 0),
+        tokensPerSecond: meanTokens(runPrompts),
+      })),
+    );
+    if (repro.stable) {
+      log(options, `  repro: quality identical across ${repro.runs} runs, tok/s spread ${repro.spreadPct === null ? "n/a" : `${repro.spreadPct.toFixed(1)}%`} (floor ${DETERMINISM_LOCKDOWN.maxSpreadPct}%)`);
+    } else {
+      log(options, `  repro WARNING: runs disagree (quality stable: ${repro.qualityStable}, tok/s spread: ${repro.spreadPct === null ? "n/a" : `${repro.spreadPct.toFixed(1)}%`}) — treat deltas as noise`);
+    }
+  }
   const checksPassed = prompts.reduce((sum, prompt) => sum + prompt.passed, 0);
   const checksTotal = prompts.reduce((sum, prompt) => sum + prompt.total, 0);
   const modelResult = {
@@ -418,6 +468,11 @@ async function runModel(engine, entry, spec, options, { index = 0, total = 0 } =
     threads,
     maxThreads: spec.maxThreads ?? threads,
     batchSize: spec.batchSize ?? 512,
+    // IDEA-1627: repro provenance rides with the variant; prompts always
+    // come from the primary run so the result schema never changes shape.
+    deterministicRepro: spec.deterministicRepro ?? false,
+    reproRuns: spec.reproRuns ?? 1,
+    repro,
     sequences: spec.sequences ?? 1,
     flashAttention: spec.flashAttention ?? "auto",
     useMmap: spec.useMmap ?? "auto",
@@ -462,6 +517,7 @@ async function runModel(engine, entry, spec, options, { index = 0, total = 0 } =
     score: modelResult.score,
     itemsRate: modelResult.items.rate,
     tokensPerSecond: modelResult.tokensPerSecond,
+    reproStable: repro?.stable ?? null,
   });
   return modelResult;
 }
@@ -579,15 +635,23 @@ async function main() {
       });
     }
     // The filename carries the matrix scope so flash/full/single-model shard
-    // sets never clobber each other; merge-shards matches on this tag.
+    // sets never clobber each other; merge-shards matches on this tag. A
+    // repro run measures batch 1 three times, so it gets its own scope.
     shard.tag = [
       options.flash ? "flash" : null,
       singleModel ? `single-${singleModel.catalogId}` : options.phase === "model" ? (options.fullMatrix ? "full" : "core") : "chat",
       options.phase === "chat" && chatBase ? `base-${chatBase.variantId}` : null,
+      options.deterministic ? "repro" : null,
     ]
       .filter(Boolean)
       .join("-")
       .replace(/[^a-zA-Z0-9._-]+/g, "_");
+  }
+  if (options.deterministic && options.updateBaseline) {
+    throw new AppError("A deterministic repro run cannot replace the baseline", {
+      code: "deterministic_baseline_refused",
+      fix: "Run the standard matrix to replace a baseline; repro runs only measure the noise floor.",
+    });
   }
   let matrix = options.flash
     ? flashMatrix(
@@ -602,6 +666,12 @@ async function main() {
       : singleModel
         ? modelMatrixFor(singleModel.catalogId)
         : modelMatrix({ full: options.fullMatrix });
+  // IDEA-1627: repro mode forces batch 1 on every variant and measures each
+  // one three times. Applied before the hash so repro runs never compare to
+  // a speed-default baseline.
+  if (options.deterministic) {
+    matrix = withDeterministicRepro(matrix, { enabled: true });
+  }
   if (!matrix.length) {
     throw new AppError("That model has no benchmark variants", {
       code: "benchmark_model_unknown",
@@ -665,6 +735,9 @@ async function main() {
   if (shard) {
     log(options, `Shard: ${shard.index}/${shard.total} [${shard.tag}] — run each shard on its own machine/home, then merge with node benchmarks/merge-shards.mjs -- --phase ${options.phase} --total ${shard.total} --tag ${shard.tag}.`);
   }
+  if (options.deterministic) {
+    log(options, `Deterministic repro: batch 1, ${DETERMINISM_LOCKDOWN.runs} runs per variant, noise floor ${DETERMINISM_LOCKDOWN.maxSpreadPct}%.`);
+  }
   log(options, `Unsupported by the runtime: ${Object.keys(UNSUPPORTED_SETTINGS).join(", ")}`);
   emit(options, {
     type: "benchmark",
@@ -672,6 +745,7 @@ async function main() {
     suiteVersion: SUITE_VERSION,
     testHash,
     shard: shard ? { ...shard } : null,
+    deterministic: options.deterministic,
     variants: matrix.length,
     models: new Set(matrix.map((spec) => spec.catalogId)).size,
   });

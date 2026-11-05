@@ -24,6 +24,12 @@ export function benchmarkTestHash({ suiteVersion, phase, prompts, matrix, system
       threads: variant.threads,
       maxThreads: variant.maxThreads,
       batchSize: variant.batchSize,
+      // A batch-1 repro run measures differently than the speed default, so
+      // the repro flag is part of the test definition. It is only hashed when
+      // set: normal matrices keep their existing hash and baseline.
+      ...(variant.deterministicRepro
+        ? { deterministicRepro: true, reproRuns: variant.reproRuns ?? 1 }
+        : {}),
       sequences: variant.sequences,
       flashAttention: variant.flashAttention,
       useMmap: variant.useMmap,

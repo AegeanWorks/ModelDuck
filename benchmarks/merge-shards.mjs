@@ -131,10 +131,11 @@ async function main() {
 
   // Warn when the union does not cover the expected matrix for this tag.
   // The tag encodes the shard scope (core, full, flash-*, single-<id>,
-  // chat[-base-<id>]); a tag the merger does not recognize skips the
-  // coverage check instead of warning spuriously.
+  // chat[-base-<id>], each optionally suffixed with -repro for deterministic
+  // repro runs); a tag the merger does not recognize skips the coverage
+  // check instead of warning spuriously.
   const expectedIds = (() => {
-    const raw = first.tag ?? "";
+    const raw = (first.tag ?? "").replace(/-repro$/, "");
     const isFlash = raw === "flash" || raw.startsWith("flash-");
     const base = isFlash ? raw.slice("flash".length).replace(/^-/, "") || "core" : raw;
     const wrap = (ids) => (isFlash ? flashMatrix(ids) : ids);

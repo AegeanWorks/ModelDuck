@@ -70,3 +70,35 @@ test("a backend can be started without a model, failing the way a load would", a
   await engine.startBackend("cpu");
   await assert.rejects(engine.startBackend("vulkan"), (error) => error.code === "gpu_backend_failed" && /NoBinaryFoundError/.test(error.why));
 });
+
+// IDEA-1627: batch 1 reaches the runtime only on the explicit repro path;
+// everything else keeps the 32 floor.
+test("batch 1 loads only with the deterministic repro flag", async (t) => {
+  const seen = [];
+  const capturing = async () => ({
+    LlamaChatSession: class {},
+    LlamaCompletion: class {},
+    getModuleVersion: async () => "test",
+    getLlama: async () => ({
+      gpu: false,
+      maxThreads: 4,
+      loadModel: async () => ({
+        trainContextSize: 8192,
+        tokenize: (text) => [...String(text)],
+        createContext: async (contextOptions) => {
+          seen.push({ ...contextOptions });
+          return { contextSize: contextOptions.contextSize, sequencesLeft: 1, getSequence: () => ({ dispose() {} }), dispose: async () => {} };
+        },
+        dispose: async () => {},
+      }),
+      dispose: async () => {},
+    }),
+  });
+  const engine = new LlamaEngine({ registry, logger: quiet, availableMemory: () => 16 * GIB, loadRuntime: capturing });
+  t.after(() => engine.dispose().catch(() => {}));
+  await engine.load({ modelId: "m1", batchSize: 1 });
+  assert.equal(seen.at(-1).batchSize, 32, "unflagged batch 1 floors to 32");
+  await engine.unload();
+  await engine.load({ modelId: "m1", batchSize: 1, deterministicRepro: true });
+  assert.equal(seen.at(-1).batchSize, 1, "the repro flag lets batch 1 through");
+});

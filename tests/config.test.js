@@ -181,6 +181,16 @@ test("stop lists are isolated copies, not shared references", () => {
   assert.deepEqual(DEFAULT_SETTINGS.customStopTriggers, []);
 });
 
+// IDEA-1627: the repro flag survives normalization, and only then is batch
+// 1 legal. Every other path keeps the 32 floor.
+test("determinism lockdown opts in explicitly and keeps batch 1", () => {
+  assert.equal(normalizeSettings({}).deterministicRepro, false);
+  assert.equal(normalizeSettings({ deterministicRepro: true }).deterministicRepro, true);
+  assert.equal(normalizeSettings({ batchSize: 1 }).batchSize, 32);
+  assert.equal(normalizeSettings({ batchSize: 1, deterministicRepro: true }).batchSize, 1);
+  assert.equal(normalizeSettings({ batchSize: 8, deterministicRepro: true }).batchSize, 8);
+});
+
 test("resolvePaths puts all state under the chosen home", () => {
   const home = path.join(os.tmpdir(), "duck-home");
   const models = path.join(os.tmpdir(), "duck-models");

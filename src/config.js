@@ -241,6 +241,10 @@ export function normalizeSettings(input = {}) {
   const kvCache = String(source.kvCache ?? "f16").toLowerCase();
   const flashAttention = String(source.flashAttention ?? "auto").toLowerCase();
   const useMmap = String(source.useMmap ?? "auto").toLowerCase();
+  // IDEA-1627: the repro flag survives normalization, and only then is batch
+  // 1 legal. Every other path keeps the 32 floor so the app never silently
+  // runs a slow repro batch.
+  const deterministicRepro = source.deterministicRepro === true;
   return {
     temperature: clampNumber(source.temperature, 0, 2, DEFAULT_SETTINGS.temperature),
     topP: clampNumber(source.topP, 0.05, 1, DEFAULT_SETTINGS.topP),
@@ -278,7 +282,8 @@ export function normalizeSettings(input = {}) {
     jsonSchema: typeof source.jsonSchema === "string" ? source.jsonSchema.slice(0, 12000) : "",
     threads: clampInteger(source.threads, 1, 64, DEFAULT_SETTINGS.threads),
     maxThreads: clampInteger(source.maxThreads, 1, 64, DEFAULT_SETTINGS.maxThreads),
-    batchSize: clampInteger(source.batchSize, 32, 8192, DEFAULT_SETTINGS.batchSize),
+    batchSize: clampInteger(source.batchSize, deterministicRepro ? 1 : 32, 8192, DEFAULT_SETTINGS.batchSize),
+    deterministicRepro,
     sequences: clampInteger(source.sequences, 1, 8, DEFAULT_SETTINGS.sequences),
     flashAttention: FLASH_ATTENTION_TYPES.has(flashAttention)
       ? flashAttention

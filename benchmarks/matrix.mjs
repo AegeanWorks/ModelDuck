@@ -332,6 +332,30 @@ export function withDeterministicRepro(matrix, { enabled = false } = {}) {
   }));
 }
 
+/**
+ * IDEA-1627: combine one variant's triple-run repro repeats. Quality must be
+ * identical across runs (greedy answers should not flip); speed must sit
+ * within the noise floor. The result records all three runs; callers keep
+ * the primary run's prompts so the result schema never changes shape.
+ */
+export function aggregateReproRuns(runs) {
+  const list = [...(runs ?? [])];
+  const checks = list.map((run) => run?.checksPassed ?? 0);
+  const tokensPerSecond = list.map((run) => run?.tokensPerSecond ?? 0);
+  const qualityStable = checks.length > 0 && checks.every((value) => value === checks[0]);
+  const noise = isNoiseFloorStable(tokensPerSecond);
+  return {
+    runs: list.length,
+    checks,
+    tokensPerSecond,
+    qualityStable,
+    meanTokensPerSecond: noise.mean,
+    spreadTokensPerSecond: noise.spread,
+    spreadPct: noise.spreadPct,
+    stable: qualityStable && noise.stable,
+  };
+}
+
 /** One batch-1 repro variant for `catalogId`, for direct repro comparisons. */
 export function reproVariant(id, catalogId, overrides = {}) {
   return {

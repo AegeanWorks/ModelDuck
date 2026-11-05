@@ -464,6 +464,9 @@ export class LlamaEngine {
     checkpointInterval,
     checkpointMax,
     kvCache,
+    // IDEA-1627: batch 1 is the repro path, explicitly opted in. The app
+    // keeps the 32 floor; only a deterministic repro run passes true.
+    deterministicRepro = false,
     force = false,
   }) {
     if (this.#running > 0) {
@@ -550,7 +553,10 @@ export class LlamaEngine {
 
       const actualThreads = Math.max(1, Math.min(64, Number(threads) || 4));
       const actualMaxThreads = Math.max(1, Math.min(64, Number(maxThreads) || actualThreads));
-      const actualBatchSize = Math.max(32, Math.min(8192, Number(batchSize) || 512));
+      // IDEA-1627: batch 1 is valid only on the explicit repro path; the app
+      // keeps the 32 floor so a mistyped batch never silently slows to a crawl.
+      const batchFloor = deterministicRepro === true ? 1 : 32;
+      const actualBatchSize = Math.max(batchFloor, Math.min(8192, Number(batchSize) || 512));
       const actualSequences = Math.max(1, Math.min(8, Number(sequences) || 1));
       const kvLabel = validKvLabel(kvCache);
       const { key: kvKey, value: kvValue } = splitKvCache(kvLabel);

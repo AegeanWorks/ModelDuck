@@ -144,6 +144,7 @@ may be in a model's training data, so the report shows **own questions** and
 npm run bench -- --download        # first run: fetch missing models, core phase
 npm run bench -- --shard 1/3        # segment 1 of 3 (run 2/3 and 3/3 alongside it)
 npm run bench:merge -- --phase model --total 3   # combine the 3 shard outputs into one report
+npm run bench -- --deterministic      # repro mode: batch 1, each variant 3x with a noise-floor report
 npm run bench:flash                 # base variants on the 16-item smoke set, minutes not hours (informational)
 npm run bench:all                  # optional: add the model-usage phase
 npm run bench:full                 # optional: add Llama 3B and Phi 3.8B
