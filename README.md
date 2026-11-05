@@ -71,6 +71,8 @@ npm start -- --port 4141 --no-open
 npm start -- --home D:\ModelDuckData --models D:\Models
 npm run dev                  # restart on source changes
 npm test                     # hermetic unit + integration tests
+npm run test:parallel        # same suite, split into parallel segments (fastest full run)
+npm run test:parallel -- --shard 1/3   # one segment only (CI matrix: 1/3, 2/3, 3/3)
 npm run ui:smoke             # headless control-panel and dialog check
 npm run tune -- --model qwen2.5-0.5b-instruct-q4   # tune one model (reuses a saved profile)
 npm run tune -- --model <id> --tasks code,comprehension --force   # re-tune chosen tasks
@@ -140,7 +142,9 @@ may be in a model's training data, so the report shows **own questions** and
 
 ```bash
 npm run bench -- --download        # first run: fetch missing models, core phase
-npm run bench:flash               # base variants on the 16-item smoke set, minutes not hours (informational)
+npm run bench -- --shard 1/3        # segment 1 of 3 (run 2/3 and 3/3 alongside it)
+npm run bench:merge -- --phase model --total 3   # combine the 3 shard outputs into one report
+npm run bench:flash                 # base variants on the 16-item smoke set, minutes not hours (informational)
 npm run bench:all                  # optional: add the model-usage phase
 npm run bench:full                 # optional: add Llama 3B and Phi 3.8B
 npm run bench -- --model <id>      # settings sweep for one model; never touches a baseline
@@ -168,6 +172,16 @@ sweeps 17 reload settings for that model on the 16-item smoke set, writes
 coding and speed-within-budget configuration for that model. It records history
 but never reads, compares or replaces the shared baseline; `--update-baseline` is
 refused.
+
+Parallel benchmark segments: `--shard i/n` runs one deterministic segment of
+the matrix, grouped by model file so each worker loads fewer models. Run each
+shard on its own machine (or its own `--home`, never sharing one home folder),
+then `npm run bench:merge -- --phase model --total n` to combine the
+`results/latest-shard-*-of-n-<phase>-<tag>.json` files into `results/latest-<phase>.json`.
+The tag (core, full, flash, single-<id>, chat) keeps scopes apart; when shards
+from several scopes share a folder, pass the same `--tag` the shard runs printed.
+The merge refuses mismatched suites, hashes, runtimes, or run settings.
+Shards never compare or replace a baseline; only the merged result is compared.
 
 Every run records `suiteVersion`, a SHA-256 `testHash`, `runtimeMs`, model
 settings and sampling settings. A result delta is only attributed to a parameter
@@ -412,6 +426,7 @@ refuse a file that does not start with the `GGUF` signature.
 
 ```bash
 npm test
+npm run test:parallel       # same gate, sharded across CPU cores
 ```
 
 `npm test` also checks the control-panel wiring: every element the app looks up
@@ -475,10 +490,12 @@ modelduck/
 │       └── duck.svg <- the ModelDuck mascot and favicon
 ├── scripts/
 │   ├── capture-screenshots.mjs <- screenshot gallery
+│   ├── test-parallel.mjs <- sharded parallel `npm test` runner
 │   └── ui-smoke.mjs <- control-panel check
 ├── benchmarks/ <- seeded quality, speed and history gate
 │   ├── README.md
 │   ├── run.mjs
+│   ├── merge-shards.mjs
 │   ├── suite.mjs
 │   ├── matrix.mjs
 │   ├── public-items.mjs
@@ -586,6 +603,8 @@ modelduck/
 │   ├── sampler-chain.test.js
 │   ├── gguf-preflight.test.js
 │   ├── matrix-determinism.test.js
+│   ├── matrix-sharding.test.js
+│   ├── test-parallel-shards.test.js
 │   ├── tune-quota.test.js
 │   ├── benchmark-bench-honesty.test.js
 │   ├── wave3-settings-docs.test.js

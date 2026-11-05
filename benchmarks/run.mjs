@@ -12,7 +12,7 @@ import { getCatalogModel } from "../src/model-catalog.js";
 import { createModelRegistry } from "../src/model-registry.js";
 import { systemInfo } from "../src/system.js";
 import { currentGitInfo, recordRun } from "./history.mjs";
-import { MODEL_MATRIX, buildChatMatrix, flashMatrix, modelMatrix, modelMatrixFor, promptListFor, resultFileName } from "./matrix.mjs";
+import { MODEL_MATRIX, buildChatMatrix, flashMatrix, modelMatrix, modelMatrixFor, promptListFor, resultFileName, parseShardSpec, shardMatrix } from "./matrix.mjs";
 import { BENCHMARK_MODELS, PROMPTS, SUITE_VERSION, SYSTEM_PROMPT, checkCount, evaluateResponse } from "./suite.mjs";
 import { compareRuns, itemSummary, losslessCeilingGate, promptOrigin } from "./stats.mjs";
 import { benchmarkTestHash, modelIdentityChanges } from "./test-hash.mjs";
@@ -54,6 +54,7 @@ function parseArgs(argv) {
     fullMatrix: false,
     model: null,
     flash: false,
+    shard: null,
   };
   for (let index = 0; index < argv.length; index += 1) {
     const [flag, inline] = argv[index].includes("=")
@@ -109,6 +110,9 @@ function parseArgs(argv) {
       case "--flash":
         options.flash = true;
         break;
+      case "--shard":
+        options.shard = take();
+        break;
       default:
         throw new AppError(`Unknown option: ${flag}`, { fix: "Run npm run bench -- --help." });
     }
@@ -137,7 +141,12 @@ Options:
   --full-matrix       Run all six model families (default: the three core models)
   --model <id>        Sweep reload settings for one model on the smoke set (never replaces a baseline)
   --flash             Base variant per family on the 16-item smoke set, minutes not hours
-                      (informational only: never compares or replaces a baseline)
+                        (informational only: never compares or replaces a baseline)
+  --shard <i/n>       Run only segment i of n (e.g. --shard 2/4). Variants group by
+                        model file so each shard loads fewer models; run shards in
+                        parallel on separate machines/homes, then merge with
+                        node benchmarks/merge-shards.mjs. Never compares or
+                        replaces a baseline.
   --json              Print only the machine-readable result
   --events            Stream JSON progress lines on stdout (for the app)
   -h, --help          Show this help
@@ -560,7 +569,27 @@ async function main() {
       fix: "Run the core matrix (npm run bench) or --full-matrix to replace a baseline.",
     });
   }
-  const matrix = options.flash
+  let shard = null;
+  if (options.shard) {
+    shard = parseShardSpec(options.shard);
+    if (options.updateBaseline) {
+      throw new AppError("A shard cannot replace the baseline", {
+        code: "shard_baseline_refused",
+        fix: "Run the full matrix to replace a baseline, then merge shards with benchmarks/merge-shards.mjs.",
+      });
+    }
+    // The filename carries the matrix scope so flash/full/single-model shard
+    // sets never clobber each other; merge-shards matches on this tag.
+    shard.tag = [
+      options.flash ? "flash" : null,
+      singleModel ? `single-${singleModel.catalogId}` : options.phase === "model" ? (options.fullMatrix ? "full" : "core") : "chat",
+      options.phase === "chat" && chatBase ? `base-${chatBase.variantId}` : null,
+    ]
+      .filter(Boolean)
+      .join("-")
+      .replace(/[^a-zA-Z0-9._-]+/g, "_");
+  }
+  let matrix = options.flash
     ? flashMatrix(
         options.phase === "chat"
           ? buildChatMatrix(chatBaseSettings(chatBase))
@@ -596,6 +625,17 @@ async function main() {
     matrix,
     systemPrompt: SYSTEM_PROMPT,
   });
+  // Shard AFTER the full-matrix test hash: every shard reports the same hash
+  // so the merged result stays comparable to the baseline.
+  if (shard) {
+    matrix = shardMatrix(matrix, shard.index, shard.total);
+    if (!matrix.length) {
+      throw new AppError("That shard has no benchmark variants", {
+        code: "benchmark_shard_empty",
+        fix: "Use fewer shards, or a different phase/matrix.",
+      });
+    }
+  }
 
   if (options.contextSize !== null && (!Number.isFinite(options.contextSize) || options.contextSize < 512)) {
     throw new AppError("Invalid context size", { fix: "Use at least 512." });
@@ -622,12 +662,16 @@ async function main() {
     log(options, `Flash: ${matrix.length} base variants on the 16-item smoke set — informational only, no baseline comparison.`);
   }
   log(options, `Matrix: ${matrix.length} variants · CPU ${systemInfo().cpu}`);
+  if (shard) {
+    log(options, `Shard: ${shard.index}/${shard.total} [${shard.tag}] — run each shard on its own machine/home, then merge with node benchmarks/merge-shards.mjs -- --phase ${options.phase} --total ${shard.total} --tag ${shard.tag}.`);
+  }
   log(options, `Unsupported by the runtime: ${Object.keys(UNSUPPORTED_SETTINGS).join(", ")}`);
   emit(options, {
     type: "benchmark",
     phase: options.phase,
     suiteVersion: SUITE_VERSION,
     testHash,
+    shard: shard ? { ...shard } : null,
     variants: matrix.length,
     models: new Set(matrix.map((spec) => spec.catalogId)).size,
   });
@@ -648,7 +692,7 @@ async function main() {
   }
 
   let baseline = null;
-  if (!singleModel && !options.flash) {
+  if (!singleModel && !options.flash && !shard) {
     try {
       baseline = JSON.parse(await readFile(baselinePath, "utf8"));
     } catch {
@@ -792,7 +836,10 @@ async function main() {
     },
     settings: {
       matrix: true,
-      matrixScope: options.flash
+      shard: shard ? { ...shard } : null,
+      matrixScope: shard
+        ? `shard:${shard.index}/${shard.total}`
+        : options.flash
         ? "flash"
         : singleModel
           ? `single:${singleModel.catalogId}`
@@ -846,14 +893,21 @@ async function main() {
     tests,
     models,
   };
-  if (!options.flash) {
-    await writeFile(LATEST, `${JSON.stringify(result, null, 2)}\n`, "utf8");
+  if (shard) {
+    result.shard = { ...shard };
+    const shardName = `latest-shard-${shard.index}-of-${shard.total}-${options.phase}-${shard.tag}.json`;
+    await writeFile(path.join(RESULTS_DIR, shardName), `${JSON.stringify(result, null, 2)}\n`, "utf8");
+    log(options, `\nShard result: ${path.join("results", shardName)} (merge all ${shard.total} shards with node benchmarks/merge-shards.mjs -- --phase ${options.phase} --total ${shard.total} --tag ${shard.tag})`);
+  } else {
+    if (!options.flash) {
+      await writeFile(LATEST, `${JSON.stringify(result, null, 2)}\n`, "utf8");
+    }
+    await writeFile(
+      path.join(RESULTS_DIR, resultFileName({ flash: options.flash, phase: options.phase, singleModelCatalogId: singleModel?.catalogId ?? null })),
+      `${JSON.stringify(result, null, 2)}\n`,
+      "utf8",
+    );
   }
-  await writeFile(
-    path.join(RESULTS_DIR, resultFileName({ flash: options.flash, phase: options.phase, singleModelCatalogId: singleModel?.catalogId ?? null })),
-    `${JSON.stringify(result, null, 2)}\n`,
-    "utf8",
-  );
 
   log(options, "\nResults");
   log(options, "─".repeat(96));
@@ -938,6 +992,8 @@ async function main() {
     }
   } else if (options.flash) {
     log(options, "\nFlash run: base variants on the smoke set. Informational only — the shared baseline was not read, compared or replaced.");
+  } else if (shard) {
+    log(options, `\nShard run ${shard.index}/${shard.total}: partial matrix, informational only — merge all shards before comparing to a baseline.`);
   } else if (singleModel) {
     log(options, "\nSingle-model settings sweep: the shared baseline was not read, compared or replaced.");
   } else {

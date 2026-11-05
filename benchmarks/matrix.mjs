@@ -520,6 +520,58 @@ export function resultFileName({ flash, phase, singleModelCatalogId = null }) {
   return `latest-${phase}.json`;
 }
 
+/**
+ * Parse a `--shard i/n` spec (1-based). Kept here (not run.mjs) so unit
+ * tests can import it — run.mjs executes on import.
+ */
+export function parseShardSpec(text) {
+  const match = /^(\d+)\s*\/\s*(\d+)$/.exec(String(text ?? "").trim());
+  if (!match) throw new Error(`Bad shard ${JSON.stringify(text)}; use i/n like 2/4.`);
+  const index = Number(match[1]);
+  const total = Number(match[2]);
+  if (!Number.isInteger(index) || !Number.isInteger(total) || index < 1 || total < 1 || index > total) {
+    throw new Error(`Bad shard ${JSON.stringify(text)}; need 1 <= i <= n.`);
+  }
+  return { index, total };
+}
+
+/**
+ * Split a benchmark matrix into `total` deterministic segments for parallel
+ * runs ("multiple models at once at different segments"). Variants are
+ * grouped by model file first so one model's reload variants stay together
+ * (fewer loads per worker), then groups deal round-robin across shards.
+ * When there are fewer model files than shards (e.g. the chat phase, where
+ * every variant shares one model file), variants deal round-robin instead so
+ * no shard is empty. Returns the `index`-th shard (1-based), preserving
+ * matrix order within it.
+ */
+export function shardMatrix(matrix, index, total) {
+  const { index: i, total: n } = Number.isInteger(index) && Number.isInteger(total)
+    ? { index, total }
+    : parseShardSpec(`${index}/${total}`);
+  if (i < 1 || n < 1 || i > n) throw new Error(`Bad shard ${i}/${n}; need 1 <= i <= n.`);
+  const groups = new Map();
+  for (const spec of matrix) {
+    const key = spec.fileName ?? spec.catalogId ?? spec.id;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(spec);
+  }
+  const shards = Array.from({ length: n }, () => []);
+  if (groups.size >= n) {
+    [...groups.values()].forEach((group, groupIndex) => {
+      shards[groupIndex % n].push(...group);
+    });
+  } else {
+    // Fewer files than shards: deal variants round-robin so every shard runs.
+    matrix.forEach((spec, specIndex) => {
+      shards[specIndex % n].push(spec);
+    });
+  }
+  // Restore global matrix order inside the shard so prompt/QA order is stable.
+  const order = new Map(matrix.map((spec, at) => [spec.id, at]));
+  return shards[i - 1].sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+}
+
 export const MATRIX_VERSION = 4;
 
 export const MATRIX_MODELS = [...new Map(

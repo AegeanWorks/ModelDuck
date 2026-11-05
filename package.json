@@ -12,6 +12,7 @@
     "start": "node src/main.js",
     "dev": "node --watch src/main.js --no-open",
     "test": "node --test tests",
+    "test:parallel": "node scripts/test-parallel.mjs",
     "ui:smoke": "node scripts/ui-smoke.mjs",
     "ui:shots": "node scripts/capture-screenshots.mjs",
     "bench": "node benchmarks/run.mjs --phase model",
@@ -27,6 +28,7 @@
     "bench:link": "node benchmarks/link.mjs",
     "bench:model": "node benchmarks/run.mjs --phase model",
     "bench:chat": "node benchmarks/run.mjs --phase chat",
+    "bench:merge": "node benchmarks/merge-shards.mjs",
     "bench:curve": "node benchmarks/context-curve.mjs",
     "verify:manifest": "node benchmarks/verify-manifest.mjs"
   },
