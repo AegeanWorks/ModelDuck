@@ -93,6 +93,11 @@ async function main() {
     `Linked run ${result.uid} to ${git.hash.slice(0, 8)} (${git.subject || "no subject"}).\n` +
       "history.jsonl changed; commit that bookkeeping update if you track it.\n",
   );
+  if (result.runScope && result.runScope !== "standard") {
+    process.stdout.write(
+      `WARNING: linked run is scoped [${result.runScope}], not a comparable standard run; trends skip it.\n`,
+    );
+  }
 }
 
 main().catch((error) => {

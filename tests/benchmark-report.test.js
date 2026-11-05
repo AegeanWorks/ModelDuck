@@ -5,6 +5,7 @@ import path from "node:path";
 import test from "node:test";
 
 import { SUITE_VERSION } from "../benchmarks/suite.mjs";
+import { latestRunForPhase } from "../benchmarks/report.mjs";
 import { loadBenchmarkReport, summarizeBenchmark } from "../src/benchmark-report.js";
 
 const MODEL = {
@@ -197,4 +198,14 @@ test("the Bench summary recommends settings from the latest model run", () => {
 
 test("the report names the current suite version so older reports can be told apart", () => {
   assert.equal(summarizeBenchmark().currentSuiteVersion, SUITE_VERSION);
+});
+
+test("latestRunForPhase prefers standard runs and falls back with scope intact", () => {
+  const standard = { uid: "s", phase: "model", run_scope: "standard" };
+  const repro = { uid: "r", phase: "model", run_scope: "repro" };
+  const shard = { uid: "h", phase: "model", run_scope: "shard" };
+  assert.equal(latestRunForPhase([repro, standard], "model"), standard);
+  assert.equal(latestRunForPhase([repro, shard], "model"), repro);
+  assert.equal(latestRunForPhase([repro], "chat"), undefined);
+  assert.equal(latestRunForPhase([{ uid: "x" }], "model").uid, "x", "missing scope counts as standard");
 });

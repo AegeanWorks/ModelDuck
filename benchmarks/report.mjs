@@ -14,6 +14,16 @@ import {
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
+/**
+ * The run the report shows per phase: the latest standard run, falling back
+ * to anything when only shard or repro runs exist. Shared by the text and
+ * JSON outputs so both pick the same run.
+ */
+export function latestRunForPhase(runs, phase) {
+  return runs.find((run) => (run.phase || "model") === phase && (!run.run_scope || run.run_scope === "standard")) ??
+    runs.find((run) => (run.phase || "model") === phase);
+}
+
 function parseArgs(argv) {
   const options = {
     limit: 10,
@@ -150,6 +160,15 @@ async function main() {
             imported,
             runs,
             progress,
+            // Which run the text report would show per phase: the latest
+            // standard run, falling back to anything. JSON consumers use
+            // this instead of reimplementing the preference.
+            latestByPhase: Object.fromEntries(
+              ["model", "chat"].map((phase) => {
+                const latest = latestRunForPhase(runs, phase);
+                return [phase, latest ? { uid: latest.uid, run_scope: latest.run_scope ?? null } : null];
+              }),
+            ),
           },
           null,
           2,
@@ -214,9 +233,7 @@ async function main() {
     for (const phase of ["model", "chat"]) {
       // A partial shard or a batch-1 repro never stands in as the phase's
       // checks: prefer the latest standard run, fall back to anything.
-      const latest =
-        runs.find((run) => (run.phase || "model") === phase && (!run.run_scope || run.run_scope === "standard")) ??
-        runs.find((run) => (run.phase || "model") === phase);
+      const latest = latestRunForPhase(runs, phase);
       if (!latest) continue;
       const tests = testResults(db, latest.uid);
       if (!tests.length) continue;
@@ -245,7 +262,17 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  process.stderr.write(`\n[bench:report] ${error.message}\n`);
-  process.exit(1);
-});
+const invokedDirectly = (() => {
+  try {
+    return process.argv[1] != null && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+  } catch {
+    return false;
+  }
+})();
+
+if (invokedDirectly) {
+  main().catch((error) => {
+    process.stderr.write(`\n[bench:report] ${error.message}\n`);
+    process.exit(1);
+  });
+}

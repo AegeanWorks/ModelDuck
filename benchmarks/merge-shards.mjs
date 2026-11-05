@@ -16,14 +16,16 @@ per segment from \`run.mjs --shard i/n\`) into a single combined result so
 parallel "multiple models at once at different segments" runs finish ASAP
 and still produce one report. Refuses to merge mismatched suites/hashes,
 runtimes, or run settings. Writes results/latest-<phase>.json (plus
-results/latest.json) and records history.
+results/latest.json) and records history. Repro merges write
+results/latest-repro-merged-<phase>-<tag>.json instead and never touch the
+shared latest files; --out pointing at a canonical latest*.json name is
+refused for them.
 
 The tag is printed by each shard run (core, full, flash, single-<id>, chat,
-..., each optionally suffixed with -repro). When shards were --full-matrix,
---flash, or --deterministic, pass the same tag here so the merge picks up
-the right files; without --tag every matching tag group must agree on
-exactly one tag. Merging deterministic shards keeps the repro scope: the
-output goes to results/latest-repro-<phase>-<tag>.json and never touches the
+..., each optionally suffixed with -repro for deterministic repro runs).
+When shards were --full-matrix, --flash, or --deterministic, pass the same
+tag here so the merge picks up the right files; without --tag every matching
+tag group must agree on exactly one tag. A repro merge never touches the
 shared latest files.
 `;
 
@@ -72,6 +74,35 @@ function shardFilePattern(index, total, phase) {
   return new RegExp(`^latest-shard-${index}-of-${total}-${phase}-(.+)\\.json$`);
 }
 
+/**
+ * A shard counts as repro from its tag or its content, so an all-failed
+ * repro shard (whose variants carry no flags) still classifies correctly.
+ * Null-safe: a corrupt shard file parses but never classifies as standard.
+ */
+export function isReproShard({ tag, result } = {}) {
+  return (tag ?? "").endsWith("-repro") || result?.reproRun ||
+    (result?.models ?? []).some((model) => model?.deterministicRepro);
+}
+
+/**
+ * Where a merged result goes. A repro merge never touches the shared
+ * latest files; an explicit --out pointing at a canonical latest name is
+ * refused for repro merges instead of silently clobbering the baseline
+ * inputs the Bench panel and reports read.
+ */
+export function mergedOutFile({ phase, tag, isRepro, out }) {
+  if (out) {
+    if (isRepro) {
+      const base = path.basename(out);
+      if (base === "latest.json" || base.startsWith("latest-")) {
+        throw new Error(`Refusing to write a repro merge to canonical file ${base}; use a results/latest-repro-* name or omit --out.`);
+      }
+    }
+    return out;
+  }
+  return path.join(RESULTS_DIR, isRepro ? `latest-repro-merged-${phase}-${tag}.json` : `latest-${phase}.json`);
+}
+
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   if (options.help) { process.stdout.write(USAGE); return; }
@@ -105,17 +136,12 @@ async function main() {
   const [first] = shards;
   // Every shard must come from the same scope: batch-1 repro segments and
   // speed-default segments measure different things and must never merge.
-  // A shard counts as repro from its tag or its content, so an all-failed
-  // repro shard (whose variants carry no flags) still classifies correctly.
-  const shardRepro = ({ tag, result }) =>
-    (tag ?? "").endsWith("-repro") || result.reproRun ||
-    (result.models ?? []).some((model) => model.deterministicRepro);
   for (const { file, tag } of shards) {
     if (tag !== first.tag) {
       throw new Error(`${file}: scope ${tag} differs from ${first.tag}; merge one scope at a time (pass --tag to choose).`);
     }
   }
-  const reproFlags = shards.map(shardRepro);
+  const reproFlags = shards.map(isReproShard);
   if (reproFlags.some(Boolean) && !reproFlags.every(Boolean)) {
     throw new Error("Mixed repro and speed-default shards refuse to merge; measure one scope and merge it separately.");
   }
@@ -134,12 +160,16 @@ async function main() {
     if (result.testHash !== first.result.testHash) throw new Error(`${file}: test hash differs; shards must come from the same matrix. Delete stale shard files and rerun.`);
   }
   // Runtime, app, run flags, and chat base must agree: shards ran the same
-  // experiment on different machines, not different experiments.
+  // experiment on different machines, not different experiments. The scope
+  // itself is checked too, so a renamed file cannot smuggle one scope's
+  // segments into another's merge.
   same((result) => result.runtime, "runtime");
   same((result) => result.appVersion, "appVersion");
   same((result) => result.settings?.contextSizeOverride ?? null, "context-size override");
   same((result) => result.settings?.threadsOverride ?? null, "threads override");
   same((result) => result.settings?.chatBase ?? null, "chat base");
+  same((result) => result.settings?.matrixScope ?? null, "matrix scope");
+  same((result) => Boolean(result.reproRun), "repro flag");
 
   const seen = new Map();
   for (const { file, result } of shards) {
@@ -220,7 +250,7 @@ async function main() {
     models,
   };
 
-  const outFile = options.out ?? path.join(RESULTS_DIR, isRepro ? `latest-repro-merged-${options.phase}-${first.tag}.json` : `latest-${options.phase}.json`);
+  const outFile = mergedOutFile({ phase: options.phase, tag: first.tag, isRepro, out: options.out });
   await writeFile(outFile, `${JSON.stringify(merged, null, 2)}\n`);
   if (!options.out && !isRepro) await writeFile(path.join(RESULTS_DIR, "latest.json"), `${JSON.stringify(merged, null, 2)}\n`);
 
