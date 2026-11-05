@@ -1,46 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-9push",
+    "task_id": "verify-12push",
     "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1793911674.1572213,
+    "active_phase": 4,
+    "status": "in_progress",
+    "updated_at": 1793916055.7213645,
     "owner": "kilo:goal",
     "started_by": "kilo:goal",
-    "continuations": [],
-    "completed_at": 1793911698.1432378
+    "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "approved-deepcheck-w2",
-      "phase": "planning",
-      "phase_num": 2,
-      "description": "[1/5] profile UX 1071 diff plus 1077 startup receipt plus 1078 recipe plus 1193 capability preset; [2/5] gates 1079 canary plus 1159 backend gate plus 1093 resolver plus 1228 compat plus 1084 slot budget; [3/5] downloads 1073 token broker plus 1072 HF cache read-only; [4/5] bench manifest 1232 interval plus 1229 attestation plus 1323 NFC plus 1265 thinking plus 1161 retry; [5/5] sampler observability 1164 repetition stack plus 1198 self-cost receipt",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793814319.9555752,
-      "timestamp_str": "2026-11-04 20:45:19",
-      "agent": "kilo:main",
-      "impact_assessment": {
-        "why": "Implement remaining actionable Approved ideas; wave 1 shipped 18, 6 are hold, these 18 are next-wave with unblocked deps (1072 after 1070, 1193 after 1078, 1161 with 1265)",
-        "benefits": "Profile diffs visible before load; startup receipt and port fallback; portable recipes; early runtime canary; backend and template gates; honest slot budgets; gated-model downloads; read-only HF cache; calibration intervals and manifest attestation; thinking metrics; repetition control; host health receipt",
-        "risks": "contract: profile and recipe JSON shapes additive, startup receipt file new; dependency: node-llama-cpp template introspection and backend probe may be unavailable; concurrency: canary and gates run pre-load only; state: recipes and receipts are new files, no migration of existing profiles",
-        "mitigation": "Failing-first unit tests per milestone; additive endpoints and files only; secret handling scoped to OS keychain or env, never logged; npm test plus aikit check per milestone"
-      },
-      "plan_digest": "5d43a19c65fb761a91c2554d605e40d6941a2dfe6e1bcf8486b8e417b9ecc0cd"
-    },
-    {
-      "task_id": "approved-deepcheck-w2",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[1/5] done: tuned 1071 diff plus route, main 1077 server.json receipt plus ephemeral fallback plus api instance, profiles 1078 launch recipe plus 1193 capability; tests/profile-ux 5/5",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793814473.9536064,
-      "timestamp_str": "2026-11-04 20:47:53",
-      "agent": "kilo:main"
-    },
     {
       "task_id": "approved-deepcheck-w2",
       "phase": "in_progress",
@@ -252,6 +222,35 @@
       "status": "completed",
       "timestamp": 1793911698.1432393,
       "timestamp_str": "2026-11-05 23:48:18",
+      "agent": "kilo:goal"
+    },
+    {
+      "task_id": "verify-12push",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/2] Verify last 12 pushes for scope merge hygiene gaps",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793916034.5158234,
+      "timestamp_str": "2026-11-06 01:00:34",
+      "agent": "kilo:goal",
+      "impact_assessment": {
+        "why": "Goal asks modelduck verify plus last-12 analysis with fixes before push",
+        "benefits": "Flash single runs stop polluting trends and links",
+        "risks": "contract: additive scope values only; dependency: none; concurrency: none; state: working tree plus ledger",
+        "mitigation": "Failing-first scope test plus full npm test"
+      },
+      "plan_digest": "773e99f9340e1b67b5d9641d0ea8ef4b1cc4537257fd15c2339152487269bc69"
+    },
+    {
+      "task_id": "verify-12push",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[2/2] checklists: passed; 4/4 gates green (npm test 567 plus new scope test, hygiene, guidelines, secrets); fixed flash single history scope plus merged tag plus empty-shard message plus demo ignore plus README tree",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793916055.7213645,
+      "timestamp_str": "2026-11-06 01:00:55",
       "agent": "kilo:goal"
     }
   ]

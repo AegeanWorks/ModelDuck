@@ -1,0 +1,14 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ModelDuck — 3-min Hackathon Demo</title>
+<style>body{margin:0;background:#0b1220;color:#f0f4f8;font-family:Segoe UI,Arial,sans-serif;display:flex;flex-direction:column;align-items:center}main{max-width:900px;padding:24px}video{width:100%;border-radius:12px;background:#000}h1{color:#ffd447}.tag{color:#a0afbe}a{color:#ffd447}</style></head>
+<body><main>
+<h1>ModelDuck — Serve the model. Tune the code.</h1>
+<p class="tag">3:00 hackathon demo • 1280×720 • voiced + captioned • local-first GGUF server</p>
+<video controls preload="metadata" poster="modelduck-demo-3min-thumbnail-AI2.png">
+<source src="modelduck-demo-3min-voiced.mp4" type="video/mp4">
+<track src="modelduck-demo-3min.srt" kind="subtitles" srclang="en" label="English" default>
+</video>
+<p>Silent cut: <a href="modelduck-demo-3min.mp4">modelduck-demo-3min.mp4</a> • Voiced: <a href="modelduck-demo-3min-voiced.mp4">voiced MP4</a> • Script: <a href="demo-video-3min-SCRIPT.md">SCRIPT.md</a> • Subtitles: <a href="modelduck-demo-3min.srt">SRT</a></p>
+<p>How to present: play voiced MP4 full-screen. If judges ask for live proof: <code>npm install; npm start</code> → http://127.0.0.1:4141 → Models → Discover Qwen2.5 0.5B → Load → Bench &amp; Tune → Quick pass.</p>
+<p class="tag">AI disclosure: thumbnail AI2 generated with Meta muse-image-1.0 and passed vision review. Voice: Microsoft neural Christopher (+8% rate, fit to slots) via edge-tts API. Music: original synthesized ambient bed, ducked under voice. Meta Model API has no TTS endpoint (probed /audio/speech, /tts — 404) and no entitled video model (probed POST /videos); video assembled locally from real UI screenshots.</p>
+</main></body></html>

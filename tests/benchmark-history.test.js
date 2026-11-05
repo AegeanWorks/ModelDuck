@@ -5,6 +5,7 @@ import path from "node:path";
 import test from "node:test";
 
 import {
+  deriveRunScope,
   importHistory,
   linkRun,
   listRuns,
@@ -241,6 +242,41 @@ test("history.sqlite can be rebuilt from the append-only log", async (t) => {
     const again = await importHistory(db, paths.historyPath);
     assert.equal(again.runs, 0);
     assert.equal(listRuns(db, 5).length, 1);
+  } finally {
+    db.close();
+  }
+});
+
+test("flash and single-model runs scope as provenance, never standard", async (t) => {
+  assert.equal(deriveRunScope({ settings: { matrixScope: "core" } }), "standard");
+  assert.equal(deriveRunScope({ settings: { matrixScope: "flash" } }), "flash");
+  assert.equal(deriveRunScope({ settings: { matrixScope: "flash-core" } }), "flash");
+  assert.equal(deriveRunScope({ settings: { matrixScope: "single:qwen2.5-0.5b-instruct-q4" } }), "single");
+  assert.equal(deriveRunScope({ shard: { index: 1, total: 2, tag: "flash-core" }, settings: { matrixScope: "shard" } }), "flash");
+  assert.equal(deriveRunScope({ shard: { index: 1, total: 2, tag: "single-abc" }, settings: { matrixScope: "shard" } }), "single");
+  assert.equal(deriveRunScope({ shard: { index: 1, total: 2, tag: "core" }, settings: { matrixScope: "shard" } }), "shard");
+  assert.equal(deriveRunScope({ settings: { matrixScope: "merged:flash-core:2" } }), "flash");
+  assert.equal(deriveRunScope({ settings: { matrixScope: "merged:single-abc:2" } }), "single");
+  assert.equal(deriveRunScope({ settings: { matrixScope: "merged:core:2" } }), "standard");
+
+  const paths = await tempPaths(t);
+  const git = { hash: "abc123", subject: "parent", branch: "main", dirty: true };
+  const standard = await recordRun({ ...paths, result: RESULT, git, pending: true });
+  await recordRun({ ...paths, result: { ...RESULT, settings: { matrixScope: "flash" } }, git, pending: true });
+  await recordRun({ ...paths, result: { ...RESULT, settings: { matrixScope: "single:qwen2.5-0.5b-instruct-q4" } }, git, pending: true });
+  const db = await openDatabase(paths.dbPath);
+  try {
+    const scopes = listRuns(db, 10).map((run) => run.run_scope).sort();
+    assert.deepEqual(scopes, ["flash", "single", "standard"]);
+    assert.equal(modelProgress(db, "test-model", 10).length, 1);
+    const linked = await linkRun({
+      dbPath: paths.dbPath,
+      historyPath: paths.historyPath,
+      commit: { hash: "def456", subject: "the change", branch: "main", dirty: false },
+    });
+    assert.equal(linked.linked, true);
+    assert.equal(linked.run_scope, "standard");
+    assert.equal(linked.uid, standard.uid);
   } finally {
     db.close();
   }

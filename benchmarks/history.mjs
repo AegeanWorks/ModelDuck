@@ -101,6 +101,36 @@ CREATE INDEX IF NOT EXISTS model_results_key ON model_results(model_key);
 CREATE INDEX IF NOT EXISTS prompt_results_model ON prompt_results(model_result_id);
 `;
 
+/**
+ * Where a finished result sits in the trend story. Standard runs are the
+ * comparable core/full/chat matrices; shard segments share the same settings
+ * so they stay in per-model trends. Everything else is provenance only:
+ * repro (batch-1 noise floor), flash (smoke subset), and single-model
+ * diagnostics must never compare, link by default, or stand in as the
+ * phase's latest checks. Merged flash/single rows keep their tag inside
+ * matrixScope (merged:<tag>:<n>), so they still classify correctly.
+ */
+export function deriveRunScope(result = {}) {
+  if (result?.reproRun) return "repro";
+  if ((result?.models ?? []).some((model) => model?.deterministicRepro)) return "repro";
+  const scope = String(result?.settings?.matrixScope ?? "");
+  const shardTag = String(result?.shard?.tag ?? "");
+  const combined = `${scope} ${shardTag}`;
+  if (/(^|:)repro:/.test(scope) || scope.startsWith("repro") || shardTag.endsWith("-repro")) return "repro";
+  if (combined.includes("flash")) return "flash";
+  if (combined.includes("single:") || combined.includes("single-")) return "single";
+  if (result?.shard) return "shard";
+  if (scope.startsWith("shard")) return "shard";
+  if (scope.startsWith("merged-repro:") || scope.startsWith("merged:flash") || scope.startsWith("merged:repro")) {
+    // Merged scopes already handled above; a merged flash/single keeps its
+    // tag, a merged repro is repro via the flag. Anything else merged is
+    // a comparable full-matrix merge.
+    if (scope.includes("flash")) return "flash";
+    if (scope.includes("single")) return "single";
+  }
+  return "standard";
+}
+
 export function currentGitInfo(cwd = process.cwd()) {
   const run = (args) =>
     execFileSync("git", args, {
@@ -163,16 +193,26 @@ export async function openDatabase(dbPath) {
     ["run_scope", "TEXT"],
   ]);
   // Backfill scopes for databases written before the column existed. The
-  // result JSON already carries the markers, so old shard and repro rows
-  // are labeled without touching the append-only log. The models check
-  // covers repro runs from before the top-level flag existed.
+  // result JSON already carries the markers, so old shard, repro, flash and
+  // single rows are labeled without touching the append-only log. The models
+  // check covers repro runs from before the top-level flag existed.
   db.exec(
     `UPDATE runs SET run_scope = CASE
        WHEN json_extract(result_json, '$.reproRun') IS NOT NULL
          AND json_extract(result_json, '$.reproRun') != 0 THEN 'repro'
        WHEN EXISTS (SELECT 1 FROM json_each(result_json, '$.models')
          WHERE json_extract(value, '$.deterministicRepro') = 1) THEN 'repro'
+       WHEN json_extract(result_json, '$.settings.matrixScope') LIKE '%repro:%'
+         OR json_extract(result_json, '$.settings.matrixScope') LIKE 'repro%' THEN 'repro'
+       WHEN json_extract(result_json, '$.settings.matrixScope') LIKE '%flash%'
+         OR json_extract(result_json, '$.shard.tag') LIKE '%flash%' THEN 'flash'
+       WHEN json_extract(result_json, '$.settings.matrixScope') LIKE '%single:%'
+         OR json_extract(result_json, '$.settings.matrixScope') LIKE '%single-%'
+         OR json_extract(result_json, '$.shard.tag') LIKE '%single%' THEN 'single'
+       WHEN json_extract(result_json, '$.shard.tag') LIKE '%repro' THEN 'repro'
        WHEN json_extract(result_json, '$.shard') IS NOT NULL THEN 'shard'
+       WHEN json_extract(result_json, '$.settings.matrixScope') = 'shard'
+         OR json_extract(result_json, '$.settings.matrixScope') LIKE 'repro:shard%' THEN 'shard'
        ELSE 'standard'
      END WHERE run_scope IS NULL AND json_valid(result_json)`,
   );
@@ -206,7 +246,7 @@ function insertRun(db, record) {
   if (existing) return { inserted: false, runId: Number(existing.id) };
 
   insertCommit(db, git, record.recordedAt);
-  const scope = result.reproRun ? "repro" : result.shard ? "shard" : "standard";
+  const scope = deriveRunScope(result);
   const info = db
     .prepare(
       `INSERT INTO runs (

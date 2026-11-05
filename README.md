@@ -599,7 +599,10 @@ modelduck/
 │   ├── social-preview.svg
 │   ├── social-preview.png
 │   ├── screenshot-control.png
-│   └── screenshot-models.png
+│   ├── screenshot-models.png
+│   ├── demo-video-3min-SCRIPT.md
+│   ├── demo-video-3min-PLAYER.html
+│   └── modelduck-demo-3min.srt
 ├── .aikit/ <- project memory: map, ADRs, ledger
 ├── .gitignore
 ├── start.bat

@@ -138,7 +138,7 @@ async function main() {
       throw new Error(`Cannot read shard file ${file} (${error?.code ?? error?.message}).`);
     }
     if (!result || typeof result !== "object" || !Array.isArray(result.models) || result.models.length === 0) {
-      throw new Error(`Shard file ${file} is not a bench result (missing models array); delete it and rerun that shard.`);
+      throw new Error(`Shard file ${file} is not a bench result (missing or empty models array); delete it and rerun that shard.`);
     }
     shards.push({ file, tag, result });
   }
@@ -245,7 +245,7 @@ async function main() {
     wallClockNote: "sum of shard runtimes; wall-clock was less when shards ran in parallel",
     machine: first.result.machine,
     machines: shards.map(({ result }, i) => ({ shard: i + 1, ...(result.machine ?? {}) })),
-    settings: { ...(first.result.settings ?? {}), matrix: true, shard: null, matrixScope: isRepro ? `merged-repro:${options.total}` : `merged:${options.total}`, mergedFrom: options.total },
+    settings: { ...(first.result.settings ?? {}), matrix: true, shard: null, matrixScope: isRepro ? `merged-repro:${first.tag}:${options.total}` : `merged:${first.tag}:${options.total}`, mergedFrom: options.total, mergedTag: first.tag },
     ...(isRepro ? { reproRun: true } : {}),
     overall: {
       score: checksTotal ? Number(((checksPassed / checksTotal) * 100).toFixed(2)) : 0,
