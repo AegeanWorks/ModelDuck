@@ -2,26 +2,15 @@
   "version": 1,
   "active_task": {
     "task_id": "tune-code-preset",
-    "last_phase": "phase 3",
-    "active_phase": 3,
+    "last_phase": "phase 4",
+    "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1794088205.3503673,
+    "updated_at": 1794088538.0806522,
     "owner": "deepseek-v4.1-flash",
     "started_by": "deepseek-v4.1-flash",
     "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "approved-deepcheck-w3",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/3] done: sampler chain plus fsync plus preflight plus determinism plus quotas; bench Q8_0 gate plus needle plus drift plus bytes plus imatrix; registry plus reason-off plus cheap plus threat; 525/525; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793815589.9464853,
-      "timestamp_str": "2026-11-04 21:06:29",
-      "agent": "kilo:main"
-    },
     {
       "task_id": "approved-deepcheck-w3",
       "phase": "completed",
@@ -256,6 +245,17 @@
       "status": "in_progress",
       "timestamp": 1794088205.3503673,
       "timestamp_str": "2026-11-08 00:50:05",
+      "agent": "deepseek-v4.1-flash"
+    },
+    {
+      "task_id": "tune-code-preset",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[4/4] Check: npm test 573/574 pass (1 skip), tune:gate 9/9 at +0, server 4141 load+code request 634 ms; 4/4 AIKit gates; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794088538.0806522,
+      "timestamp_str": "2026-11-08 00:55:38",
       "agent": "deepseek-v4.1-flash"
     }
   ]
