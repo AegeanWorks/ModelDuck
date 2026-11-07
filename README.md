@@ -503,10 +503,10 @@ modelduck/
 │   ├── tune-device.mjs  <- stage 0: CPU or GPU, per model
 │   ├── tune-grid.mjs    <- load and sampling search spaces
 │   ├── tune-evaluate.mjs <- runs tune items on the real engine
-│   ├── tune-run.mjs     <- npm run tune entry point
+│   ├── tune-run.mjs     <- tune entry point
 │   ├── tune-job.mjs     <- open a model, tune it, reuse its profile
-│   ├── tune-gate.mjs    <- npm run tune:gate regression gate (G-001)
-│   ├── tune-baseline.mjs <- gate baseline comparison
+│   ├── tune-gate.mjs    <- tune:gate regression gate
+│   ├── tune-baseline.mjs <- baseline compare
 │   ├── tune-prompt.mjs  <- --interactive step questions
 │   ├── presets/         <- measured, shareable profile recipes
 │   ├── NOTICE-benchmarks.md
@@ -520,7 +520,8 @@ modelduck/
 │   ├── history.jsonl
 │   ├── curves/
 │   ├── baseline-model.json
-│   └── baseline-chat.json
+│   ├── baseline-chat.json
+│   └── baseline-profiles.json
 ├── tests/
 │   ├── helpers.js
 │   ├── ui-shell.test.js
