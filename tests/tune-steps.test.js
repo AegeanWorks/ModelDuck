@@ -53,7 +53,7 @@ test("the sampling steps are the user's, and truncation axes are marked as no-op
   const axes = samplingAxes("comprehension");
   assert.deepEqual(axes.map((axis) => axis.name), ["sampler", "maxTokens", "repeatPenalty", "penalizeNewLine", "topK"]);
   assert.deepEqual(values(axes, "maxTokens"), [64, 128, 256, 512, 1024, 2048]);
-  assert.deepEqual(values(axes, "repeatPenalty"), [1, 1.05, 1.1, 1.15, 1.2]);
+  assert.deepEqual(values(axes, "repeatPenalty"), [1, 1.05]);
   assert.deepEqual(values(axes, "penalizeNewLine"), [true, false]);
   assert.deepEqual(values(axes, "topK"), [0, 20, 40]);
   assert.deepEqual(axes.filter((axis) => axis.greedyNoop).map((axis) => axis.name), ["topK"]);
@@ -138,7 +138,7 @@ test("the estimate covers all four stages and the worst case of two passes", () 
   const estimate = estimateTune(DEFAULT_STEPS, { logicalCores: 16, tasks: ["comprehension"], secondsPerAnswer: 3, reloadSeconds: 5 });
   assert.equal(estimate.quality.configs, 3, "only the KV cache is measured; the context size is a memory budget (ADR-043)");
   assert.equal(estimate.speed.configs, 2 + 2 + 6 + 7);
-  assert.equal(estimate.sampling.comprehension.configs, 6 + 6 + 5 + 2 + 3, "sampler, tokens, repeat, newline, top-k (G2/G4)");
+  assert.equal(estimate.sampling.comprehension.configs, 6 + 6 + 2 + 2 + 3, "sampler, tokens, repeat, newline, top-k (G2/G4)");
   assert.equal(estimate.prompt.comprehension.configs, 22 + 2 + 2);
   assert.ok(estimate.onePassSeconds > 0);
   assert.equal(estimate.worstCaseSeconds, estimate.onePassSeconds * 2);

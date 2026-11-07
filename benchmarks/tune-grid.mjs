@@ -101,7 +101,12 @@ export const DEFAULT_STEPS = freezeDeep({
   sampling: {
     temperature: [0, 0.2, 0.4, 0.6, 0.8, 1],
     maxTokens: { code: TOKEN_STEPS, comprehension: TOKEN_STEPS, recall: TOKEN_STEPS },
-    repeatPenalty: [1, 1.05, 1.1, 1.15, 1.2],
+    // On code, 1.05 beat "off" on the search rung, while 1.1 and 1.15 tied it
+    // and 1.2 lost; the unused-item confirmation then kept 1 (60 solved against
+    // 59). Only 1.05 is still worth a challenger, so the default search spends
+    // one candidate instead of four and keeps the same winners. A user can add
+    // the wider list back through tune-grid.json.
+    repeatPenalty: [1, 1.05],
     dryStrength: [0, 0.8],
     minP: [0, 0.05, 0.1, 0.15, 0.2],
     topP: [0.8, 0.85, 0.9, 0.95, 1],

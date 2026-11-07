@@ -24,7 +24,7 @@ import { speedStage } from "./tune-speed.mjs";
  * profiles go stale automatically instead of relying on a note. Part of
  * every fingerprint and gate identity.
  */
-export const TUNER_VERSION = 8;
+export const TUNER_VERSION = 9;
 
 export const DEFAULT_TUNE_OPTIONS = Object.freeze({
   seeds: Object.freeze([42, 7, 1234]),

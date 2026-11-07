@@ -508,6 +508,7 @@ modelduck/
 │   ├── tune-gate.mjs    <- npm run tune:gate regression gate (G-001)
 │   ├── tune-baseline.mjs <- gate baseline comparison
 │   ├── tune-prompt.mjs  <- --interactive step questions
+│   ├── presets/         <- measured, shareable profile recipes
 │   ├── NOTICE-benchmarks.md
 │   ├── test-hash.mjs
 │   ├── verify-manifest.mjs
@@ -557,6 +558,8 @@ modelduck/
 │   ├── tune-steps.test.js
 │   ├── tune-steps-store.test.js
 │   ├── tune-prompt.test.js
+│   ├── fifteen-push-fixes.test.js
+│   ├── preset-recipes.test.js
 │   ├── benchmark-history.test.js
 │   ├── benchmark-report.test.js
 │   ├── benchmark-runner.test.js

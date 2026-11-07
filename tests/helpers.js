@@ -225,7 +225,9 @@ export async function makeHarness(
     jit.dispose();
     server.closeAllConnections?.();
     await new Promise((resolve) => server.close(resolve));
-    await rm(home, { recursive: true, force: true });
+    // Windows can report ENOTEMPTY while a child server still holds a handle;
+    // Node retries that class, so the cleanup does not flake under load.
+    await rm(home, { recursive: true, force: true, maxRetries: 5, retryDelay: 20 });
   });
 
   return {
