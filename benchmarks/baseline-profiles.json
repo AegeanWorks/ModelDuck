@@ -4,8 +4,8 @@
   "suiteVersion": 17,
   "taskHash": "9e89fb9cc27ae435",
   "nodeLlamaCpp": "3.22.2",
-  "createdAt": "2026-11-07T20:02:39.709Z",
-  "note": "Initial default-settings baseline for the three core models; task presets are empty and the gate re-measures the app defaults on each model. Seed this deliberately; do not replace it to make a change pass.",
+  "createdAt": "2026-11-07T22:47:22.839Z",
+  "note": "Deliberate baseline update: tuned task presets were re-measured from C:\\Users\\YUNUS-~1\\AppData\\Local\\Temp\\modelduck-baseline-source; missing profiles were measured as defaults. Do not replace this to make a change pass.",
   "models": {
     "smollm2-135m-instruct-q4": {
       "load": {
@@ -17,7 +17,7 @@
           "settings": {},
           "rate": 9,
           "items": 48,
-          "latencyMs": 2281.5,
+          "latencyMs": 1046,
           "outcomes": {
             "javascript": 1,
             "bug-sum-to": 0,
@@ -129,7 +129,7 @@
           "settings": {},
           "rate": 6.5,
           "items": 46,
-          "latencyMs": 682.5,
+          "latencyMs": 418.5,
           "outcomes": {
             "needle": 1,
             "recall-locker-first": 0,
@@ -195,7 +195,7 @@
           "settings": {},
           "rate": 25.7,
           "items": 48,
-          "latencyMs": 911.5,
+          "latencyMs": 627.5,
           "outcomes": {
             "javascript": 1,
             "bug-sum-to": 1,
@@ -251,7 +251,7 @@
           "settings": {},
           "rate": 46.5,
           "items": 48,
-          "latencyMs": 221,
+          "latencyMs": 120,
           "outcomes": {
             "read-sumTo-1": 1,
             "read-clamp-1": 1,
@@ -307,7 +307,7 @@
           "settings": {},
           "rate": 35.5,
           "items": 46,
-          "latencyMs": 312,
+          "latencyMs": 160,
           "outcomes": {
             "needle": 1,
             "recall-locker-first": 1,
@@ -365,35 +365,52 @@
     },
     "qwen2.5-coder-1.5b-instruct-q4": {
       "load": {
-        "gpuBackend": "vulkan",
-        "gpuLayers": "max"
+        "contextSize": 4096,
+        "kvCache": "f16",
+        "flashAttention": "auto",
+        "useMmap": "auto",
+        "batchSize": 512,
+        "threads": 12,
+        "gpuLayers": "max",
+        "gpuBackend": "vulkan"
       },
       "tasks": {
         "code": {
-          "settings": {},
-          "rate": 55.6,
+          "settings": {
+            "temperature": 0.4,
+            "minP": 0.1,
+            "topP": 0.85,
+            "maxTokens": 512,
+            "repeatPenalty": 1,
+            "dryStrength": 0,
+            "penalizeNewLine": false,
+            "topK": 40,
+            "systemPrompt": "Return only the code, with no example usage or explanation.",
+            "promptRepeat": 1
+          },
+          "rate": 59,
           "items": 48,
-          "latencyMs": 2007,
+          "latencyMs": 624.5,
           "outcomes": {
             "javascript": 1,
             "bug-sum-to": 1,
             "code-long-calculator": 0,
             "bug-long-binary-search": 1,
-            "repo-cart-total": 0,
+            "repo-cart-total": 1,
             "repo-format-cents": 0,
             "pub-humaneval-13": 1,
             "pub-mbpp-80": 1,
             "code-long-csv": 0,
             "bug-long-merge-intervals": 1,
             "repo-receipt": 1,
-            "repo-tokenize-digits": 0,
+            "repo-tokenize-digits": 1,
             "pub-humaneval-26": 0,
-            "pub-mbpp-86": 0,
+            "pub-mbpp-86": 1,
             "code-palindrome": 1,
             "bug-average": 1,
             "code-fizzbuzz": 1,
             "bug-is-even": 1,
-            "code-long-checkout": 0,
+            "code-long-checkout": 1,
             "bug-long-to-roman": 0,
             "repo-search": 0,
             "repo-whole-balance": 1,
@@ -404,7 +421,7 @@
             "code-long-matrix-multiply": 1,
             "bug-long-cart-total": 1,
             "repo-slugify": 0,
-            "repo-exact-kilo": 1,
+            "repo-exact-kilo": 0,
             "pub-humaneval-57": 1,
             "pub-mbpp-11": 0,
             "code-long-ini": 0,
@@ -421,15 +438,15 @@
             "bug-long-rotate": 0,
             "repo-end-times": 0,
             "repo-trace-tag-case": 0,
-            "pub-humaneval-49": 0,
-            "pub-mbpp-16": 1
+            "pub-humaneval-49": 1,
+            "pub-mbpp-16": 0
           }
         },
         "comprehension": {
           "settings": {},
           "rate": 72.2,
           "items": 48,
-          "latencyMs": 224.5,
+          "latencyMs": 195,
           "outcomes": {
             "read-sumTo-1": 1,
             "read-clamp-1": 1,
@@ -485,7 +502,7 @@
           "settings": {},
           "rate": 47.1,
           "items": 46,
-          "latencyMs": 432.5,
+          "latencyMs": 329.5,
           "outcomes": {
             "needle": 1,
             "recall-locker-first": 1,

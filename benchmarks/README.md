@@ -31,7 +31,11 @@ The committed cross-model baselines predate suite v14. Run `npm run bench:update
 once on the target machine before using the cross-model gate as a regression
 check. The tuned-profile gate has no committed `baseline-profiles.json` yet, so
 `npm run tune:gate` exits with `tune_baseline_missing` rather than comparing; run
-`npm run tune:gate -- --update-baseline` once to create it.
+`npm run tune:gate -- --update-baseline` once to create it. To re-measure an
+already tuned profile rather than retune from scratch, add
+`--from-profile <home>`: it reads `profiles/<model>.json` from that home, checks
+the suite/runtime/tuner identity, re-measures its task presets on the fixed
+harness, and fills models without a profile from their measured defaults.
 Suite v17 has 265 items in ten categories (262 searched; 3 long-context needles are KV-confirmation only):
 
 | Category | Items | What is measured |

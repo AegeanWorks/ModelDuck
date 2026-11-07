@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { BASELINE_SCHEMA, TUNER_VERSION, baselineEntry, comparability, compareToBaseline } from "../benchmarks/tune-baseline.mjs";
+import { BASELINE_SCHEMA, TUNER_VERSION, baselineEntry, comparability, compareToBaseline, presetSettings } from "../benchmarks/tune-baseline.mjs";
 
 const IDENTITY = { suiteVersion: 8, taskHash: "abc", nodeLlamaCpp: "3.22.2", tunerVersion: TUNER_VERSION };
 const PROFILE = {
@@ -22,6 +22,16 @@ test("a baseline entry keeps settings and rates, not the sweep log", () => {
   assert.deepEqual(entry.load, { threads: 8 });
   assert.deepEqual(entry.tasks.code, { settings: { temperature: 0.1 }, rate: 75, items: 24, latencyMs: 900, outcomes: null });
   assert.equal("sweeps" in entry, false);
+});
+
+test("a saved profile contributes tuned task settings and leaves untuned tasks at defaults", () => {
+  const preset = presetSettings(PROFILE, ["code", "comprehension", "recall"]);
+  assert.deepEqual(preset.load, { threads: 8 });
+  assert.deepEqual(preset.tasks.code.settings, { temperature: 0.1 });
+  assert.deepEqual(preset.tasks.comprehension.settings, { temperature: 0 });
+  assert.deepEqual(preset.tasks.recall.settings, {});
+  const missing = presetSettings(null, ["code"]);
+  assert.deepEqual(missing, { load: {}, tasks: { code: { settings: {} } } });
 });
 
 test("a baseline is comparable only on the same suite, items and runtime", () => {

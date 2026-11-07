@@ -11,7 +11,7 @@ import { CORE_MODEL_IDS } from "./matrix.mjs";
 import { BENCHMARK_MODELS } from "./suite.mjs";
 import { TASKS, tuneRungs } from "./tasks.mjs";
 import { measurePresets } from "./tune.mjs";
-import { BASELINE_SCHEMA, TUNER_VERSION, baselineEntry, comparability, compareToBaseline, hardwareWarning } from "./tune-baseline.mjs";
+import { BASELINE_SCHEMA, TUNER_VERSION, baselineEntry, comparability, compareToBaseline, hardwareWarning, presetSettings } from "./tune-baseline.mjs";
 import { createEvaluator } from "./tune-evaluate.mjs";
 import { openTarget, runTune, tuneBase, withEngine } from "./tune-job.mjs";
 
@@ -20,13 +20,15 @@ const BASELINE = path.join(HERE, "baseline-profiles.json");
 const LATEST = path.join(HERE, "results", "latest-tune-gate.json");
 const TASK_IDS = TASKS.map((task) => task.id);
 
-const USAGE = `Usage: npm run tune:gate [-- --update-baseline [--models <ids>] [--passes <n>]] [--models-dir <dir>] [--max-runs <n>]
+const USAGE = `Usage: npm run tune:gate [-- --update-baseline [--models <ids>] [--passes <n>] [--from-profile <home>]] [--models-dir <dir>] [--max-runs <n>]
 
 Re-measures each core model's baseline settings per task and fails when a task's
 pass rate drops by more than one item (G-001). --update-baseline re-tunes the
 three core models and replaces benchmarks/baseline-profiles.json deliberately (G-003);
 --models (comma-separated core model ids) tunes only those, and --passes limits the
-descent's passes, for a quicker baseline. The gate checks the models the baseline has.
+descent's passes, for a quicker baseline. --from-profile <home> uses the already
+measured profiles/<model>.json from that home instead of tuning; a missing profile
+is measured as the app defaults. The gate checks the models the baseline has.
 `;
 
 function parseArgs(argv) {
@@ -39,6 +41,7 @@ function parseArgs(argv) {
     else if (arg === "--max-runs") options.maxRuns = Number(argv[++index]);
     else if (arg === "--models") options.models = String(argv[++index] ?? "").split(",").map((id) => id.trim()).filter(Boolean);
     else if (arg === "--passes") options.passes = Number(argv[++index]);
+    else if (arg === "--from-profile") options.fromProfile = argv[++index];
     else throw new AppError("Unknown option", { code: "bad_option", why: `${arg} is not a tune:gate option.`, fix: USAGE });
   }
   return options;
@@ -57,6 +60,49 @@ async function updateBaseline(options, home) {
   }
   for (const catalogId of chosen) {
     const target = await openTarget({ model: fileOf(catalogId), home, modelsDir: options.modelsDir });
+    identity = identityOf(target.fingerprint);
+    if (options.fromProfile) {
+      const file = path.join(options.fromProfile, "profiles", `${catalogId}.json`);
+      let profile = null;
+      try {
+        profile = JSON.parse(await readFile(file, "utf8"));
+      } catch {
+        // A missing profile is measured as defaults, never invented.
+      }
+      if (profile) {
+        const changed = comparability({ schema: BASELINE_SCHEMA, ...(profile.fingerprint ?? {}) }, identity);
+        if (changed.length) {
+          throw new AppError("The saved profile is not comparable", {
+            code: "tune_profile_incomparable",
+            why: `${file} was measured with a different ${changed.join(", ")}.`,
+            fix: "Re-tune that model, or choose a profile measured under the current suite, runtime and tuner version.",
+          });
+        }
+        process.stdout.write(`Re-measuring ${catalogId} from ${file}…\n`);
+      } else {
+        process.stdout.write(`No profile at ${file}; measuring ${catalogId} defaults…\n`);
+      }
+      const preset = presetSettings(profile, TASK_IDS);
+      // A profile carries the load it was tuned on. With none, measure on the
+      // fastest local backend so the baseline is not needlessly CPU-slow.
+      const load = Object.keys(preset.load).length ? preset.load : { gpuBackend: "vulkan", gpuLayers: "max" };
+      const presets = Object.fromEntries(TASK_IDS.map((task) => [task, preset.tasks[task].settings]));
+      const measured = await withEngine(target, (engine) => measurePresets({
+        evaluate: createEvaluator({ engine, modelId: target.entry.id }),
+        load: { ...tuneBase(), ...load },
+        presets,
+        rungs: tuneRungs(TASK_IDS),
+      }));
+      for (const task of TASK_IDS) {
+        const stats = measured[task];
+        process.stdout.write(`  ${task}: ${stats.rate}% · ${stats.items} items · ${stats.latencyMs} ms\n`);
+      }
+      models[catalogId] = baselineEntry({
+        load: { settings: load },
+        tasks: Object.fromEntries(TASK_IDS.map((task) => [task, { settings: presets[task], stats: measured[task] }])),
+      }, { hardware: { cpu: target.system.cpu, threads: target.system.parallelism } });
+      continue;
+    }
     process.stdout.write(`Tuning ${catalogId} for the baseline…\n`);
     // One line per finished setting, so a run of hours shows where it is.
     const onEvent = (event) => {
@@ -64,9 +110,11 @@ async function updateBaseline(options, home) {
     };
     const { profile } = await runTune(target, { tasks: TASK_IDS, force: true, maxRuns: options.maxRuns, passes: options.passes, onEvent });
     models[catalogId] = baselineEntry(profile, { hardware: { cpu: target.system.cpu, threads: target.system.parallelism } });
-    identity = identityOf(target.fingerprint);
   }
-  const baseline = { schema: BASELINE_SCHEMA, tunerVersion: TUNER_VERSION, ...identity, createdAt: new Date().toISOString(), models };
+  const note = options.fromProfile
+    ? `Deliberate baseline update: tuned task presets were re-measured from ${options.fromProfile}; missing profiles were measured as defaults. Do not replace this to make a change pass.`
+    : "Deliberate baseline update: each core model was re-tuned by tune:gate --update-baseline. Do not replace this to make a change pass.";
+  const baseline = { schema: BASELINE_SCHEMA, tunerVersion: TUNER_VERSION, ...identity, createdAt: new Date().toISOString(), note, models };
   await writeFile(BASELINE, `${JSON.stringify(baseline, null, 2)}\n`);
   process.stdout.write(`Wrote ${BASELINE}\n`);
 }
@@ -128,6 +176,9 @@ async function main() {
   if (options.help) {
     process.stdout.write(USAGE);
     return;
+  }
+  if (options.fromProfile && !options.updateBaseline) {
+    throw new AppError("Not a baseline update", { code: "bad_option", why: "--from-profile only applies with --update-baseline.", fix: USAGE });
   }
   // Gate tunes never touch the user's saved profiles.
   // The temp home isolates profiles and runs, but models must keep resolving

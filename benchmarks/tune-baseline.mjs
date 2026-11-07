@@ -24,6 +24,18 @@ const outcomesOf = (stats) => {
   return null;
 };
 
+/**
+ * The settings a saved profile contributes to a baseline, per task. A task the
+ * profile never tuned keeps `{}` so the gate measures the app defaults; a
+ * missing profile contributes nothing and is measured as defaults too.
+ */
+export function presetSettings(profile, taskIds) {
+  return {
+    load: { ...(profile?.load?.settings ?? {}) },
+    tasks: Object.fromEntries(taskIds.map((task) => [task, { settings: { ...(profile?.tasks?.[task]?.settings ?? {}) } }])),
+  };
+}
+
 /** What the gate keeps of one profile: settings, rates and per-item outcomes, without the sweep log. */
 export function baselineEntry(profile, { hardware = null } = {}) {
   return {
