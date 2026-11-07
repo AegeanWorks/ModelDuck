@@ -5,7 +5,7 @@
   "taskHash": "9e89fb9cc27ae435",
   "nodeLlamaCpp": "3.22.2",
   "createdAt": "2026-11-07T20:02:39.709Z",
-  "note": "Initial default-settings baseline measured before the tuner v9 search-space change. Task presets are empty: the gate re-measures the app defaults on each model.",
+  "note": "Initial default-settings baseline for the three core models; task presets are empty and the gate re-measures the app defaults on each model. Seed this deliberately; do not replace it to make a change pass.",
   "models": {
     "smollm2-135m-instruct-q4": {
       "load": {
