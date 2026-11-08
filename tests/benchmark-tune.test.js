@@ -298,6 +298,23 @@ test("the one-item quality tolerance buys speed, never memory", async () => {
   assert.equal(load.settings.kvCache, "q8_0", "10x faster for one lost item of 8");
 });
 
+test("a GPU preset's VRAM counts in the memory tie-break", async () => {
+  const evaluate = async (settings, itemIds) => ({
+    memoryBytes: settings.kvCache === "q8_0" ? 100 : 900,
+    gpuVram: settings.kvCache === "q8_0" ? 100 : 900,
+    prompts: itemIds.map((id) => ({ id, passed: 1, total: 1, ms: 100 })),
+  });
+  const { load } = await tune({
+    evaluate,
+    base: { kvCache: "f16" },
+    tasks: [],
+    rungs: { load: [ids("mix", 8)] },
+    qualityAxes: [{ name: "kvCache", patches: ["f16", "q8_0"].map((kvCache) => ({ kvCache })) }],
+    speedAxes: [],
+  });
+  assert.equal(load.settings.kvCache, "q8_0", "the lower total host + VRAM footprint wins a tie");
+});
+
 test("a speed gap inside the measurement noise is a tie, so the incumbent stays", async () => {
   const swing = [1.4, 0.6, 1.4, 0.6, 1.3, 0.62];
   const evaluate = async (settings, itemIds) => ({

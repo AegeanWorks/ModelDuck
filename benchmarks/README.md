@@ -36,6 +36,8 @@ already tuned profile rather than retune from scratch, add
 `--from-profile <home>`: it reads `profiles/<model>.json` from that home, checks
 the suite/runtime/tuner identity, re-measures its task presets on the fixed
 harness, and fills models without a profile from their measured defaults.
+Every measurement records host RAM and GPU VRAM; a memory tie-break uses their
+sum, so a Vulkan preset is not ranked by its small host slice alone.
 Suite v17 has 265 items in ten categories (262 searched; 3 long-context needles are KV-confirmation only):
 
 | Category | Items | What is measured |

@@ -353,7 +353,11 @@ test("a resumed queue keeps per-model force", async () => {
   await settle();
   assert.ok(next.children.length >= 1);
   assert.ok(next.children[0].args.includes("--force"), "the resumed tune still starts the stale model over");
-  fs.rmSync(dir, { recursive: true, force: true });
+  // Stop the queue before deleting its home: the scheduler still owns the
+  // queue file on Windows until the cancel settles.
+  runner.cancel();
+  await settle();
+  fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 20 });
 });
 
 test("a run of only some settings passes them to every tune", async () => {

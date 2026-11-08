@@ -69,13 +69,14 @@ export class Measurements {
     this.slots.set(slotKey, {
       items: new Map(rows.map((row) => [row.item ?? row.id, { ...row, id: row.item ?? row.id }])),
       memoryBytes: undefined,
+      gpuVram: undefined,
     });
     return true;
   }
 
   async measure(settings, itemIds, seed) {
     const slotKey = `${settingsKey(settings)}|${seed}`;
-    if (!this.slots.has(slotKey)) this.slots.set(slotKey, { items: new Map(), memoryBytes: undefined });
+    if (!this.slots.has(slotKey)) this.slots.set(slotKey, { items: new Map(), memoryBytes: undefined, gpuVram: undefined });
     const slot = this.slots.get(slotKey);
     const missing = itemIds.filter((id) => !slot.items.has(id));
     if (missing.length) {
@@ -84,9 +85,12 @@ export class Measurements {
       this.runs += missing.length;
       this.onAnswers(settings, seed, out.prompts);
       for (const prompt of out.prompts) slot.items.set(prompt.id, prompt);
+      // CPU RAM and GPU VRAM are both memory; dropping VRAM here made a GPU
+      // preset look no larger than its small host slice.
       slot.memoryBytes = out.memoryBytes ?? slot.memoryBytes;
+      slot.gpuVram = out.gpuVram ?? slot.gpuVram;
     }
-    return { prompts: itemIds.map((id) => slot.items.get(id)), memoryBytes: slot.memoryBytes };
+    return { prompts: itemIds.map((id) => slot.items.get(id)), memoryBytes: slot.memoryBytes, gpuVram: slot.gpuVram };
   }
 }
 

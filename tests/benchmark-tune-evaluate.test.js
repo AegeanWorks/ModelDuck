@@ -11,7 +11,7 @@ function recordingEngine(reply = () => "quack") {
       engine.loads.push(options);
     },
     async status() {
-      return { memory: { cpuRam: 4096 } };
+      return { memory: { cpuRam: 4096, gpuVram: 8192 } };
     },
     async chat(request) {
       engine.chats.push(request);
@@ -30,6 +30,7 @@ test("an evaluation scores items with the suite checks and reports latency, spee
   const evaluate = createEvaluator({ engine: recordingEngine(() => "0"), modelId: "m1" });
   const out = await evaluate(SETTINGS, ["read-sumTo-1"], 42);
   assert.equal(out.memoryBytes, 4096);
+  assert.equal(out.gpuVram, 8192, "GPU VRAM stays with the measurement");
   assert.deepEqual(out.prompts.map(({ id, passed, total, ms, tokensPerSecond, error }) => ({ id, ok: passed === total, ms, tokensPerSecond, error })), [
     { id: "read-sumTo-1", ok: true, ms: 250, tokensPerSecond: 12.5, error: null },
   ]);

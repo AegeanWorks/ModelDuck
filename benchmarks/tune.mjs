@@ -85,6 +85,17 @@ const byQuality = (cost) => (left, right) =>
 const solvedOf = (stats) => Number.isFinite(stats.solved)
   ? stats.solved
   : (stats.rate / 100) * stats.items;
+// A preset's footprint is host RAM plus GPU VRAM: a GPU load's cpuRam alone is
+// small, while the weights it moved off the host still occupy VRAM.
+const footprint = (stats) => {
+  const cpu = stats.memoryBytes;
+  const gpu = stats.gpuVram;
+  if (cpu === null || cpu === undefined) {
+    if (gpu === null || gpu === undefined) return Infinity;
+    return gpu;
+  }
+  return cpu + (gpu ?? 0);
+};
 function choose(candidates, floorSolved, speedTie, cost) {
   const working = candidates.filter((entry) => !entry.stats.failed);
   const scored = working.length ? working : candidates;
@@ -98,7 +109,7 @@ function choose(candidates, floorSolved, speedTie, cost) {
   });
   return tied.sort((left, right) =>
     right.stats.rate - left.stats.rate ||
-    (left.stats.memoryBytes ?? Infinity) - (right.stats.memoryBytes ?? Infinity) ||
+    footprint(left.stats) - footprint(right.stats) ||
     Number(right.incumbent) - Number(left.incumbent) ||
     left.index - right.index)[0];
 }
