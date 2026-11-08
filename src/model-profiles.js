@@ -16,6 +16,22 @@ import { systemInfo } from "./system.js";
  */
 export const PROFILE_SCHEMA = 1;
 
+// A chat request resolves the profile every time. The file can carry its whole
+// sweep log (hundreds of KB), so cache the text by mtime+size and parse a fresh
+// object per call; a save invalidates it explicitly.
+const PROFILE_TEXT_CACHE = new Map();
+const PROFILE_TEXT_LIMIT = 16;
+let profileCacheHits = 0;
+let profileCacheMisses = 0;
+export function profileCacheStats() {
+  return { size: PROFILE_TEXT_CACHE.size, hits: profileCacheHits, misses: profileCacheMisses };
+}
+export function resetProfileCache() {
+  PROFILE_TEXT_CACHE.clear();
+  profileCacheHits = 0;
+  profileCacheMisses = 0;
+}
+
 export const LOAD_KEYS = Object.freeze([
   "contextSize", "kvCache", "flashAttention", "useMmap", "batchSize", "threads",
   "checkpoints", "checkpointInterval", "checkpointMax", "gpuLayers", "gpuBackend",
@@ -103,7 +119,9 @@ export function presetFor(profile, taskId, speedPreset = "fastest") {
 }
 
 export async function saveProfile(directory, profile) {
-  await writeJsonAtomic(fileFor(directory, profile.catalogId), profile);
+  const file = fileFor(directory, profile.catalogId);
+  await writeJsonAtomic(file, profile);
+  PROFILE_TEXT_CACHE.delete(file);
 }
 
 /** Question types a task's preset answers significantly worse than the defaults (ADR-068). */
@@ -255,7 +273,34 @@ export function importRecipe(recipe) {
 
 /** The saved profile and the fingerprint keys that changed since it was measured, or null when there is none. */
 export async function loadProfile(directory, catalogId, fingerprint) {
-  const profile = await readJsonWithQuarantine(fileFor(directory, catalogId), null);
+  const file = fileFor(directory, catalogId);
+  const info = await fs.promises.stat(file).catch(() => null);
+  const stamp = info ? `${info.mtimeMs}:${info.size}` : "missing";
+  const cached = PROFILE_TEXT_CACHE.get(file);
+  let profile;
+  if (cached?.stamp === stamp) {
+    profileCacheHits += 1;
+    try {
+      profile = JSON.parse(cached.text);
+    } catch {
+      profile = null;
+    }
+  } else {
+    profileCacheMisses += 1;
+    const text = await fs.promises.readFile(file, "utf8").catch(() => null);
+    if (text === null) return null;
+    try {
+      profile = JSON.parse(text.replace(/^\uFEFF/, ""));
+    } catch {
+      // Preserve the quarantine behaviour for a damaged profile.
+      await readJsonWithQuarantine(file, null);
+      return null;
+    }
+    if (PROFILE_TEXT_CACHE.size >= PROFILE_TEXT_LIMIT) {
+      PROFILE_TEXT_CACHE.delete(PROFILE_TEXT_CACHE.keys().next().value);
+    }
+    PROFILE_TEXT_CACHE.set(file, { stamp, text });
+  }
   if (!profile) return null;
   if (profile.schema !== PROFILE_SCHEMA) {
     throw new AppError("The model profile has an unsupported format", {
@@ -302,15 +347,28 @@ function staleWarning(key, saved, now) {
 }
 
 let runtimeVersion = null;
+// TunedSettings resolves the same model's fingerprint on every chat request.
+// Machine, suite, tuner and model file cannot change within one process, so
+// cache the no-override path the server uses. Tests and tunes that pass an
+// explicit system/runtime still compute a fresh value.
+const FINGERPRINT_CACHE = new Map();
+const FINGERPRINT_LIMIT = 32;
+export function resetFingerprintCache() {
+  FINGERPRINT_CACHE.clear();
+}
 
 /** What a tune measured on right now, for `loadProfile` and for a new profile. */
-export async function currentFingerprint(entry, { system = systemInfo(), nodeLlamaCpp } = {}) {
+export async function currentFingerprint(entry, { system = null, nodeLlamaCpp } = {}) {
+  const cacheable = system === null && nodeLlamaCpp === undefined && Boolean(entry);
+  const key = cacheable ? `${entry.fileName}|${entry.size ?? ""}` : null;
+  if (key && FINGERPRINT_CACHE.has(key)) return { ...FINGERPRINT_CACHE.get(key) };
   runtimeVersion ??= import("node-llama-cpp").then((runtime) => runtime.getModuleVersion()).catch(() => "unknown");
-  return {
-    cpu: system.cpu,
-    cores: system.cores,
-    platform: system.platform,
-    arch: system.arch,
+  const resolvedSystem = system ?? systemInfo();
+  const value = {
+    cpu: resolvedSystem.cpu,
+    cores: resolvedSystem.cores,
+    platform: resolvedSystem.platform,
+    arch: resolvedSystem.arch,
     nodeLlamaCpp: nodeLlamaCpp ?? (await runtimeVersion),
     suiteVersion: SUITE_VERSION,
     taskHash: taskSubsetHash(),
@@ -318,6 +376,11 @@ export async function currentFingerprint(entry, { system = systemInfo(), nodeLla
     modelFile: entry ? path.basename(String(entry.fileName).replace(/\\/g, "/")) : null,
     modelSize: entry?.size ?? null,
   };
+  if (key) {
+    if (FINGERPRINT_CACHE.size >= FINGERPRINT_LIMIT) FINGERPRINT_CACHE.delete(FINGERPRINT_CACHE.keys().next().value);
+    FINGERPRINT_CACHE.set(key, value);
+  }
+  return value;
 }
 
 const TUNE_STAGES = Object.freeze(["device", "quality", "speed", "sampling", "prompt"]);

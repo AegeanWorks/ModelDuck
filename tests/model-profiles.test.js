@@ -18,9 +18,12 @@ import {
   pendingWork,
   planTune,
   presetFor,
+  profileCacheStats,
   profileFromTune,
   profileRecipe,
   profileIdFor,
+  resetFingerprintCache,
+  resetProfileCache,
   saveProfile,
   typeWarnings,
 } from "../src/model-profiles.js";
@@ -176,6 +179,33 @@ test("a saved profile loads back fresh on the same machine", async (t) => {
   assert.deepEqual(loaded.profile, profile());
   assert.deepEqual(loaded.stale, []);
   assert.equal(await loadProfile(dir, "smollm2-135m", FINGERPRINT), null);
+});
+
+test("the profile text cache is reused and invalidated by a save", async (t) => {
+  const dir = await directory(t);
+  resetProfileCache();
+  await saveProfile(dir, profile());
+  const first = await loadProfile(dir, "qwen2.5-0.5b-instruct-q4", FINGERPRINT);
+  const afterFirst = profileCacheStats();
+  const second = await loadProfile(dir, "qwen2.5-0.5b-instruct-q4", FINGERPRINT);
+  const afterSecond = profileCacheStats();
+  assert.deepEqual(second, first);
+  assert.equal(afterFirst.misses, 1);
+  assert.equal(afterSecond.hits, afterFirst.hits + 1);
+  await saveProfile(dir, profileFromTune({ ...TUNE, runs: 999 }, { catalogId: "qwen2.5-0.5b-instruct-q4", fingerprint: FINGERPRINT }));
+  const third = await loadProfile(dir, "qwen2.5-0.5b-instruct-q4", FINGERPRINT);
+  assert.equal(third.profile.search.runs, 999, "a saved profile replaces the cached text");
+  assert.equal(profileCacheStats().misses, afterSecond.misses + 1);
+});
+
+test("the fingerprint cache is bypassed by an explicit runtime", async () => {
+  resetFingerprintCache();
+  const entry = { fileName: "sub/qwen.gguf", size: 77 };
+  const first = await currentFingerprint(entry);
+  const second = await currentFingerprint(entry);
+  assert.deepEqual(second, first);
+  const explicit = await currentFingerprint(entry, { nodeLlamaCpp: "9.9.9" });
+  assert.equal(explicit.nodeLlamaCpp, "9.9.9");
 });
 
 test("a profile is stale when the hardware, runtime, suite or model file changes", async (t) => {
