@@ -1,76 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "tune-code-preset",
+    "task_id": "vram-memory",
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1794098185.4943419,
+    "updated_at": 1794108868.4866905,
     "owner": "deepseek-v4.1-flash",
     "started_by": "deepseek-v4.1-flash",
     "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "approved-deepcheck-w4",
-      "phase": "planning",
-      "phase_num": 2,
-      "description": "[1/2] 1076 conservative deterministic cache exact digest plus temp0 plus seed plus memory-only; [2/2] 1082 truncate overflow mode with session invalidation",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793815733.5294933,
-      "timestamp_str": "2026-11-04 21:08:53",
-      "agent": "kilo:main",
-      "impact_assessment": {
-        "why": "Last two safely implementable Approved holds; 1074 ChatDuck-side, 1087 vague, 1098 needs opt-in decision, 1192 blocked on rejected 942 and deferred tool calling",
-        "benefits": "Exact-repeat deterministic answers skip reload-free regeneration; chat survives overflow by dropping oldest history instead of failing",
-        "risks": "contract: new contextOverflow value and cached flag are additive; dependency: none new; concurrency: single-session engine plus in-memory cache cleared on unload; state: cache memory-only never persisted",
-        "mitigation": "Failing-first unit tests; truncate defaults off; cache eligibility fenced to temp0 plus explicit seed; npm test plus aikit check"
-      },
-      "plan_digest": "f30fefd0d00c299feb4177c249baa9124c3ff6e3651fa0872099106ff5f1cf02"
-    },
-    {
-      "task_id": "approved-deepcheck-w4",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/2] done: 1076 complete-path cache plus 1082 truncate history plus session invalidation; README tree updated; 530/530; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793816193.1869445,
-      "timestamp_str": "2026-11-04 21:16:33",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "approved-deepcheck-w4",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/2] done: engine 1082 truncate chat plus completion with manifest flags; fixed cache-hit slot leak on both paths; 1076 tests 5/5; full suite 530/530; README tree; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793816195.3300273,
-      "timestamp_str": "2026-11-04 21:16:35",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "approved-deepcheck-w4",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'approved-deepcheck-w4' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793816210.5046074,
-      "timestamp_str": "2026-11-04 21:16:50",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "approved-deepcheck-w4",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'approved-deepcheck-w4' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793816243.36339,
-      "timestamp_str": "2026-11-04 21:17:23",
-      "agent": "kilo:main"
-    },
     {
       "task_id": "verify-9push",
       "phase": "phase 2",
@@ -258,6 +198,66 @@
       "status": "in_progress",
       "timestamp": 1794098185.4943419,
       "timestamp_str": "2026-11-08 03:36:25",
+      "agent": "deepseek-v4.1-flash"
+    },
+    {
+      "task_id": "vram-memory",
+      "phase": "phase 1",
+      "phase_num": 1,
+      "description": "[1/4] Plan: preserve GPU VRAM in the tuner measurement cache and count host+VRAM in memory tie-breaks",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794108866.582702,
+      "timestamp_str": "2026-11-08 06:34:26",
+      "agent": "deepseek-v4.1-flash",
+      "impact_assessment": {
+        "why": "Measurements.measure dropped gpuVram, so a Vulkan preset was ranked by its host slice alone and per-GB receipts understated memory by ~1.3 GB.",
+        "benefits": "Correct memory ranking, honest per-GB receipts, no behavior change to quality decisions.",
+        "risks": "contract: tune stats; dependency: node-llama-cpp memory API; concurrency: none; state: profile receipts",
+        "mitigation": "unit tests on cache and tie-break, real coder probe, full suite, tune:gate"
+      }
+    },
+    {
+      "task_id": "tune-code-preset",
+      "phase": "superseded",
+      "phase_num": 4,
+      "description": "Superseded by 'vram-memory' without --complete or --reset",
+      "status": "superseded",
+      "timestamp": 1794108866.582702,
+      "timestamp_str": "2026-11-08 06:34:26",
+      "agent": "deepseek-v4.1-flash"
+    },
+    {
+      "task_id": "vram-memory",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[2/4] Verify: gpuVram reaches score() but the slot drops it; choose() used memoryBytes only; recipe and context docs used host RAM only",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794108867.3492434,
+      "timestamp_str": "2026-11-08 06:34:27",
+      "agent": "deepseek-v4.1-flash"
+    },
+    {
+      "task_id": "vram-memory",
+      "phase": "phase 3",
+      "phase_num": 3,
+      "description": "[3/4] Implement: cache gpuVram, footprint=host+VRAM in choose, tests for cache and tie-break, corrected preset/context receipts",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794108867.9648566,
+      "timestamp_str": "2026-11-08 06:34:27",
+      "agent": "deepseek-v4.1-flash"
+    },
+    {
+      "task_id": "vram-memory",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[4/4] Check: npm test 575 pass/1 skip, tune:gate 9/9 at +0, real coder probe 148 MB host + 1.33 GB VRAM, 4/4 AIKit gates; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794108868.4866905,
+      "timestamp_str": "2026-11-08 06:34:28",
       "agent": "deepseek-v4.1-flash"
     }
   ]
