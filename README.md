@@ -219,8 +219,8 @@ drop exits 1; a speed drop over 20% only warns. Generated code runs in a
 The models folder is ordinary storage. Copy a `.gguf` file into it and press
 **Refresh**; ModelDuck reads only the GGUF header, not the weights, to list it.
 Before parsing, it checks every count and length in that header against the file
-size. A file that fails is listed as **Blocked**, cannot be loaded, and is refused
-on import, so a damaged or hostile file cannot crash or hang the app.
+size. A file that fails is listed as **Blocked** or **Unreadable** with the
+reason, cannot be loaded, and is refused on import.
 
 Only loopback bindings are accepted. The server also checks the `Host` and
 `Origin` headers, so a random website cannot talk to your local model through
@@ -252,10 +252,9 @@ weights than its Q4 sibling.
 
 ## OpenAI-compatible API
 
-ModelDuck serves a loopback-only, unauthenticated-by-default local API; Server
-settings can require keys, enable CORS, or bind the LAN after a restart. With a
-valid key, settings and model/download changes stay local; a LAN client may read
-and chat.
+ModelDuck serves a loopback-only, unauthenticated API; Server settings can
+require keys, enable CORS or LAN binding after a restart. With a key, settings
+and model/download changes stay local; a LAN client may read and chat.
 
 ```bash
 curl http://127.0.0.1:4141/v1/models
@@ -527,6 +526,7 @@ modelduck/
 ├── tests/
 │   ├── helpers.js
 │   ├── ui-shell.test.js
+│   ├── local-actions.test.js
 │   ├── config.test.js
 │   ├── checkpoint-merge.test.js
 │   ├── fs-atomic.test.js

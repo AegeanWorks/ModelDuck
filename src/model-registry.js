@@ -285,6 +285,9 @@ export function createModelRegistry({
             chatTemplateHash: null,
             modifiedAt: new Date(stats.mtimeMs).toISOString(),
             unreadable: true,
+            // A file that failed for a reason other than the header guard still
+            // needs to say why: the UI shows it and hides Load.
+            unreadableReason: error?.why || error?.message || "The GGUF header could not be read.",
             ...(error?.code === "gguf_header_rejected"
               ? { blocked: true, blockedReason: error.why }
               : {}),

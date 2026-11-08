@@ -1629,6 +1629,11 @@ label.small-btn {
   white-space: nowrap;
 }
 
+.installed-main .installed-note {
+  color: var(--danger);
+  font-family: var(--sans, inherit);
+}
+
 .installed-main span {
   overflow: hidden;
   margin-top: 2px;

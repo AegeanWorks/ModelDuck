@@ -680,7 +680,8 @@ function renderDashboardTuning() {
     const line = document.createElement("p");
     line.className = "tune-latest";
     const rate = latest.profile?.tasks?.code?.stats?.rate;
-    line.textContent = `Latest: ${latest.name}${Number.isFinite(rate) ? ` · code ${rate}%` : ""}`;
+    const when = formatRelative(latest.profile?.createdAt);
+    line.textContent = `Latest: ${latest.name}${Number.isFinite(rate) ? ` · code ${rate}%` : ""}${when ? ` · ${when}` : ""}`;
     els.dashboardTuning.appendChild(line);
   }
   if (job?.status === "running") {
@@ -906,20 +907,24 @@ function renderInstalled() {
     row.className = "installed-card";
     const loaded = state.loaded.model?.id === model.id;
     const loading = loaded && state.loaded.status === "loading";
+    const canLoad = !model.blocked && !model.unreadable;
     const actions = loaded
       ? `<button class="small-btn" type="button" data-unload="true">Unload</button>`
-      : `<button class="small-btn" type="button" data-load="${escapeAttribute(model.id)}" ${loading ? "disabled" : ""}>${loading ? "Loading…" : "Load"}</button>`;
+      : canLoad
+        ? `<button class="small-btn" type="button" data-load="${escapeAttribute(model.id)}" ${loading ? "disabled" : ""}>${loading ? "Loading…" : "Load"}</button>`
+        : "";
     row.innerHTML = `
       <div class="installed-icon"><img src="/brand/duck.svg" alt="" /></div>
       <div class="installed-main">
         <strong>${escapeHtml(model.name)}</strong>
         <span>${escapeHtml(model.fileName)} · ${escapeHtml(model.params)} · ${escapeHtml(model.quant)}${model.contextLength ? ` · ${Number(model.contextLength).toLocaleString()} ctx` : ""} · ${escapeHtml(model.sizeLabel)}</span>
+        ${model.unreadable ? `<span class="installed-note">${escapeHtml(model.unreadableReason || "The GGUF header could not be read.")}</span>` : ""}
       </div>
       <div class="installed-actions">
         ${model.blocked
           ? `<span class="badge" title="${escapeAttribute(model.blockedReason || "")}">Blocked</span>`
-          : model.unreadable ? '<span class="badge">Unreadable</span>' : ""}
-        ${model.blocked ? "" : actions}
+          : model.unreadable ? `<span class="badge" title="${escapeAttribute(model.unreadableReason || "")}">Unreadable</span>` : ""}
+        ${actions}
         <button class="small-btn" type="button" data-delete-model="${escapeAttribute(model.id)}" ${loaded ? "disabled" : ""}>Delete</button>
       </div>`;
     els.installedList.appendChild(row);
@@ -1455,7 +1460,8 @@ function renderBenchmarkReport(data) {
     const title = document.createElement("div");
     const eyebrow = document.createElement("p");
     eyebrow.className = "eyebrow";
-    eyebrow.textContent = `Suite v${phase.suiteVersion} · ${phase.testHash}`;
+    const measured = formatRelative(phase.createdAt);
+    eyebrow.textContent = `Suite v${phase.suiteVersion} · ${phase.testHash}${measured ? ` · measured ${measured}` : ""}`;
     const heading = document.createElement("h3");
     heading.textContent = phase.phase === "single"
       ? `${phaseTitle(phase.phase)}${phase.label ? ` · ${phase.label}` : ""}`

@@ -82,6 +82,7 @@ test("an unreadable header still produces a model entry with a warning", async (
   const models = await registry.scan();
   assert.equal(models.length, 1);
   assert.equal(models[0].unreadable, true);
+  assert.equal(models[0].unreadableReason, "bad header");
 });
 
 test("import copies a valid GGUF and delete removes it", async (t) => {
