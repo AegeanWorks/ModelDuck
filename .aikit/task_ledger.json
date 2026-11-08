@@ -1,55 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "thinking-ab",
+    "task_id": "local-guards-ui-honesty",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794157038.616192,
+    "updated_at": 1794159361.797233,
     "owner": "commandcode:9b9e6718",
     "started_by": "commandcode:9b9e6718",
     "continuations": [],
-    "completed_at": 1794157060.7151146
+    "completed_at": 1794159363.0375092
   },
   "checkpoints": [
-    {
-      "task_id": "context-needed",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[4/4] Check: tune prints code 1711 / comprehension 512 / recall 16055; npm test 578 pass/1 skip; 4/4 gates; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794135788.9445486,
-      "timestamp_str": "2026-11-08 14:03:08",
-      "agent": "deepseek-v4.1-flash"
-    },
-    {
-      "task_id": "context-needed",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'context-needed' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794135792.2334259,
-      "timestamp_str": "2026-11-08 14:03:12",
-      "agent": "deepseek-v4.1-flash"
-    },
-    {
-      "task_id": "context-fit",
-      "phase": "phase 1",
-      "phase_num": 1,
-      "description": "[1/4] Plan: treat context as a fit parameter, not a quality search; smallest covering size from the selected tasks",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794138863.6863344,
-      "timestamp_str": "2026-11-08 14:54:23",
-      "agent": "deepseek-v4.1-flash",
-      "impact_assessment": {
-        "why": "Code prompts are short; 4k/16k tie in quality, while context grows the KV cache ~30 MB per 1k tokens.",
-        "benefits": "No wasted context search, honest memory denominator, recall keeps its required 16k.",
-        "risks": "contract: quality-stage load choice; dependency: memory-fit; concurrency: none; state: profiles",
-        "mitigation": "unit tests, real code quality run, full suite, tune:gate"
-      }
-    },
     {
       "task_id": "context-fit",
       "phase": "phase 4",
@@ -259,6 +221,44 @@
       "status": "completed",
       "timestamp": 1794157060.7151165,
       "timestamp_str": "2026-11-08 19:57:40",
+      "agent": "commandcode:9b9e6718"
+    },
+    {
+      "task_id": "local-guards-ui-honesty",
+      "phase": "phase 1",
+      "phase_num": 1,
+      "description": "[1/1] Plan: keep state-changing routes local even for keyed LAN clients; refuse unload under a load/reply; make the dashboard Tune, benchmark baseline/full-matrix and Server dialog honest; let a fresh install import a profile",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794159355.8590348,
+      "timestamp_str": "2026-11-08 20:35:55",
+      "agent": "commandcode:9b9e6718",
+      "impact_assessment": {
+        "why": "An audit found remote key-holders could delete models and rewrite settings, unload could race a load, a dashboard mis-click launched an hours-long tune, a phase-irrelevant checkbox did nothing, a blank Server dialog could be saved, and profile import was unreachable without a profile.",
+        "benefits": "One safety rule across the API, no accidental full tunes or baseline overwrites, no blank-save data loss, and a fresh install can load a shared profile.",
+        "risks": "contract: LAN clients lose mutation rights; dependency: none; concurrency: unload now refuses instead of racing; state: no saved-data migration",
+        "mitigation": "route-level guard, real non-loopback socket test, busy-status test, UI + smoke tests, full suite and project gates"
+      }
+    },
+    {
+      "task_id": "local-guards-ui-honesty",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[4/4] Check: LAN mutations 403 with named codes while reads/chat pass; unload 409 model_busy on loading/busy then 200; benchmark tune forwards settings, rejects unknown setting/model before 202; single-id tune start works; npm test 589 pass/1 skip; ui:smoke OK incl. Tune confirm; 4/4 project gates; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794159361.797233,
+      "timestamp_str": "2026-11-08 20:36:01",
+      "agent": "commandcode:9b9e6718"
+    },
+    {
+      "task_id": "local-guards-ui-honesty",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'local-guards-ui-honesty' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794159363.0375109,
+      "timestamp_str": "2026-11-08 20:36:03",
       "agent": "commandcode:9b9e6718"
     }
   ]
