@@ -5,41 +5,13 @@
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794130238.5185533,
+    "updated_at": 1794133303.000225,
     "owner": "deepseek-v4.1-flash",
     "started_by": "deepseek-v4.1-flash",
     "continuations": [],
-    "completed_at": 1794130239.6445804
+    "completed_at": 1794133304.0790045
   },
   "checkpoints": [
-    {
-      "task_id": "tune-code-preset",
-      "phase": "phase 1",
-      "phase_num": 1,
-      "description": "[1/4] Plan: narrow repeat-penalty search, measure preset recipe, build initial tune baseline",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794088203.787168,
-      "timestamp_str": "2026-11-08 00:50:03",
-      "agent": "deepseek-v4.1-flash",
-      "impact_assessment": {
-        "why": "The gate had no baseline and the tuner spent four repeat candidates on values that tied or lost; code answers carried explanation tokens.",
-        "benefits": "A measured code preset with higher code per second and per GB, plus a first G-001 baseline.",
-        "risks": "contract: tuner search/profile schema; dependency: none; concurrency: GPU contention; state: baseline and history",
-        "mitigation": "harness A/B on identical configs, full test suite, gate, serve check"
-      }
-    },
-    {
-      "task_id": "tune-code-preset",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[2/4] Verify: read call sites, stateless evaluator contract, gate missing baseline; revised to measured preset + honest search narrowing",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794088204.609454,
-      "timestamp_str": "2026-11-08 00:50:04",
-      "agent": "deepseek-v4.1-flash"
-    },
     {
       "task_id": "tune-code-preset",
       "phase": "phase 3",
@@ -250,6 +222,27 @@
       "status": "completed",
       "timestamp": 1794130239.6445825,
       "timestamp_str": "2026-11-08 12:30:39",
+      "agent": "deepseek-v4.1-flash"
+    },
+    {
+      "task_id": "verifier-cache",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[4/4] Extended: benchmark run prints verifier cache hits/misses; npm test 577 pass/1 skip, ui:smoke OK, tune:gate 9/9, 4/4 gates; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794133303.000225,
+      "timestamp_str": "2026-11-08 13:21:42",
+      "agent": "deepseek-v4.1-flash"
+    },
+    {
+      "task_id": "verifier-cache",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verifier-cache' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794133304.0790067,
+      "timestamp_str": "2026-11-08 13:21:44",
       "agent": "deepseek-v4.1-flash"
     }
   ]
