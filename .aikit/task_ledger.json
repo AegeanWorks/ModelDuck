@@ -5,30 +5,12 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1794108868.4866905,
+    "updated_at": 1794109491.5112834,
     "owner": "deepseek-v4.1-flash",
     "started_by": "deepseek-v4.1-flash",
     "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "verify-9push",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/2] Verify last 9 pushes plus uncommitted repro-scope hardening for bugs/gaps",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793911671.0065522,
-      "timestamp_str": "2026-11-05 23:47:51",
-      "agent": "kilo:goal",
-      "impact_assessment": {
-        "why": "Goal asks modelduck verify plus last-9 analysis with fixes before push",
-        "benefits": "Close repro-scope, hygiene, and README drift gaps",
-        "risks": "contract: test markers plus README tree/prose only; dependency: none; concurrency: none; state: working tree plus ledger",
-        "mitigation": "Full 4/4 project gates incl npm test, explicit staging, no binary commits"
-      },
-      "plan_digest": "157f18495be2de5e7552ea9146cea5b4728632ccdfa937ae1f71f8eff037f81a"
-    },
     {
       "task_id": "verify-9push",
       "phase": "phase 4",
@@ -258,6 +240,17 @@
       "status": "in_progress",
       "timestamp": 1794108868.4866905,
       "timestamp_str": "2026-11-08 06:34:28",
+      "agent": "deepseek-v4.1-flash"
+    },
+    {
+      "task_id": "vram-memory",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[4/4] Extended: benchmark model phase records gpuVram, history gains model_results.gpu_vram, recommendation cards carry it, run log prints host + VRAM; npm test 575 pass/1 skip, bench:flash recorded, 4/4 gates; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794109491.5112834,
+      "timestamp_str": "2026-11-08 06:44:51",
       "agent": "deepseek-v4.1-flash"
     }
   ]
