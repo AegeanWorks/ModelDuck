@@ -224,9 +224,32 @@ export function createModelRegistry({
   const cache = new Map();
   let entries = new Map();
   const samplingOverrides = new Map();
+  let lastScanAt = 0;
+  let lastDirStamp = null;
+  let scanHits = 0;
+  let scanMisses = 0;
+  const scanStats = () => ({ hits: scanHits, misses: scanMisses });
 
-  async function scan() {
+  async function dirStamp() {
+    try {
+      const info = await fs.promises.stat(modelsDir);
+      return `${info.mtimeMs}:${info.size ?? ""}`;
+    } catch {
+      return "missing";
+    }
+  }
+
+  async function scan({ force = false } = {}) {
     await ensureDirectory(modelsDir);
+    // /api/state polls this. Reuse a scan for one second when the directory
+    // stamp has not moved; import/delete pass force, and the TTL still catches
+    // an in-place file change.
+    const stamp = await dirStamp();
+    if (!force && stamp === lastDirStamp && Date.now() - lastScanAt < 1000) {
+      scanHits += 1;
+      return listPublic();
+    }
+    scanMisses += 1;
     const files = await walkGgufFiles(modelsDir);
     const nextEntries = new Map();
     const nextCache = new Map();
@@ -284,6 +307,8 @@ export function createModelRegistry({
     for (const id of [...samplingOverrides.keys()]) {
       if (!entries.has(id)) samplingOverrides.delete(id);
     }
+    lastScanAt = Date.now();
+    lastDirStamp = await dirStamp();
     return listPublic();
   }
 
@@ -348,7 +373,7 @@ export function createModelRegistry({
     await ensureDirectory(modelsDir);
     const sourceInsideModels = path.resolve(source).startsWith(`${path.resolve(modelsDir)}${path.sep}`);
     if (sourceInsideModels) {
-      await scan();
+      await scan({ force: true });
       const existing = [...entries.values()].find((entry) => path.resolve(entry.path) === source);
       if (existing) return publicEntry(existing);
     }
@@ -370,11 +395,11 @@ export function createModelRegistry({
       }
     }
 
-    await scan();
+    await scan({ force: true });
     const imported = [...entries.values()].find((entry) => path.resolve(entry.path) === target);
     if (imported?.blocked) {
       await fs.promises.unlink(target).catch(() => {});
-      await scan();
+      await scan({ force: true });
       throw new AppError("This GGUF file was blocked", {
         code: "gguf_header_rejected",
         status: 422,
@@ -461,6 +486,7 @@ export function createModelRegistry({
   return {
     modelsDir,
     scan,
+    scanStats,
     listPublic,
     findById,
     importFromPath,
@@ -474,3 +500,4 @@ export function createModelRegistry({
     },
   };
 }
+

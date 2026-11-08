@@ -47,6 +47,23 @@ test("scan finds GGUF files, ignores partials and non-models, and exposes metada
   assert.match(models[0].id, /^[a-f0-9]{12}$/);
 });
 
+test("a repeated scan reuses the result, force bypasses it, and a new file invalidates", async (t) => {
+  const { directory, registry } = await makeRegistry(t);
+  await writeFile(path.join(directory, "one.gguf"), Buffer.from("GGUF12345678"));
+  const first = await registry.scan();
+  const afterFirst = registry.scanStats();
+  const second = await registry.scan();
+  const afterSecond = registry.scanStats();
+  assert.deepEqual(second, first);
+  assert.equal(afterFirst.misses, 1);
+  assert.equal(afterSecond.hits, afterFirst.hits + 1);
+  await registry.scan({ force: true });
+  assert.equal(registry.scanStats().misses, afterSecond.misses + 1);
+  await writeFile(path.join(directory, "two.gguf"), Buffer.from("GGUF87654321"));
+  const third = await registry.scan({ force: true });
+  assert.equal(third.length, 2, "a force scan sees the new file");
+});
+
 test("scan keeps a stable id when the file does not change", async (t) => {
   const { directory, registry } = await makeRegistry(t);
   await writeFile(path.join(directory, "stable.gguf"), Buffer.from("GGUF12345678"));
