@@ -1441,6 +1441,15 @@ function renderBenchmarkReport(data) {
       benchmarkMetric("speed", `${Number(phase.tokensPerSecond).toFixed(1)} tok/s`),
       benchmarkMetric("runtime", `${(Number(phase.runtimeMs) / 1000).toFixed(1)}s`),
       benchmarkMetric("first token", `${Number(phase.firstTokenMs)} ms`),
+      ...(phase.totalMemoryBytes
+        ? [benchmarkMetric("memory", [phase.memoryBytes ? `${formatBytes(phase.memoryBytes)} host` : "", phase.gpuVram ? `${formatBytes(phase.gpuVram)} VRAM` : ""].filter(Boolean).join(" + "))]
+        : []),
+      ...(Number.isFinite(phase.qualityPerSecond)
+        ? [benchmarkMetric("quality/s", `${Number(phase.qualityPerSecond).toFixed(1)} %/s`)]
+        : []),
+      ...(Number.isFinite(phase.qualityPerSecondPerGb)
+        ? [benchmarkMetric("quality/s per GB", `${Number(phase.qualityPerSecondPerGb).toFixed(1)}`)]
+        : []),
       ...(phase.items?.byOrigin?.own
         ? [benchmarkMetric(`own questions · ${phase.items.byOrigin.own.passed}/${phase.items.byOrigin.own.total}`, `${phase.items.byOrigin.own.rate}%`)]
         : []),

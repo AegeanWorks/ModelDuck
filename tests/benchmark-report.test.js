@@ -75,6 +75,20 @@ test("benchmark summary exposes per-test percentages and linked commits", () => 
   assert.equal(summary.history[0].phase, "chat");
 });
 
+test("a benchmark phase exposes host + VRAM and quality per second per GB", () => {
+  const result = {
+    ...MODEL,
+    models: [{ tokensPerSecond: 47.1, memoryBytes: 1_000_000_000, gpuVram: 2_000_000_000 }],
+  };
+  const summary = summarizeBenchmark({ model: result, history: { runs: [], links: new Map() } });
+  const phase = summary.phases[0];
+  assert.equal(phase.memoryBytes, 1_000_000_000);
+  assert.equal(phase.gpuVram, 2_000_000_000);
+  assert.equal(phase.totalMemoryBytes, 3_000_000_000);
+  assert.equal(phase.qualityPerSecond, 0.69, "82.5% over 120 s");
+  assert.ok(Number.isFinite(phase.qualityPerSecondPerGb), "per-GB quality uses host + VRAM");
+});
+
 test("a missing benchmark report is empty instead of throwing", async (t) => {
   const directory = await mkdtemp(path.join(os.tmpdir(), "modelduck-bench-"));
   t.after(() => rm(directory, { recursive: true, force: true }));

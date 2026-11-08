@@ -37,15 +37,34 @@ function summarizePhase(result, commit) {
         };
       })()
     : null;
+  const quality = Number(result.overall?.score) || 0;
+  const runtimeMs = Number(result.runtimeMs) || 0;
+  // The phase card needs the denominator a per-GB claim uses. Take the fastest
+  // variant's measured footprint; host RAM and VRAM are both reported.
+  const representative = (result.models ?? [])
+    .slice()
+    .sort((left, right) => (Number(right.tokensPerSecond) || 0) - (Number(left.tokensPerSecond) || 0))[0] ?? null;
+  const memoryBytes = Number(representative?.memoryBytes) || 0;
+  const gpuVram = Number(representative?.gpuVram) || 0;
+  const totalMemoryBytes = memoryBytes + gpuVram || null;
+  const qualityPerSecond = runtimeMs > 0 ? Number(((quality / (runtimeMs / 1000))).toFixed(2)) : null;
+  const qualityPerSecondPerGb = totalMemoryBytes && qualityPerSecond
+    ? Number((qualityPerSecond / (totalMemoryBytes / 1024 ** 3)).toFixed(2))
+    : null;
   return {
     phase: result.phase,
     suiteVersion: result.suiteVersion ?? null,
     testHash: result.testHash ?? null,
     createdAt: result.createdAt ?? null,
-    runtimeMs: Number(result.runtimeMs) || 0,
-    quality: Number(result.overall?.score) || 0,
+    runtimeMs,
+    quality,
     tokensPerSecond: Number(result.overall?.tokensPerSecond) || 0, // aikit:allow-secret speed metric
     firstTokenMs: Number(result.overall?.firstTokenMs) || 0, // aikit:allow-secret timing metric
+    memoryBytes: memoryBytes || null,
+    gpuVram: gpuVram || null,
+    totalMemoryBytes,
+    qualityPerSecond,
+    qualityPerSecondPerGb,
     checksPassed: Number(result.overall?.checksPassed) || 0,
     checksTotal: Number(result.overall?.checksTotal) || 0,
     items,

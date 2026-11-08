@@ -108,6 +108,8 @@ failed on any 0.01-point drop in the check score.
 
 ## Live run and recommendations
 
+Each phase card also shows host RAM + GPU VRAM, quality per second, and quality
+per second per GB, so a throughput claim carries its memory denominator.
 `--events` turns stdout into one JSON object per line (`benchmark`,
 `prompt-start`, `prompt`, `variant`, `complete`) and moves the human log to
 stderr. The app's **Bench** panel starts one child process through
