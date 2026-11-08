@@ -1,0 +1,648 @@
+{
+  "schema": 1,
+  "kind": "modelduck-profile",
+  "catalogId": "qwen2.5-0.5b-instruct-q4",
+  "exportedAt": "2026-11-08T21:47:53.223Z",
+  "createdAt": "2026-11-08T21:43:56.287Z",
+  "fingerprint": {
+    "cpu": "Intel(R) Core(TM) i5-14400F",
+    "cores": 16,
+    "platform": "win32",
+    "arch": "x64",
+    "nodeLlamaCpp": "3.22.2",
+    "suiteVersion": 17,
+    "taskHash": "9e89fb9cc27ae435",
+    "modelFile": "qwen2.5-0.5b-instruct-q4_k_m.gguf",
+    "modelSize": 491400032,
+    "tunerVersion": 9
+  },
+  "load": {
+    "settings": {
+      "gpuLayers": "max",
+      "gpuBackend": "vulkan"
+    },
+    "stats": null
+  },
+  "device": {
+    "settings": {
+      "gpuBackend": "vulkan",
+      "gpuLayers": "max"
+    },
+    "probe": [
+      {
+        "patch": {
+          "gpuBackend": "cpu",
+          "gpuLayers": 0
+        },
+        "rate": 66.7,
+        "solved": 4,
+        "ci95": {
+          "low": 30,
+          "high": 90.3
+        },
+        "latencyMs": 37699,
+        "latencySd": 38975,
+        "outputTokens": 5,
+        "tokensPerSecond": 0.16,
+        "truncationRate": 0,
+        "giveUpRate": 0,
+        "promptTokens": 91,
+        "prefillTps": 8.51,
+        "decodeTps": 1.94,
+        "items": 6,
+        "seeds": 1,
+        "memoryBytes": 860338688,
+        "gpuVram": 0,
+        "failed": false,
+        "error": null,
+        "outcomes": {
+          "javascript": 0,
+          "read-sumTo-1": 1,
+          "needle": 1,
+          "bug-sum-to": 1,
+          "read-clamp-1": 0,
+          "recall-locker-first": 1
+        },
+        "fractions": {
+          "javascript": 0,
+          "read-sumTo-1": 1,
+          "needle": 1,
+          "bug-sum-to": 1,
+          "read-clamp-1": 0,
+          "recall-locker-first": 1
+        },
+        "credit": {
+          "javascript": 0.3333,
+          "read-sumTo-1": 1,
+          "needle": 1,
+          "bug-sum-to": 1,
+          "read-clamp-1": 0,
+          "recall-locker-first": 1
+        },
+        "passed": 4,
+        "verdict": "slower than the chosen GPU"
+      },
+      {
+        "patch": {
+          "gpuBackend": "vulkan",
+          "gpuLayers": "max"
+        },
+        "rate": 100,
+        "solved": 6,
+        "ci95": {
+          "low": 61,
+          "high": 100
+        },
+        "latencyMs": 250,
+        "latencySd": 104.1,
+        "outputTokens": 5,
+        "tokensPerSecond": 133.93,
+        "truncationRate": 0,
+        "giveUpRate": 0,
+        "promptTokens": 91,
+        "prefillTps": 565.36,
+        "decodeTps": 127.17,
+        "items": 6,
+        "seeds": 1,
+        "memoryBytes": 105147424,
+        "gpuVram": 764907008,
+        "failed": false,
+        "error": null,
+        "outcomes": {
+          "javascript": 1,
+          "read-sumTo-1": 1,
+          "needle": 1,
+          "bug-sum-to": 1,
+          "read-clamp-1": 1,
+          "recall-locker-first": 1
+        },
+        "fractions": {
+          "javascript": 1,
+          "read-sumTo-1": 1,
+          "needle": 1,
+          "bug-sum-to": 1,
+          "read-clamp-1": 1,
+          "recall-locker-first": 1
+        },
+        "credit": {
+          "javascript": 1,
+          "read-sumTo-1": 1,
+          "needle": 1,
+          "bug-sum-to": 1,
+          "read-clamp-1": 1,
+          "recall-locker-first": 1
+        },
+        "passed": 6,
+        "verdict": "chosen"
+      }
+    ],
+    "reason": "vulkan with max layers: 133.93 tok/s vs 0.16 tok/s on the CPU, 6/6 correct.",
+    "settled": true
+  },
+  "speed": null,
+  "tasks": {
+    "code": {
+      "settings": {
+        "temperature": 0,
+        "minP": 0.05,
+        "topP": 0.9,
+        "maxTokens": 512,
+        "repeatPenalty": 1,
+        "dryStrength": 0,
+        "penalizeNewLine": false,
+        "topK": 40,
+        "systemPrompt": "You are a precise assistant. Follow the requested output format exactly. Do not explain unless the user asks for an explanation.",
+        "reasoning": "off",
+        "promptRepeat": 1
+      },
+      "stats": {
+        "rate": 35.4,
+        "solved": 17,
+        "ci95": {
+          "low": 23.4,
+          "high": 49.6
+        },
+        "latencyMs": 407.5,
+        "latencySd": 1419.3,
+        "outputTokens": 62.5,
+        "tokensPerSecond": 216.5,
+        "truncationRate": 2.1,
+        "giveUpRate": 0,
+        "promptTokens": 92.5,
+        "prefillTps": 912.79,
+        "decodeTps": 213.48,
+        "items": 48,
+        "seeds": 1,
+        "failed": false,
+        "error": null,
+        "outcomes": {
+          "javascript": 1,
+          "bug-sum-to": 1,
+          "code-long-calculator": 0,
+          "bug-long-binary-search": 1,
+          "repo-cart-total": 0,
+          "repo-format-cents": 0,
+          "pub-humaneval-13": 1,
+          "pub-mbpp-80": 0,
+          "code-long-csv": 0,
+          "bug-long-merge-intervals": 0,
+          "repo-receipt": 0,
+          "repo-tokenize-digits": 0,
+          "pub-humaneval-26": 0,
+          "pub-mbpp-86": 0,
+          "code-palindrome": 0,
+          "bug-average": 1,
+          "code-fizzbuzz": 1,
+          "bug-is-even": 1,
+          "code-long-checkout": 0,
+          "bug-long-to-roman": 0,
+          "repo-search": 0,
+          "repo-whole-balance": 0,
+          "pub-humaneval-31": 1,
+          "pub-mbpp-65": 0,
+          "code-reverse-words": 1,
+          "bug-reverse-string": 1,
+          "code-long-matrix-multiply": 0,
+          "bug-long-cart-total": 0,
+          "repo-slugify": 0,
+          "repo-exact-kilo": 0,
+          "pub-humaneval-57": 0,
+          "pub-mbpp-11": 1,
+          "code-long-ini": 0,
+          "bug-long-csv": 0,
+          "repo-find-accents": 1,
+          "repo-escape-order": 0,
+          "pub-humaneval-16": 1,
+          "pub-mbpp-12": 1,
+          "code-fibonacci": 1,
+          "bug-count-words": 0,
+          "code-unique-sorted": 1,
+          "bug-fahrenheit": 1,
+          "code-long-query": 0,
+          "bug-long-rotate": 0,
+          "repo-end-times": 0,
+          "repo-trace-tag-case": 0,
+          "pub-humaneval-49": 0,
+          "pub-mbpp-16": 0
+        },
+        "fractions": {
+          "javascript": 1,
+          "bug-sum-to": 1,
+          "code-long-calculator": 0,
+          "bug-long-binary-search": 1,
+          "repo-cart-total": 0,
+          "repo-format-cents": 0,
+          "pub-humaneval-13": 1,
+          "pub-mbpp-80": 0,
+          "code-long-csv": 0,
+          "bug-long-merge-intervals": 0,
+          "repo-receipt": 0,
+          "repo-tokenize-digits": 0,
+          "pub-humaneval-26": 0,
+          "pub-mbpp-86": 0,
+          "code-palindrome": 0,
+          "bug-average": 1,
+          "code-fizzbuzz": 1,
+          "bug-is-even": 1,
+          "code-long-checkout": 0,
+          "bug-long-to-roman": 0,
+          "repo-search": 0,
+          "repo-whole-balance": 0,
+          "pub-humaneval-31": 1,
+          "pub-mbpp-65": 0,
+          "code-reverse-words": 1,
+          "bug-reverse-string": 1,
+          "code-long-matrix-multiply": 0,
+          "bug-long-cart-total": 0,
+          "repo-slugify": 0,
+          "repo-exact-kilo": 0,
+          "pub-humaneval-57": 0,
+          "pub-mbpp-11": 1,
+          "code-long-ini": 0,
+          "bug-long-csv": 0,
+          "repo-find-accents": 1,
+          "repo-escape-order": 0,
+          "pub-humaneval-16": 1,
+          "pub-mbpp-12": 1,
+          "code-fibonacci": 1,
+          "bug-count-words": 0,
+          "code-unique-sorted": 1,
+          "bug-fahrenheit": 1,
+          "code-long-query": 0,
+          "bug-long-rotate": 0,
+          "repo-end-times": 0,
+          "repo-trace-tag-case": 0,
+          "pub-humaneval-49": 0,
+          "pub-mbpp-16": 0
+        },
+        "credit": {
+          "javascript": 1,
+          "bug-sum-to": 1,
+          "code-long-calculator": 0,
+          "bug-long-binary-search": 1,
+          "repo-cart-total": 0.3333,
+          "repo-format-cents": 0.25,
+          "pub-humaneval-13": 1,
+          "pub-mbpp-80": 0,
+          "code-long-csv": 0,
+          "bug-long-merge-intervals": 0.5,
+          "repo-receipt": 0,
+          "repo-tokenize-digits": 0,
+          "pub-humaneval-26": 0.5,
+          "pub-mbpp-86": 0.3333,
+          "code-palindrome": 0.5,
+          "bug-average": 1,
+          "code-fizzbuzz": 1,
+          "bug-is-even": 1,
+          "code-long-checkout": 0.25,
+          "bug-long-to-roman": 0,
+          "repo-search": 0,
+          "repo-whole-balance": 0.75,
+          "pub-humaneval-31": 1,
+          "pub-mbpp-65": 0,
+          "code-reverse-words": 1,
+          "bug-reverse-string": 1,
+          "code-long-matrix-multiply": 0,
+          "bug-long-cart-total": 0.5,
+          "repo-slugify": 0.5,
+          "repo-exact-kilo": 0.6,
+          "pub-humaneval-57": 0.8,
+          "pub-mbpp-11": 1,
+          "code-long-ini": 0.3333,
+          "bug-long-csv": 0,
+          "repo-find-accents": 1,
+          "repo-escape-order": 0.3333,
+          "pub-humaneval-16": 1,
+          "pub-mbpp-12": 1,
+          "code-fibonacci": 1,
+          "bug-count-words": 0.6667,
+          "code-unique-sorted": 1,
+          "bug-fahrenheit": 1,
+          "code-long-query": 0,
+          "bug-long-rotate": 0.25,
+          "repo-end-times": 0,
+          "repo-trace-tag-case": 0.3333,
+          "pub-humaneval-49": 0.5714,
+          "pub-mbpp-16": 0.6667
+        },
+        "vsDefault": {
+          "rateDelta": 9.7,
+          "b": 9,
+          "c": 23,
+          "pValue": 0.0011
+        },
+        "byType": {
+          "code": {
+            "items": 6,
+            "right": 5,
+            "defaultRight": 4,
+            "p": 1
+          },
+          "bugfix": {
+            "items": 6,
+            "right": 5,
+            "defaultRight": 5,
+            "p": 1
+          },
+          "code-long": {
+            "items": 6,
+            "right": 0,
+            "defaultRight": 0,
+            "p": 1
+          },
+          "bugfix-long": {
+            "items": 6,
+            "right": 1,
+            "defaultRight": 1,
+            "p": 1
+          },
+          "code-repo": {
+            "items": 6,
+            "right": 1,
+            "defaultRight": 1,
+            "p": 1
+          },
+          "bugfix-repo": {
+            "items": 6,
+            "right": 0,
+            "defaultRight": 0,
+            "p": 1
+          },
+          "public-code": {
+            "items": 12,
+            "right": 5,
+            "defaultRight": 2,
+            "p": 0.25
+          }
+        }
+      }
+    }
+  },
+  "tunedOn": {
+    "code": {
+      "items": 48,
+      "ids": [
+        "bug-long-binary-search",
+        "pub-humaneval-13",
+        "bug-long-merge-intervals",
+        "code-palindrome",
+        "bug-average",
+        "code-fizzbuzz",
+        "bug-is-even",
+        "bug-reverse-string",
+        "code-long-matrix-multiply",
+        "bug-long-cart-total",
+        "repo-slugify",
+        "repo-exact-kilo",
+        "repo-find-accents",
+        "code-fibonacci",
+        "code-unique-sorted",
+        "bug-fahrenheit"
+      ],
+      "excluded": [
+        "javascript",
+        "bug-sum-to",
+        "code-long-calculator",
+        "repo-cart-total",
+        "repo-format-cents",
+        "pub-mbpp-80",
+        "code-long-csv",
+        "repo-receipt",
+        "repo-tokenize-digits",
+        "pub-humaneval-26",
+        "pub-mbpp-86",
+        "code-long-checkout",
+        "bug-long-to-roman",
+        "repo-search",
+        "repo-whole-balance",
+        "pub-humaneval-31",
+        "pub-mbpp-65",
+        "code-reverse-words",
+        "pub-humaneval-57",
+        "pub-mbpp-11",
+        "code-long-ini",
+        "bug-long-csv",
+        "repo-escape-order",
+        "pub-humaneval-16",
+        "pub-mbpp-12",
+        "bug-count-words",
+        "code-long-query",
+        "bug-long-rotate",
+        "repo-end-times",
+        "repo-trace-tag-case",
+        "pub-humaneval-49",
+        "pub-mbpp-16"
+      ],
+      "fellBack": false
+    }
+  },
+  "receipt": {
+    "stages": {
+      "device": "done",
+      "quality": "pending",
+      "speed": "pending",
+      "sampling": {
+        "code": "partial"
+      },
+      "prompt": {
+        "code": "done"
+      }
+    },
+    "search": {
+      "runs": 1274,
+      "budgetExhausted": false,
+      "options": {
+        "seeds": [
+          42,
+          7,
+          1234
+        ],
+        "passes": 2,
+        "maxRuns": 20000,
+        "quota": null,
+        "toleranceItems": 1,
+        "keepFraction": 0.5,
+        "speedTie": 0.03,
+        "changeAlpha": 0.2,
+        "stopAlpha": null,
+        "looks": 4,
+        "taskWeights": null,
+        "screenFraction": 0.25
+      },
+      "steps": {
+        "lanes": {
+          "cpu": 1,
+          "gpu": 2
+        },
+        "device": {
+          "backends": [
+            "cpu",
+            "vulkan"
+          ]
+        },
+        "load": {
+          "contextSize": [
+            2048,
+            4096,
+            8192,
+            16384
+          ],
+          "kvCache": [
+            "f16",
+            "q8_0",
+            "q8_0:q4_0"
+          ],
+          "flashAttention": [
+            "on",
+            "off"
+          ],
+          "useMmap": [
+            "on",
+            "off"
+          ],
+          "batchSize": [
+            64,
+            128,
+            256,
+            512,
+            1024,
+            2048
+          ],
+          "threads": [
+            1,
+            2,
+            4,
+            6,
+            8,
+            10,
+            12
+          ],
+          "checkpointing": {
+            "enabled": false,
+            "interval": [
+              128,
+              256,
+              512,
+              1024,
+              2048
+            ],
+            "max": [
+              4,
+              8,
+              16,
+              32
+            ]
+          }
+        },
+        "sampling": {
+          "temperature": [
+            0,
+            0.2,
+            0.4,
+            0.6,
+            0.8,
+            1
+          ],
+          "maxTokens": {
+            "code": [
+              64,
+              128,
+              256,
+              512,
+              1024,
+              2048
+            ],
+            "comprehension": [
+              64,
+              128,
+              256,
+              512,
+              1024,
+              2048
+            ],
+            "recall": [
+              64,
+              128,
+              256,
+              512,
+              1024,
+              2048
+            ]
+          },
+          "repeatPenalty": [
+            1,
+            1.05
+          ],
+          "dryStrength": [
+            0,
+            0.8
+          ],
+          "minP": [
+            0,
+            0.05,
+            0.1,
+            0.15,
+            0.2
+          ],
+          "topP": [
+            0.8,
+            0.85,
+            0.9,
+            0.95,
+            1
+          ],
+          "topK": [
+            0,
+            20,
+            40
+          ],
+          "penalizeNewLine": [
+            true,
+            false
+          ]
+        },
+        "prompt": {
+          "systemPrompt": [
+            "You are a precise assistant. Follow the requested output format exactly. Do not explain unless the user asks for an explanation.",
+            "Answer with only what the question asks for.",
+            "Follow the requested output format exactly.",
+            "Be concise and do not explain unless asked.",
+            "Read the whole question before answering.",
+            "Check your answer against the question before replying.",
+            "Work through the problem step by step, then state the final answer.",
+            "Put the final answer on the last line.",
+            "Give numeric answers as plain numbers.",
+            "Answer only from the given text, quoting it where you can.",
+            "Do not invent details that are not in the question.",
+            "If the given text does not contain the answer, say so.",
+            "Use the exact function name and signature requested.",
+            "Write complete, runnable code with no placeholders.",
+            "Return only the code when asked for code.",
+            "Fix only the bug and keep the rest of the code unchanged.",
+            "Handle edge cases such as empty input.",
+            "Do not repeat the question.",
+            "Answer in one word when one word is enough.",
+            "Prefer correctness over brevity.",
+            "State any assumption in one short sentence before using it.",
+            "Keep the names, order and formatting of the input."
+          ],
+          "reasoning": [
+            "off",
+            "deep"
+          ],
+          "promptRepeat": [
+            1,
+            2
+          ]
+        }
+      }
+    },
+    "rates": {
+      "code": {
+        "rate": 35.4,
+        "items": 48,
+        "holdout": null
+      }
+    }
+  }
+}
