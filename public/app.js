@@ -206,7 +206,7 @@ const TUNE_STEP_HELP = {
   "device.backends": "Backends to probe. CPU is always kept as the reference, so a GPU wins only when it is faster without losing answers.",
   "lanes.cpu": "How many tunes may use the CPU lane at the same time.",
   "lanes.gpu": "How many tunes may use the GPU lanes; 0 makes GPU models wait for the CPU lane.",
-  "load.contextSize": "Context sizes to try. The tuner prefers the largest that fits and loses no answers.",
+  "load.contextSize": "Context is a fit parameter: the tuner keeps the smallest listed size that covers the selected tasks, then the memory budget confirms it.",
   "load.kvCache": "KV cache types to try. Lower precision saves memory; types that lose answers are rejected.",
   "load.flashAttention": "Flash attention values to try where the backend supports them.",
   "load.useMmap": "Try mapping weights from disk or copying them into RAM.",

@@ -1,11 +1,19 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { budgetContext, estimateLoad, estimateLoadV2, fitVerdict, kvBytesPerToken, splitKvCache } from "../src/memory-fit.js";
+import { budgetContext, contextSizesFor, estimateLoad, estimateLoadV2, fitVerdict, kvBytesPerToken, splitKvCache } from "../src/memory-fit.js";
 
 const GIB = 1024 ** 3;
 const QWEN_1_5B = { layers: 28, kvHeads: 2, headDim: 128 };
 const LLAMA_3B = { layers: 28, kvHeads: 8, headDim: 128 };
+
+test("context keeps the sizes that cover the task prompts, or the largest when none does", () => {
+  const steps = [2048, 4096, 8192, 16384];
+  assert.deepEqual(contextSizesFor(steps, 2223), [4096, 8192, 16384], "code: 1711 + 512 margin");
+  assert.deepEqual(contextSizesFor(steps, 0), steps);
+  assert.deepEqual(contextSizesFor(steps, 16567), [16384], "recall needs more than any listed size");
+  assert.deepEqual(contextSizesFor([2048], 4096), [2048], "a single step is the fallback");
+});
 
 test("V2 requirements normalize to the estimate shape, with the VRAM split kept (M7)", () => {
   const estimate = estimateLoadV2({

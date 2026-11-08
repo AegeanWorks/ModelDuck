@@ -4,7 +4,7 @@ import { DEFAULT_SETTINGS, resolvePaths } from "../src/config.js";
 import { LlamaEngine } from "../src/engine.js";
 import { AppError } from "../src/errors.js";
 import { getCatalogModel } from "../src/model-catalog.js";
-import { budgetContext } from "../src/memory-fit.js";
+import { budgetContext, contextSizesFor } from "../src/memory-fit.js";
 import { currentFingerprint, loadProfile, measuredOnAfter, measuredUnderAfter, planTune, profileFromTune, profileIdFor, saveProfile } from "../src/model-profiles.js";
 import { createModelRegistry } from "../src/model-registry.js";
 import { systemInfo } from "../src/system.js";
@@ -12,7 +12,7 @@ import { createTimingLock } from "../src/tune-lock.js";
 import { readSteps } from "../src/tune-steps.js";
 import { cachedAnswers, itemOutcomes, startRun } from "../src/tune-runs.js";
 import { PROMPTS, SYSTEM_PROMPT } from "./suite.mjs";
-import { codeGroupOf, taskIdOfCategory, tuneRungs, withDiscriminatingRungs } from "./tasks.mjs";
+import { codeGroupOf, neededContextFor, taskIdOfCategory, tuneRungs, withDiscriminatingRungs } from "./tasks.mjs";
 import { STAGES, resultFrom, tune } from "./tune.mjs";
 import { expectedAnswers, promptAxes, qualityAxes, quickRungs, samplingAxes, speedAxes } from "./tune-grid.mjs";
 import { createEvaluator } from "./tune-evaluate.mjs";
@@ -141,11 +141,15 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
     }
     const evaluate = createEvaluator({ engine, modelId: target.entry.id, beforeAnswer: () => lock.pauseIfNeeded() });
     // Context size is a memory budget: the largest listed size that fits on the chosen device (ADR-043, M7).
+    // Context is not searched for quality: the selected tasks need a known
+    // prompt+answer budget, plus a margin for tokenizer and template overhead.
+    const neededContext = neededContextFor(tasks) + 512;
     const contextBudget = async (settings, sizes) => {
       await evaluate.ensureLoaded(settings).catch(() => {});
       const gpuBackend = settings.gpuBackend ?? "cpu";
-      return budgetContext({
-        steps: sizes,
+      const choices = contextSizesFor(sizes, neededContext);
+      const budget = await budgetContext({
+        steps: [choices[0]],
         modelBytes: target.entry.size,
         shape: target.entry.kvShape,
         kvCache: settings.kvCache ?? "f16",
@@ -153,6 +157,7 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
         availableBytes: await engine.availableMemory({ gpuBackend }),
         trainContext: target.entry.contextLength ?? Infinity,
       });
+      return { ...budget, neededContext, reason: `${budget.reason} The selected tasks need about ${neededContext} tokens including the answer budget and margin.` };
     };
     return tune({
       evaluate,

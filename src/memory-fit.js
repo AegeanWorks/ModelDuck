@@ -172,6 +172,20 @@ const gib = (bytes) => `${(bytes / 1024 ** 3).toFixed(1)} GiB`;
  * With only `availableBytes`, the old 60%-of-free rule applies. Either way the
  * inputs are returned, so a profile says what budget it assumed.
  */
+/**
+ * Context is a fit parameter, not a quality axis: keep the listed sizes that
+ * cover the selected task's longest prompt (plus a small tokenizer margin) and
+ * let the memory budget confirm the smallest of them. When no listed size is
+ * large enough, keep the largest rather than silently truncating the prompt.
+ */
+export function contextSizesFor(steps, neededTokens = 0) {
+  const sizes = [...(steps ?? [])].map(Number).filter((size) => size > 0).sort((left, right) => left - right);
+  const needed = Math.max(0, Number(neededTokens) || 0);
+  const covered = sizes.filter((size) => size >= needed);
+  if (covered.length) return covered;
+  return sizes.length ? [sizes.at(-1)] : [];
+}
+
 export function budgetContext({ steps, modelBytes, shape, kvCache = "f16", availableBytes, totalBytes = null, reserveBytes = MEMORY_RESERVE_BYTES, trainContext = Infinity }) {
   const sizes = [...(steps ?? [])].map(Number).filter((size) => size > 0).sort((left, right) => left - right);
   // No sizes is a caller bug, not a tight budget: refusing loudly beats
