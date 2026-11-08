@@ -3,6 +3,7 @@ import path from "node:path";
 import { AppError } from "../src/errors.js";
 import { watchParent } from "../src/tune-lock.js";
 import { readSteps, writeSteps } from "../src/tune-steps.js";
+import { javascriptTestCacheStats } from "./suite.mjs";
 import { TASKS } from "./tasks.mjs";
 import { estimateTune, expectedAnswers, normalizeSteps, settingNames, timeLeft } from "./tune-grid.mjs";
 import { openTarget, runTune, summary } from "./tune-job.mjs";
@@ -142,6 +143,8 @@ async function main() {
     return;
   }
   log(options, summary(outcome.profile, outcome.result));
+  const verifierCache = javascriptTestCacheStats();
+  log(options, `Verifier cache: ${verifierCache.hits} hits / ${verifierCache.misses} checks run (${verifierCache.size} entries)`);
   log(options, `Saved ${path.join(target.paths.profiles, `${target.profileId}.json`)}`);
     emit(options, { type: "complete", phase: "tune", model: target.profileId, tasks: Object.keys(outcome.profile.tasks), runs: outcome.result.runs, budgetExhausted: outcome.result.budgetExhausted, quick: Boolean(options.quick), guard: outcome.result.guard ?? null });
 }
