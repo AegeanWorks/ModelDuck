@@ -1,66 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "vram-memory",
+    "task_id": "bench-memory-ui",
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1794109491.5112834,
+    "updated_at": 1794128083.349291,
     "owner": "deepseek-v4.1-flash",
     "started_by": "deepseek-v4.1-flash",
     "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "verify-9push",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[2/2] checklists: passed; 4/4 gates green (npm test 563+, hygiene, guidelines, secrets); fixed redirect-fixture hygiene markers, README tree dedupe plus merge-shards entry, tuner prose trim under 32.5k",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793911674.1572213,
-      "timestamp_str": "2026-11-05 23:47:54",
-      "agent": "kilo:goal"
-    },
-    {
-      "task_id": "verify-9push",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-9push' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793911698.1432393,
-      "timestamp_str": "2026-11-05 23:48:18",
-      "agent": "kilo:goal"
-    },
-    {
-      "task_id": "verify-12push",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/2] Verify last 12 pushes for scope merge hygiene gaps",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793916034.5158234,
-      "timestamp_str": "2026-11-06 01:00:34",
-      "agent": "kilo:goal",
-      "impact_assessment": {
-        "why": "Goal asks modelduck verify plus last-12 analysis with fixes before push",
-        "benefits": "Flash single runs stop polluting trends and links",
-        "risks": "contract: additive scope values only; dependency: none; concurrency: none; state: working tree plus ledger",
-        "mitigation": "Failing-first scope test plus full npm test"
-      },
-      "plan_digest": "773e99f9340e1b67b5d9641d0ea8ef4b1cc4537257fd15c2339152487269bc69"
-    },
-    {
-      "task_id": "verify-12push",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[2/2] checklists: passed; 4/4 gates green (npm test 567 plus new scope test, hygiene, guidelines, secrets); fixed flash single history scope plus merged tag plus empty-shard message plus demo ignore plus README tree",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793916055.7213645,
-      "timestamp_str": "2026-11-06 01:00:55",
-      "agent": "kilo:goal"
-    },
     {
       "task_id": "verify-12push",
       "phase": "completed",
@@ -251,6 +201,55 @@
       "status": "in_progress",
       "timestamp": 1794109491.5112834,
       "timestamp_str": "2026-11-08 06:44:51",
+      "agent": "deepseek-v4.1-flash"
+    },
+    {
+      "task_id": "vram-memory",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'vram-memory' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794128080.2990398,
+      "timestamp_str": "2026-11-08 11:54:40",
+      "agent": "deepseek-v4.1-flash"
+    },
+    {
+      "task_id": "bench-memory-ui",
+      "phase": "phase 1",
+      "phase_num": 1,
+      "description": "[1/4] Plan: show host+VRAM, quality/s and quality/s per GB on the Bench phase cards",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794128081.2366178,
+      "timestamp_str": "2026-11-08 11:54:41",
+      "agent": "deepseek-v4.1-flash",
+      "impact_assessment": {
+        "why": "The Bench panel showed speed and runtime but not the memory denominator or throughput per GB, so a per-GB claim was invisible.",
+        "benefits": "A visible, honest efficiency metric on the existing Bench cards.",
+        "risks": "contract: benchmark report shape; dependency: none; concurrency: none; state: none",
+        "mitigation": "unit test on summarizeBenchmark, ui:smoke, full suite"
+      }
+    },
+    {
+      "task_id": "bench-memory-ui",
+      "phase": "phase 3",
+      "phase_num": 3,
+      "description": "[3/4] Implement: phase summary carries host/VRAM/total/quality-per-second/per-GB; Bench cards render them",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794128082.381079,
+      "timestamp_str": "2026-11-08 11:54:42",
+      "agent": "deepseek-v4.1-flash"
+    },
+    {
+      "task_id": "bench-memory-ui",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[4/4] Check: npm test 576 pass/1 skip, ui:smoke OK, 4/4 AIKit gates; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794128083.349291,
+      "timestamp_str": "2026-11-08 11:54:43",
       "agent": "deepseek-v4.1-flash"
     }
   ]
