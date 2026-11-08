@@ -5,22 +5,12 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1794095793.202303,
+    "updated_at": 1794098185.4943419,
     "owner": "deepseek-v4.1-flash",
     "started_by": "deepseek-v4.1-flash",
     "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "approved-deepcheck-w3",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'approved-deepcheck-w3' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793815622.369111,
-      "timestamp_str": "2026-11-04 21:07:02",
-      "agent": "kilo:main"
-    },
     {
       "task_id": "approved-deepcheck-w4",
       "phase": "planning",
@@ -257,6 +247,17 @@
       "status": "in_progress",
       "timestamp": 1794095793.202303,
       "timestamp_str": "2026-11-08 02:56:33",
+      "agent": "deepseek-v4.1-flash"
+    },
+    {
+      "task_id": "tune-code-preset",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[4/4] Full code task 136 items: tuned 58.8% vs defaults 55.9%, paired b=4 c=13 p=0.049, 51 vs 108.5 output tokens, 1090 vs 1760 ms, 148.1 MB; gate 9/9 at +0; npm test 574 pass/1 skip; server 4141 correct code; 4/4 AIKit gates; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794098185.4943419,
+      "timestamp_str": "2026-11-08 03:36:25",
       "agent": "deepseek-v4.1-flash"
     }
   ]
