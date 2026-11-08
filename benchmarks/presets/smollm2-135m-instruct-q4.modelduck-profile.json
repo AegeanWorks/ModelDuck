@@ -1,0 +1,731 @@
+{
+  "schema": 1,
+  "kind": "modelduck-profile",
+  "catalogId": "smollm2-135m-instruct-q4",
+  "exportedAt": "2026-11-08T23:01:11.189Z",
+  "createdAt": "2026-11-08T22:59:07.367Z",
+  "fingerprint": {
+    "cpu": "Intel(R) Core(TM) i5-14400F",
+    "cores": 16,
+    "platform": "win32",
+    "arch": "x64",
+    "nodeLlamaCpp": "3.22.2",
+    "suiteVersion": 17,
+    "taskHash": "9e89fb9cc27ae435",
+    "modelFile": "SmolLM2-135M-Instruct-Q4_K_M.gguf",
+    "modelSize": 105454432,
+    "tunerVersion": 9
+  },
+  "load": {
+    "settings": {
+      "gpuLayers": "max",
+      "gpuBackend": "vulkan"
+    },
+    "stats": null
+  },
+  "device": {
+    "settings": {
+      "gpuBackend": "vulkan",
+      "gpuLayers": "max"
+    },
+    "probe": null,
+    "reason": "seeded device stage"
+  },
+  "speed": null,
+  "tasks": {
+    "comprehension": {
+      "settings": {
+        "systemPrompt": "You are a precise assistant. Follow the requested output format exactly. Do not explain unless the user asks for an explanation.",
+        "reasoning": "off",
+        "maxTokens": 512,
+        "promptRepeat": 1
+      },
+      "stats": {
+        "rate": 0,
+        "solved": 0,
+        "ci95": {
+          "low": 0,
+          "high": 7.4
+        },
+        "latencyMs": 259.5,
+        "latencySd": 168.5,
+        "outputTokens": 74,
+        "tokensPerSecond": 471.19,
+        "truncationRate": 0,
+        "giveUpRate": 0,
+        "promptTokens": 85.5,
+        "prefillTps": 928.68,
+        "decodeTps": 461.54,
+        "items": 48,
+        "seeds": 3,
+        "memoryBytes": 39014432,
+        "gpuVram": 307632896,
+        "failed": false,
+        "error": null,
+        "outcomes": {
+          "read-sumTo-1": 0,
+          "read-clamp-1": 0,
+          "read-reverseText-1": 0,
+          "read-countVowels-1": 0,
+          "read-isEven-1": 0,
+          "read-factorial-1": 0,
+          "read-repeatWord-1": 0,
+          "read-double-1": 0,
+          "read-isOdd-1": 0,
+          "read-lcm-1": 0,
+          "read-fib-1": 0,
+          "read-isPrime-1": 0,
+          "read-reverseDigits-1": 0,
+          "read-countWords-1": 0,
+          "read-longestWord-1": 0,
+          "read-initials-1": 0,
+          "read-power-1": 0,
+          "read-posMod-1": 0,
+          "read-absDiff-1": 0,
+          "read-rangeLen-1": 0,
+          "read-trimEdges-1": 0,
+          "read-startsWithQu-1": 0,
+          "read-arraySum-1": 0,
+          "read-arrayMax-1": 0,
+          "read-sumTo-2": 0,
+          "read-clamp-2": 0,
+          "read-reverseText-2": 0,
+          "read-countVowels-2": 0,
+          "read-isEven-2": 0,
+          "read-factorial-2": 0,
+          "read-repeatWord-2": 0,
+          "read-double-2": 0,
+          "read-isOdd-2": 0,
+          "read-lcm-2": 0,
+          "read-fib-2": 0,
+          "read-isPrime-2": 0,
+          "read-reverseDigits-2": 0,
+          "read-countWords-2": 0,
+          "read-longestWord-2": 0,
+          "read-initials-2": 0,
+          "read-power-2": 0,
+          "read-posMod-2": 0,
+          "read-absDiff-2": 0,
+          "read-rangeLen-2": 0,
+          "read-trimEdges-2": 0,
+          "read-startsWithQu-2": 0,
+          "read-arraySum-2": 0,
+          "read-arrayMax-2": 0
+        },
+        "fractions": {
+          "read-sumTo-1": 0,
+          "read-clamp-1": 0,
+          "read-reverseText-1": 0,
+          "read-countVowels-1": 0,
+          "read-isEven-1": 0,
+          "read-factorial-1": 0,
+          "read-repeatWord-1": 0,
+          "read-double-1": 0,
+          "read-isOdd-1": 0,
+          "read-lcm-1": 0,
+          "read-fib-1": 0,
+          "read-isPrime-1": 0,
+          "read-reverseDigits-1": 0,
+          "read-countWords-1": 0,
+          "read-longestWord-1": 0,
+          "read-initials-1": 0,
+          "read-power-1": 0,
+          "read-posMod-1": 0,
+          "read-absDiff-1": 0,
+          "read-rangeLen-1": 0,
+          "read-trimEdges-1": 0,
+          "read-startsWithQu-1": 0,
+          "read-arraySum-1": 0,
+          "read-arrayMax-1": 0,
+          "read-sumTo-2": 0,
+          "read-clamp-2": 0,
+          "read-reverseText-2": 0,
+          "read-countVowels-2": 0,
+          "read-isEven-2": 0,
+          "read-factorial-2": 0,
+          "read-repeatWord-2": 0,
+          "read-double-2": 0,
+          "read-isOdd-2": 0,
+          "read-lcm-2": 0,
+          "read-fib-2": 0,
+          "read-isPrime-2": 0,
+          "read-reverseDigits-2": 0,
+          "read-countWords-2": 0,
+          "read-longestWord-2": 0,
+          "read-initials-2": 0,
+          "read-power-2": 0,
+          "read-posMod-2": 0,
+          "read-absDiff-2": 0,
+          "read-rangeLen-2": 0,
+          "read-trimEdges-2": 0,
+          "read-startsWithQu-2": 0,
+          "read-arraySum-2": 0,
+          "read-arrayMax-2": 0
+        },
+        "credit": {
+          "read-sumTo-1": 0,
+          "read-clamp-1": 0,
+          "read-reverseText-1": 0,
+          "read-countVowels-1": 0,
+          "read-isEven-1": 0,
+          "read-factorial-1": 0,
+          "read-repeatWord-1": 0,
+          "read-double-1": 0,
+          "read-isOdd-1": 0,
+          "read-lcm-1": 0,
+          "read-fib-1": 0,
+          "read-isPrime-1": 0,
+          "read-reverseDigits-1": 0,
+          "read-countWords-1": 0,
+          "read-longestWord-1": 0,
+          "read-initials-1": 0,
+          "read-power-1": 0,
+          "read-posMod-1": 0,
+          "read-absDiff-1": 0,
+          "read-rangeLen-1": 0,
+          "read-trimEdges-1": 0,
+          "read-startsWithQu-1": 0,
+          "read-arraySum-1": 0,
+          "read-arrayMax-1": 0,
+          "read-sumTo-2": 0,
+          "read-clamp-2": 0,
+          "read-reverseText-2": 0,
+          "read-countVowels-2": 0,
+          "read-isEven-2": 0,
+          "read-factorial-2": 0,
+          "read-repeatWord-2": 0,
+          "read-double-2": 0,
+          "read-isOdd-2": 0,
+          "read-lcm-2": 0,
+          "read-fib-2": 0,
+          "read-isPrime-2": 0,
+          "read-reverseDigits-2": 0,
+          "read-countWords-2": 0,
+          "read-longestWord-2": 0,
+          "read-initials-2": 0,
+          "read-power-2": 0,
+          "read-posMod-2": 0,
+          "read-absDiff-2": 0,
+          "read-rangeLen-2": 0,
+          "read-trimEdges-2": 0,
+          "read-startsWithQu-2": 0,
+          "read-arraySum-2": 0,
+          "read-arrayMax-2": 0
+        },
+        "vsDefault": {
+          "rateDelta": 0,
+          "b": 0,
+          "c": 0,
+          "pValue": 1
+        },
+        "byType": {
+          "code-comprehension": {
+            "items": 48,
+            "right": 0,
+            "defaultRight": 0,
+            "p": 1
+          }
+        }
+      }
+    },
+    "recall": {
+      "settings": {
+        "systemPrompt": "Be concise and do not explain unless asked.",
+        "reasoning": "off",
+        "maxTokens": 512,
+        "promptRepeat": 1
+      },
+      "stats": {
+        "rate": 13,
+        "solved": 6,
+        "ci95": {
+          "low": 6.1,
+          "high": 25.7
+        },
+        "latencyMs": 159,
+        "latencySd": 163.9,
+        "outputTokens": 16.5,
+        "tokensPerSecond": 440,
+        "truncationRate": 0.7,
+        "giveUpRate": 0,
+        "promptTokens": 725.5,
+        "prefillTps": 6104.55,
+        "decodeTps": 411.76,
+        "items": 46,
+        "seeds": 3,
+        "memoryBytes": 39014432,
+        "gpuVram": 307632896,
+        "failed": false,
+        "error": null,
+        "outcomes": {
+          "needle": 1,
+          "recall-locker-first": 0,
+          "recall-locker-second": 0,
+          "context-v12-manager-room-0": 0,
+          "context-v12-manager-room-1": 0,
+          "recall-locker-last": 0,
+          "context-v12-manager-room-2": 0,
+          "recall-locker-owner": 0,
+          "recall-two-needles": 0,
+          "context-v12-order-0": 0,
+          "context-v12-order-1": 0,
+          "recall-updated-value": 1,
+          "recall-v10-pin-20-0": 0,
+          "context-v12-absent-1": 1,
+          "recall-v10-pin-20-3": 0,
+          "context-v12-cross-ref-0": 0,
+          "context-v12-cross-ref-1": 0,
+          "recall-v10-pin-20-10": 0,
+          "recall-v10-pin-50-0": 1,
+          "context-v12-cross-ref-3": 0,
+          "recall-v10-pin-50-3": 0,
+          "recall-v10-pin-50-10": 0,
+          "recall-v10-pin-80-0": 1,
+          "recall-v10-pin-80-3": 0,
+          "recall-v10-pin-80-10": 1,
+          "recall-v10-holder-30-10": 0,
+          "recall-v10-holder-30-40": 0,
+          "recall-v10-holder-30-95": 0,
+          "recall-v10-holder-60-10": 0,
+          "recall-v10-holder-60-40": 0,
+          "recall-v10-holder-60-95": 0,
+          "recall-v10-status-0": 0,
+          "recall-v10-status-1": 0,
+          "recall-v10-status-3": 0,
+          "recall-v10-status-4": 0,
+          "recall-v10-status-5": 0,
+          "recall-v10-status-7": 0,
+          "recall-v10-sum-24": 0,
+          "recall-v10-sum-36": 0,
+          "recall-v10-sum-60": 0,
+          "recall-v10-sum-72": 0,
+          "recall-v10-sum-84": 0,
+          "recall-v10-count-16": 0,
+          "recall-v10-count-20": 0,
+          "recall-v10-count-24": 0,
+          "recall-v10-count-32": 0
+        },
+        "fractions": {
+          "needle": 1,
+          "recall-locker-first": 0.3333,
+          "recall-locker-second": 0.3333,
+          "context-v12-manager-room-0": 0,
+          "context-v12-manager-room-1": 0,
+          "recall-locker-last": 0,
+          "context-v12-manager-room-2": 0,
+          "recall-locker-owner": 0,
+          "recall-two-needles": 0,
+          "context-v12-order-0": 0,
+          "context-v12-order-1": 0,
+          "recall-updated-value": 1,
+          "recall-v10-pin-20-0": 0,
+          "context-v12-absent-1": 0.6667,
+          "recall-v10-pin-20-3": 0,
+          "context-v12-cross-ref-0": 0,
+          "context-v12-cross-ref-1": 0,
+          "recall-v10-pin-20-10": 0.3333,
+          "recall-v10-pin-50-0": 0.6667,
+          "context-v12-cross-ref-3": 0,
+          "recall-v10-pin-50-3": 0,
+          "recall-v10-pin-50-10": 0,
+          "recall-v10-pin-80-0": 0.6667,
+          "recall-v10-pin-80-3": 0,
+          "recall-v10-pin-80-10": 0.6667,
+          "recall-v10-holder-30-10": 0,
+          "recall-v10-holder-30-40": 0,
+          "recall-v10-holder-30-95": 0,
+          "recall-v10-holder-60-10": 0,
+          "recall-v10-holder-60-40": 0,
+          "recall-v10-holder-60-95": 0,
+          "recall-v10-status-0": 0,
+          "recall-v10-status-1": 0,
+          "recall-v10-status-3": 0,
+          "recall-v10-status-4": 0,
+          "recall-v10-status-5": 0.3333,
+          "recall-v10-status-7": 0,
+          "recall-v10-sum-24": 0,
+          "recall-v10-sum-36": 0,
+          "recall-v10-sum-60": 0,
+          "recall-v10-sum-72": 0,
+          "recall-v10-sum-84": 0,
+          "recall-v10-count-16": 0,
+          "recall-v10-count-20": 0,
+          "recall-v10-count-24": 0,
+          "recall-v10-count-32": 0
+        },
+        "credit": {
+          "needle": 1,
+          "recall-locker-first": 0.3333,
+          "recall-locker-second": 0.3333,
+          "context-v12-manager-room-0": 0,
+          "context-v12-manager-room-1": 0,
+          "recall-locker-last": 0,
+          "context-v12-manager-room-2": 0,
+          "recall-locker-owner": 0,
+          "recall-two-needles": 0,
+          "context-v12-order-0": 0,
+          "context-v12-order-1": 0,
+          "recall-updated-value": 1,
+          "recall-v10-pin-20-0": 0,
+          "context-v12-absent-1": 0.6667,
+          "recall-v10-pin-20-3": 0,
+          "context-v12-cross-ref-0": 0,
+          "context-v12-cross-ref-1": 0,
+          "recall-v10-pin-20-10": 0.3333,
+          "recall-v10-pin-50-0": 0.6667,
+          "context-v12-cross-ref-3": 0,
+          "recall-v10-pin-50-3": 0,
+          "recall-v10-pin-50-10": 0,
+          "recall-v10-pin-80-0": 0.6667,
+          "recall-v10-pin-80-3": 0,
+          "recall-v10-pin-80-10": 0.6667,
+          "recall-v10-holder-30-10": 0,
+          "recall-v10-holder-30-40": 0,
+          "recall-v10-holder-30-95": 0,
+          "recall-v10-holder-60-10": 0,
+          "recall-v10-holder-60-40": 0,
+          "recall-v10-holder-60-95": 0,
+          "recall-v10-status-0": 0,
+          "recall-v10-status-1": 0,
+          "recall-v10-status-3": 0,
+          "recall-v10-status-4": 0,
+          "recall-v10-status-5": 0.3333,
+          "recall-v10-status-7": 0,
+          "recall-v10-sum-24": 0,
+          "recall-v10-sum-36": 0,
+          "recall-v10-sum-60": 0,
+          "recall-v10-sum-72": 0,
+          "recall-v10-sum-84": 0,
+          "recall-v10-count-16": 0,
+          "recall-v10-count-20": 0,
+          "recall-v10-count-24": 0,
+          "recall-v10-count-32": 0
+        },
+        "vsDefault": {
+          "rateDelta": 6.5,
+          "b": 0,
+          "c": 8,
+          "pValue": 0.0078
+        },
+        "byType": {
+          "context": {
+            "items": 10,
+            "right": 2,
+            "defaultRight": 1,
+            "p": 1
+          },
+          "recall": {
+            "items": 36,
+            "right": 4,
+            "defaultRight": 1,
+            "p": 0.25
+          }
+        }
+      }
+    }
+  },
+  "tunedOn": {
+    "comprehension": {
+      "items": 48,
+      "ids": [
+        "read-sumTo-1",
+        "read-clamp-1",
+        "read-reverseText-1",
+        "read-countVowels-1",
+        "read-isEven-1",
+        "read-factorial-1",
+        "read-repeatWord-1",
+        "read-double-1",
+        "read-isOdd-1",
+        "read-lcm-1",
+        "read-fib-1",
+        "read-isPrime-1",
+        "read-reverseDigits-1",
+        "read-countWords-1",
+        "read-longestWord-1",
+        "read-initials-1",
+        "read-power-1",
+        "read-posMod-1",
+        "read-absDiff-1",
+        "read-rangeLen-1",
+        "read-trimEdges-1",
+        "read-startsWithQu-1",
+        "read-arraySum-1",
+        "read-arrayMax-1",
+        "read-sumTo-2",
+        "read-clamp-2",
+        "read-reverseText-2",
+        "read-countVowels-2",
+        "read-isEven-2",
+        "read-factorial-2",
+        "read-repeatWord-2",
+        "read-double-2",
+        "read-isOdd-2",
+        "read-lcm-2",
+        "read-fib-2",
+        "read-isPrime-2",
+        "read-reverseDigits-2",
+        "read-countWords-2",
+        "read-longestWord-2",
+        "read-initials-2",
+        "read-power-2",
+        "read-posMod-2",
+        "read-absDiff-2",
+        "read-rangeLen-2",
+        "read-trimEdges-2",
+        "read-startsWithQu-2",
+        "read-arraySum-2",
+        "read-arrayMax-2"
+      ],
+      "excluded": [],
+      "fellBack": false
+    },
+    "recall": {
+      "items": 46,
+      "ids": [
+        "needle",
+        "recall-locker-first",
+        "recall-locker-second",
+        "context-v12-manager-room-0",
+        "context-v12-manager-room-1",
+        "recall-locker-last",
+        "context-v12-manager-room-2",
+        "recall-locker-owner",
+        "recall-two-needles",
+        "context-v12-order-0",
+        "context-v12-order-1",
+        "recall-updated-value",
+        "recall-v10-pin-20-0",
+        "context-v12-absent-1",
+        "recall-v10-pin-20-3",
+        "context-v12-cross-ref-0",
+        "context-v12-cross-ref-1",
+        "recall-v10-pin-20-10",
+        "recall-v10-pin-50-0",
+        "context-v12-cross-ref-3",
+        "recall-v10-pin-50-3",
+        "recall-v10-pin-50-10",
+        "recall-v10-pin-80-0",
+        "recall-v10-pin-80-3",
+        "recall-v10-pin-80-10",
+        "recall-v10-holder-30-10",
+        "recall-v10-holder-30-40",
+        "recall-v10-holder-30-95",
+        "recall-v10-holder-60-10",
+        "recall-v10-holder-60-40",
+        "recall-v10-holder-60-95",
+        "recall-v10-status-0",
+        "recall-v10-status-1",
+        "recall-v10-status-3",
+        "recall-v10-status-4",
+        "recall-v10-status-5",
+        "recall-v10-status-7",
+        "recall-v10-sum-24",
+        "recall-v10-sum-36",
+        "recall-v10-sum-60",
+        "recall-v10-sum-72",
+        "recall-v10-sum-84",
+        "recall-v10-count-16",
+        "recall-v10-count-20",
+        "recall-v10-count-24",
+        "recall-v10-count-32"
+      ],
+      "excluded": [],
+      "fellBack": false
+    }
+  },
+  "receipt": {
+    "stages": {
+      "device": "done",
+      "quality": "pending",
+      "speed": "pending",
+      "sampling": {
+        "comprehension": "pending",
+        "recall": "pending"
+      },
+      "prompt": {
+        "comprehension": "done",
+        "recall": "done"
+      }
+    },
+    "search": {
+      "runs": 564,
+      "budgetExhausted": false,
+      "options": {
+        "seeds": [
+          42,
+          7,
+          1234
+        ],
+        "passes": 2,
+        "maxRuns": 20000,
+        "quota": null,
+        "toleranceItems": 1,
+        "keepFraction": 0.5,
+        "speedTie": 0.03,
+        "changeAlpha": 0.2,
+        "stopAlpha": null,
+        "looks": 4,
+        "taskWeights": null,
+        "screenFraction": 0.25
+      },
+      "steps": {
+        "lanes": {
+          "cpu": 1,
+          "gpu": 2
+        },
+        "device": {
+          "backends": [
+            "cpu",
+            "vulkan"
+          ]
+        },
+        "load": {
+          "contextSize": [
+            2048,
+            4096,
+            8192,
+            16384
+          ],
+          "kvCache": [
+            "f16",
+            "q8_0",
+            "q8_0:q4_0"
+          ],
+          "flashAttention": [
+            "on",
+            "off"
+          ],
+          "useMmap": [
+            "on",
+            "off"
+          ],
+          "batchSize": [
+            64,
+            128,
+            256,
+            512,
+            1024,
+            2048
+          ],
+          "threads": [
+            1,
+            2,
+            4,
+            6,
+            8,
+            10,
+            12
+          ],
+          "checkpointing": {
+            "enabled": false,
+            "interval": [
+              128,
+              256,
+              512,
+              1024,
+              2048
+            ],
+            "max": [
+              4,
+              8,
+              16,
+              32
+            ]
+          }
+        },
+        "sampling": {
+          "temperature": [
+            0,
+            0.2,
+            0.4,
+            0.6,
+            0.8,
+            1
+          ],
+          "maxTokens": {
+            "code": [
+              64,
+              128,
+              256,
+              512,
+              1024,
+              2048
+            ],
+            "comprehension": [
+              64,
+              128,
+              256,
+              512,
+              1024,
+              2048
+            ],
+            "recall": [
+              64,
+              128,
+              256,
+              512,
+              1024,
+              2048
+            ]
+          },
+          "repeatPenalty": [
+            1,
+            1.05
+          ],
+          "dryStrength": [
+            0,
+            0.8
+          ],
+          "minP": [
+            0,
+            0.05,
+            0.1,
+            0.15,
+            0.2
+          ],
+          "topP": [
+            0.8,
+            0.85,
+            0.9,
+            0.95,
+            1
+          ],
+          "topK": [
+            0,
+            20,
+            40
+          ],
+          "penalizeNewLine": [
+            true,
+            false
+          ]
+        },
+        "prompt": {
+          "systemPrompt": [
+            "You are a precise assistant. Follow the requested output format exactly. Do not explain unless the user asks for an explanation.",
+            "Be concise and do not explain unless asked."
+          ],
+          "reasoning": [
+            "off"
+          ],
+          "promptRepeat": [
+            1
+          ]
+        }
+      }
+    },
+    "rates": {
+      "comprehension": {
+        "rate": 0,
+        "items": 48,
+        "holdout": null
+      },
+      "recall": {
+        "rate": 13,
+        "items": 46,
+        "holdout": null
+      }
+    }
+  }
+}
