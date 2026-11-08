@@ -1,0 +1,146 @@
+{
+  "schema": 1,
+  "generated": "2026-11-08",
+  "implemented": [
+    {
+      "id": "P1",
+      "title": "One explicit machine module; adopt it at the write sites",
+      "markers": [
+        { "file": "src/state-machine.js", "contains": "export function defineMachine" },
+        { "file": "src/state-machine.js", "contains": "export function machineCatalog" },
+        { "file": "src/engine.js", "contains": "ENGINE_MACHINE" },
+        { "file": "src/downloader.js", "contains": "DOWNLOAD_MACHINE" },
+        { "file": "src/benchmark-runner.js", "contains": "BENCHMARK_MACHINE" }
+      ],
+      "tests": [
+        { "file": "tests/state-machine.test.js", "name": "the machine catalog is JSON for people and agents" },
+        { "file": "tests/state-machine.test.js", "name": "terminal states never move again" },
+        { "file": "tests/state-machine.test.js", "name": "an illegal transition throws with an actionable error" }
+      ]
+    },
+    {
+      "id": "P2",
+      "title": "Download: terminal-state guard + concurrent-start reservation",
+      "markers": [
+        { "file": "src/downloader.js", "contains": "#starting" },
+        { "file": "src/downloader.js", "contains": "DOWNLOAD_MACHINE.terminal.includes" },
+        { "file": "src/downloader.js", "contains": "download_starting" }
+      ],
+      "tests": [
+        { "file": "tests/downloader.test.js", "name": "two concurrent starts for one catalog cannot both begin" },
+        { "file": "tests/state-machine.test.js", "name": "a download cannot complete after it was canceled" }
+      ]
+    },
+    {
+      "id": "P3",
+      "title": "Engine: no stuck loading/unloading; phase transitions asserted",
+      "markers": [
+        { "file": "src/engine.js", "contains": "#setStatus" },
+        { "file": "src/engine.js", "contains": "ENGINE_MACHINE.assert" },
+        { "file": "src/engine.js", "contains": "fit: null" }
+      ],
+      "tests": [
+        { "file": "tests/memory-load.test.js", "name": "phase moves idle loading ready unloading idle with a teardown receipt" },
+        { "file": "tests/local-actions.test.js", "name": "unload refuses while a model is loading or answering, then succeeds" }
+      ]
+    },
+    {
+      "id": "P4",
+      "title": "Created API key stays readable until close",
+      "markers": [
+        { "file": "public/app.js", "contains": "async function openServerSettings({ keepKey = false } = {})" },
+        { "file": "public/app.js", "contains": "openServerSettings({ keepKey: true })" },
+        { "file": "public/app.js", "contains": "if (!keepKey) clearServerKeyReveal();" }
+      ],
+      "tests": [
+        { "file": "tests/ui-shell.test.js", "name": "the control panel is wired and the chat shell is gone" }
+      ]
+    },
+    {
+      "id": "P5",
+      "title": "Settings form dirty state + guarded close",
+      "markers": [
+        { "file": "public/app.js", "contains": "function setSettingsDirty" },
+        { "file": "public/app.js", "contains": "async function closeSettings" },
+        { "file": "public/app.js", "contains": "Discard unsaved changes?" },
+        { "file": "public/app.js", "contains": "els.settingsForm.addEventListener(\"input\"" }
+      ],
+      "tests": [
+        { "file": "tests/ui-shell.test.js", "name": "the control panel is wired and the chat shell is gone" },
+        { "file": "scripts/ui-smoke.mjs", "contains": "Dirty-state guard" }
+      ]
+    },
+    {
+      "id": "P6",
+      "title": "Serialized confirms",
+      "markers": [
+        { "file": "public/app.js", "contains": "let confirmQueue = Promise.resolve();" },
+        { "file": "public/app.js", "contains": "function showConfirm(" },
+        { "file": "public/app.js", "contains": "const next = confirmQueue.then(" }
+      ],
+      "tests": [
+        { "file": "scripts/ui-smoke.mjs", "contains": "the second close did not ask again" }
+      ]
+    },
+    {
+      "id": "P7",
+      "title": "Polling resilience",
+      "markers": [
+        { "file": "public/app.js", "contains": "AbortSignal.timeout(10_000)" },
+        { "file": "public/app.js", "contains": "state.pollFailures >= 3" },
+        { "file": "public/app.js", "contains": "state.benchmarkPolling" },
+        { "file": "public/app.js", "contains": "state.tunePolling" },
+        { "file": "public/app.js", "contains": "Lost contact with ModelDuck" }
+      ],
+      "tests": [
+        { "file": "tests/ui-shell.test.js", "name": "the control panel is wired and the chat shell is gone" }
+      ]
+    },
+    {
+      "id": "P8",
+      "title": "Restart-required is a state, not a toast",
+      "markers": [
+        { "file": "src/server-settings.js", "contains": "export function restartRequiredFor" },
+        { "file": "src/server.js", "contains": "restartRequired: restartRequiredFor(instance, next)" },
+        { "file": "src/server.js", "contains": "restartRequired: serverSettings ? restartRequiredFor(instance, serverSettings.value) : null" },
+        { "file": "public/app.js", "contains": "function renderServerRestart" },
+        { "file": "public/app.js", "contains": "state.restartRequired = Boolean(data.restartRequired)" }
+      ],
+      "tests": [
+        { "file": "tests/server-settings.test.js", "name": "a restart is required only when the saved listener differs from the running one" }
+      ]
+    },
+    {
+      "id": "P9",
+      "title": "LAN/CORS only with authentication",
+      "markers": [
+        { "file": "public/app.js", "contains": "function syncServerExposure" },
+        { "file": "public/app.js", "contains": "els.serverAuth.addEventListener(\"change\", syncServerExposure)" },
+        { "file": "src/server-settings.js", "contains": "export function exposedWithoutAuth" }
+      ],
+      "tests": [
+        { "file": "tests/server-settings.test.js", "name": "LAN or CORS cannot be saved while authentication is off" }
+      ]
+    },
+    {
+      "id": "P10",
+      "title": "AX: health exposes phase, JIT, registry, machine catalog",
+      "markers": [
+        { "file": "src/server.js", "contains": "machines: machineCatalog()" },
+        { "file": "src/server.js", "contains": "phase: engine?.phase ?? engineState?.status" },
+        { "file": "src/server.js", "contains": "jit: jit ? { trackedId: jit.trackedId ?? null, armed: Boolean(jit.armed) } : null" },
+        { "file": "src/jit.js", "contains": "get armed()" }
+      ],
+      "tests": [
+        { "file": "tests/sampler-health.test.js", "name": "health receipt reports the host and what is loaded" }
+      ]
+    }
+  ],
+  "deferred": [
+    { "id": "D1", "title": "Tune pause as a real status", "reason": "Changes the scheduler API and every client; needs a migration pass." },
+    { "id": "D2", "title": "Tune stage skipped/failed/interrupted states", "reason": "Profile-schema and UI change; recorded in the inventory." },
+    { "id": "D3", "title": "UI view router", "reason": "A redesign, not a state fix; the static aria-current papercut is recorded." },
+    { "id": "D4", "title": "Benchmark/tune job persistence", "reason": "Needs a supervisor and child re-attachment." },
+    { "id": "D5", "title": "Registry scan generation counter", "reason": "Touches the scan-cache performance work; findings recorded." }
+  ]
+}

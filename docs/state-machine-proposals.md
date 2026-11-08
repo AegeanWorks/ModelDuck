@@ -68,17 +68,39 @@ still refuses the invalid save.
 **Verification:** `tests/sampler-health.test.js` asserts `phase`, `jit`,
 `registry` counters and the machine vocabulary.
 
+## Verification ledger
+
+`docs/state-machine-proposals.json` holds the same list in machine-readable
+form. `tests/state-machine-proposals.test.js` fails if any passing proposal
+loses a code marker or a named test, if a deferred proposal loses its reason,
+or if a listed document entry disappears. The behavioral checks in that test
+cover the download terminal guard, the engine catalog and the listener
+comparison.
+
+| Proposal | Code evidence | Test evidence |
+|---|---|---|
+| P1 | `src/state-machine.js`; imports in engine/downloader/benchmark-runner | `state-machine.test.js` catalog, terminal and illegal-transition tests |
+| P2 | `downloader.js` `#starting`, terminal guard, `download_starting` | `downloader.test.js` concurrent-start; `state-machine.test.js` canceled-cannot-complete |
+| P3 | `engine.js` `#setStatus`, `ENGINE_MACHINE.assert`, teardown resets | `memory-load.test.js` phase receipt; `local-actions.test.js` unload 409 |
+| P4 | `app.js` `keepKey` option and call | `ui-shell.test.js` wiring test |
+| P5 | `app.js` `settingsDirty`, `closeSettings`, discard prompt | `ui-shell.test.js`; `ui-smoke.mjs` dirty-discard flow |
+| P6 | `app.js` `confirmQueue`, `showConfirm` | `ui-smoke.mjs` second-close flow |
+| P7 | `app.js` poll timeouts, in-flight flags, three-failure stop | `ui-shell.test.js` wiring test |
+| P8 | `server-settings.js` `restartRequiredFor`; server routes; `renderServerRestart` | `server-settings.test.js` listener comparison |
+| P9 | `app.js` `syncServerExposure`; `server-settings.js` exposure guard | `server-settings.test.js` auth-off save refusal |
+| P10 | `server.js` health fields; `jit.js` `armed` | `sampler-health.test.js` health payload |
+
 ## Rejected / deferred (with reasons)
 
-- **Turn tune `paused` into a status.** The scheduler stores `paused` beside
+- **D1 — Tune pause as a real status.** The scheduler stores `paused` beside
   `status="running"`. A real status would clarify AX, but it changes the API
   and every client; deferred until a scheduler pass with migration.
-- **Add tune stage `skipped`/`failed`/`interrupted`.** Higher value but a
+- **D2 — Tune stage skipped/failed/interrupted states.** Higher value but a
   profile-schema and UI change; recorded in `docs/state-machines.md` as
   deferred.
-- **Retrofit the UI onto a view router.** The static `aria-current` on
-  Overview is a papercut; a router is a redesign, not a state fix.
-- **Persist benchmark/tune jobs across restarts.** Needs a supervisor and
-  child re-attachment; out of scope for this pass.
-- **Registry scan generation counter.** Real race, but the fix touches the
-  scan-cache performance work; deferred with the findings recorded.
+- **D3 — UI view router.** The static `aria-current` on Overview is a
+  papercut; a router is a redesign, not a state fix.
+- **D4 — Benchmark/tune job persistence.** Needs a supervisor and child
+  re-attachment; out of scope for this pass.
+- **D5 — Registry scan generation counter.** Real race, but the fix touches
+  the scan-cache performance work; deferred with the findings recorded.

@@ -466,9 +466,11 @@ modelduck/
 │   ├── recommend.js <- what to run on this PC: measured models and estimates
 │   └── system.js <- CPU, memory and platform snapshot, loop-lag health
 ├── docs/
-│   ├── THREAT-MODEL.md <- seven-party local-inference threat model
-│   ├── state-machines.md <- every implicit state machine and its verified gaps
-│   └── state-machine-proposals.md <- judged proposals and their outcomes
+│   ├── THREAT-MODEL.md <- local-inference threat model
+│   ├── state-machines.md <- the 25-machine inventory and verified gaps
+│   ├── state-machines.json <- machine inventory checked by tests
+│   ├── state-machine-proposals.md <- judged proposals
+│   └── state-machine-proposals.json <- proposal evidence links
 ├── public/
 │   ├── index.html <- the control panel
 │   ├── app.js <- state and interactions, no framework
@@ -528,6 +530,8 @@ modelduck/
 │   ├── ui-shell.test.js
 │   ├── local-actions.test.js
 │   ├── state-machine.test.js
+│   ├── state-machine-coverage.test.js
+│   ├── state-machine-proposals.test.js
 │   ├── config.test.js
 │   ├── checkpoint-merge.test.js
 │   ├── fs-atomic.test.js

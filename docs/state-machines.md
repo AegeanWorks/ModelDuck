@@ -10,25 +10,30 @@ legal-transition check.
 The three machines that now live in `src/state-machine.js` are marked
 **explicit**. The rest are candidates for the same treatment.
 
+`docs/state-machines.json` is the canonical, agent-readable copy of this table.
+`tests/state-machine-coverage.test.js` checks that every entry names a real
+file and anchor, that the explicit entries match the runtime catalog, and that
+every status written by the adopted modules is a machine state.
+
 ## Inventory
 
 | # | Machine | Where state lives | States | Kind |
 |---|---|---|---|---|
 | 1 | Engine phase | `LlamaEngine.#state.status`, `#loading`, `#unloading` (`src/engine.js:222-263`) | idle, loading, ready, error, unloading | **explicit** (`ENGINE_MACHINE`) |
 | 2 | Engine load cancel epoch | `#loadEpoch` (`src/engine.js:247`, `:266-281`) | live, canceled | implicit integer |
-| 3 | Engine context ladder | `#context`, `attempt` loop (`src/engine.js:598-630`) | unallocated, trying, allocated, exhausted | implicit list |
+| 3 | Engine context attempt ladder | `#context`, `attempt` loop (`src/engine.js:598-630`) | unallocated, trying, allocated, exhausted | implicit list |
 | 4 | JIT model tracking | `JitManager.#trackedId`, `#timer` (`src/jit.js:20-39`) | untracked, tracked-idle-armed, tracked-model-gone, disabled | implicit |
 | 5 | Download job | `job.status`, `job.stalled`, `job.controller` (`src/downloader.js:156-175`) | queued, downloading, complete, canceled, error | **explicit** (`DOWNLOAD_MACHINE`) |
 | 6 | Download start reservation | `#starting` (`src/downloader.js:50-54`) | free, starting | implicit set |
 | 7 | Registry scan cache | `lastScanAt`, `lastDirStamp`, `entries` (`src/model-registry.js:227-231`) | cold, fresh, stale | implicit timestamps |
 | 8 | Registry import copy | `suffix` counter (`src/model-registry.js:386-398`) | copying, imported, renamed(n), blocked/missing | implicit |
 | 9 | Tune stage progress | `state.<stage>.status`, `done[]`, `sampledWith` (`benchmarks/tune.mjs:66-70`, `:527-545`) | pending, partial, done | implicit literals |
-| 10 | Tune queue/job | `#job.status`, `job.paused`, `items[].status` (`src/tune-scheduler.js:81-101`) | running, paused(boll), guarded, cancelled, complete, failed; item queued/running/done/skipped/failed/cancelled | implicit |
+| 10 | Tune queue and job | `#job.status`, `job.paused`, `items[].status` (`src/tune-scheduler.js:81-101`) | running, paused(boll), guarded, cancelled, complete, failed; item queued/running/done/skipped/failed/cancelled | implicit |
 | 11 | Tune run record | `record.outcome` (`src/tune-runs.js:55-116`) | running, done, stopped, failed, interrupted(derived) | implicit |
-| 12 | Timing lock/registration | files `active-<pid>`, `paused-<pid>`, `timing.lock` (`src/tune-lock.js:25-122`) | unregistered, registered, paused, lock-holder, settled/unsettled | implicit files |
+| 12 | Timing lock and registration | files `active-<pid>`, `paused-<pid>`, `timing.lock` (`src/tune-lock.js:25-122`) | unregistered, registered, paused, lock-holder, settled/unsettled | implicit files |
 | 13 | Benchmark job | `#job.status`, `job.cancelling` (`src/benchmark-runner.js:104-168`) | running, complete, cancelled, failed | **explicit** (`BENCHMARK_MACHINE`) |
 | 14 | Measurement budget | `Measurements.stopped` (`benchmarks/tune-measure.mjs:45-58`) | open, stopped(reason) | implicit |
-| 15 | UI dialogs/views | `dialog.open`, `.tab.active`, `hidden` (`public/app.js:934-951`) | closed/open per dialog, Discover/Installed | implicit DOM |
+| 15 | UI dialogs and views | `dialog.open`, `.tab.active`, `hidden` (`public/app.js:934-951`) | closed/open per dialog, Discover/Installed | implicit DOM |
 | 16 | Settings form | `state.settings` snapshot vs DOM inputs (`public/app.js:326`, `:1180`) | clean, dirty | implicit (now `state.settingsDirty`) |
 | 17 | Server-settings form | `serverSettingsLoading`, error.hidden, save.disabled (`public/app.js:1279-1305`) | loading, ready, failed | implicit booleans |
 | 18 | Server exposure | `requireAuth`, `serveOnLocalNetwork`, `enableCors` (`src/server-settings.js:25-63`) | local, LAN, CORS, invalid | implicit booleans |

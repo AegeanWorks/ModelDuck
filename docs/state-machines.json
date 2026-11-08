@@ -1,0 +1,231 @@
+{
+  "schema": 1,
+  "generated": "2026-11-08",
+  "machines": [
+    {
+      "id": 1,
+      "name": "Engine phase",
+      "where": { "file": "src/engine.js", "anchor": "#setStatus" },
+      "states": ["idle", "loading", "ready", "error", "unloading"],
+      "kind": "explicit",
+      "observable": "api+ui",
+      "defect": "stuck loading when the pre-try unload threw; stale fit/contextFallback"
+    },
+    {
+      "id": 2,
+      "name": "Engine load cancel epoch",
+      "where": { "file": "src/engine.js", "anchor": "#loadEpoch" },
+      "states": ["live", "canceled"],
+      "kind": "implicit",
+      "observable": "api",
+      "defect": "a cancel after the last assert can still finish ready"
+    },
+    {
+      "id": 3,
+      "name": "Engine context attempt ladder",
+      "where": { "file": "src/engine.js", "anchor": "createContext(contextOptions)" },
+      "states": ["unallocated", "trying", "allocated", "exhausted"],
+      "kind": "implicit",
+      "observable": "api",
+      "defect": "maxConcurrent can keep a previous model's value when all attempts fail"
+    },
+    {
+      "id": 4,
+      "name": "JIT model tracking",
+      "where": { "file": "src/jit.js", "anchor": "#trackedId" },
+      "states": ["untracked", "tracked-idle-armed", "tracked-model-gone", "disabled"],
+      "kind": "implicit",
+      "observable": "api",
+      "defect": "tracked-model-gone is sticky; manual load never arms the TTL"
+    },
+    {
+      "id": 5,
+      "name": "Download job",
+      "where": { "file": "src/downloader.js", "anchor": "DOWNLOAD_MACHINE" },
+      "states": ["queued", "downloading", "complete", "canceled", "error"],
+      "kind": "explicit",
+      "observable": "api+ui",
+      "defect": "canceled could be marked complete after hashing"
+    },
+    {
+      "id": 6,
+      "name": "Download start reservation",
+      "where": { "file": "src/downloader.js", "anchor": "#starting" },
+      "states": ["free", "starting"],
+      "kind": "explicit",
+      "observable": "api",
+      "defect": "two concurrent starts could both pass the check during await stat"
+    },
+    {
+      "id": 7,
+      "name": "Registry scan cache",
+      "where": { "file": "src/model-registry.js", "anchor": "lastDirStamp" },
+      "states": ["cold", "fresh", "stale"],
+      "kind": "implicit",
+      "observable": "api",
+      "defect": "overlapping scans can swap an older snapshot; delete bypasses the stamp"
+    },
+    {
+      "id": 8,
+      "name": "Registry import copy",
+      "where": { "file": "src/model-registry.js", "anchor": "copyFile" },
+      "states": ["copying", "imported", "renamed", "blocked", "missing"],
+      "kind": "implicit",
+      "observable": "api",
+      "defect": "an unbounded EEXIST retry loop is possible"
+    },
+    {
+      "id": 9,
+      "name": "Tune stage progress",
+      "where": { "file": "benchmarks/tune.mjs", "anchor": "emptyStage" },
+      "states": ["pending", "partial", "done"],
+      "kind": "implicit",
+      "observable": "api+ui",
+      "defect": "no skipped/failed/aborted state; partial reuses an older stats value"
+    },
+    {
+      "id": 10,
+      "name": "Tune queue and job",
+      "where": { "file": "src/tune-scheduler.js", "anchor": "paused" },
+      "states": ["running", "paused", "guarded", "cancelled", "complete", "failed"],
+      "kind": "implicit",
+      "observable": "api+ui",
+      "defect": "pause is a flag, not a status; dispose leaves no terminal status"
+    },
+    {
+      "id": 11,
+      "name": "Tune run record",
+      "where": { "file": "src/tune-runs.js", "anchor": "outcome: \"running\"" },
+      "states": ["running", "done", "stopped", "failed", "interrupted"],
+      "kind": "implicit",
+      "observable": "api+ui",
+      "defect": "cancelled has no outcome; interrupted is derived on read"
+    },
+    {
+      "id": 12,
+      "name": "Timing lock and registration",
+      "where": { "file": "src/tune-lock.js", "anchor": "lockFile" },
+      "states": ["unregistered", "registered", "paused", "lock-holder", "settled", "unsettled"],
+      "kind": "implicit",
+      "observable": "none",
+      "defect": "pauseIfNeeded has no timeout; state is files only"
+    },
+    {
+      "id": 13,
+      "name": "Benchmark job",
+      "where": { "file": "src/benchmark-runner.js", "anchor": "BENCHMARK_MACHINE" },
+      "states": ["running", "complete", "cancelled", "failed"],
+      "kind": "explicit",
+      "observable": "api+ui",
+      "defect": "a stale child could null the new child and rewrite a terminal job"
+    },
+    {
+      "id": 14,
+      "name": "Measurement budget",
+      "where": { "file": "benchmarks/tune-measure.mjs", "anchor": "this.stopped" },
+      "states": ["open", "stopped"],
+      "kind": "implicit",
+      "observable": "api",
+      "defect": "only the reason is kept; quota and budget stop look alike"
+    },
+    {
+      "id": 15,
+      "name": "UI dialogs and views",
+      "where": { "file": "public/app.js", "anchor": "switchTab" },
+      "states": ["closed", "open", "discover", "installed"],
+      "kind": "implicit",
+      "observable": "ui",
+      "defect": "dialogs stack; Overview aria-current is static"
+    },
+    {
+      "id": 16,
+      "name": "Settings form",
+      "where": { "file": "public/app.js", "anchor": "settingsDirty" },
+      "states": ["clean", "dirty"],
+      "kind": "explicit",
+      "observable": "ui",
+      "defect": "edits were discarded silently; Ctrl+, re-seeded an open form"
+    },
+    {
+      "id": 17,
+      "name": "Server-settings form",
+      "where": { "file": "public/app.js", "anchor": "serverSettingsLoading" },
+      "states": ["loading", "ready", "failed"],
+      "kind": "implicit",
+      "observable": "ui",
+      "defect": "a failed load left editable stale inputs"
+    },
+    {
+      "id": 18,
+      "name": "Server exposure",
+      "where": { "file": "src/server-settings.js", "anchor": "exposedWithoutAuth" },
+      "states": ["local", "lan", "cors", "invalid"],
+      "kind": "implicit",
+      "observable": "api+ui",
+      "defect": "the invalid auth-off combination stayed on screen"
+    },
+    {
+      "id": 19,
+      "name": "Restart required",
+      "where": { "file": "src/server-settings.js", "anchor": "restartRequiredFor" },
+      "states": ["pending", "applied"],
+      "kind": "explicit",
+      "observable": "api+ui",
+      "defect": "the server always said true; the client kept only a toast"
+    },
+    {
+      "id": 20,
+      "name": "API-key lifecycle",
+      "where": { "file": "src/server-settings.js", "anchor": "#keys" },
+      "states": ["none", "revealed", "stored", "revoked"],
+      "kind": "implicit",
+      "observable": "ui",
+      "defect": "a created key was erased before it could be copied"
+    },
+    {
+      "id": 21,
+      "name": "Download poller",
+      "where": { "file": "public/app.js", "anchor": "pollFailures" },
+      "states": ["stopped", "polling", "failing"],
+      "kind": "explicit",
+      "observable": "ui",
+      "defect": "a rejected poll kept its interval forever with no message"
+    },
+    {
+      "id": 22,
+      "name": "Benchmark poller",
+      "where": { "file": "public/app.js", "anchor": "benchmarkPolling" },
+      "states": ["stopped", "running", "terminal"],
+      "kind": "explicit",
+      "observable": "ui",
+      "defect": "polls could stack and stopped silently on one failure"
+    },
+    {
+      "id": 23,
+      "name": "Tune follower",
+      "where": { "file": "public/app.js", "anchor": "tunePolling" },
+      "states": ["sse", "polling", "stopped"],
+      "kind": "explicit",
+      "observable": "ui",
+      "defect": "an SSE error with the dialog closed left no follower"
+    },
+    {
+      "id": 24,
+      "name": "Confirm dialog",
+      "where": { "file": "public/app.js", "anchor": "confirmQueue" },
+      "states": ["idle", "asking"],
+      "kind": "explicit",
+      "observable": "ui",
+      "defect": "a second confirm could resolve the first caller on the wrong button"
+    },
+    {
+      "id": 25,
+      "name": "Serving tuned settings",
+      "where": { "file": "src/tuned-settings.js", "anchor": "useTunedProfile" },
+      "states": ["tuned", "stale", "none"],
+      "kind": "implicit",
+      "observable": "api+ui",
+      "defect": "a stale profile still applies"
+    }
+  ]
+}
