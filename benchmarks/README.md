@@ -169,7 +169,9 @@ test changelog is reviewed and the baseline is deliberately updated. A different
 node-llama-cpp version or manifest version is refused the same way.
 See [CHANGELOG.md](CHANGELOG.md).
 
-Every model result records its GGUF chat-template hash, and every prompt result
+Every model result records host RAM and GPU VRAM separately, so a Vulkan
+variant is not reported as its small host slice alone. Every model result also
+records its GGUF chat-template hash, and every prompt result
 stores the generation manifest digest, prompt digest and truncated-history
 digest. That makes a result traceable to the exact system prompt, history,
 template and sampling settings the model saw, independently from the test hash.

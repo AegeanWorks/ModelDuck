@@ -46,6 +46,7 @@ const RESULT = {
       tokensPerSecond: 10,
       firstTokenMs: 100,
       memoryBytes: 2048,
+      gpuVram: 8192,
       byCategory: { reasoning: { passed: 1, total: 2, score: 50 } },
       prompts: [
         {
@@ -92,6 +93,8 @@ test("a run is recorded in SQLite and append-only JSONL, then linked to a commit
     assert.equal(runs[0].commit_pending, true);
     assert.equal(runs[0].baseline, true);
     assert.equal(runs[0].models[0].model_key, "test-model");
+    assert.equal(runs[0].models[0].memory_bytes, 2048);
+    assert.equal(runs[0].models[0].gpu_vram, 8192);
     assert.equal(runs[0].models[0].by_category.reasoning.score, 50);
     assert.equal(modelProgress(db, "test-model", 5).length, 1);
   } finally {

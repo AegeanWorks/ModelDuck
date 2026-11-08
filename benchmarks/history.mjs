@@ -75,6 +75,7 @@ CREATE TABLE IF NOT EXISTS model_results (
   first_token_ms INTEGER,
   runtime_ms INTEGER,
   memory_bytes INTEGER,
+  gpu_vram INTEGER,
   by_category_json TEXT NOT NULL,
   prompts_json TEXT NOT NULL
 );
@@ -174,6 +175,7 @@ export async function openDatabase(dbPath) {
     ["checkpoints", "INTEGER"],
     ["runtime_ms", "INTEGER"],
     ["chat_template_hash", "TEXT"],
+    ["gpu_vram", "INTEGER"],
   ]);
   ensureColumns(db, "prompt_results", [
     ["label", "TEXT"],
@@ -297,9 +299,9 @@ function insertRun(db, record) {
           params, quant, chat_template_hash, preset, kv_key_type, kv_value_type, flash_attention,
           requested_context_size, context_size, threads, max_threads, batch_size, sequences,
           use_mmap, gpu_layers, checkpoints, runtime_ms, score, checks_passed,
-          checks_total, tokens_per_second, first_token_ms, memory_bytes,
+          checks_total, tokens_per_second, first_token_ms, memory_bytes, gpu_vram,
           by_category_json, prompts_json
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         record.uid,
@@ -333,6 +335,7 @@ function insertRun(db, record) {
         Number(model.tokensPerSecond) || 0,
         Number(model.firstTokenMs) || 0,
         Number(model.memoryBytes) || null,
+        Number(model.gpuVram) || null,
         JSON.stringify(model.byCategory ?? {}),
         JSON.stringify(model.prompts ?? []),
       );
@@ -506,7 +509,7 @@ export function listRuns(db, limit = 20) {
                 quant, preset, kv_key_type, kv_value_type, flash_attention, requested_context_size,
                 context_size, threads, max_threads, batch_size, sequences, use_mmap,
                 gpu_layers, checkpoints, runtime_ms, score, checks_passed, checks_total,
-                tokens_per_second, first_token_ms, memory_bytes, by_category_json
+                tokens_per_second, first_token_ms, memory_bytes, gpu_vram, by_category_json
          FROM model_results WHERE run_uid = ? ORDER BY model_key, variant_id`,
       )
       .all(run.uid)
@@ -524,7 +527,7 @@ export function modelProgress(db, modelKey, limit = 20) {
       `SELECT r.recorded_at, r.commit_hash, r.commit_subject, r.commit_pending,
               m.model_key, m.variant_id, m.variant_label, m.label, m.kv_key_type,
               m.context_size, m.threads, m.score, m.tokens_per_second, m.first_token_ms,
-              m.memory_bytes
+              m.memory_bytes, m.gpu_vram
        FROM model_results m JOIN runs r ON r.uid = m.run_uid
        WHERE m.model_key = ? AND (r.run_scope = 'standard' OR r.run_scope = 'shard')
          AND (m.batch_size IS NULL OR m.batch_size <> 1)

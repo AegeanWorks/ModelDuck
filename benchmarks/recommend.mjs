@@ -47,6 +47,7 @@ function describe(model, kind, why) {
     tokensPerSecond: model.tokensPerSecond,
     firstTokenMs: model.firstTokenMs,
     memoryBytes: model.memoryBytes ?? null,
+    gpuVram: model.gpuVram ?? null,
     codingRate: categoryRate(model, CODING_CATEGORIES),
     settings: settingsOf(model),
     why,

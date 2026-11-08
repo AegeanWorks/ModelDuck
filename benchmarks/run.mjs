@@ -323,7 +323,9 @@ async function runModel(engine, entry, spec, options, { index = 0, total = 0 } =
     checkpointMax: spec.checkpointMax ?? 32,
     kvCache,
   });
-  const memoryBytes = (await engine.status())?.memory?.cpuRam ?? null;
+  const memory = (await engine.status())?.memory ?? null;
+  const memoryBytes = memory?.cpuRam ?? null;
+  const gpuVram = memory?.gpuVram ?? null;
   const systemPrompt = spec.systemPrompt ?? SYSTEM_PROMPT;
   const runCount = options.deterministic && spec.deterministicRepro
     ? reproRunCount(spec, true)
@@ -502,6 +504,7 @@ async function runModel(engine, entry, spec, options, { index = 0, total = 0 } =
     systemPrompt,
     seed: spec.seed ?? 42,
     memoryBytes,
+    gpuVram,
     score: checksTotal ? Number(((checksPassed / checksTotal) * 100).toFixed(2)) : 0,
     checksPassed,
     checksTotal,
@@ -1022,10 +1025,14 @@ async function main() {
   log(options, "\nResults");
   log(options, "─".repeat(96));
   for (const model of models) {
+    const memoryLabel = [
+      model.memoryBytes ? `${Math.round(model.memoryBytes / (1024 * 1024))} MB host` : null,
+      model.gpuVram ? `${Math.round(model.gpuVram / (1024 * 1024))} MB VRAM` : null,
+    ].filter(Boolean).join(" + ") || "—";
     log(
       options,
       `${model.label.padEnd(58)} ${String(model.score.toFixed(1) + "%").padStart(6)}  ` +
-        `${String(model.tokensPerSecond.toFixed(1)).padStart(5)} tok/s  ${String(model.firstTokenMs).padStart(5)} ms  ${String(model.memoryBytes ? Math.round(model.memoryBytes / (1024 * 1024)) + " MB" : "—").padStart(8)}`,
+        `${String(model.tokensPerSecond.toFixed(1)).padStart(5)} tok/s  ${String(model.firstTokenMs).padStart(5)} ms  ${memoryLabel.padStart(20)}`,
     );
   }
   log(options, "─".repeat(96));
