@@ -6,7 +6,7 @@ import test from "node:test";
 
 import { SUITE_VERSION } from "../benchmarks/suite.mjs";
 import { latestRunForPhase } from "../benchmarks/report.mjs";
-import { loadBenchmarkReport, summarizeBenchmark } from "../src/benchmark-report.js";
+import { benchmarkReportCacheStats, loadBenchmarkReport, resetBenchmarkReportCache, summarizeBenchmark } from "../src/benchmark-report.js";
 
 const MODEL = {
   phase: "model",
@@ -87,6 +87,26 @@ test("a benchmark phase exposes host + VRAM and quality per second per GB", () =
   assert.equal(phase.totalMemoryBytes, 3_000_000_000);
   assert.equal(phase.qualityPerSecond, 0.69, "82.5% over 120 s");
   assert.ok(Number.isFinite(phase.qualityPerSecondPerGb), "per-GB quality uses host + VRAM");
+});
+
+test("the report cache reuses parsed history until a source file changes", async (t) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "modelduck-report-cache-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  await writeFile(path.join(directory, "baseline-model.json"), JSON.stringify(MODEL), "utf8");
+  resetBenchmarkReportCache();
+  const first = await loadBenchmarkReport({ benchmarkDir: directory });
+  const afterFirst = benchmarkReportCacheStats();
+  const second = await loadBenchmarkReport({ benchmarkDir: directory });
+  const afterSecond = benchmarkReportCacheStats();
+  assert.deepEqual(second, first);
+  assert.equal(afterFirst.misses, 1);
+  assert.equal(afterSecond.hits, afterFirst.hits + 1);
+  // A changed source file (even a different size) invalidates the entry.
+  await writeFile(path.join(directory, "baseline-model.json"), JSON.stringify({ ...MODEL, runtimeMs: 121000, invalidated: true }), "utf8");
+  const third = await loadBenchmarkReport({ benchmarkDir: directory });
+  const afterThird = benchmarkReportCacheStats();
+  assert.equal(afterThird.misses, afterSecond.misses + 1);
+  assert.equal(third.phases[0].runtimeMs, 121000);
 });
 
 test("a missing benchmark report is empty instead of throwing", async (t) => {

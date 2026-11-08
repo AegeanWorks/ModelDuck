@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 
 import { loadChatBase } from "./benchmark-base.js";
@@ -139,6 +139,29 @@ function historySummary(runs, links, limit) {
     }));
 }
 
+// The Bench panel polls this report; history.jsonl can be several MB. Keep
+// the parsed inputs until one of the source files changes (size or mtime).
+const REPORT_CACHE = new Map();
+const REPORT_CACHE_LIMIT = 4;
+let reportHits = 0;
+let reportMisses = 0;
+export function benchmarkReportCacheStats() {
+  return { size: REPORT_CACHE.size, hits: reportHits, misses: reportMisses };
+}
+export function resetBenchmarkReportCache() {
+  REPORT_CACHE.clear();
+  reportHits = 0;
+  reportMisses = 0;
+}
+async function fileStamp(file) {
+  try {
+    const info = await stat(file);
+    return `${info.mtimeMs}:${info.size}`;
+  } catch {
+    return "missing";
+  }
+}
+
 export function summarizeBenchmark({ model = null, chat = null, latestModel = null, singleModel = null, chatBase = null, history = [], limit = 8 } = {}) {
   const runs = Array.isArray(history) ? history : history?.runs ?? [];
   const links = Array.isArray(history) ? new Map() : history?.links ?? new Map();
@@ -182,28 +205,41 @@ export async function loadBenchmarkReport({
   historyPath = path.join(benchmarkDir, "history.jsonl"),
   limit = 8,
 } = {}) {
+  const root = path.resolve(benchmarkDir);
+  const history = path.resolve(historyPath);
+  const files = [
+    path.join(root, "baseline-model.json"),
+    path.join(root, "baseline-chat.json"),
+    path.join(root, "results", "latest-model.json"),
+    path.join(root, "results", "latest-single-model.json"),
+    path.join(root, "chat-base.json"),
+    history,
+  ];
+  const cacheKey = `${root}|${history}`;
+  const stamps = (await Promise.all(files.map(fileStamp))).join("|");
+  const cached = REPORT_CACHE.get(cacheKey);
+  if (cached?.stamps === stamps) {
+    reportHits += 1;
+    return summarizeBenchmark({ ...cached.data, limit });
+  }
+  reportMisses += 1;
   const readJson = async (file) => {
     try {
-      return JSON.parse(await readFile(path.join(benchmarkDir, file), "utf8"));
+      return JSON.parse(await readFile(file, "utf8"));
     } catch {
       return null;
     }
   };
-  const [model, chat, latestModel, singleModel, historyText, chatBase] = await Promise.all([
-    readJson("baseline-model.json"),
-    readJson("baseline-chat.json"),
-    readJson(path.join("results", "latest-model.json")),
-    readJson(path.join("results", "latest-single-model.json")),
-    readFile(historyPath, "utf8").catch(() => ""),
-    loadChatBase({ benchmarkDir }).catch(() => null),
+  const [model, chat, latestModel, singleModel, chatBase, historyText] = await Promise.all([
+    readJson(files[0]),
+    readJson(files[1]),
+    readJson(files[2]),
+    readJson(files[3]),
+    loadChatBase({ benchmarkDir: root }).catch(() => null),
+    readFile(history, "utf8").catch(() => ""),
   ]);
-  return summarizeBenchmark({
-    model,
-    chat,
-    latestModel,
-    singleModel,
-    chatBase,
-    history: parseHistory(historyText),
-    limit,
-  });
+  const data = { model, chat, latestModel, singleModel, chatBase, history: parseHistory(historyText) };
+  if (REPORT_CACHE.size >= REPORT_CACHE_LIMIT) REPORT_CACHE.delete(REPORT_CACHE.keys().next().value);
+  REPORT_CACHE.set(cacheKey, { stamps, data });
+  return summarizeBenchmark({ ...data, limit });
 }
