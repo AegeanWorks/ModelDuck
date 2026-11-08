@@ -670,5 +670,19 @@
     "final_snapshot_digest": "",
     "final_snapshot_entries": 0,
     "surface_digest": "3afbf1f30e9a411a1834019ad39d0fe20b6e9c17ae3ad449fdd8160f4b07fdce"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "baseline_commit": "e1a91dc4e1b03e7860bda5284310937ff232cebe",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1794165696.4045305,
+    "finished_at": 1794165719.8098545,
+    "strikes": 0,
+    "reviewer": "Command Code (AI; headless Edge smoke: control panel, four dialogs, six Bench sections, settings dirty-discard flow and 390px reflow; no console exceptions; 597 tests)",
+    "allowed_removals": [],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "cc66bc2e51a9431444d86416172d1b377b133168dab15c0bf3c673a099f1c9e6"
   }
 ]
