@@ -899,6 +899,34 @@ a {
   background: var(--panel);
 }
 
+/* A label styled as a button needs the pointer a button gets for free. */
+label.small-btn {
+  cursor: pointer;
+}
+
+/* A checkbox that the current phase ignores reads as unavailable. */
+.check.is-disabled {
+  opacity: 0.55;
+}
+
+/* An inline failure that lets the dialog stay open with a retry. */
+.form-error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 18px 0;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in oklab, var(--danger) 45%, var(--line));
+  border-radius: var(--radius-sm);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 12.5px;
+}
+
+.form-error[hidden] {
+  display: none;
+}
+
 .ghost-btn {
   min-height: 34px;
   padding: 0 8px;

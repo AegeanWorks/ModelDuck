@@ -70,6 +70,15 @@ test("the control panel is wired and the chat shell is gone", () => {
     "the Server dialog must open before its fetch so the button always responds",
   );
 
+  // Loading and failure states that keep a control honest (2026-11-08).
+  assert.match(html, /id="tune-progress" role="status" aria-live="polite"/, "tune progress is announced");
+  assert.match(html, /id="benchmark-progress" role="status" aria-live="polite"/, "benchmark progress is announced");
+  assert.match(html, /id="tune-import-profile"/, "a profile can be imported without an existing profile");
+  assert.match(html, /id="server-settings-error"/, "server settings can report a load failure inline");
+  assert.match(app, /function syncBenchmarkPhase\(\)/, "phase-irrelevant benchmark controls are synced");
+  assert.match(app, /function clearServerKeyReveal\(\)/, "a revealed API key is cleared on close");
+  assert.match(app, /Start a full tune\?/, "the dashboard Tune button confirms before a full run");
+
   const cssRules = `${css}\n${theme}`.replace(/\/\*[\s\S]*?\*\//g, "");
   for (const dead of ["sidebar", "messages", "composer", "conversation", "chat-title", "markdown", "code-block", "suggestion", "scrim", "model-pill"]) {
     assert.doesNotMatch(

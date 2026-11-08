@@ -410,6 +410,10 @@
         </button>
       </div>
       <form id="server-form">
+        <p class="form-error" id="server-settings-error" role="alert" hidden>
+          <span id="server-settings-error-text"></span>
+          <button class="small-btn" id="server-settings-retry" type="button">Retry</button>
+        </p>
         <div class="dialog-body settings-body">
           <p class="form-heading">Listener</p>
           <div class="settings-grid">
@@ -462,7 +466,7 @@
         </div>
         <div class="dialog-actions">
           <button class="small-btn" type="button" data-close-dialog="server-dialog">Cancel</button>
-          <button class="primary-btn" type="submit">Save server settings</button>
+          <button class="primary-btn" id="server-save" type="submit">Save server settings</button>
         </div>
       </form>
     </dialog>
@@ -522,6 +526,10 @@
                 <label class="check" title="Discard the chosen models' saved results and measure everything again"><input id="tune-force" type="checkbox" /><span>Re-tune from scratch</span></label>
                 <button class="small-btn" id="tune-quick" type="button" title="Measure the first rung, save a provisional preset, then continue the full tune">Quick pass</button>
                 <button class="primary-btn" id="tune-all" type="button" title="Tune every installed model with the choices above">Run all</button>
+                <label class="small-btn tune-import" title="Load a profile exported from another ModelDuck home">
+                  Import profile
+                  <input id="tune-import-profile" type="file" accept=".json,application/json" hidden />
+                </label>
                 <button class="small-btn" id="tune-pause" type="button" disabled>Pause</button>
                 <button class="small-btn" id="tune-cancel" type="button" disabled>Cancel</button>
               </div>
@@ -535,7 +543,7 @@
               <summary>Only some settings (optional; replaces the stage choice above)</summary>
               <div class="tune-only" id="tune-only" role="group" aria-label="Only these settings"></div>
             </details>
-            <p class="benchmark-progress" id="tune-progress">No tune is running. Pick a model in the Models tab, or Run all; stop any time and what was found is applied.</p>
+            <p class="benchmark-progress" id="tune-progress" role="status" aria-live="polite">No tune is running. Pick a model in the Models tab, or Run all; stop any time and what was found is applied.</p>
             <section class="tune-live" id="tune-live" hidden aria-live="polite"></section>
             <div class="tune-continue" id="tune-continue"></div>
             <details class="tune-help" id="tune-help">
@@ -684,7 +692,7 @@
               <button class="primary-btn" id="benchmark-start" type="button">Start</button>
               <button class="small-btn" id="benchmark-cancel" type="button" disabled>Cancel</button>
             </div>
-            <p class="benchmark-progress" id="benchmark-progress">No benchmark is running.</p>
+            <p class="benchmark-progress" id="benchmark-progress" role="status" aria-live="polite">No benchmark is running.</p>
             <p class="benchmark-base" id="benchmark-chat-base">Chat phase base: loading…</p>
           </section>
           <div class="benchmark-recommendations" id="benchmark-recommendations"></div>

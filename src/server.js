@@ -71,6 +71,15 @@ function decodeRouteId(raw) {
   }
 }
 
+// State-changing routes belong to the computer running the model. A LAN client
+// with a key may chat, but it may not rewrite settings, the model library or
+// downloads: those change this machine's files and measurements.
+function requireLocalAction(req, { code, message, why, fix }) {
+  if (!isLoopbackRequest(req)) {
+    throw new AppError(message, { code, status: 403, why, fix });
+  }
+}
+
 // Live tune updates: changes within this window go out together; a comment keeps idle connections open.
 const STREAM_BATCH_MS = 250;
 const STREAM_HEARTBEAT_MS = 15_000;
@@ -289,29 +298,52 @@ export function createHttpServer({
         });
       }
       const body = await readJsonBody(req);
+      const phase = body.phase ?? "model";
       const requestedTasks = Array.isArray(body.tasks) && body.tasks.length ? body.tasks.map(String) : null;
       const requestedStages = Array.isArray(body.stages) && body.stages.length ? body.stages.map(String) : null;
-      if ((body.phase ?? "model") !== "tune" && (requestedTasks || requestedStages)) {
-        throw new AppError("Stages and tasks tune only", {
+      const requestedSettings = Array.isArray(body.settings) && body.settings.length ? body.settings.map(String) : null;
+      if (phase !== "tune" && (requestedTasks || requestedStages || requestedSettings)) {
+        throw new AppError("Stages, tasks and settings tune only", {
           code: "invalid_benchmark_selection",
           status: 400,
-          why: "A model or chat benchmark always runs the whole matrix; stages and tasks select tune work the run would ignore.",
-          fix: "Drop stages and tasks, or run phase tune.",
+          why: "A model or chat benchmark always runs the whole matrix; stages, tasks and settings select tune work the run would ignore.",
+          fix: "Drop stages, tasks and settings, or run phase tune.",
         });
       }
       validateTuneSelection(requestedTasks, requestedStages);
+      const unknownSettings = (requestedSettings ?? []).filter((name) => !settingNames().includes(name));
+      if (unknownSettings.length) {
+        throw new AppError("Unknown setting", {
+          code: "unknown_setting",
+          status: 400,
+          why: `${unknownSettings.join(", ")} is not a tunable setting.`,
+          fix: `Use any of: ${settingNames().join(", ")}.`,
+        });
+      }
+      const requestedModel = body.model ? String(body.model) : null;
+      // A tune names one installed model; failing here beats a 202 followed by
+      // a child process that dies on an unknown id.
+      if (phase === "tune" && requestedModel && !registry.listPublic().some((item) => item.id === requestedModel)) {
+        throw new AppError("Model not found", {
+          code: "model_not_found",
+          status: 404,
+          why: `${requestedModel} is not in the local model library.`,
+          fix: "Pick an installed model, or install it first.",
+        });
+      }
       // IDEA-1079: same preflight for model and chat benchmarks.
       if (typeof engine?.startBackend === "function") await engine.startBackend(settings.value.gpuBackend);
       sendJson(res, 202, {
         job: benchmarks.start({
-          phase: body.phase ?? "model",
+          phase,
           updateBaseline: body.updateBaseline === true,
           download: body.download === true,
           fullMatrix: body.fullMatrix === true,
-          model: body.model ? String(body.model) : null,
+          model: requestedModel,
           tasks: requestedTasks,
           force: body.force === true,
           stages: requestedStages,
+          settings: requestedSettings,
         }),
       });
       return;
@@ -459,7 +491,14 @@ export function createHttpServer({
       }
       const body = await readJsonBody(req);
       const installed = registry.listPublic();
-      const wanted = body.models === "all" ? installed.map((model) => model.id) : (Array.isArray(body.models) ? body.models.map(String) : []);
+      const wanted =
+        body.models === "all"
+          ? installed.map((model) => model.id)
+          : Array.isArray(body.models)
+            ? body.models.map(String)
+            : typeof body.models === "string" && body.models.trim()
+              ? [body.models.trim()]
+              : [];
       const models = wanted.map((id) => {
         const model = installed.find((item) => item.id === id);
         if (!model) {
@@ -741,6 +780,12 @@ export function createHttpServer({
     }
 
     if (pathname === "/api/settings" && method === "PUT") {
+      requireLocalAction(req, {
+        code: "settings_local_only",
+        message: "Settings are local only",
+        why: "Inference settings decide what this computer's model does; a remote client may read them but not change them.",
+        fix: "Open the ModelDuck settings on the computer running the server.",
+      });
       const body = await readJsonBody(req);
       const next = await settings.update(body.settings ?? body);
       sendJson(res, 200, { settings: next });
@@ -809,6 +854,12 @@ export function createHttpServer({
       return;
     }
     if (pathname === "/api/models/import" && method === "POST") {
+      requireLocalAction(req, {
+        code: "model_library_local_only",
+        message: "The model library is local only",
+        why: "Importing reads a path on this computer and copies a model file into its library.",
+        fix: "Open the ModelDuck UI on the computer running the server.",
+      });
       if (!registry) throw new AppError("Model library unavailable", { status: 503 });
       const body = await readJsonBody(req);
       const model = await registry.importFromPath(body.path);
@@ -817,6 +868,12 @@ export function createHttpServer({
     }
 
     if (pathname === "/api/models/open-folder" && method === "POST") {
+      requireLocalAction(req, {
+        code: "model_library_local_only",
+        message: "The model library is local only",
+        why: "Opening the folder opens a window on this computer.",
+        fix: "Open the ModelDuck UI on the computer running the server.",
+      });
       if (!registry) throw new AppError("Model library unavailable", { status: 503 });
       openFolder(registry.modelsDir, logger);
       sendJson(res, 200, { ok: true, path: registry.modelsDir });
@@ -824,7 +881,26 @@ export function createHttpServer({
     }
 
     if (pathname === "/api/models/unload" && method === "POST") {
-      if (engine) await engine.unload();
+      requireLocalAction(req, {
+        code: "model_library_local_only",
+        message: "The model library is local only",
+        why: "Unloading frees memory on this computer and ends a model another client may be using.",
+        fix: "Open the ModelDuck UI on the computer running the server.",
+      });
+      if (engine) {
+        // Unloading under a load or a reply would abort a half-built context and
+        // report "ready" with a disposed model; refuse instead of racing it.
+        const status = await engine.status();
+        if (status.status === "loading" || engine.busy) {
+          throw new AppError("The model is busy", {
+            code: "model_busy",
+            status: 409,
+            why: "A model is loading or answering; unloading now would abort it.",
+            fix: "Wait for the load or the reply to finish, then unload.",
+          });
+        }
+        await engine.unload();
+      }
       jit?.clear();
       sendJson(res, 200, { loaded: engine ? await engine.status() : { status: "idle" } });
       return;
@@ -832,6 +908,12 @@ export function createHttpServer({
 
     const loadMatch = pathname.match(/^\/api\/models\/([^/]+)\/load$/);
     if (loadMatch && method === "POST") {
+      requireLocalAction(req, {
+        code: "model_library_local_only",
+        message: "The model library is local only",
+        why: "Loading a model spends this computer's memory and starts its inference context.",
+        fix: "Open the ModelDuck UI on the computer running the server.",
+      });
       if (!engine) throw new AppError("Inference engine unavailable", { status: 503 });
       const body = await readJsonBody(req);
       const modelId = decodeRouteId(loadMatch[1]);
@@ -861,6 +943,12 @@ export function createHttpServer({
 
     const modelMatch = pathname.match(/^\/api\/models\/([^/]+)$/);
     if (modelMatch && method === "DELETE") {
+      requireLocalAction(req, {
+        code: "model_library_local_only",
+        message: "The model library is local only",
+        why: "Deleting removes a model file from this computer.",
+        fix: "Open the ModelDuck UI on the computer running the server.",
+      });
       if (!registry) throw new AppError("Model library unavailable", { status: 503 });
       const deleted = await registry.deleteById(decodeRouteId(modelMatch[1]), {
         loadedId: engine?.loadedId ?? null,
@@ -885,6 +973,12 @@ export function createHttpServer({
     }
 
     if (pathname === "/api/downloads" && method === "POST") {
+      requireLocalAction(req, {
+        code: "downloads_local_only",
+        message: "Downloads are local only",
+        why: "A download writes a model file into this computer's library.",
+        fix: "Open the ModelDuck UI on the computer running the server.",
+      });
       if (!downloads) throw new AppError("Downloads unavailable", { status: 503 });
       const body = await readJsonBody(req);
       const job = await downloads.start(String(body.catalogId ?? body.modelId ?? ""));
@@ -894,6 +988,12 @@ export function createHttpServer({
 
     const downloadMatch = pathname.match(/^\/api\/downloads\/([^/]+)$/);
     if (downloadMatch && method === "DELETE") {
+      requireLocalAction(req, {
+        code: "downloads_local_only",
+        message: "Downloads are local only",
+        why: "Cancelling a download leaves or removes a partial file on this computer.",
+        fix: "Open the ModelDuck UI on the computer running the server.",
+      });
       if (!downloads) throw new AppError("Downloads unavailable", { status: 503 });
       const job = await downloads.cancel(decodeRouteId(downloadMatch[1]));
       sendJson(res, 200, { download: job });

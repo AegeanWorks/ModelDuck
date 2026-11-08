@@ -217,6 +217,16 @@ async function main() {
     assert.ok(await waitFor(() => evaluate('Boolean(document.querySelector(".tune-latest"))'), 3_000), "the latest profile line did not render");
     assert.match(await evaluate('document.querySelector(".tune-latest").textContent'), /Fixture model · code 81\.2%/, "the latest profile line has the wrong model or rate");
     await evaluate('document.querySelector("[data-dashboard-tune=\\"fixture-model\\"]").click(), true');
+    assert.ok(
+      await waitFor(() => evaluate('document.getElementById("confirm-dialog").open'), 2_000),
+      "the dashboard Tune action did not ask before a full tune",
+    );
+    assert.match(
+      await evaluate('document.getElementById("confirm-message").textContent'),
+      /Fixture model/,
+      "the confirmation does not name the model",
+    );
+    await evaluate('document.getElementById("confirm-ok").click(), true');
     assert.ok(await waitFor(() => evaluate('window.__uiSmokeRequests.length > 0'), 3_000), "the dashboard Tune action did not start a tune");
     const tuneRequest = await evaluate('window.__uiSmokeRequests[0]');
     assert.deepEqual(tuneRequest.body.models, ["fixture-model"]);

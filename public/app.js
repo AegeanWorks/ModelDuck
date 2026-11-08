@@ -87,6 +87,9 @@ const els = {
   serverKeyCreate: $("server-key-create"),
   serverKeyOutput: $("server-key-output"),
   serverKeyValue: $("server-key-value"),
+  serverSave: $("server-save"),
+  serverSettingsError: $("server-settings-error"),
+  serverSettingsErrorText: $("server-settings-error-text"),
   benchmarkDialog: $("benchmark-dialog"),
   benchmarkPhases: $("benchmark-phases"),
   benchmarkShowOld: $("benchmark-show-old"),
@@ -1235,15 +1238,47 @@ function applyPresetToForm(preset) {
 
 /* Server settings ---------------------------------------------------------- */
 
+let serverSettingsLoading = false;
+
+/** While the values are in flight the form is read-only and Save is off. */
+function setServerSettingsBusy(busy) {
+  for (const input of els.serverForm.querySelectorAll("input")) input.disabled = busy;
+  els.serverSave.disabled = busy || !els.serverSettingsError.hidden;
+}
+
+function showServerSettingsError(message) {
+  els.serverSettingsError.hidden = !message;
+  els.serverSettingsErrorText.textContent = message;
+  els.serverSave.disabled = Boolean(message);
+}
+
 async function openServerSettings() {
+  // Open at once so the button always responds, then keep the blank form
+  // read-only: Save must never send Number("") or stale fields over real ones.
   if (!els.serverDialog.open) els.serverDialog.showModal();
+  showServerSettingsError("");
+  if (serverSettingsLoading) return;
+  serverSettingsLoading = true;
+  setServerSettingsBusy(true);
   try {
     const data = await request("/api/server-settings");
     state.serverSettings = { ...data.settings, apiKeys: data.apiKeys, activeKeys: data.activeKeys };
+    clearServerKeyReveal();
     renderServerSettings();
   } catch (error) {
+    showServerSettingsError("Server settings could not be loaded. Retry, or check the terminal window.");
     showError(error);
+  } finally {
+    serverSettingsLoading = false;
+    setServerSettingsBusy(false);
   }
+}
+
+// The full key is shown once, on creation; it must not stay in the DOM (or on
+// screen) when the dialog is reopened.
+function clearServerKeyReveal() {
+  els.serverKeyOutput.hidden = true;
+  els.serverKeyValue.textContent = "";
 }
 
 function renderServerSettings() {
@@ -1668,6 +1703,7 @@ async function selectChatBaseForChat(item) {
     renderChatBase(chatBase);
     markChatBaseButtons();
     els.benchmarkPhase.value = "chat";
+    syncBenchmarkPhase();
     showToast("Chat phase base selected", {
       message: `${chatBase.label}. Start the chat phase whenever you are ready.`,
       kind: "success",
@@ -1806,7 +1842,23 @@ function renderBenchmarkJob(job) {
   }
 }
 
+// The full matrix and stages/tasks exist only in the model phase; leaving the
+// chat phase checked makes a control that silently does nothing.
+function syncBenchmarkPhase() {
+  const modelPhase = els.benchmarkPhase.value === "model";
+  els.benchmarkFull.disabled = !modelPhase;
+  els.benchmarkFull.closest("label")?.classList.toggle("is-disabled", !modelPhase);
+}
+
 async function startBenchmark() {
+  if (els.benchmarkBaseline.checked) {
+    const confirmed = await askConfirm(
+      "Replace the baseline?",
+      "This run's measurements overwrite the stored baseline. Cancel keeps the current baseline; replace it only for a deliberate test-suite or settings change.",
+      "Replace baseline",
+    );
+    if (!confirmed) return;
+  }
   els.benchmarkStart.disabled = true;
   try {
     const { job } = await request("/api/benchmarks/run", {
@@ -2663,7 +2715,11 @@ function liveCard(item) {
   card.className = "tune-live-card";
   const where = item.progress?.stage ? ` · ${STAGE_NAMES[item.progress.stage] ?? item.progress.stage}${item.progress.task ? ` for ${TASK_NAMES[item.progress.task] ?? item.progress.task}` : ""}${item.progress.axis ? `: ${SETTING_GUIDE[item.progress.axis]?.[1] ?? item.progress.axis}` : ""}` : "";
   card.appendChild(Object.assign(document.createElement("h5"), { textContent: `${item.name}${item.lane ? ` — ${item.lane.toUpperCase()} lane` : ""}${where}` }));
-  const bar = Object.assign(document.createElement("progress"), { max: live.expectedAnswers || 1, value: Math.min(live.answers ?? 0, live.expectedAnswers || 1) });
+  const bar = Object.assign(document.createElement("progress"), {
+    max: live.expectedAnswers || 1,
+    value: Math.min(live.answers ?? 0, live.expectedAnswers || 1),
+    ariaLabel: "Tune progress",
+  });
   const counts = `${live.answers ?? 0}${live.expectedAnswers ? ` of up to ${live.expectedAnswers}` : ""} answers${live.eta ? ` · ${live.eta}` : ""}`;
   card.append(bar, Object.assign(document.createElement("p"), { className: "tune-live-counts", textContent: counts }));
   if (live.axis?.candidates?.length) {
@@ -3317,7 +3373,17 @@ function bindEvents() {
     }
     const tune = event.target.closest("[data-dashboard-tune]");
     if (tune) {
-      void openBenchmarks().then(() => startTune([tune.dataset.dashboardTune], { forceStale: true, useForm: false }));
+      const model = state.models.find((item) => item.id === tune.dataset.dashboardTune);
+      void (async () => {
+        const confirmed = await askConfirm(
+          "Start a full tune?",
+          `Tuning ${model?.name ?? "this model"} measures device, quality, speed, sampling and prompts for every task and can run for a long time. Start it now?`,
+          "Start tune",
+        );
+        if (!confirmed) return;
+        await openBenchmarks();
+        await startTune([tune.dataset.dashboardTune], { forceStale: true, useForm: false });
+      })();
       return;
     }
     if (event.target.closest("[data-dashboard-open-models]")) {
@@ -3330,6 +3396,14 @@ function bindEvents() {
   bindArrowTabs(els.benchTabs, "[data-bench-tab]", (tab) => showBenchTab(tab.dataset.benchTab));
   els.benchmarkStart.addEventListener("click", startBenchmark);
   els.benchmarkCancel.addEventListener("click", cancelBenchmark);
+  els.benchmarkPhase.addEventListener("change", syncBenchmarkPhase);
+  syncBenchmarkPhase();
+  const tuneImport = $("tune-import-profile");
+  tuneImport?.addEventListener("change", () => {
+    const file = tuneImport.files?.[0];
+    if (file) void importProfile(file);
+    tuneImport.value = "";
+  });
   els.tuneAll.addEventListener("click", () => void startTune("all", { forceStale: true }));
   els.tuneQuick.addEventListener("click", () => void startTune("all", { quick: true, forceStale: true }));
   els.tunePause.addEventListener("click", pauseOrResumeTune);
@@ -3487,6 +3561,7 @@ function bindEvents() {
   els.settingTopp.addEventListener("input", updateSettingsOutputs);
 
   els.serverForm.addEventListener("submit", saveServerSettings);
+  $("server-settings-retry")?.addEventListener("click", () => void openServerSettings());
   els.serverKeyCreate.addEventListener("click", createServerKey);
   els.serverKeyOutput.addEventListener("click", async (event) => {
     if (!event.target.closest("[data-copy-key]")) return;
@@ -3507,6 +3582,7 @@ function bindEvents() {
   els.settingsDialog.addEventListener("click", (event) => {
     if (event.target === els.settingsDialog) els.settingsDialog.close();
   });
+  els.serverDialog.addEventListener("close", clearServerKeyReveal);
   els.serverDialog.addEventListener("click", (event) => {
     if (event.target === els.serverDialog) els.serverDialog.close();
   });

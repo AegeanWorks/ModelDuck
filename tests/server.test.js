@@ -146,7 +146,7 @@ test("benchmark routes start, report and cancel one local run", async (t) => {
   const started = await post("/api/benchmarks/run", { phase: "chat", updateBaseline: true });
   assert.equal(started.status, 202);
   assert.equal((await started.json()).job.phase, "chat");
-  assert.deepEqual(starts[0], { phase: "chat", updateBaseline: true, download: false, fullMatrix: false, model: null, tasks: null, force: false, stages: null });
+  assert.deepEqual(starts[0], { phase: "chat", updateBaseline: true, download: false, fullMatrix: false, model: null, tasks: null, force: false, stages: null, settings: null });
 
   const second = await post("/api/benchmarks/run", { phase: "model" });
   assert.equal(second.status, 409);

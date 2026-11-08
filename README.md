@@ -52,8 +52,8 @@ server and the tuning control panel: Models, Bench & Tune, Settings and Server.
 4. Open **Bench & Tune → Tune** to optimize the model, or **Models → Load** to serve it.
    Chat lives in ChatDuck; point it at `http://127.0.0.1:4141`.
 
-No model is bundled. A good first pick is **Qwen2.5 0.5B Instruct** (469 MB,
-fast) or **Qwen2.5 1.5B Instruct** (1.1 GB, better answers on a 16 GB machine).
+No model is bundled. Start with **Qwen2.5 0.5B Instruct** (469 MB) or
+**Qwen2.5 1.5B Instruct** (1.1 GB, better answers).
 
 ### AIKit Commands (run from the AIKit folder)
 
@@ -104,7 +104,7 @@ device. It is off by default so a missing driver never prevents local inference 
   own page is a control panel for Models, Bench & Tune, Settings and Server.
 - **Benchmark** — its own tab and gate: run either phase and read per-test rates;
   older-suite reports appear only when asked.
-- **Settings tuner** — **Bench & Tune → Tune** finds each model's best settings in order: device (CPU/GPU, partial offload when full won't fit), context + KV cache, speed (threads, batch, flash, mmap), then sampling and prompt per task. A setting changes only on a clear paired gain (Holm-corrected); laggards stop early, presets are checked on unseen items, and every step is saved so a tune can stop and resume anywhere. **Run all** tunes CPU and GPU lanes; **Runs** keeps every run; the Tune panel shows quick/full estimates, a pausable queue, and **Quick pass**. **Recommended for this PC** ranks models by measured quality and speed; details live in the Tune panel's **How tuning works** section.
+- **Settings tuner** — **Bench & Tune → Tune** finds each model's best settings in order: device (CPU/GPU, partial offload when full won't fit), context + KV cache, speed (threads, batch, flash, mmap), then sampling and prompt per task. A setting changes only on a clear paired gain (Holm-corrected); laggards stop early, presets are checked on unseen items, and every step is saved so a tune can stop and resume anywhere. **Run all** tunes CPU and GPU lanes; **Runs** keeps every run; the Tune panel shows quick/full estimates, a pausable queue, and **Quick pass**. **Recommended for this PC** ranks models by measured quality and speed; details live in the Tune panel's **How tuning works** section. Profiles export and import from Tune.
 - **Small surface area** — Node's HTTP server and a vanilla UI; no build or CDN.
 - **AI benchmark gate** - two phases: model reload/quantization/KV-cache settings,
   then sampling/prompting settings, with test hashes so test edits show.
@@ -202,7 +202,7 @@ drop exits 1; a speed drop over 20% only warns. Generated code runs in a
 
 ## Screenshots
 
-[27-shot gallery and 3-minute video storyboard](assets/screenshots/README.md) · [social preview](assets/social-preview.png) · Gallery shot 2026-11-01, pre-redesign; fresh captures land via `npm run ui:shots` on a clean tree (ADR-081).
+[Gallery and video storyboard](assets/screenshots/README.md) · [social preview](assets/social-preview.png). Pre-redesign shot; fresh captures via `npm run ui:shots` (ADR-081).
 
 ## Where things live
 
@@ -243,8 +243,7 @@ skill/tool publisher, benchmark publisher, runtime supplier).
 | Phi-3.5 Mini Q4 | 2.4 GB | ~3.8 GB | Reasoning near the 4 GB mark |
 | Mistral 7B Q4 | 4.4 GB | ~6.5 GB | Heavy; 16 GB RAM and patience |
 
-These are rough numbers, not promises. The app shows the real context size and
-the native runtime's memory report for the loaded model.
+Rough numbers; the app reports real context and memory.
 
 Q4_K_M is lossy: expect small quality drift versus the Q8_0 ceiling in the
 same family. No catalog entry uses imatrix calibration. Memory math is fixed
@@ -253,8 +252,10 @@ weights than its Q4 sibling.
 
 ## OpenAI-compatible API
 
-ModelDuck serves a local API. It is loopback-only and unauthenticated by default;
-Server settings can require API keys, enable CORS, or bind the LAN after a restart.
+ModelDuck serves a loopback-only, unauthenticated-by-default local API; Server
+settings can require keys, enable CORS, or bind the LAN after a restart. With a
+valid key, settings and model/download changes stay local; a LAN client may read
+and chat.
 
 ```bash
 curl http://127.0.0.1:4141/v1/models
@@ -340,14 +341,15 @@ POST   /api/benchmarks/base
 `GET /api/benchmarks` returns the two baseline phases, recent linked runs, own
 versus public item rates and recommendations from the latest model run. The run
 endpoints are loopback-only and start one child benchmark at a time; they refuse
-while a reply is generating so the CPU measurements stay comparable.
+while a reply is generating so the CPU measurements stay comparable. Settings,
+model and download changes stay local.
 `POST /api/benchmarks/base` saves one model-phase variant as the base the next
 chat-phase run loads. `POST /api/benchmarks/run` with `{"phase":"tune","model":"<id>"}`
 tunes one installed model (optional `tasks`, `force`, and `stages` from device, quality,
 speed, sampling, prompt); a saved profile is reused unless `force` is true, and chosen
 `stages` or `settings` are measured again on top of the saved rest, even when out of date.
 The profile is saved after every setting, so a stopped tune applies and later resumes.
-`POST /api/tune/start` with `{"models":"all"}` (or a list of model ids) tunes several models
+`POST /api/tune/start` with `{"models":"all"}` (one id, a list, or `"all"`) tunes several models
 side by side: device probes first, then 1 CPU lane and 2 GPU lanes by default (`lanes` in
 `tune-grid.json`, set per PC); speed measurements pause the other tunes. `GET /api/profiles/:id` returns the profile with `stale`,
 `staleParts` and `warnings` when the suite, items, runtime, CPU or model file changed
