@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { PROMPTS } from "../benchmarks/suite.mjs";
-import { CODE_GROUPS, TASKS, TASK_RUNGS, codeGroupOf, speedItems, suiteSummary, taskHoldout, taskLongContext, taskPrompts, taskRungs, taskSubsetHash, tuneRungs, withDiscriminatingRungs } from "../benchmarks/tasks.mjs";
+import { CODE_GROUPS, TASKS, TASK_RUNGS, codeGroupOf, neededContextFor, speedItems, suiteSummary, taskHoldout, taskLongContext, taskPrompts, taskRungs, taskSubsetHash, tuneRungs, withDiscriminatingRungs } from "../benchmarks/tasks.mjs";
 
 test("the three tasks cover every suite item exactly once", () => {
   assert.deepEqual(TASKS.map((task) => task.id), ["code", "comprehension", "recall"]);
@@ -14,6 +14,12 @@ test("the three tasks cover every suite item exactly once", () => {
     }
   }
   assert.equal(seen.size, PROMPTS.length);
+});
+
+test("the needed context names the suite's short code prompts and long recall", () => {
+  assert.equal(neededContextFor(["code"]), 1711, "largest code prompt 687 + 1024 answer budget");
+  assert.equal(neededContextFor(["recall"]), 16055, "16k needle + answer budget");
+  assert.equal(neededContextFor(["comprehension"]), 512, "the 512-token floor");
 });
 
 test("an unknown task is refused with a fix", () => {

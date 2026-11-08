@@ -40,6 +40,17 @@ uses 378 MB (19.4%) less total memory than 16,384, so quality per GB is 24%
 higher. The latency order flipped between runs, so it is not claimed as a
 context win. The preset therefore pins `contextSize=4096`, the app default.
 
+### Context is a workload choice, not a quality knob
+
+The suite's largest code prompt is 687 tokens plus a 1,024-token answer budget,
+so 4,096 holds every one of the 136 code items, including the largest
+`bugfix-repo` item. A large real repository can exceed that; the benchmark does
+not measure one. Context grows the KV cache, not the model or a database:
+about **30 MB of VRAM per 1,000 tokens** on this 1.5B model at f16. Moving from
+4,096 to 8,192 costs about 126 MB; 16,384 costs about 378 MB. For repo-scale
+coding, raise the context and accept that memory; for the measured code suite,
+4,096 keeps the quality and the smaller denominator.
+
 Reproduce:
 
 ```bash

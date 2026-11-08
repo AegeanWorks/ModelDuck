@@ -48,6 +48,19 @@ function taskOf(taskId) {
   });
 }
 
+/**
+ * The smallest context that can hold the task's longest prompt plus its own
+ * answer budget. The tuner uses this to explain why a benchmark code preset is
+ * 4k while real repository work may need 8k or 16k: the suite's largest code
+ * prompt is short, and context only grows the KV cache.
+ */
+export function neededContextFor(taskIds = TASKS.map((task) => task.id), prompts = PROMPTS) {
+  const wanted = new Set(taskIds);
+  return Math.max(512, ...prompts
+    .filter((prompt) => wanted.has(taskIdOfCategory(prompt.category)))
+    .map((prompt) => Math.ceil((prompt.prompt ?? "").length / 4) + (prompt.maxTokens ?? 512)));
+}
+
 /** The task's items in suite order. */
 export function taskPrompts(taskId, prompts = PROMPTS) {
   const { categories } = taskOf(taskId);

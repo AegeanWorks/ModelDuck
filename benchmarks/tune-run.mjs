@@ -4,7 +4,7 @@ import { AppError } from "../src/errors.js";
 import { watchParent } from "../src/tune-lock.js";
 import { readSteps, writeSteps } from "../src/tune-steps.js";
 import { javascriptTestCacheStats } from "./suite.mjs";
-import { TASKS } from "./tasks.mjs";
+import { TASKS, neededContextFor } from "./tasks.mjs";
 import { estimateTune, expectedAnswers, normalizeSteps, settingNames, timeLeft } from "./tune-grid.mjs";
 import { openTarget, runTune, summary } from "./tune-job.mjs";
 import { STAGES } from "./tune.mjs";
@@ -93,6 +93,9 @@ async function main() {
     } });
   }
   const target = await openTarget(options);
+  // The suite's code prompts are short; this tells the user the context the
+  // selected tasks actually need before a larger real repository does.
+  log(options, `These tasks' longest prompt needs about ${neededContextFor(options.tasks)} context tokens before the answer budget.`);
   const loaded = await readSteps(options.grid ?? target.paths.tuneGrid);
   let steps = loaded.steps;
   if (options.interactive) {
