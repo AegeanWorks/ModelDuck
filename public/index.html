@@ -506,7 +506,8 @@
             <p class="tune-intro">
               Measures each installed model on this PC and saves the best settings as presets the app applies
               automatically, per task (code, comprehension, long context). Results are kept: a stopped tune keeps what it
-              found, and choosing only some stages or settings measures just those again on top of the rest.
+              found, and choosing only some stages or settings measures just those again on top of the rest. Re-tuning
+              sampling re-measures the prompt that was chosen with it, so the saved prompt always matches the sampler in use.
             </p>
             <div class="tune-stage-list" id="tune-stages">
               <label class="check tune-stage"><input type="checkbox" value="device" checked /><span><strong>Device</strong><small>CPU or GPU: whichever answers fastest while getting as many answers right.</small></span></label>

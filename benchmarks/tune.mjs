@@ -654,6 +654,16 @@ export async function tune({
       }
     }
     state.prompt[task] ??= emptyStage();
+    // The prompt was measured on the sampler in force then. A later sampler
+    // change (a sampling-only re-tune, or a resumed run that re-chooses it)
+    // makes that choice unproven under the settings the profile now serves, so
+    // the prompt is measured again on the new sampler (ADR-085). Stage status
+    // says "pending" until it has been.
+    const sampledWith = JSON.stringify(pick(state.sampling[task].settings, axisKeys(sampling)));
+    if (state.prompt[task].sampledWith && state.prompt[task].sampledWith !== sampledWith) {
+      Object.assign(state.prompt[task], { status: "pending", done: [], stats: null, sampledWith: null });
+      await report();
+    }
     const prompts = typeof promptAxes === "function" ? promptAxes(task) : promptAxes;
     if (taskRungs.length && wants("prompt", state.prompt[task], prompts)) {
       const entry = state.prompt[task];
@@ -662,7 +672,12 @@ export async function tune({
       const outcome = await descend(context, { stage: "prompt", task, axes: chosen(prompts), start, rungs: taskRungs, cost: "tokens", confirmItems, quick, ...progressFor(entry, keys) });
       if (!outcome.aborted) {
         const done = finished(entry, prompts);
-        Object.assign(entry, { status: done ? "done" : "partial", settings: pick(outcome.current, keys), stats: done ? await taskStats(context, outcome.current, untuned, items) : entry.stats });
+        Object.assign(entry, {
+          status: done ? "done" : "partial",
+          settings: pick(outcome.current, keys),
+          stats: done ? await taskStats(context, outcome.current, untuned, items) : entry.stats,
+          ...(done ? { sampledWith } : {}),
+        });
         touched = true;
         await report();
       }

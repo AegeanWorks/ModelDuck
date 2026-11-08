@@ -181,6 +181,87 @@ test("a resumed tune continues after the finished stages without measuring them 
   assert.ok(done.sweeps.length > first.sweeps.length, "earlier sweeps are kept");
 });
 
+test("a sampler change makes the prompt unproven and measures it again on the new sampler", async () => {
+  const sampledModel = () => {
+    const calls = [];
+    const evaluate = async (settings, itemIds, seed) => {
+      calls.push({ settings, itemIds, seed });
+      return {
+        memoryBytes: 1,
+        prompts: itemIds.map((id) => {
+          // The default prompt only answers greedy; the two tuned prompts split
+          // at the temperature boundary, so the best prompt depends on the sampler.
+          const pass =
+            settings.systemPrompt === "Be precise." || settings.systemPrompt === "cool"
+              ? settings.temperature <= 0.1
+              : settings.temperature > 0.1;
+          return { id, passed: pass ? 1 : 0, total: 1, ms: 1, tokensPerSecond: 1, outputTokens: 1, digest: id };
+        }),
+      };
+    };
+    return { evaluate, calls };
+  };
+  const axes = (temperatures) => ({
+    qualityAxes: [],
+    speedAxes: [],
+    samplingAxes: () => [{ name: "temperature", patches: temperatures.map((temperature) => ({ temperature })) }],
+    promptAxes: [
+      {
+        name: "systemPrompt",
+        patches: ["Be precise.", "warm", "cool"].map((systemPrompt) => ({ systemPrompt })),
+        full: true,
+      },
+    ],
+  });
+  const stageArgs = (evaluate, temperatures, extra = {}) => ({
+    evaluate,
+    base: BASE,
+    tasks: ["math"],
+    rungs: RUNGS,
+    stages: ["sampling", "prompt"],
+    ...axes(temperatures),
+    options: { seeds: [42, 7, 1234], passes: 1, changeAlpha: Infinity },
+    ...extra,
+  });
+
+  const firstModel = sampledModel();
+  const first = await tune(stageArgs(firstModel.evaluate, [0.4]));
+  assert.equal(first.tasks.math.settings.systemPrompt, "warm", "above T 0.1 the warm prompt wins");
+  assert.equal(first.stages.prompt.math, "done");
+  assert.equal(first.progress.prompt.math.sampledWith, JSON.stringify({ temperature: 0.7 }));
+
+  // Resuming with the same sampler does not re-measure the prompt.
+  const sameModel = sampledModel();
+  await tune(stageArgs(sameModel.evaluate, [0.4], { resume: { ...first.progress, sweeps: first.sweeps } }));
+  assert.equal(sameModel.calls.length, 0, "nothing was measured again");
+
+  // A sampling-only re-tune changes the sampler and leaves the prompt pending.
+  const secondModel = sampledModel();
+  const second = await tune(
+    stageArgs(secondModel.evaluate, [0], {
+      stages: ["sampling"],
+      only: ["temperature"],
+      resume: { ...first.progress, sweeps: first.sweeps },
+    }),
+  );
+  assert.equal(second.tasks.math.settings.temperature, 0);
+  assert.equal(second.stages.prompt.math, "pending", "the old prompt choice is unproven on the new sampler");
+  assert.equal(second.tasks.math.settings.systemPrompt, "warm", "the unproven prompt is still stored until re-measured");
+  assert.equal(secondModel.calls.some((call) => call.settings.systemPrompt === "cool"), false);
+
+  // The next run measures it on T 0, where the old prompt fails, and moves to
+  // one that passes.
+  const thirdModel = sampledModel();
+  const third = await tune(stageArgs(thirdModel.evaluate, [0], { resume: { ...second.progress, sweeps: second.sweeps } }));
+  assert.equal(third.stages.prompt.math, "done");
+  assert.notEqual(third.tasks.math.settings.systemPrompt, "warm", "the prompt was re-measured at T 0");
+  assert.ok(
+    thirdModel.calls.some((call) => call.settings.temperature === 0 && call.settings.systemPrompt === "cool"),
+    "the prompt candidates were measured on the new sampler",
+  );
+  assert.equal(third.progress.prompt.math.sampledWith, JSON.stringify({ temperature: 0 }));
+});
+
 test("progress is reported after every axis, so a stopped tune keeps what it found", async () => {
   const states = [];
   await run({ onProgress: (state) => states.push(structuredClone(state)) }).result;
