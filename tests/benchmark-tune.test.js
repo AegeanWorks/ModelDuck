@@ -231,6 +231,24 @@ test("the search can use fewer items while the final result still scores the who
   assert.ok(later, "the final check asked for the items the search skipped");
 });
 
+test("an opt-in full final check scores the whole task, not the last rung", async () => {
+  const evaluate = async (settings, itemIds) => ({
+    prompts: itemIds.map((id) => ({ id, passed: 1, total: 1, ms: 10, outputTokens: 10, digest: id })),
+  });
+  const result = await tune({
+    evaluate,
+    base: { ...BASE, temperature: 0 },
+    tasks: ["math"],
+    stages: ["sampling"],
+    rungs: { ...RUNGS, math: [ids("math", 4)], final: { math: ids("math", 4) }, full: { math: ids("math", 12) } },
+    fullFinal: true,
+    hardware: { logicalCores: 12 },
+    samplingAxes: () => [{ name: "temperature", patches: [{ temperature: 0 }] }],
+    options: { seeds: [42], passes: 1, changeAlpha: Infinity },
+  });
+  assert.equal(result.tasks.math.stats.items, 12, "fullFinal uses the full task set");
+});
+
 test("statistics come with every candidate and every winner", async () => {
   const { sweeps, tasks } = await run().result;
   const candidate = sweeps.find((sweep) => sweep.stage === "quality").rungs[0].candidates[0];

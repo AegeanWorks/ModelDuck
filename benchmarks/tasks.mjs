@@ -178,12 +178,20 @@ function hash32(text) {
 }
 
 export function withDiscriminatingRungs(rungs, saturated = null, taskIds = TASKS.map((task) => task.id).filter((id) => Array.isArray(rungs[id])), { salt = "", readmitFraction = 0.1 } = {}) {
-  const search = { ...rungs, final: {} };
+  // `final` is the last search rung; `full` is every scored item in each task,
+  // long-context KV-confirmation needles excluded. An opt-in full final check
+  // scores this set instead of the smaller search rung.
+  const search = { ...rungs, final: {}, full: {} };
   const tunedOn = {};
   const readmit = (id) => saturated?.has(id) && hash32(`${salt}\n${id}`) % 10 < Math.round(readmitFraction * 10);
   for (const taskId of taskIds) {
     const full = rungs[taskId].at(-1);
     search.final[taskId] = full;
+    // Custom task ids in mechanics tests have no suite prompts; the rung is
+    // already the whole set there.
+    search.full[taskId] = TASKS.some((task) => task.id === taskId)
+      ? taskPrompts(taskId).filter((prompt) => !prompt.longContext).map((prompt) => prompt.id)
+      : full;
     const keep = saturated ? full.filter((id) => !saturated.has(id) || readmit(id)) : full;
     if (keep.length < Math.min(TASK_RUNGS[0], full.length)) {
       tunedOn[taskId] = { items: full.length, ids: full, excluded: [], fellBack: true };

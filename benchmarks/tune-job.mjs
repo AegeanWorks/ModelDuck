@@ -66,7 +66,7 @@ export function tuneBase() {
  * The profile is saved after every finished setting, so stopping keeps what
  * was found and a later run resumes. Resolves `{ skipped, warnings, profile, result }`.
  */
-export async function runTune(target, { tasks, stages = STAGES, only = null, steps = null, force = false, continueRun = false, quick = false, guard = false, maxRuns = 0, passes = 0, onEvent = () => {}, onStart = () => {} }) {
+export async function runTune(target, { tasks, stages = STAGES, only = null, steps = null, force = false, continueRun = false, quick = false, guard = false, fullFinal = false, maxRuns = 0, passes = 0, onEvent = () => {}, onStart = () => {} }) {
   const saved = force ? null : await loadProfile(target.paths.profiles, target.profileId, target.fingerprint);
   const plan = planTune(saved, tasks, stages, only, { continueRun });
   const warnings = saved?.warnings ?? [];
@@ -176,6 +176,7 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
       only,
       quick,
       guard,
+      fullFinal,
       baseline,
       resume: plan.resume,
       rungs: activeRungs,

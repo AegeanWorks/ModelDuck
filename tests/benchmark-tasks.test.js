@@ -16,6 +16,12 @@ test("the three tasks cover every suite item exactly once", () => {
   assert.equal(seen.size, PROMPTS.length);
 });
 
+test("the full final set is every scored task item, not the last search rung", () => {
+  const { rungs } = withDiscriminatingRungs(tuneRungs(["code"]), new Set(), ["code"]);
+  assert.equal(rungs.final.code.length, 48, "the search rung stays 48");
+  assert.equal(rungs.full.code.length, 136, "the opt-in final set is the whole code task");
+});
+
 test("the needed context names the suite's short code prompts and long recall", () => {
   assert.equal(neededContextFor(["code"]), 1711, "largest code prompt 687 + 1024 answer budget");
   assert.equal(neededContextFor(["recall"]), 16055, "16k needle + answer budget");

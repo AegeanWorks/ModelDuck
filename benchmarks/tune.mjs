@@ -468,6 +468,8 @@ export async function tune({
   only = null,
   quick = false,
   guard = false,
+  // Score the final preset on every task item instead of the last search rung.
+  fullFinal = false,
   baseline = null,
   resume = null,
   // Which items the search ran on, when the caller kept saturated ones out (ADR-064).
@@ -615,7 +617,9 @@ export async function tune({
   for (const task of tasks) {
     // The search may run on fewer items than the final check, which keeps the whole set (ADR-064).
     // A task without rungs still flows through: its stages are skipped by wants().
-    const items = rungs.final?.[task] ?? rungs[task]?.at(-1) ?? [];
+    const items = fullFinal && rungs.full?.[task]
+      ? rungs.full[task]
+      : rungs.final?.[task] ?? rungs[task]?.at(-1) ?? [];
     // Items the search never asks confirm a rung leader before it stands (S1/S3):
     // the full tuning pool minus the searched rungs. Provisional (`quick`) and
     // targeted (`only`) runs skip it; `final` stays accepted for custom rungs.

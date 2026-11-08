@@ -38,6 +38,9 @@ the suite/runtime/tuner identity, re-measures its task presets on the fixed
 harness, and fills models without a profile from their measured defaults.
 Every measurement records host RAM and GPU VRAM; a memory tie-break uses their
 sum, so a Vulkan preset is not ranked by its small host slice alone.
+`npm run tune -- ... --full-final` scores each final preset on every task item
+(136 for code) instead of the 48-item search rung. It is slower and gives a
+higher-power final rate; without it the search rung is the reported score.
 Suite v17 has 265 items in ten categories (262 searched; 3 long-context needles are KV-confirmation only):
 
 | Category | Items | What is measured |

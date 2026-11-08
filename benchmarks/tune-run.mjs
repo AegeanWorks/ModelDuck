@@ -34,6 +34,7 @@ older test, runtime, CPU or model file is kept with a warning until --force.
   --continue         finish an unfinished run: measure only what is not done yet
   --quick            provisional first-rung pass; the app follows it with a full continue
   --guard            stop the remaining tasks when a held-back check falls back (full pass only; a quick pass presets first and guards on its full continue)
+  --full-final       score each final preset on every task item, not only the last search rung (slower, higher power)
 `;
 
 function parseArgs(argv) {
@@ -52,6 +53,7 @@ function parseArgs(argv) {
     else if (arg === "--continue") options.continueRun = true;
     else if (arg === "--quick") options.quick = true;
     else if (arg === "--guard") options.guard = true;
+    else if (arg === "--full-final") options.fullFinal = true;
     else if (arg === "--force") options.force = true;
     else if (arg === "--interactive") options.interactive = true;
     else if (arg === "--grid") options.grid = take(index++, arg);
@@ -119,6 +121,7 @@ async function main() {
     continueRun: Boolean(options.continueRun),
     quick: Boolean(options.quick),
     guard: Boolean(options.guard),
+    fullFinal: Boolean(options.fullFinal),
     maxRuns: options.maxRuns,
     passes: options.passes,
     onStart: (plan) => {
