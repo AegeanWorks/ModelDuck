@@ -13,7 +13,7 @@ import { createModelRegistry } from "../src/model-registry.js";
 import { systemInfo } from "../src/system.js";
 import { currentGitInfo, recordRun } from "./history.mjs";
 import { MODEL_MATRIX, aggregateReproRuns, buildChatMatrix, flashMatrix, modelMatrix, modelMatrixFor, promptListFor, reproRunCount, resultFileName, parseShardSpec, shardMatrix, withDeterministicRepro, DETERMINISM_LOCKDOWN } from "./matrix.mjs";
-import { BENCHMARK_MODELS, PROMPTS, SUITE_VERSION, SYSTEM_PROMPT, checkCount, evaluateResponse } from "./suite.mjs";
+import { BENCHMARK_MODELS, PROMPTS, SUITE_VERSION, SYSTEM_PROMPT, checkCount, evaluateResponse, javascriptTestCacheStats } from "./suite.mjs";
 import { compareRuns, itemSummary, losslessCeilingGate, promptOrigin } from "./stats.mjs";
 import { benchmarkTestHash, modelIdentityChanges } from "./test-hash.mjs";
 import {
@@ -1050,6 +1050,8 @@ async function main() {
       `  ${String(test.label || test.id).padEnd(28)} ${String(test.percent.toFixed(1) + "%").padStart(6)}  (${test.passed}/${test.total})`,
     );
   }
+  const verifierCache = javascriptTestCacheStats();
+  log(options, `\nVerifier cache: ${verifierCache.hits} hits / ${verifierCache.misses} checks run (${verifierCache.size} entries)`);
 
   if (options.updateBaseline) {
     if (baseline && (baseline.testHash !== testHash || baseline.suiteVersion !== SUITE_VERSION)) {
