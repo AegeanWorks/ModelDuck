@@ -67,6 +67,29 @@ test("starting a model that is already downloading reuses that job instead of wr
   await manager.cancel(first.id);
 });
 
+test("two concurrent starts for one catalog cannot both begin", async (t) => {
+  let release;
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  const manager = await makeManager(t, async (_url, { signal }) => {
+    await gate;
+    signal.throwIfAborted();
+    throw new Error("network disabled in tests");
+  });
+  const outcomes = await Promise.allSettled([
+    manager.start("smollm2-135m-instruct-q4"),
+    manager.start("smollm2-135m-instruct-q4"),
+  ]);
+  const rejected = outcomes.filter((item) => item.status === "rejected");
+  assert.equal(rejected.length, 1, "exactly one request is refused");
+  assert.equal(rejected[0].reason.code, "download_starting");
+  const job = outcomes.find((item) => item.status === "fulfilled").value;
+  assert.equal(manager.list().length, 1, "one job, one .part file");
+  await manager.cancel(job.id);
+  release();
+});
+
 test("a download that stops sending data fails as stalled and keeps its partial file", async (t) => {
   const directory = await mkdtemp(path.join(os.tmpdir(), "modelduck-downloads-"));
   t.after(() => rm(directory, { recursive: true, force: true }));

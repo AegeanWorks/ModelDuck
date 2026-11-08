@@ -63,7 +63,7 @@ test("the control panel is wired and the chat shell is gone", () => {
   assert.doesNotMatch(app, /\/api\/(?:chat|conversations)\b/, "app.js still calls a removed chat route");
   assert.doesNotMatch(app, /renderMarkdown|SUGGESTIONS|renderSidebar/, "app.js still has chat-only code");
 
-  const opener = app.match(/async function openServerSettings\(\) \{[\s\S]*?\n\}/)?.[0] ?? "";
+  const opener = app.match(/async function openServerSettings\([^)]*\) \{[\s\S]*?\n\}/)?.[0] ?? "";
   assert.ok(opener, "openServerSettings is missing");
   assert.ok(
     opener.indexOf("showModal") >= 0 && opener.indexOf("showModal") < opener.indexOf('request("/api/server-settings")'),

@@ -47,6 +47,17 @@ export function normalizeServerSettings(input = {}) {
   };
 }
 
+/**
+ * True when the saved listener differs from the one this process is running.
+ * Auth, CORS and JIT switches apply on the next request; only the port and the
+ * LAN binding need a restart. Without running-info the safe answer is "yes".
+ */
+export function restartRequiredFor(running, next = {}) {
+  if (!running || running.port == null || running.host == null) return true;
+  const runningLan = String(running.host) === "0.0.0.0";
+  return Number(next.port) !== Number(running.port) || Boolean(next.serveOnLocalNetwork) !== runningLan;
+}
+
 /** LAN serving and CORS expose the API beyond this computer's own UI. */
 export function exposedWithoutAuth(settings) {
   return Boolean((settings.serveOnLocalNetwork || settings.enableCors) && !settings.requireAuth);

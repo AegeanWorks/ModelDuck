@@ -25,4 +25,11 @@ test("health receipt reports the host and what is loaded", async (t) => {
   assert.equal(payload.app, "ModelDuck");
   assert.ok(typeof payload.loopLagMs === "number");
   assert.ok("loadedId" in payload);
+  // AX: the state vocabulary and JIT/registry states are readable from health.
+  assert.equal(payload.phase, "ready");
+  assert.deepEqual(payload.jit, { trackedId: null, armed: false });
+  assert.equal(payload.registry.size, 1);
+  assert.ok(Number.isInteger(payload.registry.hits) && Number.isInteger(payload.registry.misses));
+  assert.deepEqual(payload.machines.download.terminal, ["complete", "canceled", "error"]);
+  assert.deepEqual(payload.machines.benchmark.states, ["running", "complete", "cancelled", "failed"]);
 });

@@ -927,6 +927,19 @@ label.small-btn {
   display: none;
 }
 
+/* The settings form marks an unsaved edit before it is discarded. */
+.dirty-note {
+  margin-right: auto;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* A saved listener change is a standing state, not a toast. */
+.server-restart:not([hidden]) {
+  color: var(--accent);
+}
+
 .ghost-btn {
   min-height: 34px;
   padding: 0 8px;

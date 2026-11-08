@@ -6,6 +6,7 @@ import { samplerOptions } from "./sampler-chain.js";
 import { toGenerationError, toLoadError } from "./engine-errors.js";
 import { formatBytes } from "./fs-atomic.js";
 import { estimateLoad, estimateLoadV2, fitVerdict, recordLoadSample, splitKvCache } from "./memory-fit.js";
+import { ENGINE_MACHINE } from "./state-machine.js";
 import {
   buildChatHistory,
   buildGenerationManifest,
@@ -249,6 +250,16 @@ export class LlamaEngine {
   /** IDEA-1095: the id deleteById refuses while loaded; was undefined before. */
   get loadedId() {
     return this.#state.model?.id ?? null;
+  }
+
+  /** The engine phase machine (src/state-machine.js) guards every status write. */
+  #assertStatus(next) {
+    ENGINE_MACHINE.assert(this.#state.status, next);
+  }
+
+  #setStatus(next) {
+    this.#assertStatus(next);
+    this.#state = { ...this.#state, status: next };
   }
 
   /** IDEA-1158: one load/unload phase machine with terminal refusals. */
@@ -533,11 +544,12 @@ export class LlamaEngine {
 
     this.#loading = true;
     const epoch = ++this.#loadEpoch;
-    await this.unload();
-    this.#assertLoadAlive(epoch);
-    this.#state = { ...this.#state, status: "loading", model: publicModel(entry), error: null };
 
     try {
+      await this.unload();
+      this.#assertLoadAlive(epoch);
+      this.#setStatus("loading");
+      this.#state = { ...this.#state, model: publicModel(entry), error: null };
       const module = await this.#loadRuntime();
       this.#assertLoadAlive(epoch);
       this.#chatSessionClass = module.LlamaChatSession;
@@ -629,6 +641,7 @@ export class LlamaEngine {
       }
       if (!this.#context) throw lastError ?? new Error("No context could be created");
 
+      this.#assertStatus("ready");
       this.#state = {
         status: "ready",
         model: publicModel(entry),
@@ -669,9 +682,9 @@ export class LlamaEngine {
       return { ...this.#state };
     } catch (error) {
       await this.#disposeModel();
+      this.#setStatus("error");
       this.#state = {
         ...this.#state,
-        status: "error",
         error: error?.message || String(error),
       };
       throw toLoadError(error);
@@ -683,9 +696,14 @@ export class LlamaEngine {
   async unload() {
     if (this.#unloading) return { ...this.#state };
     this.#unloading = true;
-    this.#state = { ...this.#state, status: "unloading" };
+    this.#setStatus("unloading");
     try {
       await this.teardown();
+    } catch (error) {
+      // A teardown that throws must not leave the phase stuck on "unloading".
+      this.#setStatus("error");
+      this.#state = { ...this.#state, error: error?.message || String(error) };
+      throw error;
     } finally {
       this.#unloading = false;
     }
@@ -720,6 +738,7 @@ export class LlamaEngine {
     this.#grammarCache = null; // IDEA-1163: a model swap must never reuse a stale grammar.
     // IDEA-1076: cached answers belong to the unloaded model; never reuse them.
     this.#responseCache.clear();
+    this.#assertStatus("idle");
     this.#state = {
       status: "idle",
       model: null,
@@ -741,6 +760,9 @@ export class LlamaEngine {
       loadedAt: null,
       error: null,
       lastStats: null,
+      // A fresh teardown must not leak the previous load's verdicts.
+      fit: null,
+      contextFallback: null,
     };
     return { modelId, disposedAt: new Date().toISOString(), errors };
   }

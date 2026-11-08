@@ -269,7 +269,43 @@ async function main() {
     assert.match(helpState.text, /context/i, `the inline help text is missing: ${JSON.stringify(helpState)}`);
     await evaluate('document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }))');
     assert.equal(await evaluate('document.getElementById("field-help-popover").matches(":popover-open")'), false, "Escape did not close the inline help");
-    await evaluate('document.getElementById("settings-dialog").close(), true');
+
+    // Dirty-state guard: an edit is marked, and a close asks before discarding it.
+    await evaluate(`(() => {
+      const input = document.getElementById("setting-system");
+      input.value = "an unsaved edit";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    })()`);
+    assert.equal(await evaluate('document.getElementById("settings-dirty").hidden'), false, "the unsaved marker did not appear");
+    await evaluate('document.querySelector("#settings-dialog [data-close-dialog]").click(), true');
+    assert.ok(
+      await waitFor(() => evaluate('document.getElementById("confirm-dialog").open'), 2_000),
+      "closing a dirty settings form did not ask",
+    );
+    assert.match(
+      await evaluate('document.getElementById("confirm-message").textContent'),
+      /not saved/,
+      "the discard confirmation does not explain the loss",
+    );
+    await evaluate('document.getElementById("confirm-cancel").click(), true');
+    await delay(120);
+    assert.equal(await evaluate('document.getElementById("confirm-dialog").open'), false, "Cancel on the discard prompt left the confirm open");
+    assert.equal(await evaluate('document.getElementById("settings-dialog").open'), true, "Cancel on the discard prompt closed the form");
+    await evaluate('document.querySelector("#settings-dialog [data-close-dialog]").click(), true');
+    assert.ok(await waitFor(() => evaluate('document.getElementById("confirm-dialog").open'), 2_000), "the second close did not ask again");
+    await evaluate('document.getElementById("confirm-ok").click(), true');
+    let discard = null;
+    const closed = await waitFor(async () => {
+      discard = JSON.parse(
+        await evaluate(`JSON.stringify({
+          settings: document.getElementById("settings-dialog").open,
+          confirm: document.getElementById("confirm-dialog").open,
+          dirty: document.getElementById("settings-dirty").hidden,
+        })`),
+      );
+      return discard.settings === false;
+    }, 2_000);
+    assert.ok(closed, `Discard did not close the settings form: ${JSON.stringify(discard)}`);
 
     await evaluate('document.getElementById("open-settings").click(), true');
     await delay(120);

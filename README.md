@@ -106,6 +106,11 @@ device. It is off by default so a missing driver never prevents local inference 
   older-suite reports appear only when asked.
 - **Settings tuner** — **Bench & Tune → Tune** finds each model's best settings in order: device (CPU/GPU, partial offload when full won't fit), context + KV cache, speed (threads, batch, flash, mmap), then sampling and prompt per task. A setting changes only on a clear paired gain (Holm-corrected); laggards stop early, presets are checked on unseen items, and every step is saved so a tune can stop and resume anywhere. **Run all** tunes CPU and GPU lanes; **Runs** keeps every run; the Tune panel shows quick/full estimates, a pausable queue, and **Quick pass**. **Recommended for this PC** ranks by measured quality and speed; details in **How tuning works**. A sampling re-tune re-measures its prompt. Profiles export and import from Tune.
 - **Small surface area** — Node's HTTP server and a vanilla UI; no build or CDN.
+- **Explicit state** — subsystem states (model phase, downloads, benchmark jobs)
+  live in `src/state-machine.js` and are readable as JSON at `GET /api/health`;
+  [docs/state-machines.md](docs/state-machines.md) maps every implicit machine
+  and [docs/state-machine-proposals.md](docs/state-machine-proposals.md) records
+  the verified fixes.
 - **AI benchmark gate** - two phases: model reload/quantization/KV-cache settings,
   then sampling/prompting settings, with test hashes so test edits show.
 
@@ -117,13 +122,11 @@ phase (`npm run bench`) changes one load setting at a time across models, and th
 **model usage** phase (`npm run bench:chat`) compares sampling and prompting on a
 chosen configuration.
 
-The default set is SmolLM2 135M, Qwen2.5 0.5B and Qwen2.5 Coder 1.5B. `--full-matrix` / `npm run bench:full`
-adds Qwen2.5 1.5B, Llama 3.2 3B and Phi-3.5 Mini with KV-cache variants (hours on a CPU). Suite v14 runs 262 items: 242
-questions ModelDuck authored for code, multi-file codebases, bug fixes, code comprehension and long-context recall, plus 20 public
-HumanEval and MBPP tasks. No other tasks are part of the suite;
-see [benchmarks/NOTICE-benchmarks.md](benchmarks/NOTICE-benchmarks.md). Public items
-may be in a model's training data, so the report shows **own questions** and
-**public benchmarks** apart, with public results per dataset.
+The default set is SmolLM2 135M, Qwen2.5 0.5B and Qwen2.5 Coder 1.5B;
+`--full-matrix` adds three more (hours on a CPU).
+[benchmarks/README.md](benchmarks/README.md) lists every task in suite v17, and
+[NOTICE](benchmarks/NOTICE-benchmarks.md) records the item licences. Public items
+may be in a model's training data, so own and public questions are reported apart.
 
 ```bash
 npm run bench -- --download        # first run: fetch missing models, core phase
@@ -160,15 +163,10 @@ coding and speed-within-budget configuration for that model. It records history
 but never reads, compares or replaces the shared baseline; `--update-baseline` is
 refused.
 
-Parallel benchmark segments: `--shard i/n` runs one deterministic segment of
-the matrix, grouped by model file so each worker loads fewer models. Run each
-shard on its own machine (or its own `--home`, never sharing one home folder),
-then `npm run bench:merge -- --phase model --total n` to combine the
-`results/latest-shard-*-of-n-<phase>-<tag>.json` files into `results/latest-<phase>.json`.
-The tag (core, full, flash, single-<id>, chat) keeps scopes apart; when shards
-from several scopes share a folder, pass the same `--tag` the shard runs printed.
-The merge refuses mismatched suites, hashes, runtimes, or run settings.
-Shards never compare or replace a baseline; only the merged result is compared.
+Parallel segments: `--shard i/n` runs one deterministic slice; combine them with
+`npm run bench:merge -- --phase model --total n` (pass the same `--tag` when
+scopes share a folder). The merge refuses mismatched suites, hashes, runtimes or
+settings; shards never touch a baseline.
 
 Every run records `suiteVersion`, a SHA-256 `testHash`, `runtimeMs`, model
 settings and sampling settings. A result delta is only attributed to a parameter
@@ -463,12 +461,14 @@ modelduck/
 │   ├── errors.js <- actionable error objects
 │   ├── fs-atomic.js <- atomic writes, backups, quarantine and home lock
 │   ├── model-catalog.js <- curated GGUF catalogue
-│   ├── sampler-chain.js <- canonical ordered sampler chain
-│   ├── recommend.js <- what to run on this PC: measured models and estimates
 │   ├── sampler-chain.js <- canonical ordered sampler chain shared by chat and completions
+│   ├── state-machine.js <- engine/download/benchmark states and legal transitions
+│   ├── recommend.js <- what to run on this PC: measured models and estimates
 │   └── system.js <- CPU, memory and platform snapshot, loop-lag health
 ├── docs/
-│   └── THREAT-MODEL.md <- seven-party local-inference threat model
+│   ├── THREAT-MODEL.md <- seven-party local-inference threat model
+│   ├── state-machines.md <- every implicit state machine and its verified gaps
+│   └── state-machine-proposals.md <- judged proposals and their outcomes
 ├── public/
 │   ├── index.html <- the control panel
 │   ├── app.js <- state and interactions, no framework
@@ -527,6 +527,7 @@ modelduck/
 │   ├── helpers.js
 │   ├── ui-shell.test.js
 │   ├── local-actions.test.js
+│   ├── state-machine.test.js
 │   ├── config.test.js
 │   ├── checkpoint-merge.test.js
 │   ├── fs-atomic.test.js

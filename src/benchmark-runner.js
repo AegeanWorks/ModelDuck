@@ -4,6 +4,7 @@ import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 
 import { AppError } from "./errors.js";
+import { BENCHMARK_MACHINE, moveTo } from "./state-machine.js";
 
 const SCRIPT = fileURLToPath(new URL("../benchmarks/run.mjs", import.meta.url));
 const TUNE_SCRIPT = fileURLToPath(new URL("../benchmarks/tune-run.mjs", import.meta.url));
@@ -144,6 +145,8 @@ export class BenchmarkRunner {
     stderr.on("line", (line) => this.#log(job, line));
 
     child.on("error", (error) => {
+      // A replaced job's child must not finish (or null) the newer run.
+      if (this.#job !== job) return;
       this.#finish(job, "failed", null, {
         message: "The benchmark process failed",
         why: error.message,
@@ -153,6 +156,7 @@ export class BenchmarkRunner {
     child.on("close", (code, signal) => {
       stdout.close();
       stderr.close();
+      if (this.#job !== job) return;
       this.#child = null;
       if (job.status !== "running") return;
       if (job.cancelling) {
@@ -236,7 +240,8 @@ export class BenchmarkRunner {
   }
 
   #finish(job, status, exitCode, error = null) {
-    job.status = status;
+    // One terminal outcome per job; a late exit cannot rewrite a cancel.
+    if (!moveTo(job, BENCHMARK_MACHINE, status)) return;
     job.exitCode = exitCode;
     job.error = error;
     job.finishedAt = new Date().toISOString();

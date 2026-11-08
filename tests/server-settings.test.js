@@ -5,7 +5,7 @@ import os from "node:os";
 import test from "node:test";
 
 import { isLoopbackConnection, requiresApiAuth } from "../src/http.js";
-import { ServerSettingsStore } from "../src/server-settings.js";
+import { ServerSettingsStore, restartRequiredFor } from "../src/server-settings.js";
 import { makeHarness } from "./helpers.js";
 
 function lanAddress() {
@@ -13,6 +13,15 @@ function lanAddress() {
     .flat()
     .find((item) => item && item.family === "IPv4" && !item.internal)?.address ?? null;
 }
+
+test("a restart is required only when the saved listener differs from the running one", () => {
+  const running = { host: "127.0.0.1", port: 4141 };
+  assert.equal(restartRequiredFor(running, { port: 4141, serveOnLocalNetwork: false }), false);
+  assert.equal(restartRequiredFor(running, { port: 4142, serveOnLocalNetwork: false }), true);
+  assert.equal(restartRequiredFor(running, { port: 4141, serveOnLocalNetwork: true }), true);
+  assert.equal(restartRequiredFor({ host: "0.0.0.0", port: 4141 }, { port: 4141, serveOnLocalNetwork: true }), false);
+  assert.equal(restartRequiredFor(null, { port: 4141 }), true, "without running info the safe answer is yes");
+});
 
 test("LAN auth covers /v1 and non-loopback /api routes", () => {
   const lan = { socket: { remoteAddress: "192.168.1.40" } };

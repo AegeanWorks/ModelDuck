@@ -7,6 +7,7 @@ import { AppError } from "./errors.js";
 import { assertDiskSpace, ensureDirectory, formatBytes, promoteFileAtomic } from "./fs-atomic.js";
 import { checkDownloadFit, inspectGgufHeader } from "./gguf-guard.js";
 import { downloadUrl, getCatalogModel } from "./model-catalog.js";
+import { DOWNLOAD_MACHINE, moveTo } from "./state-machine.js";
 
 const MAX_ACTIVE = 2;
 const IDLE_TIMEOUT_MS = 60_000;
@@ -47,6 +48,10 @@ export class DownloadManager {
   #idleTimeoutMs;
   #getModel;
   #jobs = new Map();
+  // Catalog ids whose start() is past its active check but has not created a
+  // job yet. Without it, two concurrent requests both pass the check during
+  // the awaited stat and append to one .part file.
+  #starting = new Set();
 
   constructor({
     modelsDir,
@@ -90,7 +95,15 @@ export class DownloadManager {
     // Two jobs for one model would append to the same .part file and promote a corrupt model.
     const running = active.find((job) => job.catalogId === model.id);
     if (running) return this.#publicJob(running);
-    if (active.length >= MAX_ACTIVE) {
+    if (this.#starting.has(model.id)) {
+      throw new AppError("This download is already starting", {
+        code: "download_starting",
+        status: 409,
+        why: `${model.name} was requested twice before its job appeared.`,
+        fix: "Wait a moment; the running request continues.",
+      });
+    }
+    if (active.length + this.#starting.size >= MAX_ACTIVE) {
       throw new AppError("Two downloads are already running", {
         code: "download_limit",
         status: 429,
@@ -98,7 +111,15 @@ export class DownloadManager {
         fix: "Wait for one download to finish, or cancel it.",
       });
     }
+    this.#starting.add(model.id);
+    try {
+      return await this.#beginStart(model);
+    } finally {
+      this.#starting.delete(model.id);
+    }
+  }
 
+  async #beginStart(model) {
     const finalPath = path.join(this.#modelsDir, model.file);
     let stats = null;
     try {
@@ -108,7 +129,7 @@ export class DownloadManager {
     }
     if (stats?.isFile() && stats.size === model.size) {
       const job = this.#newJob(model);
-      job.status = "complete";
+      moveTo(job, DOWNLOAD_MACHINE, "complete");
       job.received = model.size;
       job.total = model.size;
       job.finishedAt = new Date().toISOString();
@@ -146,8 +167,9 @@ export class DownloadManager {
         fix: "Refresh the model list.",
       });
     }
-    if (job.status === "complete") return this.#publicJob(job);
-    job.status = "canceled";
+    // A terminal job keeps its outcome; canceling a finished download is a no-op.
+    if (DOWNLOAD_MACHINE.terminal.includes(job.status)) return this.#publicJob(job);
+    moveTo(job, DOWNLOAD_MACHINE, "canceled");
     job.finishedAt = new Date().toISOString();
     job.controller?.abort();
     return this.#publicJob(job);
@@ -268,7 +290,7 @@ export class DownloadManager {
     if (job.status === "canceled") return;
     await assertDiskSpace(this.#modelsDir, Math.max(0, job.size - partSize));
     if (job.status === "canceled") return;
-    job.status = "downloading";
+    moveTo(job, DOWNLOAD_MACHINE, "downloading");
     job.received = partSize;
     job.controller = new AbortController();
     // Record whose bytes the .part file holds before any byte is appended.
@@ -400,6 +422,9 @@ export class DownloadManager {
         });
       }
 
+      // A cancel that lands while the hash and header are verified must not
+      // promote or mark complete: canceled is terminal.
+      if (job.status === "canceled") return;
       // IDEA-1381: fsync the part file, atomically promote it, then fsync
       // the directory, so a crash cannot expose a half-promoted model file.
       await promoteFileAtomic(partPath, finalPath);
@@ -419,32 +444,37 @@ export class DownloadManager {
           downloadedAt: new Date().toISOString(),
         }),
       ).catch(() => {});
-      job.status = "complete";
+      moveTo(job, DOWNLOAD_MACHINE, "complete");
       job.finishedAt = new Date().toISOString();
       job.received = job.size;
       job.total = job.size;
     } catch (error) {
-      if (job.stalled && job.status !== "canceled") {
-        job.status = "error";
-        job.finishedAt = new Date().toISOString();
-        job.error = {
-          message: "The download stalled",
-          why: `No data arrived for ${Math.round(this.#idleTimeoutMs / 1000)} seconds from Hugging Face for ${job.name}.`,
-          fix: "Check your internet connection, then click Download again to resume where it stopped.",
-        };
-        this.#logger.warn?.(`[modelduck] ${job.error.message}: ${job.name}`);
-      } else if (error?.name === "AbortError" || job.status === "canceled") {
-        job.status = "canceled";
-        job.finishedAt = new Date().toISOString();
+      // A terminal job keeps the outcome it reached first; a failure can never
+      // overwrite a cancel, and a cancel can never overwrite a failure.
+      if (DOWNLOAD_MACHINE.terminal.includes(job.status)) {
+        job.finishedAt ??= new Date().toISOString();
+      } else if (job.stalled) {
+        if (moveTo(job, DOWNLOAD_MACHINE, "error")) {
+          job.finishedAt = new Date().toISOString();
+          job.error = {
+            message: "The download stalled",
+            why: `No data arrived for ${Math.round(this.#idleTimeoutMs / 1000)} seconds from Hugging Face for ${job.name}.`,
+            fix: "Check your internet connection, then click Download again to resume where it stopped.",
+          };
+          this.#logger.warn?.(`[modelduck] ${job.error.message}: ${job.name}`);
+        }
+      } else if (error?.name === "AbortError") {
+        if (moveTo(job, DOWNLOAD_MACHINE, "canceled")) job.finishedAt = new Date().toISOString();
       } else {
-        job.status = "error";
-        job.finishedAt = new Date().toISOString();
-        job.error = {
-          message: error?.message || "Download failed",
-          why: error?.why || "The file could not be downloaded.",
-          fix: error?.fix || "Check your internet connection, then retry the download.",
-        };
-        this.#logger.warn?.(`[modelduck] ${job.error.message}`);
+        if (moveTo(job, DOWNLOAD_MACHINE, "error")) {
+          job.finishedAt = new Date().toISOString();
+          job.error = {
+            message: error?.message || "Download failed",
+            why: error?.why || "The file could not be downloaded.",
+            fix: error?.fix || "Check your internet connection, then retry the download.",
+          };
+          this.#logger.warn?.(`[modelduck] ${job.error.message}`);
+        }
       }
     } finally {
       clearTimeout(idleTimer);

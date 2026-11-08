@@ -382,6 +382,7 @@
           </p>
         </div>
         <div class="dialog-actions">
+          <span class="dirty-note" id="settings-dirty" hidden>Unsaved changes</span>
           <button class="small-btn" type="button" data-close-dialog="settings-dialog">Cancel</button>
           <button class="primary-btn" type="submit">Save settings</button>
         </div>
@@ -441,6 +442,7 @@
             <label class="check"><input id="server-mcp-request" type="checkbox" /> Allow per-request MCPs</label>
             <label class="check"><input id="server-mcp-json" type="checkbox" /> Allow servers from mcp.json</label>
           </div>
+          <p class="settings-note server-restart" id="server-restart-note" role="status" hidden></p>
           <p class="settings-note">
             MCP switches are stored for a future MCP adapter; they do not expose tools yet.
             Local network and CORS need Require authentication: other devices and web pages must send an API key.

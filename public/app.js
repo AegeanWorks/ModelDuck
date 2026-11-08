@@ -87,6 +87,8 @@ const els = {
   serverKeyCreate: $("server-key-create"),
   serverKeyOutput: $("server-key-output"),
   serverKeyValue: $("server-key-value"),
+  serverRestart: $("server-restart-note"),
+  settingsDirty: $("settings-dirty"),
   serverSave: $("server-save"),
   serverSettingsError: $("server-settings-error"),
   serverSettingsErrorText: $("server-settings-error-text"),
@@ -334,14 +336,19 @@ const state = {
   theme: localStorage.getItem("modelduck.theme") || "dark",
   pollTimer: null,
   polling: false,
+  pollFailures: 0,
   benchmarkJob: null,
   benchmarkTimer: null,
+  benchmarkPolling: false,
   tuneOverview: null,
   tuneJob: null,
   benchSuite: null,
   tuneTimer: null,
+  tunePolling: false,
   tuneDefaults: null,
   chatBase: null,
+  settingsDirty: false,
+  restartRequired: null,
   completedDownloads: new Set(),
 };
 
@@ -376,9 +383,10 @@ async function apiFetch(path, options = {}, retried = false) {
   return response;
 }
 
-async function request(path, { method = "GET", body } = {}) {
+async function request(path, { method = "GET", body, signal } = {}) {
   const response = await apiFetch(path, {
     method,
+    ...(signal ? { signal } : {}),
     headers: body === undefined ? {} : { "content-type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
@@ -774,6 +782,7 @@ function stopDownloadPolling() {
 
 function startDownloadPolling() {
   if (state.pollTimer) return;
+  state.pollFailures = 0;
   state.pollTimer = setInterval(pollDownloads, 1000);
 }
 
@@ -781,7 +790,8 @@ async function pollDownloads() {
   if (state.polling) return;
   state.polling = true;
   try {
-    const data = await request("/api/downloads");
+    const data = await request("/api/downloads", { signal: AbortSignal.timeout(10_000) });
+    state.pollFailures = 0;
     const wasActive = hasActiveDownloads();
     state.downloads = data.downloads;
     if (els.modelsDialog.open) renderCatalog();
@@ -804,7 +814,17 @@ async function pollDownloads() {
     if (wasActive && !active) await refreshModels();
     if (!active) stopDownloadPolling();
   } catch {
-    // Keep the last progress view; the next tick may recover.
+    // Keep the last progress view for a transient blip, but do not poll a dead
+    // server forever with no message.
+    state.pollFailures += 1;
+    if (state.pollFailures >= 3) {
+      stopDownloadPolling();
+      showToast("Lost contact with ModelDuck", {
+        message: "Download progress stopped updating.",
+        fix: "Reopen Models to reconnect; downloads continue on the server.",
+        kind: "error",
+      });
+    }
   } finally {
     state.polling = false;
   }
@@ -1150,7 +1170,31 @@ async function loadGpuStatus() {
   }
 }
 
+function setSettingsDirty(dirty) {
+  state.settingsDirty = Boolean(dirty);
+  els.settingsDirty.hidden = !state.settingsDirty;
+}
+
+async function closeSettings() {
+  if (state.settingsDirty) {
+    const discard = await askConfirm(
+      "Discard unsaved changes?",
+      "The settings form has edits that were not saved. Closing now loses them.",
+      "Discard changes",
+    );
+    if (!discard) return false;
+  }
+  setSettingsDirty(false);
+  els.settingsDialog.close();
+  return true;
+}
+
 function openSettings() {
+  if (els.settingsDialog.open) {
+    // Never re-seed the form under an open edit (Ctrl+, used to wipe it).
+    els.settingsDialog.focus?.();
+    return true;
+  }
   const settings = state.settings;
   if (!settings) {
     showToast("Settings are not loaded", { message: "The server did not return settings. Reload the page and try again.", kind: "error" });
@@ -1189,6 +1233,7 @@ function openSettings() {
   els.settingsNote.textContent = state.loaded.status === "ready"
     ? "Temperature, top P and max tokens apply to the next message. Context, threads, batching, attention, mmap, checkpoints and KV cache apply after reloading the model."
     : "Changes are saved on this computer. Nothing is sent anywhere.";
+  setSettingsDirty(false);
   if (!els.settingsDialog.open) els.settingsDialog.showModal();
   return true;
 }
@@ -1245,10 +1290,30 @@ function applyPresetToForm(preset) {
 
 let serverSettingsLoading = false;
 
+/** LAN and CORS are only meaningful with authentication on. */
+function syncServerExposure() {
+  const auth = els.serverAuth.checked;
+  for (const input of [els.serverLan, els.serverCors]) {
+    input.disabled = !auth;
+    if (!auth) input.checked = false;
+  }
+}
+
+/** The listener change is a real state, not a one-off toast. */
+function renderServerRestart() {
+  if (!els.serverRestart) return;
+  const needed = state.restartRequired === true;
+  els.serverRestart.hidden = !needed;
+  els.serverRestart.textContent = needed
+    ? "Restart required: the saved port or LAN binding differs from the running listener. Stop the terminal with Ctrl+C, then start ModelDuck again."
+    : "";
+}
+
 /** While the values are in flight the form is read-only and Save is off. */
 function setServerSettingsBusy(busy) {
   for (const input of els.serverForm.querySelectorAll("input")) input.disabled = busy;
   els.serverSave.disabled = busy || !els.serverSettingsError.hidden;
+  if (!busy) syncServerExposure();
 }
 
 function showServerSettingsError(message) {
@@ -1257,7 +1322,7 @@ function showServerSettingsError(message) {
   els.serverSave.disabled = Boolean(message);
 }
 
-async function openServerSettings() {
+async function openServerSettings({ keepKey = false } = {}) {
   // Open at once so the button always responds, then keep the blank form
   // read-only: Save must never send Number("") or stale fields over real ones.
   if (!els.serverDialog.open) els.serverDialog.showModal();
@@ -1268,7 +1333,9 @@ async function openServerSettings() {
   try {
     const data = await request("/api/server-settings");
     state.serverSettings = { ...data.settings, apiKeys: data.apiKeys, activeKeys: data.activeKeys };
-    clearServerKeyReveal();
+    state.restartRequired = data.restartRequired ?? state.restartRequired;
+    // A freshly created key is shown once; do not erase it while refreshing the list.
+    if (!keepKey) clearServerKeyReveal();
     renderServerSettings();
   } catch (error) {
     showServerSettingsError("Server settings could not be loaded. Retry, or check the terminal window.");
@@ -1304,6 +1371,8 @@ function renderServerSettings() {
   if (config.requireAuth && (config.activeKeys ?? 0) === 0) {
     els.serverKeyCount.textContent = "0 active — add one before enabling auth";
   }
+  syncServerExposure();
+  renderServerRestart();
   renderDashboard();
 }
 
@@ -1771,8 +1840,11 @@ async function pollBenchmark() {
     stopBenchmarkPolling();
     return;
   }
+  // A slow status call must not stack a second request behind it.
+  if (state.benchmarkPolling) return;
+  state.benchmarkPolling = true;
   try {
-    const { job } = await request("/api/benchmarks/status");
+    const { job } = await request("/api/benchmarks/status", { signal: AbortSignal.timeout(10_000) });
     const previous = state.benchmarkJob;
     state.benchmarkJob = job ?? null;
     renderBenchmarkJob(job ?? null);
@@ -1803,6 +1875,13 @@ async function pollBenchmark() {
     }
   } catch {
     stopBenchmarkPolling();
+    showToast("Benchmark status unavailable", {
+      message: "The live view stopped updating.",
+      fix: "Reopen Bench & Tune to reconnect.",
+      kind: "error",
+    });
+  } finally {
+    state.benchmarkPolling = false;
   }
 }
 
@@ -2927,12 +3006,17 @@ async function pollTune() {
     stopTunePolling();
     return;
   }
+  // A slow status call must not stack a second request behind it.
+  if (state.tunePolling) return;
+  state.tunePolling = true;
   try {
-    const { job } = await request("/api/tune/status");
+    const { job } = await request("/api/tune/status", { signal: AbortSignal.timeout(10_000) });
     await onTuneJob(job);
   } catch (error) {
     stopTunePolling();
     showError(error);
+  } finally {
+    state.tunePolling = false;
   }
 }
 
@@ -3156,22 +3240,16 @@ async function saveServerSettings(event) {
     maxIdleTtlMinutes: Number(els.serverTtl.value),
     onlyKeepLastJitLoadedModel: els.serverJitLast.checked,
   };
-  const previous = state.serverSettings;
   try {
     const data = await request("/api/server-settings", { method: "PUT", body: { settings: payload } });
     state.serverSettings = { ...data.settings, apiKeys: data.apiKeys, activeKeys: data.activeKeys };
+    state.restartRequired = Boolean(data.restartRequired);
     renderDashboard();
     els.serverDialog.close();
-    showToast("Server settings saved", { message: "Restart ModelDuck to apply port or local-network changes." });
-    if (
-      previous &&
-      (previous.port !== data.settings.port || previous.serveOnLocalNetwork !== data.settings.serveOnLocalNetwork)
-    ) {
-      showToast("Restart required", {
-        message: "The listener port or network binding changes only after a restart.",
-        fix: "Stop the terminal with Ctrl+C, then run start.bat again.",
-      });
-    }
+    showToast("Server settings saved", {
+      message: state.restartRequired ? "The listener change applies after a restart." : "The changes apply now.",
+    });
+    renderServerRestart();
   } catch (error) {
     showError(error);
   }
@@ -3188,7 +3266,8 @@ async function createServerKey() {
     els.serverKeyValue.textContent = data.key;
     els.serverKeyOutput.hidden = false;
     els.serverKeyLabel.value = "";
-    await openServerSettings();
+    // Refresh the key list without clearing the key the toast says to copy now.
+    await openServerSettings({ keepKey: true });
     showToast("API key created", {
       message: "Copy it now; the full key is not shown again.",
       fix: "Use Authorization: Bearer <key> or X-API-Key.",
@@ -3256,6 +3335,7 @@ async function saveSettings(event) {
   try {
     const data = await request("/api/settings", { method: "PUT", body: { settings: payload } });
     state.settings = data.settings;
+    setSettingsDirty(false);
     els.settingsDialog.close();
     showToast("Settings saved");
     if (
@@ -3287,7 +3367,9 @@ async function saveSettings(event) {
 
 /* Confirm ------------------------------------------------------------------ */
 
-function askConfirm(title, message, confirmLabel = "Delete") {
+let confirmQueue = Promise.resolve();
+
+function showConfirm(title, message, confirmLabel) {
   els.confirmTitle.textContent = title;
   els.confirmMessage.textContent = message;
   els.confirmOk.textContent = confirmLabel;
@@ -3309,6 +3391,19 @@ function askConfirm(title, message, confirmLabel = "Delete") {
       }
     };
   });
+}
+
+/**
+ * One confirm at a time. Two callers used to overwrite each other's handlers,
+ * so the first promise could resolve on the second dialog's button.
+ */
+function askConfirm(title, message, confirmLabel = "Delete") {
+  const next = confirmQueue.then(() => showConfirm(title, message, confirmLabel));
+  confirmQueue = next.then(
+    () => undefined,
+    () => undefined,
+  );
+  return next;
 }
 
 /* Clipboard ---------------------------------------------------------------- */
@@ -3501,7 +3596,11 @@ function bindEvents() {
   });
   document.querySelectorAll("[data-close-dialog]").forEach((button) => {
     button.addEventListener("click", () => {
-      document.getElementById(button.dataset.closeDialog)?.close();
+      const dialog = document.getElementById(button.dataset.closeDialog);
+      if (!dialog) return;
+      // The settings form owns an unsaved state; closing it goes through the guard.
+      if (dialog === els.settingsDialog) void closeSettings();
+      else dialog.close();
     });
   });
 
@@ -3586,8 +3685,16 @@ function bindEvents() {
     if (event.target === els.modelsDialog) els.modelsDialog.close();
   });
   els.settingsDialog.addEventListener("click", (event) => {
-    if (event.target === els.settingsDialog) els.settingsDialog.close();
+    if (event.target === els.settingsDialog) void closeSettings();
   });
+  els.settingsDialog.addEventListener("cancel", (event) => {
+    if (!state.settingsDirty) return;
+    event.preventDefault();
+    void closeSettings();
+  });
+  els.settingsForm.addEventListener("input", () => setSettingsDirty(true));
+  els.settingsForm.addEventListener("change", () => setSettingsDirty(true));
+  els.serverAuth.addEventListener("change", syncServerExposure);
   els.serverDialog.addEventListener("close", clearServerKeyReveal);
   els.serverDialog.addEventListener("click", (event) => {
     if (event.target === els.serverDialog) els.serverDialog.close();
@@ -3610,6 +3717,7 @@ async function boot() {
     state.downloads = data.downloads ?? [];
     state.presets = data.presets ?? [];
     state.serverSettings = data.serverSettings ?? null;
+    state.restartRequired = data.restartRequired ?? null;
     state.loaded = data.loaded ?? { status: "idle", model: null };
   } catch (error) {
     showError(error);

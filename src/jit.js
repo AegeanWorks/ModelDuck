@@ -33,6 +33,11 @@ export class JitManager {
     return this.#trackedId;
   }
 
+  /** True while an idle-unload timer is armed for the tracked model. */
+  get armed() {
+    return this.#timer !== null;
+  }
+
   async ensure(modelReference) {
     if (!this.#serverSettings.value.justInTimeModelLoading) {
       throw new AppError("No model is loaded", {

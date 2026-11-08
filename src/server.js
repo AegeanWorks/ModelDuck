@@ -32,6 +32,8 @@ import { STAGES } from "../benchmarks/tune.mjs";
 import { handleOpenAI } from "./openai.js";
 import { settingPresets } from "./config.js";
 import { recommendCatalog, recommendModels } from "./recommend.js";
+import { restartRequiredFor } from "./server-settings.js";
+import { machineCatalog } from "./state-machine.js";
 import { systemInfo } from "./system.js";
 import { TASKS, suiteSummary } from "../benchmarks/tasks.mjs";
 
@@ -201,6 +203,7 @@ export function createHttpServer({
               activeKeys: serverSettings.activeKeys,
             }
           : null,
+        restartRequired: serverSettings ? restartRequiredFor(instance, serverSettings.value) : null,
         modelsDir: registry?.modelsDir ?? null,
         models,
         loaded,
@@ -755,6 +758,7 @@ export function createHttpServer({
     if (pathname === "/api/health" && method === "GET") {
       const { measureLoopLag } = await import("./system.js");
       const info = systemInfo();
+      const engineState = engine ? await engine.status() : null;
       sendJson(res, 200, {
         app: info.app,
         version: info.version,
@@ -763,7 +767,12 @@ export function createHttpServer({
         uptime: info.uptime,
         memory: process.memoryUsage(),
         loopLagMs: await measureLoopLag(),
-        loadedId: engine?.loadedId ?? null,
+        loadedId: engine?.loadedId ?? engineState?.model?.id ?? null,
+        // AX: subsystems and their state vocabulary, readable without the source.
+        phase: engine?.phase ?? engineState?.status ?? "idle",
+        jit: jit ? { trackedId: jit.trackedId ?? null, armed: Boolean(jit.armed) } : null,
+        registry: registry ? { size: registry.size, ...(typeof registry.scanStats === "function" ? registry.scanStats() : {}) } : null,
+        machines: machineCatalog(),
       });
       return;
     }
@@ -811,7 +820,8 @@ export function createHttpServer({
         settings: next,
         apiKeys: serverSettings.listKeys(),
         activeKeys: serverSettings.activeKeys,
-        restartRequired: true,
+        // Only a listener change needs a restart; auth/CORS/JIT apply now.
+        restartRequired: restartRequiredFor(instance, next),
       });
       return;
     }
