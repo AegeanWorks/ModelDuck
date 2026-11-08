@@ -1,55 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "local-guards-ui-honesty",
+    "task_id": "unreadable-provenance",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794159361.797233,
+    "updated_at": 1794159501.0387576,
     "owner": "commandcode:9b9e6718",
     "started_by": "commandcode:9b9e6718",
     "continuations": [],
-    "completed_at": 1794159363.0375092
+    "completed_at": 1794159502.1581683
   },
   "checkpoints": [
-    {
-      "task_id": "context-fit",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[4/4] Check: code-only quality chooses 4096 (need 2223), recall keeps 16384; npm test 579 pass/1 skip; ui:smoke OK; tune:gate 9/9; 4/4 gates; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794138865.7546043,
-      "timestamp_str": "2026-11-08 14:54:25",
-      "agent": "deepseek-v4.1-flash"
-    },
-    {
-      "task_id": "context-fit",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'context-fit' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794138868.235434,
-      "timestamp_str": "2026-11-08 14:54:28",
-      "agent": "deepseek-v4.1-flash"
-    },
-    {
-      "task_id": "report-cache",
-      "phase": "phase 1",
-      "phase_num": 1,
-      "description": "[1/4] Plan: cache the parsed Bench report by source-file size/mtime",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794141387.5508435,
-      "timestamp_str": "2026-11-08 15:36:27",
-      "agent": "deepseek-v4.1-flash",
-      "impact_assessment": {
-        "why": "The Bench panel re-read and re-parsed a multi-MB history.jsonl on every poll: 106.9 ms per call.",
-        "benefits": "Sub-3 ms repeated report loads for an unchanged Bench panel.",
-        "risks": "contract: report freshness; dependency: fs stat; concurrency: none; state: in-process bounded cache",
-        "mitigation": "size+mtime invalidation test, full suite, ui:smoke, gate"
-      }
-    },
     {
       "task_id": "report-cache",
       "phase": "phase 4",
@@ -259,6 +221,44 @@
       "status": "completed",
       "timestamp": 1794159363.0375109,
       "timestamp_str": "2026-11-08 20:36:03",
+      "agent": "commandcode:9b9e6718"
+    },
+    {
+      "task_id": "unreadable-provenance",
+      "phase": "phase 1",
+      "phase_num": 1,
+      "description": "[1/1] Plan: hide Load for an unreadable model, show the reason the header failed, and put the measured date on benchmark cards and the dashboard latest profile",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794159500.0400321,
+      "timestamp_str": "2026-11-08 20:38:20",
+      "agent": "commandcode:9b9e6718",
+      "impact_assessment": {
+        "why": "The audit found Load offered for models that cannot be read, an Unreadable badge with no reason, and stored measurement dates never shown.",
+        "benefits": "No dead-end load attempt; the failure is diagnosable from the list; benchmark and profile provenance is visible.",
+        "risks": "contract: model entries gain unreadableReason; dependency: none; concurrency: none; state: none",
+        "mitigation": "model-registry test, full suite, UI smoke, project gates"
+      }
+    },
+    {
+      "task_id": "unreadable-provenance",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[4/4] Check: unreadable row hides Load and shows its reason; registry test asserts unreadableReason; benchmark cards and dashboard line show measured date; npm test 589 pass/1 skip; ui:smoke OK; 4/4 project gates; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794159501.0387576,
+      "timestamp_str": "2026-11-08 20:38:21",
+      "agent": "commandcode:9b9e6718"
+    },
+    {
+      "task_id": "unreadable-provenance",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'unreadable-provenance' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794159502.1581712,
+      "timestamp_str": "2026-11-08 20:38:22",
       "agent": "commandcode:9b9e6718"
     }
   ]
