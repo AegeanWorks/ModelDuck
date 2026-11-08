@@ -19,8 +19,9 @@
   "has_ui": true,
   "ui_kind": "web",
   "ui_evidence": [
+    "assets/demo-video-3min-PLAYER.html",
     "public/index.html"
   ],
-  "ui_checked_at": "2026-10-30",
+  "ui_checked_at": "2026-11-08",
   "ui_source": "detected"
 }
