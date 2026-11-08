@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { PROMPTS, SMOKE_PROMPT_IDS, checkCount, evaluateTextCheck, runJavaScriptTests } from "../benchmarks/suite.mjs";
+import { PROMPTS, SMOKE_PROMPT_IDS, checkCount, evaluateTextCheck, javascriptTestCacheStats, resetJavaScriptTestCache, runJavaScriptTests } from "../benchmarks/suite.mjs";
 import { REFERENCE_V9 } from "./reference-solutions-v9.js";
 import { referenceV13 } from "./reference-solutions-v13.js";
 
@@ -88,6 +88,19 @@ test("generated code runs sandboxed: a correct answer passes, file access fails"
   );
   assert.equal(hostile[0].passed, false);
   assert.match(hostile[0].detail, /threw/);
+});
+
+test("an identical answer is verified once and the cached checks stay identical", async () => {
+  resetJavaScriptTestCache();
+  const check = { entry: "clamp", cases: [{ args: [5, 0, 10], expect: 5 }, { args: [42, 0, 10], expect: 10 }] };
+  const answer = "```js\nfunction clamp(x, a, b) { return Math.min(b, Math.max(a, x)); }\n```";
+  const first = await runJavaScriptTests(answer, check);
+  const afterFirst = javascriptTestCacheStats();
+  const second = await runJavaScriptTests(answer, check);
+  const afterSecond = javascriptTestCacheStats();
+  assert.deepEqual(second, first);
+  assert.equal(afterFirst.misses, 1);
+  assert.equal(afterSecond.hits, afterFirst.hits + 1);
 });
 
 test("runaway generated code is killed by the timeout", async () => {

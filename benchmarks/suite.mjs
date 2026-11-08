@@ -817,7 +817,37 @@ const RESULT_MARKER = "__MODELDUCK_TEST_RESULTS__";
  * network access are all denied, and a timeout kills runaway code. Returns one
  * check per case so a partly correct function earns partial credit.
  */
+// Exact answers repeat across load variants (quantization/KV/threads) and seeds.
+// Verification is pure for a given text + check + timeout, so a bounded cache
+// skips the child process without changing a single check result.
+const JS_TEST_CACHE = new Map();
+const JS_TEST_CACHE_LIMIT = 512;
+let jsTestHits = 0;
+let jsTestMisses = 0;
+const jsTestKey = (text, check, timeoutMs) => JSON.stringify([
+  String(text ?? ""),
+  check.entry ?? null,
+  check.setup ?? null,
+  check.harness ?? null,
+  check.cases ?? [],
+  timeoutMs,
+]);
+export function javascriptTestCacheStats() {
+  return { size: JS_TEST_CACHE.size, hits: jsTestHits, misses: jsTestMisses };
+}
+export function resetJavaScriptTestCache() {
+  JS_TEST_CACHE.clear();
+  jsTestHits = 0;
+  jsTestMisses = 0;
+}
+
 export async function runJavaScriptTests(text, check, { timeoutMs = 5000 } = {}) {
+  const cacheKey = jsTestKey(text, check, timeoutMs);
+  const cached = JS_TEST_CACHE.get(cacheKey);
+  if (cached) {
+    jsTestHits += 1;
+    return cached.map((item) => ({ ...item }));
+  }
   const { execFile } = await import("node:child_process");
   const cases = check.cases ?? [];
   // A change that may touch several functions keeps every code block and runs through a hidden scenario (ADR-061).
@@ -862,13 +892,17 @@ export async function runJavaScriptTests(text, check, { timeoutMs = 5000 } = {})
     }
   }
   const failure = outcome.error?.killed ? "timed out" : outcome.error ? "did not run (syntax or runtime error)" : "no results";
-  return cases.map((testCase, index) => ({
+  const checked = cases.map((testCase, index) => ({
     type: "jsTests",
     passed: Boolean(results?.[index]?.ok),
     // No function of that name in the reply: a format problem, not a wrong function (ADR-052).
     unreadable: !named,
     detail: `${check.entry}(${JSON.stringify(testCase.args).slice(1, -1)}): ${results?.[index]?.detail ?? failure}`,
   }));
+  jsTestMisses += 1;
+  if (JS_TEST_CACHE.size >= JS_TEST_CACHE_LIMIT) JS_TEST_CACHE.delete(JS_TEST_CACHE.keys().next().value);
+  JS_TEST_CACHE.set(cacheKey, checked.map((item) => ({ ...item })));
+  return checked;
 }
 
 export async function evaluateResponse(prompt, text) {
