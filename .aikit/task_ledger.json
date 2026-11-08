@@ -1,48 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "scan-cache",
+    "task_id": "full-final",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794149917.0297625,
-    "owner": "deepseek-v4.1-flash",
-    "started_by": "deepseek-v4.1-flash",
+    "updated_at": 1794153629.8651614,
+    "owner": "commandcode:9b9e6718",
+    "started_by": "commandcode:9b9e6718",
     "continuations": [],
-    "completed_at": 1794149917.4882812
+    "completed_at": 1794153640.8509746
   },
   "checkpoints": [
-    {
-      "task_id": "verifier-cache",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verifier-cache' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794130239.6445825,
-      "timestamp_str": "2026-11-08 12:30:39",
-      "agent": "deepseek-v4.1-flash"
-    },
-    {
-      "task_id": "verifier-cache",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[4/4] Extended: benchmark run prints verifier cache hits/misses; npm test 577 pass/1 skip, ui:smoke OK, tune:gate 9/9, 4/4 gates; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794133303.000225,
-      "timestamp_str": "2026-11-08 13:21:42",
-      "agent": "deepseek-v4.1-flash"
-    },
-    {
-      "task_id": "verifier-cache",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verifier-cache' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794133304.0790067,
-      "timestamp_str": "2026-11-08 13:21:44",
-      "agent": "deepseek-v4.1-flash"
-    },
     {
       "task_id": "verifier-cache",
       "phase": "phase 4",
@@ -253,6 +222,44 @@
       "timestamp": 1794149917.488284,
       "timestamp_str": "2026-11-08 17:58:37",
       "agent": "deepseek-v4.1-flash"
+    },
+    {
+      "task_id": "full-final",
+      "phase": "phase 1",
+      "phase_num": 1,
+      "description": "[1/1] Plan: add opt-in --full-final so the tuner scores each final preset on every task item (136 for code) instead of the 48-item search rung; keep the fast rung the default",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794153609.9839072,
+      "timestamp_str": "2026-11-08 19:00:09",
+      "agent": "commandcode:9b9e6718",
+      "impact_assessment": {
+        "why": "The 48-item search rung is a sample of the task; a final preset deserves a full-item rate so the reported score is not only a subsample.",
+        "benefits": "Higher-power final rate; withDiscriminatingRungs can expose the full item set without changing the default run cost.",
+        "risks": "contract: tune CLI and task rungs; dependency: none; concurrency: none; state: benchmark suite version unchanged",
+        "mitigation": "default stays the fast rung; real-engine validation on one preset; hermetic tests; tune gate on the three core models"
+      }
+    },
+    {
+      "task_id": "full-final",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[4/4] Check: validate 48 items 62.5% vs 136 items 62.5% on the same preset; npm test 585 pass/1 skip; tune gate 9/9 rows pass (3 core models x 3 tasks); 4/4 project gates; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794153629.8651614,
+      "timestamp_str": "2026-11-08 19:00:29",
+      "agent": "commandcode:9b9e6718"
+    },
+    {
+      "task_id": "full-final",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'full-final' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794153640.8509765,
+      "timestamp_str": "2026-11-08 19:00:40",
+      "agent": "commandcode:9b9e6718"
     }
   ]
 }
