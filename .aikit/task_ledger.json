@@ -1,55 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "stale-lock-docs",
+    "task_id": "coder-recall-greedy",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794243844.926654,
+    "updated_at": 1794251383.4295862,
     "owner": "commandcode:9b9e6718",
     "started_by": "commandcode:9b9e6718",
     "continuations": [],
-    "completed_at": 1794243845.4896786
+    "completed_at": 1794251383.9812424
   },
   "checkpoints": [
-    {
-      "task_id": "state-machines",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[4/4] Check: 25-machine inventory verified and documented; explicit engine/download/benchmark machines with terminal + race fixes; concurrent-start 409 test; health exposes phase/jit/registry/catalog; restart-required listener comparison tested; settings dirty discard exercised in ui:smoke; confirms serialized. npm test 597 pass/1 skip; ui:smoke OK; 4/4 gates; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794165524.0076702,
-      "timestamp_str": "2026-11-08 22:18:44",
-      "agent": "commandcode:9b9e6718"
-    },
-    {
-      "task_id": "state-machines",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'state-machines' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794165524.4196017,
-      "timestamp_str": "2026-11-08 22:18:44",
-      "agent": "commandcode:9b9e6718"
-    },
-    {
-      "task_id": "state-machine-verification",
-      "phase": "phase 1",
-      "phase_num": 1,
-      "description": "[1/1] Plan: add canonical JSON registries and tests that prove every documented machine location, every passing proposal's code markers and named tests, and the deferred reasons",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794166071.1552486,
-      "timestamp_str": "2026-11-08 22:27:51",
-      "agent": "commandcode:9b9e6718",
-      "impact_assessment": {
-        "why": "The prior inventory and proposal documents were prose only; a reviewer could not mechanically confirm that all 25 machines were real, that the proposals were verified, or that the implementation matched the passing ones.",
-        "benefits": "Every inventory row names a file and anchor checked by a test; every passing proposal must keep its code markers and named test or the suite fails; deferred proposals must keep a reason.",
-        "risks": "contract: docs gain JSON companions; dependency: none; concurrency: none; state: none",
-        "mitigation": "tests read the source and documents, fail on drift, and run inside npm test and the project gates"
-      }
-    },
     {
       "task_id": "state-machine-verification",
       "phase": "phase 4",
@@ -259,6 +221,44 @@
       "status": "completed",
       "timestamp": 1794243845.489681,
       "timestamp_str": "2026-11-09 20:04:05",
+      "agent": "commandcode:9b9e6718"
+    },
+    {
+      "task_id": "coder-recall-greedy",
+      "phase": "phase 1",
+      "phase_num": 1,
+      "description": "[1/1] Plan: land greedy sampling as the coder's recall preset if the full 65-item pool confirms the rung signal without losses",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794250491.6302092,
+      "timestamp_str": "2026-11-09 21:54:51",
+      "agent": "commandcode:9b9e6718",
+      "impact_assessment": {
+        "why": "The coder recall task had no current-suite preset; greedy tied the 46-item rung at 50.0 vs 47.1 (3 gains/0 losses) but that rung is too small to decide.",
+        "benefits": "A higher-power paired decision on the full pool; the tuner's own p<=0.2 acceptance threshold.",
+        "risks": "contract: user profile and committed recipe; dependency: Vulkan; concurrency: box load; state: profile overwrite (backup kept)",
+        "mitigation": "re-measure both arms on all 65 items with the same load; refuse to write unless p<=0.2 and gains exceed losses; run tests and the gate"
+      }
+    },
+    {
+      "task_id": "coder-recall-greedy",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[4/4] Check: greedy recall on all 65 items is 46.2% vs 43.6% (+2.6, b=0 c=4, p=0.125) at 286 vs 312 ms; the 46-item rung agreed at 50.0 vs 47.1 (3/0). Preset written to the app profile with backup, vsDefault recorded, recipe regenerated. npm test 608 pass/1 skip; tune:gate 9/9 ok. checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794251383.4295862,
+      "timestamp_str": "2026-11-09 22:09:43",
+      "agent": "commandcode:9b9e6718"
+    },
+    {
+      "task_id": "coder-recall-greedy",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'coder-recall-greedy' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794251383.9812453,
+      "timestamp_str": "2026-11-09 22:09:43",
       "agent": "commandcode:9b9e6718"
     }
   ]
