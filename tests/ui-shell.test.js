@@ -127,6 +127,16 @@ test("the control panel is wired and the chat shell is gone", () => {
   assert.match(cssRules, /#tune-models[\s\S]*?#tune-runs-list[\s\S]*?#tune-run-detail[\s\S]*?overflow-x:\s*auto/, "the mobile tune panels need their own horizontal scrollers");
 });
 
+test("the settings and tune UI hold the fixed 16K context floor", () => {
+  const input = html.match(/<input id="setting-context"[^>]*>/)?.[0] ?? "";
+  assert.match(input, /min="16384"/, "the context input cannot go below the floor");
+  assert.match(input, /max="32768"/);
+  const quality = html.match(/value="quality"[\s\S]*?<small>([^<]*)<\/small>/)?.[1] ?? "";
+  assert.match(quality, /KV cache/);
+  assert.doesNotMatch(quality, /context size/i, "the quality stage no longer offers context as a choice");
+  assert.ok(!app.includes('"load.contextSize"'), "the tune step list and help no longer offer a context size");
+});
+
 test("the tuning help explains the stages and the checks", () => {
   const allCss = `${css}\n${theme}`.replace(/\/\*[\s\S]*?\*\//g, "");
   assert.match(html, /id="tune-help"/);
