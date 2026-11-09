@@ -1,55 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "qwen05-thread-load",
+    "task_id": "stale-home-lock",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794204668.8293176,
+    "updated_at": 1794240409.7871,
     "owner": "commandcode:9b9e6718",
     "started_by": "commandcode:9b9e6718",
     "continuations": [],
-    "completed_at": 1794204669.303385
+    "completed_at": 1794240410.285801
   },
   "checkpoints": [
-    {
-      "task_id": "unreadable-provenance",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[4/4] Check: unreadable row hides Load and shows its reason; registry test asserts unreadableReason; benchmark cards and dashboard line show measured date; npm test 589 pass/1 skip; ui:smoke OK; 4/4 project gates; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794159501.0387576,
-      "timestamp_str": "2026-11-08 20:38:21",
-      "agent": "commandcode:9b9e6718"
-    },
-    {
-      "task_id": "unreadable-provenance",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'unreadable-provenance' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794159502.1581712,
-      "timestamp_str": "2026-11-08 20:38:22",
-      "agent": "commandcode:9b9e6718"
-    },
-    {
-      "task_id": "prompt-sampler-dependency",
-      "phase": "phase 1",
-      "phase_num": 1,
-      "description": "[1/1] Plan: measure whether any prompt or sampler change beats the accepted code preset on the served sampler, then make a sampler change re-open the prompt it was chosen with",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794164410.3057446,
-      "timestamp_str": "2026-11-08 22:00:10",
-      "agent": "commandcode:9b9e6718",
-      "impact_assessment": {
-        "why": "The saved coder profile was screened at temperature 0.7 but serves 0.4; a sampler re-tune leaves the prompt (and its stats) measured on the old sampler, so the applied preset can be unproven under the settings actually used.",
-        "benefits": "The saved prompt is always validated on the sampler in use; a sampling-only re-tune marks the prompt pending instead of silently serving an unproven choice.",
-        "risks": "contract: tune progress gains sampledWith; dependency: none; concurrency: none; state: extra prompt answers after a sampler change; old profiles have no signature and are untouched",
-        "mitigation": "paired real-engine screens first, hermetic tune tests for no-op/invalidation/re-measurement, full suite, UI smoke, project gates"
-      }
-    },
     {
       "task_id": "prompt-sampler-dependency",
       "phase": "phase 4",
@@ -259,6 +221,44 @@
       "status": "completed",
       "timestamp": 1794204669.3033876,
       "timestamp_str": "2026-11-09 09:11:09",
+      "agent": "commandcode:9b9e6718"
+    },
+    {
+      "task_id": "stale-home-lock",
+      "phase": "phase 1",
+      "phase_num": 1,
+      "description": "[1/1] Plan: take over a home lock whose owner PID is dead, so a killed server no longer blocks the next start; keep the mtime rule for unreadable locks",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794239861.098129,
+      "timestamp_str": "2026-11-09 18:57:41",
+      "agent": "commandcode:9b9e6718",
+      "impact_assessment": {
+        "why": "Stage 4 found a stale .lock naming a dead PID; the next start refused with already_running until the file was deleted by hand.",
+        "benefits": "Immediate restart after a crash or kill; no manual lock deletion.",
+        "risks": "contract: lock semantics; dependency: node process.kill signal 0; concurrency: a live owner replying; state: unlink race",
+        "mitigation": "only unlink when the file still names the judged-dead PID; treat EPERM and unreadable owners as live; add tests and a live kill/restart repro"
+      }
+    },
+    {
+      "task_id": "stale-home-lock",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[4/4] Check: unit tests cover dead-PID takeover and refusal to steal an unreadable fresh lock; live repro started PID 17732, killed it, confirmed the lock stayed with the dead PID, restarted (new PID 22848) and /api/health returned 200. npm test 608 pass/1 skip; tune:gate 9/9 ok. checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794240409.7871,
+      "timestamp_str": "2026-11-09 19:06:49",
+      "agent": "commandcode:9b9e6718"
+    },
+    {
+      "task_id": "stale-home-lock",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'stale-home-lock' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794240410.2858028,
+      "timestamp_str": "2026-11-09 19:06:50",
       "agent": "commandcode:9b9e6718"
     }
   ]
