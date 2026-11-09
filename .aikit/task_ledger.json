@@ -1,55 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "recall-receipts-16k",
+    "task_id": "context-floor-ui",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794255036.3528337,
+    "updated_at": 1794255118.6624186,
     "owner": "commandcode:9b9e6718",
     "started_by": "commandcode:9b9e6718",
     "continuations": [],
-    "completed_at": 1794255037.0403876
+    "completed_at": 1794255119.2339087
   },
   "checkpoints": [
-    {
-      "task_id": "qwen05-thread-load",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[4/4] Check: threads 12 vs auto on all 136 code items is quality-identical (33.8% both, 0 flips) and faster (298.5 -> 292 ms, 268.36 -> 271.13 tok/s, memory 105,147,424 B unchanged). Rejected contextSize 16384 (117.7 MB, no coding gain) and kvCache q8_0 (58.5 -> 52.3). Comprehension answer-only was 54.7 vs 48.4 but b=3/c=5 p=.73 (negative). npm test 606 pass/1 skip; tune:gate 9/9 ok. checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794204668.8293176,
-      "timestamp_str": "2026-11-09 09:11:08",
-      "agent": "commandcode:9b9e6718"
-    },
-    {
-      "task_id": "qwen05-thread-load",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'qwen05-thread-load' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794204669.3033876,
-      "timestamp_str": "2026-11-09 09:11:09",
-      "agent": "commandcode:9b9e6718"
-    },
-    {
-      "task_id": "stale-home-lock",
-      "phase": "phase 1",
-      "phase_num": 1,
-      "description": "[1/1] Plan: take over a home lock whose owner PID is dead, so a killed server no longer blocks the next start; keep the mtime rule for unreadable locks",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794239861.098129,
-      "timestamp_str": "2026-11-09 18:57:41",
-      "agent": "commandcode:9b9e6718",
-      "impact_assessment": {
-        "why": "Stage 4 found a stale .lock naming a dead PID; the next start refused with already_running until the file was deleted by hand.",
-        "benefits": "Immediate restart after a crash or kill; no manual lock deletion.",
-        "risks": "contract: lock semantics; dependency: node process.kill signal 0; concurrency: a live owner replying; state: unlink race",
-        "mitigation": "only unlink when the file still names the judged-dead PID; treat EPERM and unreadable owners as live; add tests and a live kill/restart repro"
-      }
-    },
     {
       "task_id": "stale-home-lock",
       "phase": "phase 4",
@@ -259,6 +221,44 @@
       "status": "completed",
       "timestamp": 1794255037.0403895,
       "timestamp_str": "2026-11-09 23:10:37",
+      "agent": "commandcode:9b9e6718"
+    },
+    {
+      "task_id": "context-floor-ui",
+      "phase": "phase 1",
+      "phase_num": 1,
+      "description": "[1/1] Plan: make the UI match the fixed 16K floor: min 16384 on the settings control, KV-only quality stage text, no context tune help",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794255097.6481397,
+      "timestamp_str": "2026-11-09 23:11:37",
+      "agent": "commandcode:9b9e6718",
+      "impact_assessment": {
+        "why": "The server floors context at 16K but the UI still offered 512 and described context as tunable.",
+        "benefits": "Users cannot pick an unsupported value and the tune UI matches what it does.",
+        "risks": "contract: UI help and input bounds; dependency: none; concurrency: none; state: none",
+        "mitigation": "edit the static help/attributes, keep the wiring untouched, run tests and the project gates"
+      }
+    },
+    {
+      "task_id": "context-floor-ui",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[4/4] Check: the settings context input is min=16384 with a floor note; the quality stage text, tune help and tune step fields are KV-only; no context step help remains; README states the floor. npm test 607 pass/1 skip; project gates 4/4. checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794255118.6624186,
+      "timestamp_str": "2026-11-09 23:11:58",
+      "agent": "commandcode:9b9e6718"
+    },
+    {
+      "task_id": "context-floor-ui",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'context-floor-ui' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794255119.2339113,
+      "timestamp_str": "2026-11-09 23:11:59",
       "agent": "commandcode:9b9e6718"
     }
   ]
