@@ -1,55 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "stale-home-lock",
+    "task_id": "stale-lock-docs",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794240409.7871,
+    "updated_at": 1794243844.926654,
     "owner": "commandcode:9b9e6718",
     "started_by": "commandcode:9b9e6718",
     "continuations": [],
-    "completed_at": 1794240410.285801
+    "completed_at": 1794243845.4896786
   },
   "checkpoints": [
-    {
-      "task_id": "prompt-sampler-dependency",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[4/4] Check: real-engine before/after on qwen2.5-coder-1.5b-q4 (48-item rung, 3 seeds): accepted 59%; 17 prompt variants <=59 (all p>=.2); greedy 58.3, cool 56.3 (p>=.5); topK 0/20/100/256 and repeat 1.05 = 59 with 0 flips. Fix: prompt records sampledWith and is re-opened when the sampler changes; tests cover same-sampler no-op, sampling-only invalidation, re-measurement. npm test 590 pass/1 skip; ui:smoke OK; 4/4 gates; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794164415.7004032,
-      "timestamp_str": "2026-11-08 22:00:15",
-      "agent": "commandcode:9b9e6718"
-    },
-    {
-      "task_id": "prompt-sampler-dependency",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'prompt-sampler-dependency' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794164416.0789733,
-      "timestamp_str": "2026-11-08 22:00:16",
-      "agent": "commandcode:9b9e6718"
-    },
-    {
-      "task_id": "state-machines",
-      "phase": "phase 1",
-      "phase_num": 1,
-      "description": "[1/1] Plan: inventory every implicit state machine, verify the findings, judge UX/DX/AX proposals, then land the passing ones behind explicit transition guards",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794165513.7804794,
-      "timestamp_str": "2026-11-08 22:18:33",
-      "agent": "commandcode:9b9e6718",
-      "impact_assessment": {
-        "why": "Three subsystems compared status literals inline and the UI kept state in boolean clusters, producing reachable impossible states: a canceled download could be marked complete, a load could stay loading forever, a concurrent start could share a .part, a created API key was erased, and closing Settings discarded edits.",
-        "benefits": "One state vocabulary with illegal transitions refused, truthful statuses in the API/UI, persistent restart/auth states, safer polling, and an agent-readable machine catalog at /api/health.",
-        "risks": "contract: engine/download/benchmark statuses and /api/health fields; dependency: none; concurrency: start reservation and terminal guards; state: no persisted data migration, legacy profiles untouched",
-        "mitigation": "read every cited site, define legal transitions from observed paths, add tests for terminal/race/health/UI states, keep deferred items in docs, run the full suite, UI smoke and project gates"
-      }
-    },
     {
       "task_id": "state-machines",
       "phase": "phase 4",
@@ -259,6 +221,44 @@
       "status": "completed",
       "timestamp": 1794240410.2858028,
       "timestamp_str": "2026-11-09 19:06:50",
+      "agent": "commandcode:9b9e6718"
+    },
+    {
+      "task_id": "stale-lock-docs",
+      "phase": "phase 1",
+      "phase_num": 1,
+      "description": "[1/1] Plan: record the dead-PID lock takeover as ADR-087 and update the README lock guidance without exceeding the 32,500-char gate",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794243840.7640903,
+      "timestamp_str": "2026-11-09 20:04:00",
+      "agent": "commandcode:9b9e6718",
+      "impact_assessment": {
+        "why": "The lock behavior changed in f6f2d96; the project requires an ADR and same-commit README updates for user-visible changes.",
+        "benefits": "Cold-start docs match the code; the ADR explains the ESRCH/EPERM rules and the race bound.",
+        "risks": "contract: ADR register and README budget; dependency: none; concurrency: none; state: none",
+        "mitigation": "append ADR-087 after ADR-086, trim verbose README prose to stay under the cap, run the project check and tests"
+      }
+    },
+    {
+      "task_id": "stale-lock-docs",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[4/4] Check: ADR-087 appended after ADR-086 (IDs unique and consecutive); README troubleshooting and design notes describe the takeover; the guidelines gate now passes at <=32,500 chars with 4/4 project gates green (test, hygiene, guidelines, secrets). checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794243844.926654,
+      "timestamp_str": "2026-11-09 20:04:04",
+      "agent": "commandcode:9b9e6718"
+    },
+    {
+      "task_id": "stale-lock-docs",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'stale-lock-docs' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794243845.489681,
+      "timestamp_str": "2026-11-09 20:04:05",
       "agent": "commandcode:9b9e6718"
     }
   ]
