@@ -188,9 +188,41 @@ export function formatBytes(bytes) {
   return `${size.toFixed(size >= 100 ? 0 : size >= 10 ? 1 : 2)} ${unit}`;
 }
 
+/** Read the PID the lock names, or null when it is unreadable or malformed. */
+async function readLockPid(file) {
+  try {
+    const pid = JSON.parse(await fs.promises.readFile(file, "utf8")).pid;
+    return Number.isInteger(pid) && pid > 0 ? pid : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Signal 0 probes existence; EPERM means the process exists but is not ours. */
+function pidAlive(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return error?.code === "EPERM";
+  }
+}
+
+/** Remove the lock only if it still names the owner we judged dead. */
+async function removeLockIfOwner(file, pid) {
+  try {
+    if (JSON.parse(await fs.promises.readFile(file, "utf8")).pid === pid) {
+      await fs.promises.unlink(file);
+    }
+  } catch {
+    // A live owner replaced it between the read and the unlink; leave it alone.
+  }
+}
+
 /**
  * One ModelDuck process owns a home folder at a time. The lock is advisory
- * and stale after 30 seconds, so a crashed process never bricks the app.
+ * and stale after 30 seconds, or immediately when the process that wrote it
+ * is gone, so a crashed or killed process never bricks the app.
  */
 export async function acquireHomeLock(file, { timeoutMs = 3000, staleMs = 30000 } = {}) {
   await ensureDirectory(path.dirname(file));
@@ -218,6 +250,12 @@ export async function acquireHomeLock(file, { timeoutMs = 3000, staleMs = 30000 
       };
     } catch (error) {
       if (error?.code !== "EEXIST") throw error;
+
+      const owner = await readLockPid(file);
+      if (owner !== null && !pidAlive(owner)) {
+        await removeLockIfOwner(file, owner);
+        continue;
+      }
 
       let stale = false;
       try {

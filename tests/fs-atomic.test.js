@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -61,6 +62,32 @@ test("the home lock is exclusive and released cleanly", async (t) => {
   await first.release();
   const second = await acquireHomeLock(file, { timeoutMs: 200 });
   await second.release();
+});
+
+test("a lock left by a dead process is taken over immediately", async (t) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "modelduck-lock-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const file = path.join(directory, "home.lock");
+  const child = spawnSync(process.execPath, ["-e", "0"], { stdio: "ignore" });
+  assert.ok(Number.isInteger(child.pid), "the probe process ran");
+  await writeFile(file, `${JSON.stringify({ pid: child.pid, startedAt: new Date().toISOString() })}\n`, "utf8");
+
+  const lock = await acquireHomeLock(file, { timeoutMs: 200 });
+  const held = JSON.parse(await readFile(file, "utf8"));
+  assert.equal(held.pid, process.pid, "the new owner replaced the dead lock");
+  await lock.release();
+});
+
+test("a fresh lock with an unreadable owner is not stolen", async (t) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "modelduck-lock-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const file = path.join(directory, "home.lock");
+  await writeFile(file, "{not json", "utf8");
+
+  await assert.rejects(
+    () => acquireHomeLock(file, { timeoutMs: 10 }),
+    (error) => error.code === "already_running",
+  );
 });
 
 test("replacing a file retries transient Windows lock errors, then gives up", async () => {
