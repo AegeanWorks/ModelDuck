@@ -10,7 +10,8 @@
     "smollm2-135m-instruct-q4": {
       "load": {
         "gpuBackend": "vulkan",
-        "gpuLayers": "max"
+        "gpuLayers": "max",
+        "contextSize": 16384
       },
       "tasks": {
         "code": {
@@ -188,7 +189,8 @@
     "qwen2.5-0.5b-instruct-q4": {
       "load": {
         "gpuBackend": "vulkan",
-        "gpuLayers": "max"
+        "gpuLayers": "max",
+        "contextSize": 16384
       },
       "tasks": {
         "code": {
@@ -365,7 +367,7 @@
     },
     "qwen2.5-coder-1.5b-instruct-q4": {
       "load": {
-        "contextSize": 4096,
+        "contextSize": 16384,
         "kvCache": "f16",
         "flashAttention": "auto",
         "useMmap": "auto",
