@@ -389,14 +389,14 @@ slot. The `.part` file is kept. Click **Download** again to resume; ModelDuck se
 HTTP Range request. If the server ignores ranges, it restarts safely.
 
 **“This model will not fit in memory.”**
-Before loading, ModelDuck estimates weights + KV cache at your Context size +
-a runtime reserve against free RAM, and refuses above 75 % with the largest
-context that fits. **Load anyway** overrides it. If the context is reduced while
-loading, a notice says what you asked for and what was allocated.
+Before loading, ModelDuck estimates weights + KV cache at the 16K context plus
+a runtime reserve against free RAM, and refuses above 75 %. **Load anyway**
+overrides it. Context is not reduced silently: a load that cannot allocate 16K
+fails with an error instead of shrinking.
 
 **The model fails to load with an out-of-memory error.**
-Lower **Context size** in Settings, unload other apps, and load a smaller model.
-Context memory grows with the window, not with the model file alone.
+Free memory, use a smaller model or quantization, or the q8_0 KV cache. Context
+is fixed at a 16K floor, so it is not a knob to shrink.
 
 **Replies are very slow.**
 CPU inference is limited by memory bandwidth. Try a smaller quantization or
