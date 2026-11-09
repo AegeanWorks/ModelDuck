@@ -25,7 +25,8 @@ older test, runtime, CPU or model file is kept with a warning until --force.
                      profile keeps finished stages, and untuned settings stay default
   --max-runs <n>     stop after this many item answers (default 20000)
   --passes <n>       coordinate-descent passes per stage (default 2)
-  --force            re-tune even when a saved profile already covers the tasks
+  --force            re-tune even when a saved profile already covers the tasks;
+                     starts a new profile, so other stages are measured again
   --grid <file>      step lists to search (default: <home>/tune-grid.json, else built-in)
   --interactive      ask for every setting's steps first and save them to <home>/tune-grid.json
   --home <folder>    data folder that receives profiles/<model>.json
