@@ -145,9 +145,8 @@ npm run bench:report
 npm run bench:link                 # after commit: attach the run to HEAD
 ```
 
-The model-usage phase only changes sampling and prompting, so run it when those change; a
-model-only baseline update leaves the model-usage baseline on its previous suite. Run
-`npm run bench:all` when both phases must describe the same suite.
+Run the model-usage phase when sampling or prompting changes; a model-only update
+leaves it on its previous suite, so use `npm run bench:all` to keep both on one suite.
 
 A model-phase recommendation can become the chat base without rerunning the model
 phase. **Use for chat** in the Bench panel, or `npm run bench -- --select-base
@@ -172,9 +171,8 @@ Every run records `suiteVersion`, a SHA-256 `testHash`, `runtimeMs`, model
 settings and sampling settings. A result delta is only attributed to a parameter
 when the test hash matches the baseline; a prompt/check/matrix edit must bump the
 version, update [benchmarks/CHANGELOG.md](benchmarks/CHANGELOG.md) and update the
-baseline deliberately. Presets are benchmark candidates: they fill the settings
-form, never apply themselves, and should be trusted only after both phases pass
-(ModelDuck does not yet record which preset passed).
+baseline deliberately. Presets only fill the settings form; trust them after both
+phases pass (ModelDuck does not record which preset passed).
 
 The test hash covers the global and per-variant system prompts, `promptIds`, and
 the sampling fields used by the matrix. Each run also records the node-llama-cpp
@@ -381,8 +379,9 @@ Another app (or another ModelDuck) owns 4141. Run `npm start -- --port 4142`, or
 close the other process.
 
 **“ModelDuck is already running.”**
-Two processes are using the same `~/.modelduck`. Close one, or use `--home` to
-give each instance its own state folder.
+Two processes are using the same `~/.modelduck`. A lock left by a killed process is
+taken over on the next start; otherwise close the other process, or use `--home`
+to give each instance its own state folder.
 
 **A download stalls.**
 After 60 seconds without data the download stops as **stalled** and frees its
