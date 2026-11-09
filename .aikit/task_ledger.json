@@ -1,55 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "context-docs-16k",
+    "task_id": "context-floor-ui-test",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794257921.4071987,
+    "updated_at": 1794258052.356506,
     "owner": "commandcode:9b9e6718",
     "started_by": "commandcode:9b9e6718",
     "continuations": [],
-    "completed_at": 1794257921.698577
+    "completed_at": 1794258052.6539886
   },
   "checkpoints": [
-    {
-      "task_id": "stale-lock-docs",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[4/4] Check: ADR-087 appended after ADR-086 (IDs unique and consecutive); README troubleshooting and design notes describe the takeover; the guidelines gate now passes at <=32,500 chars with 4/4 project gates green (test, hygiene, guidelines, secrets). checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794243844.926654,
-      "timestamp_str": "2026-11-09 20:04:04",
-      "agent": "commandcode:9b9e6718"
-    },
-    {
-      "task_id": "stale-lock-docs",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'stale-lock-docs' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794243845.489681,
-      "timestamp_str": "2026-11-09 20:04:05",
-      "agent": "commandcode:9b9e6718"
-    },
-    {
-      "task_id": "coder-recall-greedy",
-      "phase": "phase 1",
-      "phase_num": 1,
-      "description": "[1/1] Plan: land greedy sampling as the coder's recall preset if the full 65-item pool confirms the rung signal without losses",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794250491.6302092,
-      "timestamp_str": "2026-11-09 21:54:51",
-      "agent": "commandcode:9b9e6718",
-      "impact_assessment": {
-        "why": "The coder recall task had no current-suite preset; greedy tied the 46-item rung at 50.0 vs 47.1 (3 gains/0 losses) but that rung is too small to decide.",
-        "benefits": "A higher-power paired decision on the full pool; the tuner's own p<=0.2 acceptance threshold.",
-        "risks": "contract: user profile and committed recipe; dependency: Vulkan; concurrency: box load; state: profile overwrite (backup kept)",
-        "mitigation": "re-measure both arms on all 65 items with the same load; refuse to write unless p<=0.2 and gains exceed losses; run tests and the gate"
-      }
-    },
     {
       "task_id": "coder-recall-greedy",
       "phase": "phase 4",
@@ -259,6 +221,44 @@
       "status": "completed",
       "timestamp": 1794257921.6985781,
       "timestamp_str": "2026-11-09 23:58:41",
+      "agent": "commandcode:9b9e6718"
+    },
+    {
+      "task_id": "context-floor-ui-test",
+      "phase": "phase 1",
+      "phase_num": 1,
+      "description": "[1/1] Plan: pin the UI context floor (min 16384) and the KV-only quality copy in ui-shell.test.js so they cannot regress",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794258039.1800127,
+      "timestamp_str": "2026-11-10 00:00:39",
+      "agent": "commandcode:9b9e6718",
+      "impact_assessment": {
+        "why": "The floor is enforced server-side; the UI contract was only checked by hand.",
+        "benefits": "A static regression guard for the input bound and the stage copy.",
+        "risks": "contract: UI markup and app help; dependency: none; concurrency: none; state: none",
+        "mitigation": "read the existing ui-shell test patterns, assert the exact attributes and copy, run the file and the suite"
+      }
+    },
+    {
+      "task_id": "context-floor-ui-test",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[4/4] Check: ui-shell asserts the context input min=16384/max=32768, the quality stage copy is KV-only, and no load.contextSize tune key remains; the file passes 7/7 and npm test 608 pass/1 skip; project gates 4/4. checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794258052.356506,
+      "timestamp_str": "2026-11-10 00:00:52",
+      "agent": "commandcode:9b9e6718"
+    },
+    {
+      "task_id": "context-floor-ui-test",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'context-floor-ui-test' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794258052.6539898,
+      "timestamp_str": "2026-11-10 00:00:52",
       "agent": "commandcode:9b9e6718"
     }
   ]
