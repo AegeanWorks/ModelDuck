@@ -33,7 +33,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
   maxTokens: 512,
   promptRepeat: 1,
   seed: -1,
-  contextSize: 4096,
+  contextSize: 16384,
   contextOverflow: "shift",
   reasoning: "off",
   structuredOutput: "none",
@@ -107,9 +107,9 @@ export const SETTING_PRESETS = Object.freeze({
   balanced: Object.freeze({
     id: "balanced",
     label: "Balanced",
-    description: "4K context, Q8 KV cache and a 512-token budget: a good default for CPU chat.",
+    description: "16K context, Q8 KV cache and a 512-token budget: a good default for CPU chat.",
     settings: Object.freeze({
-      contextSize: 4096,
+      contextSize: 16384,
       batchSize: 512,
       maxTokens: 512,
       topK: 40,
@@ -127,9 +127,9 @@ export const SETTING_PRESETS = Object.freeze({
   quality: Object.freeze({
     id: "quality",
     label: "Quality first",
-    description: "8K context, F16 KV cache, full mmap load and a 1024-token budget.",
+    description: "16K context, F16 KV cache, full mmap load and a 1024-token budget.",
     settings: Object.freeze({
-      contextSize: 8192,
+      contextSize: 16384,
       batchSize: 1024,
       maxTokens: 1024,
       topK: 60,

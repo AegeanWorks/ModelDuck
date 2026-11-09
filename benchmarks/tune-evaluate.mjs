@@ -5,7 +5,7 @@ import { LOAD_KEYS } from "../src/model-profiles.js";
 import { PROMPTS, SYSTEM_PROMPT, checkCount, evaluateResponse } from "./suite.mjs";
 
 const LOAD_DEFAULTS = Object.freeze({
-  contextSize: 4096,
+  contextSize: 16384,
   threads: 8,
   batchSize: 512,
   sequences: 1,

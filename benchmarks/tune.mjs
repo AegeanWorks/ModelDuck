@@ -573,7 +573,7 @@ export async function tune({
       // A quantized KV cache is chosen on short prompts but served long (M6):
       // any long-context item lost rejects it, whatever the load rungs said.
       const kvChoice = outcome.current.kvCache;
-      const budget = outcome.current.contextSize ?? before.contextSize ?? 4096;
+      const budget = outcome.current.contextSize ?? before.contextSize ?? 16384;
       const kvConfirm = kvChoice && kvChoice !== "f16"
         ? await kvConfirmCheck(context, outcome.current, longContext, budget)
         : null;

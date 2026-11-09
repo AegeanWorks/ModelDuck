@@ -50,7 +50,7 @@ test("state exposes models, settings and the local app info", async (t) => {
   assert.equal(data.models.length, 1);
   assert.equal(data.modelsDir, harness.paths.models);
   assert.equal(data.loaded.status, "ready");
-  assert.equal(data.settings.contextSize, 4096);
+  assert.equal(data.settings.contextSize, 16384);
 });
 
 test("benchmark report exposes both phases and per-test percentages", async (t) => {

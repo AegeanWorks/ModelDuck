@@ -140,7 +140,9 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
       });
     }
     const evaluate = createEvaluator({ engine, modelId: target.entry.id, beforeAnswer: () => lock.pauseIfNeeded() });
-    // Context size is a memory budget: the largest listed size that fits on the chosen device (ADR-043, M7).
+    // Context size is a memory budget: the largest listed size that covers the
+    // selected tasks and fits on the chosen device (ADR-043, M7). More context
+    // is the default; a tight machine falls back to the largest that fits.
     // Context is not searched for quality: the selected tasks need a known
     // prompt+answer budget, plus a margin for tokenizer and template overhead.
     const neededContext = neededContextFor(tasks) + 512;
@@ -149,7 +151,7 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
       const gpuBackend = settings.gpuBackend ?? "cpu";
       const choices = contextSizesFor(sizes, neededContext);
       const budget = await budgetContext({
-        steps: [choices[0]],
+        steps: choices,
         modelBytes: target.entry.size,
         shape: target.entry.kvShape,
         kvCache: settings.kvCache ?? "f16",
