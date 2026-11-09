@@ -2,7 +2,7 @@
   "schema": 1,
   "kind": "modelduck-profile",
   "catalogId": "qwen2.5-coder-1.5b-instruct-q4",
-  "exportedAt": "2026-11-09T19:37:07.096Z",
+  "exportedAt": "2026-11-09T20:05:11.771Z",
   "createdAt": "2026-11-08T02:58:49.391Z",
   "fingerprint": {
     "cpu": "Intel(R) Core(TM) i5-14400F",
@@ -83,25 +83,25 @@
         "maxTokens": 512
       },
       "stats": {
-        "rate": 46.2,
-        "solved": 30,
+        "rate": 49.2,
+        "solved": 32,
         "ci95": {
-          "low": 34.6,
-          "high": 58.1
+          "low": 37.5,
+          "high": 61.1
         },
-        "latencyMs": 286,
-        "latencySd": 115,
+        "latencyMs": 306,
+        "latencySd": 359.9,
         "outputTokens": 3,
-        "tokensPerSecond": 117.65,
+        "tokensPerSecond": 114.29,
         "truncationRate": 0,
         "giveUpRate": 0,
-        "promptTokens": 613,
-        "prefillTps": 2554.85,
-        "decodeTps": 70.6,
+        "promptTokens": 645.5,
+        "prefillTps": 2685.44,
+        "decodeTps": 71.43,
         "items": 65,
         "seeds": 1,
-        "memoryBytes": 148070432,
-        "gpuVram": 1425496576,
+        "memoryBytes": 160653344,
+        "gpuVram": 1790401024,
         "failed": false,
         "error": "The context is full",
         "outcomes": {
@@ -115,8 +115,8 @@
           "recall-two-needles": 1,
           "recall-list-position": 0,
           "recall-updated-value": 1,
-          "recall-long-4k": 0,
-          "recall-long-8k": 0,
+          "recall-long-4k": 1,
+          "recall-long-8k": 1,
           "recall-long-16k": 0,
           "recall-v10-pin-20-0": 1,
           "recall-v10-pin-20-3": 1,
@@ -182,8 +182,8 @@
           "recall-two-needles": 1,
           "recall-list-position": 0,
           "recall-updated-value": 1,
-          "recall-long-4k": 0,
-          "recall-long-8k": 0,
+          "recall-long-4k": 1,
+          "recall-long-8k": 1,
           "recall-long-16k": 0,
           "recall-v10-pin-20-0": 1,
           "recall-v10-pin-20-3": 1,
@@ -249,8 +249,8 @@
           "recall-two-needles": 1,
           "recall-list-position": 0,
           "recall-updated-value": 1,
-          "recall-long-4k": 0,
-          "recall-long-8k": 0,
+          "recall-long-4k": 1,
+          "recall-long-8k": 1,
           "recall-long-16k": 0,
           "recall-v10-pin-20-0": 1,
           "recall-v10-pin-20-3": 1,
@@ -306,7 +306,7 @@
           "context-v12-cross-ref-3": 1
         },
         "vsDefault": {
-          "rateDelta": 2.6,
+          "rateDelta": 2.5,
           "b": 0,
           "c": 4,
           "pValue": 0.125
@@ -388,7 +388,7 @@
         "holdout": null
       },
       "recall": {
-        "rate": 46.2,
+        "rate": 49.2,
         "items": 65,
         "holdout": null
       }
