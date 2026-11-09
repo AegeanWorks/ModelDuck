@@ -1,55 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "smollm-recall-prompt",
+    "task_id": "qwen05-thread-load",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794179300.080621,
+    "updated_at": 1794204668.8293176,
     "owner": "commandcode:9b9e6718",
     "started_by": "commandcode:9b9e6718",
     "continuations": [],
-    "completed_at": 1794179300.343101
+    "completed_at": 1794204669.303385
   },
   "checkpoints": [
-    {
-      "task_id": "local-guards-ui-honesty",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[4/4] Check: LAN mutations 403 with named codes while reads/chat pass; unload 409 model_busy on loading/busy then 200; benchmark tune forwards settings, rejects unknown setting/model before 202; single-id tune start works; npm test 589 pass/1 skip; ui:smoke OK incl. Tune confirm; 4/4 project gates; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794159361.797233,
-      "timestamp_str": "2026-11-08 20:36:01",
-      "agent": "commandcode:9b9e6718"
-    },
-    {
-      "task_id": "local-guards-ui-honesty",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'local-guards-ui-honesty' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794159363.0375109,
-      "timestamp_str": "2026-11-08 20:36:03",
-      "agent": "commandcode:9b9e6718"
-    },
-    {
-      "task_id": "unreadable-provenance",
-      "phase": "phase 1",
-      "phase_num": 1,
-      "description": "[1/1] Plan: hide Load for an unreadable model, show the reason the header failed, and put the measured date on benchmark cards and the dashboard latest profile",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794159500.0400321,
-      "timestamp_str": "2026-11-08 20:38:20",
-      "agent": "commandcode:9b9e6718",
-      "impact_assessment": {
-        "why": "The audit found Load offered for models that cannot be read, an Unreadable badge with no reason, and stored measurement dates never shown.",
-        "benefits": "No dead-end load attempt; the failure is diagnosable from the list; benchmark and profile provenance is visible.",
-        "risks": "contract: model entries gain unreadableReason; dependency: none; concurrency: none; state: none",
-        "mitigation": "model-registry test, full suite, UI smoke, project gates"
-      }
-    },
     {
       "task_id": "unreadable-provenance",
       "phase": "phase 4",
@@ -259,6 +221,44 @@
       "status": "completed",
       "timestamp": 1794179300.3431022,
       "timestamp_str": "2026-11-09 02:08:20",
+      "agent": "commandcode:9b9e6718"
+    },
+    {
+      "task_id": "qwen05-thread-load",
+      "phase": "phase 1",
+      "phase_num": 1,
+      "description": "[1/1] Plan: use the idle box to test the tuner's speed/quality choices for Qwen 0.5B; land only a load change that raises speed without quality or memory loss",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794204173.013281,
+      "timestamp_str": "2026-11-09 09:02:53",
+      "agent": "commandcode:9b9e6718",
+      "impact_assessment": {
+        "why": "The quality and speed stages were pending and the box is finally idle; threads 12 was the tuner's fastest pick.",
+        "benefits": "A measured per-second improvement at identical quality and memory; confirms f16 KV and rejects a 12.6 MB context increase.",
+        "risks": "contract: user profile and recipe; dependency: Vulkan; concurrency: other sessions; state: profile overwrite (backups kept)",
+        "mitigation": "A/B on all 136 code items, pin context 4096, regenerate the recipe, run tests and the gate"
+      }
+    },
+    {
+      "task_id": "qwen05-thread-load",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[4/4] Check: threads 12 vs auto on all 136 code items is quality-identical (33.8% both, 0 flips) and faster (298.5 -> 292 ms, 268.36 -> 271.13 tok/s, memory 105,147,424 B unchanged). Rejected contextSize 16384 (117.7 MB, no coding gain) and kvCache q8_0 (58.5 -> 52.3). Comprehension answer-only was 54.7 vs 48.4 but b=3/c=5 p=.73 (negative). npm test 606 pass/1 skip; tune:gate 9/9 ok. checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794204668.8293176,
+      "timestamp_str": "2026-11-09 09:11:08",
+      "agent": "commandcode:9b9e6718"
+    },
+    {
+      "task_id": "qwen05-thread-load",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'qwen05-thread-load' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794204669.3033876,
+      "timestamp_str": "2026-11-09 09:11:09",
       "agent": "commandcode:9b9e6718"
     }
   ]
