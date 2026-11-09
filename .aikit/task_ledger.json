@@ -1,55 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "context-floor-ui",
+    "task_id": "context-docs-16k",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794255118.6624186,
+    "updated_at": 1794257921.4071987,
     "owner": "commandcode:9b9e6718",
     "started_by": "commandcode:9b9e6718",
     "continuations": [],
-    "completed_at": 1794255119.2339087
+    "completed_at": 1794257921.698577
   },
   "checkpoints": [
-    {
-      "task_id": "stale-home-lock",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[4/4] Check: unit tests cover dead-PID takeover and refusal to steal an unreadable fresh lock; live repro started PID 17732, killed it, confirmed the lock stayed with the dead PID, restarted (new PID 22848) and /api/health returned 200. npm test 608 pass/1 skip; tune:gate 9/9 ok. checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794240409.7871,
-      "timestamp_str": "2026-11-09 19:06:49",
-      "agent": "commandcode:9b9e6718"
-    },
-    {
-      "task_id": "stale-home-lock",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'stale-home-lock' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794240410.2858028,
-      "timestamp_str": "2026-11-09 19:06:50",
-      "agent": "commandcode:9b9e6718"
-    },
-    {
-      "task_id": "stale-lock-docs",
-      "phase": "phase 1",
-      "phase_num": 1,
-      "description": "[1/1] Plan: record the dead-PID lock takeover as ADR-087 and update the README lock guidance without exceeding the 32,500-char gate",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794243840.7640903,
-      "timestamp_str": "2026-11-09 20:04:00",
-      "agent": "commandcode:9b9e6718",
-      "impact_assessment": {
-        "why": "The lock behavior changed in f6f2d96; the project requires an ADR and same-commit README updates for user-visible changes.",
-        "benefits": "Cold-start docs match the code; the ADR explains the ESRCH/EPERM rules and the race bound.",
-        "risks": "contract: ADR register and README budget; dependency: none; concurrency: none; state: none",
-        "mitigation": "append ADR-087 after ADR-086, trim verbose README prose to stay under the cap, run the project check and tests"
-      }
-    },
     {
       "task_id": "stale-lock-docs",
       "phase": "phase 4",
@@ -259,6 +221,44 @@
       "status": "completed",
       "timestamp": 1794255119.2339113,
       "timestamp_str": "2026-11-09 23:11:59",
+      "agent": "commandcode:9b9e6718"
+    },
+    {
+      "task_id": "context-docs-16k",
+      "phase": "phase 1",
+      "phase_num": 1,
+      "description": "[1/1] Plan: correct the README memory/context guidance after the fixed floor and confirm the code presets' receipts at 16K",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794257906.6332917,
+      "timestamp_str": "2026-11-09 23:58:26",
+      "agent": "commandcode:9b9e6718",
+      "impact_assessment": {
+        "why": "The README promised a silent context reduction and told users to lower context; the engine now fails instead, and context is floored.",
+        "benefits": "Docs match the engine; the receipts are confirmed at the served load.",
+        "risks": "contract: README; dependency: none; concurrency: none; state: none",
+        "mitigation": "edit the two troubleshooting paragraphs, mark ADR-088 superseded in part, measure both code presets on their rungs"
+      }
+    },
+    {
+      "task_id": "context-docs-16k",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[4/4] Check: Qwen code 35.4/48 and coder code 59/48 at 16K match their stored receipts, so those need no update; README now says context is not reduced silently and cannot be shrunk; ADR-088 marked superseded in part. npm test 607 pass/1 skip; project gates 4/4. checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794257921.4071987,
+      "timestamp_str": "2026-11-09 23:58:41",
+      "agent": "commandcode:9b9e6718"
+    },
+    {
+      "task_id": "context-docs-16k",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'context-docs-16k' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794257921.6985781,
+      "timestamp_str": "2026-11-09 23:58:41",
       "agent": "commandcode:9b9e6718"
     }
   ]
