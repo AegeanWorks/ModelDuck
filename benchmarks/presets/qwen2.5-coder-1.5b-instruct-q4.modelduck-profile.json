@@ -2,7 +2,7 @@
   "schema": 1,
   "kind": "modelduck-profile",
   "catalogId": "qwen2.5-coder-1.5b-instruct-q4",
-  "exportedAt": "2026-11-09T18:54:33.610Z",
+  "exportedAt": "2026-11-09T19:14:05.532Z",
   "createdAt": "2026-11-08T02:58:49.391Z",
   "fingerprint": {
     "cpu": "Intel(R) Core(TM) i5-14400F",
@@ -18,7 +18,7 @@
   },
   "load": {
     "settings": {
-      "contextSize": 4096,
+      "contextSize": 16384,
       "kvCache": "f16",
       "flashAttention": "auto",
       "useMmap": "auto",

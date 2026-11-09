@@ -2,7 +2,7 @@
   "schema": 1,
   "kind": "modelduck-profile",
   "catalogId": "smollm2-135m-instruct-q4",
-  "exportedAt": "2026-11-08T23:01:11.189Z",
+  "exportedAt": "2026-11-09T19:14:05.520Z",
   "createdAt": "2026-11-08T22:59:07.367Z",
   "fingerprint": {
     "cpu": "Intel(R) Core(TM) i5-14400F",
@@ -19,7 +19,8 @@
   "load": {
     "settings": {
       "gpuLayers": "max",
-      "gpuBackend": "vulkan"
+      "gpuBackend": "vulkan",
+      "contextSize": 16384
     },
     "stats": null
   },
