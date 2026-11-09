@@ -101,7 +101,8 @@ test("a profile recipe carries settings and a receipt, and imports back", () => 
   assert.equal("sweeps" in recipe, false, "the sweep log is not portable");
   assert.equal(recipe.receipt.rates.code.rate, 75);
   const imported = importRecipe(recipe);
-  assert.deepEqual(imported.load.settings, { contextSize: 8192, threads: 8, kvCache: "q8_0" });
+  assert.deepEqual(imported.load.settings, { threads: 8, kvCache: "q8_0" }, "the 16K floor is the default, so it is not repeated");
+  assert.equal(imported.load.settings.contextSize, undefined);
   assert.deepEqual(imported.tasks.code.settings, { temperature: 0.2, maxTokens: 1024 });
   assert.equal(imported.tasks.comprehension.settings.maxTokens, 768);
   assert.equal(imported.search.imported, true);

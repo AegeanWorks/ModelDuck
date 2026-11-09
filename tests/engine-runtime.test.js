@@ -85,20 +85,18 @@ test("a load that will not fit in memory is refused before anything is loaded", 
   assert.equal(loaded, false);
 });
 
-test("a fitting load reports its verdict and any silent context fallback", async () => {
+test("a load that cannot allocate the 16K floor fails instead of silently shrinking", async () => {
   const engine = new LlamaEngine({
     registry: { findById: () => BIG_ENTRY },
     logger: quiet,
     availableMemory: () => 16 * GIB,
     loadRuntime: workingRuntime({ maxContext: 2048 }),
   });
-  const state = await engine.load({ modelId: "m1", gpuBackend: "cpu", contextSize: 8192, kvCache: "q8_0" });
-  assert.equal(state.fit.verdict, "comfortable");
-  assert.deepEqual(
-    { requested: state.contextFallback.requested, actual: state.contextFallback.actual },
-    { requested: 8192, actual: 2048 },
+  await assert.rejects(
+    () => engine.load({ modelId: "m1", gpuBackend: "cpu", contextSize: 8192, kvCache: "q8_0" }),
+    (error) => /16384|allocate|context/i.test(`${error.message} ${error.why ?? ""}`),
   );
-  assert.match(state.contextFallback.reason, /allocate/);
+  assert.equal((await engine.status()).status, "error");
 });
 
 test("GPU offload skips the RAM check instead of refusing", async () => {

@@ -22,11 +22,12 @@ import {
 
 const values = (axes, name) => axes.find((axis) => axis.name === name)?.patches.map((patch) => Object.values(patch)[0]);
 
-test("quality axes are the load settings that can change answers", () => {
+test("quality axes tune the KV cache only; context is a fixed floor", () => {
   const axes = qualityAxes();
-  assert.deepEqual(axes.map((axis) => axis.name), ["contextSize", "kvCache"]);
-  assert.deepEqual(values(axes, "contextSize"), [2048, 4096, 8192, 16384]);
+  assert.deepEqual(axes.map((axis) => axis.name), ["kvCache"]);
   assert.deepEqual(values(axes, "kvCache"), ["f16", "q8_0", "q8_0:q4_0"], "symmetric q4_0 is out (lit §3), mixed K/V is measured");
+  assert.equal(DEFAULT_STEPS.load.contextSize, undefined, "context is not a step");
+  assert.ok(!settingNames().includes("contextSize"), "context is not a --settings name");
 });
 
 test("speed axes are the load settings that only change speed", () => {
@@ -116,11 +117,11 @@ test("a quantized KV cache with flash attention off is not a real combination", 
 
 test("user steps are checked against the settings ranges; bad values are reported, not clamped", () => {
   const { steps, problems } = normalizeSteps({
-    load: { contextSize: [256, 4096, 4096, "big", 8192], kvCache: ["f16", "q2_k"], threads: [] },
+    load: { contextSize: [256, 4096], kvCache: ["f16", "q2_k"], threads: [] },
     sampling: { temperature: [0, 0.5, 3], repeatPenalty: [0.9, 1.1], maxTokens: { code: [512, 8] } },
     prompt: { systemPrompt: ["Be brief.", "", "Be brief."], reasoning: ["off", "loud"], promptRepeat: [1, 4] },
   });
-  assert.deepEqual(steps.load.contextSize, [4096, 8192]);
+  assert.equal(steps.load.contextSize, undefined, "context steps are dropped: the floor is fixed");
   assert.deepEqual(steps.load.kvCache, ["f16"]);
   assert.deepEqual(steps.load.threads, DEFAULT_STEPS.load.threads, "an emptied axis falls back to its defaults");
   assert.deepEqual(steps.sampling.temperature, [0, 0.5]);
@@ -129,14 +130,14 @@ test("user steps are checked against the settings ranges; bad values are reporte
   assert.deepEqual(steps.prompt.systemPrompt, ["Be brief."]);
   assert.deepEqual(steps.prompt.reasoning, ["off"]);
   assert.deepEqual(steps.prompt.promptRepeat, [1]);
-  for (const text of ["contextSize 256", "kvCache q2_k", "temperature 3", "repeatPenalty 0.9", "maxTokens.code 8", "reasoning loud", "promptRepeat 4", "threads"]) {
+  for (const text of ["kvCache q2_k", "temperature 3", "repeatPenalty 0.9", "maxTokens.code 8", "reasoning loud", "promptRepeat 4", "threads"]) {
     assert.ok(problems.some((problem) => problem.includes(text)), `no problem reported for ${text}`);
   }
 });
 
 test("the estimate covers all four stages and the worst case of two passes", () => {
   const estimate = estimateTune(DEFAULT_STEPS, { logicalCores: 16, tasks: ["comprehension"], secondsPerAnswer: 3, reloadSeconds: 5 });
-  assert.equal(estimate.quality.configs, 3, "only the KV cache is measured; the context size is a memory budget (ADR-043)");
+  assert.equal(estimate.quality.configs, 3, "only the KV cache is measured; the context is a fixed 16K floor (ADR-089)");
   assert.equal(estimate.speed.configs, 2 + 2 + 6 + 7);
   assert.equal(estimate.sampling.comprehension.configs, 6 + 6 + 2 + 2 + 3, "sampler, tokens, repeat, newline, top-k (G2/G4)");
   assert.equal(estimate.prompt.comprehension.configs, 22 + 2 + 2);
@@ -175,8 +176,9 @@ test("lane counts are settings, since every PC has different CPU and GPU", () =>
 test("every setting a tune can run on its own has a name, in stage order", () => {
   const names = settingNames();
   assert.equal(names[0], "device");
-  for (const name of ["contextSize", "kvCache", "threads", "batchSize", "checkpointing", "sampler", "maxTokens", "systemPrompt", "promptRepeat"]) assert.ok(names.includes(name), name);
-  assert.ok(names.indexOf("contextSize") < names.indexOf("threads") && names.indexOf("threads") < names.indexOf("sampler"));
+  for (const name of ["kvCache", "threads", "batchSize", "checkpointing", "sampler", "maxTokens", "systemPrompt", "promptRepeat"]) assert.ok(names.includes(name), name);
+  assert.ok(!names.includes("contextSize"), "context is a fixed floor, not a setting");
+  assert.ok(names.indexOf("threads") < names.indexOf("sampler"));
 });
 
 test("a run's expected answers count only its chosen stages or settings, and the budgeted context costs none", () => {
@@ -186,7 +188,7 @@ test("a run's expected answers count only its chosen stages or settings, and the
   assert.ok(prompt > 0 && prompt < whole);
   const reasoning = expectedAnswers(DEFAULT_STEPS, { tasks: ["comprehension"], only: ["reasoning"] });
   assert.ok(reasoning > 0 && reasoning < prompt, "one setting is a fraction of its stage");
-  assert.equal(expectedAnswers(DEFAULT_STEPS, { tasks: ["comprehension"], only: ["contextSize"] }), 0, "the context size is a memory budget, not measured");
+  assert.equal(expectedAnswers(DEFAULT_STEPS, { tasks: ["comprehension"], only: ["contextSize"] }), 0, "context is not a measurable setting");
 });
 
 test("the preflight seconds cover only the selected stages or settings (D3)", () => {

@@ -7,7 +7,7 @@ export function parseStepList(text) {
   return parts.map((part) => (/^-?\d+(\.\d+)?$/.test(part) ? Number(part) : part));
 }
 
-const LOAD_ORDER = ["contextSize", "kvCache", "flashAttention", "useMmap", "batchSize", "threads"];
+const LOAD_ORDER = ["kvCache", "flashAttention", "useMmap", "batchSize", "threads"];
 const SAMPLING_ORDER = ["repeatPenalty", "minP", "topP", "topK"];
 
 /**

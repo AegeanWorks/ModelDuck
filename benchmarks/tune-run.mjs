@@ -19,7 +19,7 @@ older test, runtime, CPU or model file is kept with a warning until --force.
 
   --model <id>       catalog id or installed file name (required)
   --tasks <list>     comma-separated subset of ${TASKS.map((task) => task.id).join(",")}
-  --settings <list>  tune only these settings, even if tuned before, e.g. contextSize,threads
+  --settings <list>  tune only these settings, even if tuned before, e.g. threads,batchSize
                      (names: ${settingNames().join(",")})
   --stages <list>    comma-separated subset of ${STAGES.join(",")} (in this order); a saved
                      profile keeps finished stages, and untuned settings stay default
@@ -96,9 +96,9 @@ async function main() {
     } });
   }
   const target = await openTarget(options);
-  // The suite's code prompts are short; this tells the user the context the
-  // selected tasks actually need before a larger real repository does.
-  log(options, `These tasks' longest prompt needs about ${neededContextFor(options.tasks)} context tokens before the answer budget.`);
+  // The context is fixed at the 16K floor; this tells the user what the
+  // selected tasks need, so a larger real repository is not a surprise.
+  log(options, `Tuning at the fixed 16384 context; these tasks' longest prompt needs about ${neededContextFor(options.tasks)} tokens before the answer budget.`);
   const loaded = await readSteps(options.grid ?? target.paths.tuneGrid);
   let steps = loaded.steps;
   if (options.interactive) {

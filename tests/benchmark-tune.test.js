@@ -19,7 +19,6 @@ const BASE = {
 };
 const AXES = {
   qualityAxes: [
-    { name: "contextSize", patches: [2048, 4096, 8192].map((contextSize) => ({ contextSize })) },
     { name: "kvCache", patches: ["f16", "q8_0", "q4_0"].map((kvCache) => ({ kvCache })) },
   ],
   speedAxes: [
@@ -88,9 +87,9 @@ function run(overrides = {}) {
   return { model, result };
 }
 
-test("stage 1 picks the smallest context recall needs and keeps the KV cache that loses nothing", async () => {
+test("stage 1 tunes only the KV cache; context is not stored", async () => {
   const { load, stages } = await run().result;
-  assert.equal(load.settings.contextSize, 8192);
+  assert.equal(load.settings.contextSize, undefined, "context is the fixed 16K floor");
   assert.equal(load.settings.kvCache, "f16", "q8_0 was no faster and q4_0 lost an item");
   assert.equal(stages.quality, "done");
 });
@@ -164,7 +163,7 @@ test("a guardrail stops the remaining tasks below the saved baseline", async () 
 test("only the chosen stages run, and only tuned keys are stored, so the rest stay default", async () => {
   const { model, result } = run({ stages: ["quality"] });
   const done = await result;
-  assert.deepEqual(done.load.settings, { contextSize: 8192, kvCache: "f16" });
+  assert.deepEqual(done.load.settings, { kvCache: "f16" });
   assert.equal(done.stages.speed, "pending");
   assert.deepEqual(done.tasks, {});
   assert.ok(model.calls.every((call) => call.itemIds[0].startsWith("mix")));
@@ -175,7 +174,8 @@ test("a resumed tune continues after the finished stages without measuring them 
   const { model, result } = run({ resume: { ...first.progress, sweeps: first.sweeps } });
   const done = await result;
   assert.equal(model.calls.filter((call) => call.itemIds[0].startsWith("mix")).length, 0);
-  assert.equal(done.load.settings.contextSize, 8192);
+  assert.equal(done.load.settings.contextSize, undefined, "context stays at the fixed floor");
+  assert.equal(done.load.settings.kvCache, "f16");
   assert.equal(done.stages.speed, "done");
   assert.equal(done.tasks.math.settings.systemPrompt, "Think from first principles.");
   assert.ok(done.sweeps.length > first.sweeps.length, "earlier sweeps are kept");
@@ -265,9 +265,9 @@ test("a sampler change makes the prompt unproven and measures it again on the ne
 test("progress is reported after every axis, so a stopped tune keeps what it found", async () => {
   const states = [];
   await run({ onProgress: (state) => states.push(structuredClone(state)) }).result;
-  const afterContext = states.find((state) => state.quality.done.includes("1:contextSize"));
-  assert.equal(afterContext.quality.status, "partial");
-  assert.deepEqual(afterContext.quality.settings, { contextSize: 8192, kvCache: "f16" });
+  const afterKv = states.find((state) => state.quality.done.includes("1:kvCache"));
+  assert.equal(afterKv.quality.status, "partial");
+  assert.deepEqual(afterKv.quality.settings, { kvCache: "f16" });
   assert.equal(states.at(-1).prompt.recall.status, "done");
 });
 
@@ -818,12 +818,11 @@ test("timing stages hold the timing lock, and only they do", async () => {
 
 test("only chosen settings re-run, on top of everything else's current best", async () => {
   const first = await run().result;
-  const { model, result } = run({ resume: { ...first.progress, sweeps: first.sweeps }, only: ["contextSize"] });
+  const { model, result } = run({ resume: { ...first.progress, sweeps: first.sweeps }, only: ["kvCache"] });
   const done = await result;
   const swept = done.sweeps.slice(first.sweeps.length).map((sweep) => sweep.axis);
-  assert.deepEqual([...new Set(swept)], ["contextSize"]);
+  assert.deepEqual([...new Set(swept)], ["kvCache"]);
   assert.ok(model.calls.every((call) => call.itemIds[0].startsWith("mix")));
-  assert.ok(model.calls.every((call) => call.settings.kvCache === first.load.settings.kvCache), "the other quality setting stays at its tuned value");
   assert.equal(done.stages.quality, "done", "a finished stage stays finished");
   assert.deepEqual(done.tasks.math.settings, first.tasks.math.settings);
 });
@@ -927,29 +926,8 @@ test("when nothing can load, the tune stops with the reason instead of choosing 
   assert.equal(result.stages.quality, "pending", "nothing is marked tuned");
   assert.equal(result.tasks.math, undefined, "no preset is made from failed answers");
   // The first rung of the first axis (with the baseline measurement), then nothing: no other axis, no later stage.
-  assert.ok(calls.every((call) => call.kvCache === BASE.kvCache && call.temperature === 0), "it stops before any other axis");
+  assert.ok(calls.every((call) => call.temperature === 0), "it stops before samples or prompts: only the quality stage ran");
   assert.ok(answers <= 2 * RUNGS.speed[0].length + AXES.qualityAxes[0].patches.length * RUNGS.load[0].length, "the two device probes and one quality rung, however chunked");
-});
-
-test("with a memory budget, the context size comes from free memory, not from short questions", async () => {
-  const asked = [];
-  const { model, result } = run({
-    qualityAxes: [{ ...AXES.qualityAxes[0], budget: true }, AXES.qualityAxes[1]],
-    contextBudget: async (settings, sizes) => {
-      asked.push({ kvCache: settings.kvCache, sizes });
-      return { contextSize: settings.kvCache === "q8_0" ? 8192 : 4096, reason: "4096 is the largest listed context that fits comfortably" };
-    },
-  });
-  const { load, sweeps } = await result;
-  const context = sweeps.find((sweep) => sweep.axis === "contextSize");
-  assert.equal(context.budget, true);
-  assert.match(context.reason, /fits comfortably/);
-  assert.deepEqual(context.rungs, [], "no context size was measured on questions");
-  assert.deepEqual(asked[0].sizes, [2048, 4096, 8192]);
-  assert.equal(load.settings.contextSize, 4096);
-  assert.ok(sweeps.some((sweep) => sweep.axis === "kvCache" && sweep.rungs.length > 0), "the KV cache is still measured");
-  const contexts = new Set(model.calls.filter((call) => call.itemIds.some((id) => id.startsWith("mix"))).map((call) => call.settings.contextSize));
-  assert.deepEqual([...contexts], [4096], "quality questions only ran at the budgeted size");
 });
 
 test("reasoning on is tried with room to answer, and the preset keeps that room", async () => {

@@ -396,11 +396,7 @@ async function descend(context, { stage, task = null, axes, start, rungs, forced
       lastPass = pass;
       if (context.measurements.exhausted) return { current, aborted: true };
       let result;
-      if (axis.budget && context.contextBudget) {
-        const choice = await context.contextBudget(current, axis.patches.map((patch) => patch.contextSize));
-        const winner = { contextSize: choice.contextSize };
-        result = { stage, task, axis: axis.name, budget: true, reason: choice.reason, ...(choice.inputs && { inputs: choice.inputs }), rungs: [], previous: { contextSize: current.contextSize }, winner, changed: winner.contextSize !== current.contextSize };
-      } else if (axis.greedyNoop && current.temperature === 0) {
+      if (axis.greedyNoop && current.temperature === 0) {
         // Truncation-only settings cannot change a greedy answer.
         result = { stage, task, axis: axis.name, skippedReason: "temperature 0 (greedy): this setting cannot change the answer", rungs: [], winner: null, changed: false };
       } else if (typeof axis.skipWhen === "function" && axis.skipWhen(current)) {
@@ -479,8 +475,6 @@ export async function tune({
   parallel = 1,
   // Held while a stage times answers, so tunes running side by side pause (ADR-033).
   timing = { acquire: async () => {}, release: async () => {} },
-  // (settings, sizes) => { contextSize, reason }: the context that fits in free memory (ADR-043).
-  contextBudget = null,
   // (settings, seed, answers) for every newly measured answer.
   onAnswers = () => {},
   // Saved answers to prefill the cache with (G8): [{ settings, seed, rows }].
@@ -509,7 +503,7 @@ export async function tune({
   const threadCap = hardware.logicalCores ? Math.max(1, Math.floor(hardware.logicalCores * 0.75)) : Infinity;
   const start = (base.threads ?? 0) > threadCap ? { ...base, threads: threadCap } : base;
   const state = resume ? { ...emptyProgress(), ...structuredClone(resume) } : emptyProgress();
-  const context = { options: settings, measurements: new Measurements(evaluate, settings.maxRuns, onAnswers, { quota: settings.quota ?? Infinity }), sweeps: state.sweeps, onEvent, stageBest: -Infinity, stageBestSolved: -Infinity, valid: isValidCombination, contextBudget, typeOf, groupOf, clusterOf };
+  const context = { options: settings, measurements: new Measurements(evaluate, settings.maxRuns, onAnswers, { quota: settings.quota ?? Infinity }), sweeps: state.sweeps, onEvent, stageBest: -Infinity, stageBestSolved: -Infinity, valid: isValidCombination, typeOf, groupOf, clusterOf };
   // A continue or re-tune reuses exact settings/seed/item matches from earlier answers (G8).
   for (const saved of restore ?? []) {
     try {

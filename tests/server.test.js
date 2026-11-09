@@ -269,7 +269,7 @@ test("settings updates are validated and persisted", async (t) => {
   assert.equal(response.status, 200);
   const data = await response.json();
   assert.equal(data.settings.temperature, 2);
-  assert.equal(data.settings.contextSize, 512);
+  assert.equal(data.settings.contextSize, 16384, "the 16K floor is enforced");
   assert.equal(data.settings.warpDrive, undefined);
 
   const persisted = await fetch(`${harness.base}/api/settings`).then((item) => item.json());
@@ -531,22 +531,22 @@ test("tune steps can be read, edited and estimated through the API", async (t) =
   const harness = await makeHarness(t);
   const initial = await (await fetch(`${harness.base}/api/tune/steps`)).json();
   assert.equal(initial.custom, false);
-  assert.deepEqual(initial.steps.load.contextSize, [2048, 4096, 8192, 16384]);
+  assert.equal(initial.steps.load.contextSize, undefined, "context is a fixed floor, not a step");
   assert.deepEqual(initial.defaults.load.threads, [1, 2, 4, 6, 8, 10, 12]);
   assert.ok(initial.estimate.quality.configs > 0);
   assert.ok(initial.estimate.speed.configs > 0);
   assert.equal(initial.settingNames[0], "device");
-  assert.ok(initial.settingNames.includes("contextSize"));
+  assert.ok(!initial.settingNames.includes("contextSize"));
 
   const saved = await fetch(`${harness.base}/api/tune/steps`, {
     method: "PUT",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ steps: { load: { contextSize: [4096, 100] } } }),
+    body: JSON.stringify({ steps: { load: { threads: [4, 100] } } }),
   });
   assert.equal(saved.status, 200);
   const body = await saved.json();
-  assert.deepEqual(body.steps.load.contextSize, [4096]);
-  assert.ok(body.problems.some((problem) => problem.includes("contextSize 100")));
+  assert.deepEqual(body.steps.load.threads, [4]);
+  assert.ok(body.problems.some((problem) => problem.includes("threads 100")));
   assert.equal((await (await fetch(`${harness.base}/api/tune/steps`)).json()).custom, true);
 
   const estimate = await (await fetch(`${harness.base}/api/tune/estimate?tasks=code&stages=quality,sampling`)).json();
@@ -595,13 +595,13 @@ test("tunes for one model or all installed models are scheduled, watched and can
   const post = (route, body) => fetch(`${harness.base}${route}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body ?? {}) });
 
   assert.deepEqual(await (await fetch(`${harness.base}/api/tune/status`)).json(), { job: null });
-  const all = await post("/api/tune/start", { models: "all", stages: ["device", "quality"], settings: ["contextSize"], force: true });
+  const all = await post("/api/tune/start", { models: "all", stages: ["device", "quality"], settings: ["kvCache"], force: true });
   assert.equal(all.status, 202);
   assert.equal(starts[0].models.length, 2);
   assert.deepEqual(Object.keys(starts[0].models[0]).sort(), ["fileName", "id", "name", "profileId"]);
   assert.deepEqual(starts[0].stages, ["device", "quality"]);
   assert.equal(starts[0].force, true);
-  assert.deepEqual(starts[0].settings, ["contextSize"]);
+  assert.deepEqual(starts[0].settings, ["kvCache"]);
   const bad = await post("/api/tune/start", { models: "all", settings: ["warpDrive"] });
   assert.equal(bad.status, 400);
   assert.equal((await bad.json()).error.code, "unknown_setting");

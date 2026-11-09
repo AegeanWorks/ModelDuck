@@ -353,7 +353,8 @@ export class LlamaEngine {
    * RAM, so the check is skipped when layers are offloaded.
    */
   async #planFit(entry, { contextSize, kvCache, gpuLayers, batchSize, sequences, flashAttention }) {
-    const contextTokens = Math.max(512, Math.min(Number(contextSize) || 16384, entry.contextLength || Infinity));
+    const requested = Math.max(16384, Number(contextSize) || 16384);
+    const contextTokens = Math.max(512, Math.min(requested, entry.contextLength || Infinity));
     const kvLabel = validKvLabel(kvCache);
     const v2 = await this.#contextRequirementsV2(entry, { contextSize: contextTokens, gpuLayers, batchSize, sequences, flashAttention, kvCache: kvLabel });
     const estimate = v2
@@ -606,8 +607,11 @@ export class LlamaEngine {
         }
       }
       const trained = this.#model.trainContextSize || 16384;
-      const wanted = Math.max(512, Math.min(Number(contextSize) || 16384, trained));
-      const attempts = [...new Set([wanted, Math.min(wanted, 3072), 2048, 1024])];
+      // Context is a fixed 16K floor for coding (ADR-089); only a model trained
+      // for less may go under it, and the load never silently shrinks further.
+      const requested = Math.max(16384, Number(contextSize) || 16384);
+      const wanted = Math.max(512, Math.min(requested, trained));
+      const attempts = [wanted];
       this.#checkpoints = checkpoints !== false;
       this.#checkpointInterval = Math.max(128, Math.min(32768, Number(checkpointInterval) || 8192));
       this.#checkpointMax = Math.max(1, Math.min(64, Number(checkpointMax) || 32));

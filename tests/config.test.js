@@ -131,6 +131,11 @@ test("sampling fields clamp and presets are benchmark candidates", () => {
   const preset = applyPreset("token_saver", { systemPrompt: "keep me" });
   assert.equal(preset.kvCache, "q8_0", "q4_0 KV measured 19.1% on Qwen2.5 0.5B (IDEA-1062)");
   assert.equal(preset.systemPrompt, "keep me");
+  assert.equal(DEFAULT_SETTINGS.contextSize, 16384, "coding needs the 16K floor (ADR-089)");
+  assert.equal(normalizeSettings({ contextSize: 1024 }).contextSize, 16384, "a smaller context is clamped up");
+  for (const name of Object.keys(SETTING_PRESETS)) {
+    assert.equal(SETTING_PRESETS[name].settings.contextSize, undefined, `${name} does not override the context floor`);
+  }
 });
 
 test("a long stop list keeps the first stops instead of dropping the fence", () => {

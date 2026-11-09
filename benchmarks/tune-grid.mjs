@@ -87,7 +87,7 @@ export const DEFAULT_STEPS = freezeDeep({
   // Tunes run side by side in lanes (ADR-033); set per PC. 0 GPU lanes runs GPU models one after another.
   lanes: { cpu: 1, gpu: 2 },
   load: {
-    contextSize: [2048, 4096, 8192, 16384],
+    // Context is a fixed 16K floor, not a tunable (ADR-089).
     // Symmetric q4_0 is off the default list (lit §3: catastrophic at context);
     // the mixed K/V Pareto point is measured instead. q4_0 stays a valid opt-in.
     kvCache: ["f16", "q8_0", "q8_0:q4_0"],
@@ -128,7 +128,6 @@ const oneOf = (...allowed) => (value) => allowed.includes(value);
 
 /** The ranges the settings form accepts (`normalizeSettings`); a step outside one would be silently clamped. */
 const VALID = Object.freeze({
-  contextSize: number(512, 32768, true),
   kvCache: oneOf("f16", "q8_0", "q4_0", "q8_0:q4_0"),
   flashAttention: oneOf("auto", "on", "off"),
   useMmap: oneOf("auto", "on", "off"),
@@ -188,7 +187,6 @@ export function normalizeSteps(input = {}) {
     lanes: { cpu: lane("cpu", VALID.cpuLanes), gpu: lane("gpu", VALID.gpuLanes) },
     device: { backends: backends.includes("cpu") ? backends : ["cpu", ...backends] },
     load: {
-      contextSize: list("contextSize", load.contextSize, defaults.load.contextSize),
       kvCache: list("kvCache", load.kvCache, defaults.load.kvCache),
       flashAttention: list("flashAttention", load.flashAttention, defaults.load.flashAttention),
       useMmap: list("useMmap", load.useMmap, defaults.load.useMmap),
@@ -237,11 +235,9 @@ export function isValidCombination(settings) {
 const axis = (name, key, values, extra = {}) =>
   Object.freeze({ name, patches: Object.freeze(values.map((value) => Object.freeze({ [key]: value }))), ...extra });
 
-/** Stage 1: load settings that can change answers; context first so KV runs on the size recall needs. */
+/** Stage 1: load settings that can change answers. Context is fixed at the 16K floor (ADR-089). */
 export function qualityAxes(steps = DEFAULT_STEPS.load) {
-  // The test questions are short, so no context size answers better than another; a tune with a
-  // memory budget picks the largest listed size that fits instead of measuring them (ADR-043).
-  return Object.freeze([{ ...axis("contextSize", "contextSize", steps.contextSize), budget: true }, axis("kvCache", "kvCache", steps.kvCache)]);
+  return Object.freeze([axis("kvCache", "kvCache", steps.kvCache)]);
 }
 
 /** Stage 2: load settings that only change speed, measured on a fixed workload. */

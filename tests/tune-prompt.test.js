@@ -20,7 +20,6 @@ test("the prompt walks every setting; Enter keeps, a list replaces, and checkpoi
     shown += chunk;
   });
   const answers = [
-    "4096 8192", // contextSize
     "", // kvCache
     "", // flashAttention
     "", // useMmap
@@ -36,11 +35,11 @@ test("the prompt walks every setting; Enter keeps, a list replaces, and checkpoi
   const pending = askSteps(DEFAULT_STEPS, { input, output });
   input.end(`${answers.join("\n")}\n`);
   const steps = await pending;
-  assert.deepEqual(steps.load.contextSize, [4096, 8192]);
+  assert.equal(steps.load.contextSize, undefined, "context is not a step: the 16K floor is fixed");
   assert.deepEqual(steps.load.kvCache, DEFAULT_STEPS.load.kvCache);
   assert.deepEqual(steps.load.threads, [4, 8]);
   assert.deepEqual(steps.load.checkpointing, { enabled: true, interval: [512], max: [8, 16] });
   assert.deepEqual(steps.sampling.temperature, [0, 0.2, 0.4]);
   assert.deepEqual(steps.sampling.maxTokens, DEFAULT_STEPS.sampling.maxTokens);
-  assert.match(shown, /contextSize \[2048, 4096, 8192, 16384\]/);
+  assert.ok(!shown.includes("contextSize"), "the prompt never asks for a context size");
 });

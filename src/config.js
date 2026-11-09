@@ -87,9 +87,8 @@ export const SETTING_PRESETS = Object.freeze({
   token_saver: Object.freeze({
     id: "token_saver",
     label: "Token saver",
-    description: "Lightest memory: small context and batch with the Q8 KV cache. Q4 KV saved little more memory but measured a large quality drop on Qwen2.5 0.5B.",
+    description: "Lightest memory: small batch with the Q8 KV cache. Q4 KV saved little more memory but measured a large quality drop on Qwen2.5 0.5B.",
     settings: Object.freeze({
-      contextSize: 2048,
       batchSize: 128,
       maxTokens: 256,
       topK: 20,
@@ -107,9 +106,8 @@ export const SETTING_PRESETS = Object.freeze({
   balanced: Object.freeze({
     id: "balanced",
     label: "Balanced",
-    description: "16K context, Q8 KV cache and a 512-token budget: a good default for CPU chat.",
+    description: "Q8 KV cache and a 512-token budget: a good default for CPU chat.",
     settings: Object.freeze({
-      contextSize: 16384,
       batchSize: 512,
       maxTokens: 512,
       topK: 40,
@@ -127,9 +125,8 @@ export const SETTING_PRESETS = Object.freeze({
   quality: Object.freeze({
     id: "quality",
     label: "Quality first",
-    description: "16K context, F16 KV cache, full mmap load and a 1024-token budget.",
+    description: "F16 KV cache, full mmap load and a 1024-token budget.",
     settings: Object.freeze({
-      contextSize: 16384,
       batchSize: 1024,
       maxTokens: 1024,
       topK: 60,
@@ -148,9 +145,8 @@ export const SETTING_PRESETS = Object.freeze({
     id: "cheap",
     label: "Cheap",
     description:
-      "Temperature-as-cost: low temperature (0.2) with truncated top-p (0.8) and min-p 0.1 per tuner v8 sampler profiles; small context and batch keep it fast.",
+      "Temperature-as-cost: low temperature (0.2) with truncated top-p (0.8) and min-p 0.1 per tuner v8 sampler profiles; small batch keeps it fast.",
     settings: Object.freeze({
-      contextSize: 2048,
       batchSize: 128,
       maxTokens: 256,
       temperature: 0.2,
@@ -273,7 +269,7 @@ export function normalizeSettings(input = {}) {
     maxTokens: clampInteger(source.maxTokens, 16, 8192, DEFAULT_SETTINGS.maxTokens), // aikit:allow-secret token limit
     promptRepeat: clampInteger(source.promptRepeat, 1, 3, DEFAULT_SETTINGS.promptRepeat),
     seed: clampInteger(source.seed, -1, 2147483647, DEFAULT_SETTINGS.seed),
-    contextSize: clampInteger(source.contextSize, 512, 32768, DEFAULT_SETTINGS.contextSize),
+    contextSize: clampInteger(source.contextSize, 16384, 32768, DEFAULT_SETTINGS.contextSize),
     contextOverflow: CONTEXT_OVERFLOW_TYPES.has(String(source.contextOverflow ?? "shift"))
       ? String(source.contextOverflow ?? "shift")
       : DEFAULT_SETTINGS.contextOverflow,
