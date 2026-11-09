@@ -286,8 +286,8 @@
             <div class="form-divider full"><span>Runtime</span><small>Reload the model to apply</small></div>
             <label class="field">
               <span>Context size</span>
-              <input id="setting-context" type="number" min="512" max="32768" step="512" />
-              <small>How much context the model can see. Reload a model to apply.</small>
+              <input id="setting-context" type="number" min="16384" max="32768" step="512" />
+              <small>Fixed floor of 16K for coding; lower it only with a model trained for less. Reload to apply.</small>
             </label>
             <label class="field">
               <span>CPU threads</span>
@@ -513,7 +513,7 @@
             </p>
             <div class="tune-stage-list" id="tune-stages">
               <label class="check tune-stage"><input type="checkbox" value="device" checked /><span><strong>Device</strong><small>CPU or GPU: whichever answers fastest while getting as many answers right.</small></span></label>
-              <label class="check tune-stage"><input type="checkbox" value="quality" checked /><span><strong>Quality</strong><small>Context size and KV cache: the most correct answers.</small></span></label>
+              <label class="check tune-stage"><input type="checkbox" value="quality" checked /><span><strong>Quality</strong><small>KV cache: the most correct answers; context is fixed at 16K.</small></span></label>
               <label class="check tune-stage"><input type="checkbox" value="speed" checked /><span><strong>Speed</strong><small>Flash attention, memory map, batch and threads: fastest with identical answers. Saves the Fastest and Light presets.</small></span></label>
               <label class="check tune-stage"><input type="checkbox" value="sampling" checked /><span><strong>Sampling</strong><small>Temperature, answer length, repeat penalty, min-p, top-p and top-k, per task.</small></span></label>
               <label class="check tune-stage"><input type="checkbox" value="prompt" checked /><span><strong>Prompt</strong><small>System prompt, reasoning off or on, and prompt repetition, per task.</small></span></label>
@@ -561,7 +561,7 @@
                 </p>
                 <p class="tune-help-order">
                   <strong>Why this order:</strong> Device → Quality → Speed → Sampling → Prompt. Quality sets the
-                  context size and KV cache, which change memory and speed, so Speed is measured on that final load
+                  KV cache, which changes memory and speed, so Speed is measured on that final load
                   shape; Sampling and Prompt then tune one task at a time.
                 </p>
                 <div class="tune-help-grid">

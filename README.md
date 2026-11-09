@@ -91,7 +91,7 @@ device. It is off by default so a missing driver never prevents local inference 
 - **Model library** — scan a folder, import a GGUF by path, or download a curated
   model from Hugging Face, checked against a pinned SHA-256, with resumable `.part`
   downloads (a repeated start reuses the running download).
-- **Model controls** - context size, CPU threads and thread pool, batch size,
+- **Model controls** - context size (16K floor or higher), CPU threads and thread pool, batch size,
   context sequences, GPU backend/layers, KV cache, checkpoint interval and max,
   flash attention, mmap, temperature, top-p/top-k/min-p, repeat penalty, max reply tokens, system
   prompt, reasoning, context overflow, structured output and prompt repetition,

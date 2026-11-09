@@ -201,7 +201,7 @@ const SETTING_HELP = {
 
 const STAGE_HELP = {
   device: "Measures CPU and GPU; the fastest placement that keeps the same answers wins.",
-  quality: "Chooses context size and KV cache before speed is measured on that load shape.",
+  quality: "Chooses the KV cache; context is fixed at the 16K floor before speed is measured on that load shape.",
   speed: "Tunes threads, batch, attention, memory mapping and checkpoints for identical answers.",
   sampling: "Tunes sampling separately for each task after the load settings are fixed.",
   prompt: "Tunes the system prompt, reasoning mode and prompt repetition per task.",
@@ -211,7 +211,6 @@ const TUNE_STEP_HELP = {
   "device.backends": "Backends to probe. CPU is always kept as the reference, so a GPU wins only when it is faster without losing answers.",
   "lanes.cpu": "How many tunes may use the CPU lane at the same time.",
   "lanes.gpu": "How many tunes may use the GPU lanes; 0 makes GPU models wait for the CPU lane.",
-  "load.contextSize": "Context is a fit parameter: the tuner keeps the smallest listed size that covers the selected tasks, then the memory budget confirms it.",
   "load.kvCache": "KV cache types to try. Lower precision saves memory; types that lose answers are rejected.",
   "load.flashAttention": "Flash attention values to try where the backend supports them.",
   "load.useMmap": "Try mapping weights from disk or copying them into RAM.",
@@ -3071,7 +3070,7 @@ async function cancelTune() {
 const TUNE_STEP_FIELDS = [
   ["Stage 0 · device", [["device.backends", "Devices to probe (cpu is always the reference)"]]],
   ["Lanes on this PC", [["lanes.cpu", "CPU lanes (1-4)", "number"], ["lanes.gpu", "GPU lanes (0-4; 0 = GPU models wait for the CPU lane)", "number"]]],
-  ["Stage 1 · quality", [["load.contextSize", "Context sizes"], ["load.kvCache", "KV cache types"]]],
+  ["Stage 1 · quality", [["load.kvCache", "KV cache types"]]],
   ["Stage 2 · speed", [
     ["load.flashAttention", "Flash attention"], ["load.useMmap", "mmap"], ["load.batchSize", "Batch sizes"],
     ["load.threads", "Threads (capped at three quarters of this PC's threads)"],
