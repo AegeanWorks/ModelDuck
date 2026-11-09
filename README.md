@@ -401,7 +401,7 @@ Context memory grows with the window, not with the model file alone.
 **Replies are very slow.**
 CPU inference is limited by memory bandwidth. Try a smaller quantization or
 model, set **CPU threads** to physical cores (not every logical thread), and keep
-the context near 2048–4096 for coding tasks.
+the 16K context unless memory is tight.
 
 **A model is listed but marked “Unreadable.”**
 The GGUF header is damaged or incomplete. Re-download it; the loader will also
