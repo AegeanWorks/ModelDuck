@@ -1,66 +1,23 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "code-prompt-repeat",
-    "last_phase": "phase 4",
+    "task_id": "qwen-code-sampling-16k",
+    "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794329981.8457036,
-    "owner": "commandcode:9b9e6718",
-    "started_by": "commandcode:9b9e6718",
-    "continuations": [],
-    "completed_at": 1794329982.1184735
+    "updated_at": 1794346103.794042,
+    "owner": "mistral:vibe",
+    "started_by": "kilo:goal",
+    "continuations": [
+      {
+        "agent": "mistral:vibe",
+        "from": "kilo:goal",
+        "at": 1794346099.3443995
+      }
+    ],
+    "completed_at": 1794346104.011482
   },
   "checkpoints": [
-    {
-      "task_id": "context-floor-ui",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[4/4] Check: the settings context input is min=16384 with a floor note; the quality stage text, tune help and tune step fields are KV-only; no context step help remains; README states the floor. npm test 607 pass/1 skip; project gates 4/4. checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794255118.6624186,
-      "timestamp_str": "2026-11-09 23:11:58",
-      "agent": "commandcode:9b9e6718"
-    },
-    {
-      "task_id": "context-floor-ui",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'context-floor-ui' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794255119.2339113,
-      "timestamp_str": "2026-11-09 23:11:59",
-      "agent": "commandcode:9b9e6718"
-    },
-    {
-      "task_id": "context-docs-16k",
-      "phase": "phase 1",
-      "phase_num": 1,
-      "description": "[1/1] Plan: correct the README memory/context guidance after the fixed floor and confirm the code presets' receipts at 16K",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794257906.6332917,
-      "timestamp_str": "2026-11-09 23:58:26",
-      "agent": "commandcode:9b9e6718",
-      "impact_assessment": {
-        "why": "The README promised a silent context reduction and told users to lower context; the engine now fails instead, and context is floored.",
-        "benefits": "Docs match the engine; the receipts are confirmed at the served load.",
-        "risks": "contract: README; dependency: none; concurrency: none; state: none",
-        "mitigation": "edit the two troubleshooting paragraphs, mark ADR-088 superseded in part, measure both code presets on their rungs"
-      }
-    },
-    {
-      "task_id": "context-docs-16k",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[4/4] Check: Qwen code 35.4/48 and coder code 59/48 at 16K match their stored receipts, so those need no update; README now says context is not reduced silently and cannot be shrunk; ADR-088 marked superseded in part. npm test 607 pass/1 skip; project gates 4/4. checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794257921.4071987,
-      "timestamp_str": "2026-11-09 23:58:41",
-      "agent": "commandcode:9b9e6718"
-    },
     {
       "task_id": "context-docs-16k",
       "phase": "completed",
@@ -260,6 +217,56 @@
       "timestamp": 1794329982.1184745,
       "timestamp_str": "2026-11-10 19:59:42",
       "agent": "commandcode:9b9e6718"
+    },
+    {
+      "task_id": "qwen-code-sampling-16k",
+      "phase": "phase 1",
+      "phase_num": 1,
+      "description": "[1/2] Plan: finish the Qwen 0.5B code sampling stage at the 16K floor with --continue and full-final, re-measure its prompt only if the sampler signature changes, then regenerate the committed preset recipe",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794342617.3075514,
+      "timestamp_str": "2026-11-10 23:30:17",
+      "agent": "kilo:goal",
+      "impact_assessment": {
+        "why": "The qwen2.5-0.5b-instruct-q4 profile's code sampling stage is the last unfinished part-run on a core model after the 16K floor work; the app and pendingWork keep resuming it, and the served code settings rest on a pass-1-only search.",
+        "benefits": "Complete stage provenance at 16K; a confirmed or revised greedy sampler for code; a committed preset recipe that matches the profile the tuner now serves.",
+        "risks": "contract: preset recipe and preset README claims; dependency: Vulkan runtime and local model; concurrency: box load, tune-lock; state: installed profile overwrite",
+        "mitigation": "named profile backup before the run; --continue resumes saved progress (ADR-040/051); exact answer reuse (G8); npm test and aikit check after; preset regenerated only from the final profile"
+      }
+    },
+    {
+      "task_id": "qwen-code-sampling-16k",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[2/2] Check: the resumed --continue --full-final pass confirmed greedy for code: pass-2 sampler kept temperature=0, best challenger 0.4 scored 36% vs 35.1% (paired p=.893, Holm p=1); maxTokens 512, repeatPenalty 1, dry 0 kept; pair maxTokens+sampler chose greedy. Full-final code 35.4% [23.4-49.6] at 48 items, holdout 31.4, matching the stored receipt, so the unchanged sampler signature needs no prompt re-measure (pendingWork empty, all stages done). Preset recipe regenerated from the final profile. npm test 608 pass/1 skip; project gates 4/4 (README tree drift left by the Kiroween commit fixed within the char budget). checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794346099.3443995,
+      "timestamp_str": "2026-11-11 00:28:19",
+      "agent": "mistral:vibe",
+      "continued_from": "kilo:goal"
+    },
+    {
+      "task_id": "qwen-code-sampling-16k",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] Check: npm test 608 pass/1 skip; aikit check 4/4 gates; README tree drift from the Kiroween commit fixed within the 32,500-char budget; preset recipe regenerated from the final profile with all stages done. checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794346103.794042,
+      "timestamp_str": "2026-11-11 00:28:23",
+      "agent": "mistral:vibe"
+    },
+    {
+      "task_id": "qwen-code-sampling-16k",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'qwen-code-sampling-16k' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794346104.0114834,
+      "timestamp_str": "2026-11-11 00:28:24",
+      "agent": "mistral:vibe"
     }
   ]
 }

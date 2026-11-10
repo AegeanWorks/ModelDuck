@@ -14,3 +14,4 @@ without modifying or quarantining that file; older versions migrate when a migra
 - **G-003** (user, ADR-027): Tune results are comparable only when suiteVersion, the task-subset hash and the runtime match; any prompt, check, task subset or sweep change bumps SUITE_VERSION, updates benchmarks/CHANGELOG.md and requires a deliberate profile-baseline update. The optional cross-model baseline may lag the suite version.
 - **G-004** (user): Presets are benchmark candidates: they fill the settings form only and are never applied automatically until a benchmark run has recorded their quality and speed.
 - **G-005** (user, ADR-027): A tune has two stages: model-load settings first (one load config per model, chosen for speed and memory without losing quality), then sampling settings per task on that config; both stages must be recorded before a profile is applied.
+- **G-006** (user): The project's LICENSE file stays unchanged: never modify or replace the current license.
