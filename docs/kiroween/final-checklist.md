@@ -7,18 +7,18 @@ Use this to verify eligibility before hitting Submit on Devpost.
 ## 1. GitHub repository
 
 - [x] Repository exists and is public: https://github.com/AegeanWorks/ModelDuck
-- [ ] All hackathon work is pushed to `origin/master`
-- [ ] `.kiro/` directory is present and tracked (not in `.gitignore`)
-- [ ] `JUDGES.md` is present at the repo root
-- [ ] `docs/kiroween/` directory is present with all four files
+- [x] All hackathon work pushed to `origin/master` (commit `afccd99`)
+- [x] `.kiro/` directory is present and tracked
+- [x] `JUDGES.md` is present at the repo root
+- [x] `docs/kiroween/` directory is present with all files
 
 ## 2. Kiro workspace
 
-- [x] `.kiro/steering/project-overview.md` created
-- [x] `.kiro/steering/coding-standards.md` created
-- [x] `.kiro/steering/kiro-agent-mode.md` created
-- [x] `.kiro/specs/kiro-agent-mode-integration.md` created
-- [ ] `.kiro/` committed and pushed to GitHub
+- [x] `.kiro/steering/project-overview.md` created and pushed
+- [x] `.kiro/steering/coding-standards.md` created and pushed
+- [x] `.kiro/steering/kiro-agent-mode.md` created and pushed
+- [x] `.kiro/specs/kiro-agent-mode-integration.md` created and pushed
+- [x] `.kiro/` committed and pushed to GitHub
 
 ## 3. Demo video
 
@@ -29,19 +29,11 @@ Use this to verify eligibility before hitting Submit on Devpost.
 ## 4. Test build (Windows)
 
 - [x] `ModelDuck-Windows-x64.zip` created (~118 MB compressed, ~377 MB uncompressed)
-- [x] Zip contains: `src/`, `public/`, `benchmarks/`, `tests/`, `scripts/`,
-      `docs/`, `assets/`, `package.json`, `package-lock.json`, `start.bat`,
-      `README.md`, `JUDGES.md`, `LICENSE`, `LICENSES/`, `COMMERCIAL.md`,
-      `REUSE.toml`, `benchmarks/NOTICE-benchmarks.md`
-- [x] Zip does NOT contain: `*.gguf` user model weights, `server-settings.json`,
-      `chats.json`, `settings.json`, `benchmarks/results/`,
-      `benchmarks/history.sqlite`, `.git/`, `.aikit/`
-      (node-llama-cpp contains vocab `.gguf` test files — these are part of the package, not user weights)
 - [x] SHA-256: `5766974A458D949DD8324D137AB7C16474C21F14B297307CA90A49BEC39CB254`
-- [x] Checksum file: `ModelDuck-Windows-x64.zip.sha256` (on Desktop alongside zip)
 - [x] Build manifest: `docs/kiroween/build-manifest.md`
-- [ ] Upload zip to shareable location (Google Drive, GitHub Release, Dropbox, etc.)
-- [ ] Shareable link added to Devpost as "Try it out" URL
+- [x] **GitHub Release created**: https://github.com/AegeanWorks/ModelDuck/releases/tag/v0.1.0-kiroween
+  - Zip and `.sha256` checksum file both attached to the release
+- [ ] Add release URL to Devpost "Try it out" field: `https://github.com/AegeanWorks/ModelDuck/releases/tag/v0.1.0-kiroween`
 
 ## 5. License
 
@@ -89,6 +81,6 @@ Use this to verify eligibility before hitting Submit on Devpost.
 
 | Item | Owner | Note |
 |---|---|---|
-| Upload zip and add "Try it out" link | You | Upload `ModelDuck-Windows-x64.zip` to Google Drive / GitHub Release / Dropbox, then edit the Devpost submission to add the link |
-| Push to GitHub | You | Commit all staged files, then `git push origin master` |
-| Kiro + pre-existing work fields on Devpost | You | Paste from `kiro-usage.md` and `preexisting-work-disclosure.md` into any remaining Devpost fields |
+| Add "Try it out" URL on Devpost | You | https://github.com/AegeanWorks/ModelDuck/releases/tag/v0.1.0-kiroween |
+| Paste Kiro explanation on Devpost | You | Copy from `docs/kiroween/kiro-usage.md` |
+| Paste pre-existing work on Devpost | You | Copy from `docs/kiroween/preexisting-work-disclosure.md` |

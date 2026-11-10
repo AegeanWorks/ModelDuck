@@ -127,8 +127,9 @@ node-llama-cpp, Node.js, vanilla JavaScript, CSS, SQLite (node:sqlite, benchmark
 - **GitHub repository**: https://github.com/AegeanWorks/ModelDuck
 - **Demo video**: https://www.youtube.com/watch?v=3MX8_ULrQ_s
 - **Devpost submission**: https://devpost.com/software/necro-software-resurrection-engine
-- **Test build**: `ModelDuck-Windows-x64.zip` — SHA-256: `5766974A458D949DD8324D137AB7C16474C21F14B297307CA90A49BEC39CB254`
-  See `docs/kiroween/build-manifest.md` for full contents listing and verification steps.
+- **Test build (Windows)**: https://github.com/AegeanWorks/ModelDuck/releases/tag/v0.1.0-kiroween
+  - SHA-256: `5766974A458D949DD8324D137AB7C16474C21F14B297307CA90A49BEC39CB254`
+  - See `docs/kiroween/build-manifest.md` for full contents listing and verification steps.
 
 ---
 
