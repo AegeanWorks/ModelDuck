@@ -2,8 +2,8 @@
   "schema": 1,
   "kind": "modelduck-profile",
   "catalogId": "qwen2.5-0.5b-instruct-q4",
-  "exportedAt": "2026-11-10T05:17:13.438Z",
-  "createdAt": "2026-11-10T05:16:53.856Z",
+  "exportedAt": "2026-11-10T21:25:22.083Z",
+  "createdAt": "2026-11-10T21:25:04.889Z",
   "fingerprint": {
     "cpu": "Intel(R) Core(TM) i5-14400F",
     "cores": 16,
@@ -644,6 +644,67 @@
             "p": 0.25
           }
         }
+      },
+      "holdout": {
+        "items": 35,
+        "rate": 31.4,
+        "ci95": {
+          "low": 18.6,
+          "high": 48
+        },
+        "defaultRate": 32.4,
+        "vsDefault": {
+          "rateDelta": -1,
+          "b": 8,
+          "c": 7,
+          "pValue": 0.6973,
+          "clusters": 15
+        },
+        "byType": {
+          "code": {
+            "items": 8,
+            "right": 3,
+            "defaultRight": 3,
+            "p": 1
+          },
+          "bugfix": {
+            "items": 7,
+            "right": 4,
+            "defaultRight": 5,
+            "p": 1
+          },
+          "code-long": {
+            "items": 3,
+            "right": 0,
+            "defaultRight": 0,
+            "p": 1
+          },
+          "bugfix-long": {
+            "items": 3,
+            "right": 0,
+            "defaultRight": 0,
+            "p": 1
+          },
+          "code-repo": {
+            "items": 6,
+            "right": 1,
+            "defaultRight": 1,
+            "p": 1
+          },
+          "bugfix-repo": {
+            "items": 3,
+            "right": 0,
+            "defaultRight": 0,
+            "p": 1
+          },
+          "public-code": {
+            "items": 5,
+            "right": 3,
+            "defaultRight": 3,
+            "p": 1
+          }
+        },
+        "fellBack": false
       }
     },
     "comprehension": {
@@ -1202,6 +1263,62 @@
     }
   },
   "tunedOn": {
+    "code": {
+      "items": 48,
+      "ids": [
+        "javascript",
+        "bug-sum-to",
+        "code-long-calculator",
+        "bug-long-binary-search",
+        "repo-cart-total",
+        "repo-format-cents",
+        "pub-humaneval-13",
+        "code-long-csv",
+        "bug-long-merge-intervals",
+        "repo-receipt",
+        "repo-tokenize-digits",
+        "code-palindrome",
+        "bug-average",
+        "code-fizzbuzz",
+        "bug-is-even",
+        "code-long-checkout",
+        "bug-long-to-roman",
+        "repo-search",
+        "repo-whole-balance",
+        "code-reverse-words",
+        "bug-reverse-string",
+        "code-long-matrix-multiply",
+        "bug-long-cart-total",
+        "repo-slugify",
+        "repo-exact-kilo",
+        "code-long-ini",
+        "bug-long-csv",
+        "repo-find-accents",
+        "repo-escape-order",
+        "code-fibonacci",
+        "bug-count-words",
+        "code-unique-sorted",
+        "bug-fahrenheit",
+        "code-long-query",
+        "bug-long-rotate",
+        "repo-end-times",
+        "repo-trace-tag-case"
+      ],
+      "excluded": [
+        "pub-mbpp-80",
+        "pub-humaneval-26",
+        "pub-mbpp-86",
+        "pub-humaneval-31",
+        "pub-mbpp-65",
+        "pub-humaneval-57",
+        "pub-mbpp-11",
+        "pub-humaneval-16",
+        "pub-mbpp-12",
+        "pub-humaneval-49",
+        "pub-mbpp-16"
+      ],
+      "fellBack": false
+    },
     "comprehension": {
       "items": 48,
       "ids": [
@@ -1317,7 +1434,7 @@
       "quality": "done",
       "speed": "done",
       "sampling": {
-        "code": "partial",
+        "code": "done",
         "comprehension": "done",
         "recall": "done"
       },
@@ -1328,7 +1445,7 @@
       }
     },
     "search": {
-      "runs": 7642,
+      "runs": 9102,
       "budgetExhausted": false,
       "options": {
         "seeds": [
@@ -1477,17 +1594,36 @@
         "prompt": {
           "systemPrompt": [
             "You are a precise assistant. Follow the requested output format exactly. Do not explain unless the user asks for an explanation.",
-            "Be concise and do not explain unless asked.",
-            "Work through the problem step by step, then state the final answer.",
             "Answer with only what the question asks for.",
-            "Put the final answer on the last line."
+            "Follow the requested output format exactly.",
+            "Be concise and do not explain unless asked.",
+            "Read the whole question before answering.",
+            "Check your answer against the question before replying.",
+            "Work through the problem step by step, then state the final answer.",
+            "Put the final answer on the last line.",
+            "Give numeric answers as plain numbers.",
+            "Answer only from the given text, quoting it where you can.",
+            "Do not invent details that are not in the question.",
+            "If the given text does not contain the answer, say so.",
+            "Use the exact function name and signature requested.",
+            "Write complete, runnable code with no placeholders.",
+            "Return only the code when asked for code.",
+            "Fix only the bug and keep the rest of the code unchanged.",
+            "Handle edge cases such as empty input.",
+            "Do not repeat the question.",
+            "Answer in one word when one word is enough.",
+            "Prefer correctness over brevity.",
+            "State any assumption in one short sentence before using it.",
+            "Keep the names, order and formatting of the input."
           ],
           "reasoning": [
-            "off"
+            "off",
+            "deep"
           ],
           "promptRepeat": [
             1,
-            2
+            2,
+            3
           ]
         }
       }
@@ -1496,7 +1632,7 @@
       "code": {
         "rate": 35.4,
         "items": 48,
-        "holdout": null
+        "holdout": 31.4
       },
       "comprehension": {
         "rate": 48.4,
