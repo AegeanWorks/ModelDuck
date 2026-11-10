@@ -335,7 +335,6 @@ export function promptAxes(steps = DEFAULT_STEPS.prompt, task = null) {
   const promptRepeats = Array.isArray(steps.promptRepeat) ? steps.promptRepeat : DEFAULT_STEPS.prompt.promptRepeat;
   const customPrompts = JSON.stringify(systemPrompts) !== JSON.stringify(DEFAULT_STEPS.prompt.systemPrompt);
   const customReasoning = JSON.stringify(reasoningSteps) !== JSON.stringify(DEFAULT_STEPS.prompt.reasoning);
-  const customRepeat = JSON.stringify(promptRepeats) !== JSON.stringify(DEFAULT_STEPS.prompt.promptRepeat);
   return Object.freeze([
     axis("systemPrompt", "systemPrompt", task === "code" && !customPrompts ? [SYSTEM_PROMPT, ...CODE_PROMPTS] : systemPrompts, { full: true }),
     // Thinking first needs room: a reasoning candidate gets at least REASONING_TOKENS, and the preset keeps them (ADR-046).
@@ -343,9 +342,9 @@ export function promptAxes(steps = DEFAULT_STEPS.prompt, task = null) {
       extraKeys: ["maxTokens"],
       widen: (current, patch) => (patch.reasoning === "off" ? patch : { ...patch, maxTokens: Math.max(Number(current.maxTokens) || 0, REASONING_TOKENS) }), // aikit:allow-secret token budget
     }),
-    // Repeating the prompt costs prefill; recall gained from a second copy, so
-    // all three counts are offered. Code stays at 1 unless opted in.
-    axis("promptRepeat", "promptRepeat", task === "code" && !customRepeat ? [1] : promptRepeats),
+    // Repeating the prompt costs prefill; recall gained from a second copy, and
+    // code tests the same counts now (the user asked for code too).
+    axis("promptRepeat", "promptRepeat", promptRepeats),
   ]);
 }
 

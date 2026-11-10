@@ -93,7 +93,7 @@ test("the prompt stage tries the baseline and all 21 directives, fully scored, t
   assert.equal(axes[0].full, true, "every prompt gets a full score, no elimination");
   assert.deepEqual(values(axes, "reasoning"), ["off", "deep"], "reasoning is tried off and fully on");
   assert.deepEqual(values(axes, "promptRepeat"), [1, 2, 3]);
-  assert.deepEqual(values(promptAxes(DEFAULT_STEPS.prompt, "code"), "promptRepeat"), [1], "code stays at one copy unless opted in (G1)");
+  assert.deepEqual(values(promptAxes(DEFAULT_STEPS.prompt, "code"), "promptRepeat"), [1, 2, 3], "code tests the same repeat counts");
 });
 
 test("the code task tries coding directives and reasoning auto, and respects a custom list", () => {
