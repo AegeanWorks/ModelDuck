@@ -118,7 +118,7 @@ export const DEFAULT_STEPS = freezeDeep({
     systemPrompt: [SYSTEM_PROMPT, ...DIRECTIVE_PROMPTS],
     // Off against fully on: "deep" asks the model to think before answering; "auto" is only a nudge.
     reasoning: ["off", "deep"],
-    promptRepeat: [1, 2],
+    promptRepeat: [1, 2, 3],
   },
 });
 
@@ -343,7 +343,8 @@ export function promptAxes(steps = DEFAULT_STEPS.prompt, task = null) {
       extraKeys: ["maxTokens"],
       widen: (current, patch) => (patch.reasoning === "off" ? patch : { ...patch, maxTokens: Math.max(Number(current.maxTokens) || 0, REASONING_TOKENS) }), // aikit:allow-secret token budget
     }),
-    // Repeating the prompt doubles prefill for little gain on generation tasks (G1): code stays at 1 unless opted in.
+    // Repeating the prompt costs prefill; recall gained from a second copy, so
+    // all three counts are offered. Code stays at 1 unless opted in.
     axis("promptRepeat", "promptRepeat", task === "code" && !customRepeat ? [1] : promptRepeats),
   ]);
 }

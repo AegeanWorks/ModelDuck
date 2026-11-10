@@ -92,7 +92,7 @@ test("the prompt stage tries the baseline and all 21 directives, fully scored, t
   assert.deepEqual(prompts.slice(1), DIRECTIVE_PROMPTS);
   assert.equal(axes[0].full, true, "every prompt gets a full score, no elimination");
   assert.deepEqual(values(axes, "reasoning"), ["off", "deep"], "reasoning is tried off and fully on");
-  assert.deepEqual(values(axes, "promptRepeat"), [1, 2]);
+  assert.deepEqual(values(axes, "promptRepeat"), [1, 2, 3]);
   assert.deepEqual(values(promptAxes(DEFAULT_STEPS.prompt, "code"), "promptRepeat"), [1], "code stays at one copy unless opted in (G1)");
 });
 
@@ -140,7 +140,7 @@ test("the estimate covers all four stages and the worst case of two passes", () 
   assert.equal(estimate.quality.configs, 3, "only the KV cache is measured; the context is a fixed 16K floor (ADR-089)");
   assert.equal(estimate.speed.configs, 2 + 2 + 6 + 7);
   assert.equal(estimate.sampling.comprehension.configs, 6 + 6 + 2 + 2 + 3, "sampler, tokens, repeat, newline, top-k (G2/G4)");
-  assert.equal(estimate.prompt.comprehension.configs, 22 + 2 + 2);
+  assert.equal(estimate.prompt.comprehension.configs, 22 + 2 + 3);
   assert.ok(estimate.onePassSeconds > 0);
   assert.equal(estimate.worstCaseSeconds, estimate.onePassSeconds * 2);
 });

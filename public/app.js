@@ -2001,7 +2001,7 @@ const SETTING_GUIDE = {
   topK: ["sampling", "Top-k", "Keeps only this many likeliest words (0 = off)"],
   systemPrompt: ["prompt", "System prompt", "The one-sentence instruction given before every question"],
   reasoning: ["prompt", "Reasoning", "Off, or asking the model to think before answering"],
-  promptRepeat: ["prompt", "Prompt repeat", "Asking the question once or twice"],
+  promptRepeat: ["prompt", "Prompt repeat", "Asking the question once, twice or three times"],
 };
 const STAGE_NAMES = { device: "Device", quality: "Quality", speed: "Speed", sampling: "Sampling", prompt: "Prompt" };
 
