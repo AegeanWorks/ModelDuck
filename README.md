@@ -435,7 +435,7 @@ modelduck/
 │   ├── main.js <- CLI, startup, browser window, graceful shutdown
 │   ├── server.js <- routes, SSE tune stream, static files, security checks
 │   ├── engine.js <- node-llama-cpp session lifecycle and statistics
-│   ├── memory-fit.js <- pre-load memory estimate, fit verdict, quant ladder, RSS calibration
+│   ├── memory-fit.js <- pre-load memory estimate, fit verdict, quant ladder
 │   ├── model-profiles.js <- tuned per-model, per-task settings store, launch recipes
 │   ├── tuned-settings.js <- applies a profile at load and OpenAI/JIT time, diff helper
 │   ├── tune-steps.js    <- the user's tune step lists
@@ -461,7 +461,7 @@ modelduck/
 │   ├── fs-atomic.js <- atomic writes, backups, quarantine and home lock
 │   ├── model-catalog.js <- curated GGUF catalogue
 │   ├── sampler-chain.js <- canonical ordered sampler chain shared by chat and completions
-│   ├── state-machine.js <- engine/download/benchmark states and legal transitions
+│   ├── state-machine.js <- engine/download/benchmark states and transitions
 │   ├── recommend.js <- what to run on this PC: measured models and estimates
 │   └── system.js <- CPU, memory and platform snapshot, loop-lag health
 ├── docs/
@@ -469,7 +469,8 @@ modelduck/
 │   ├── state-machines.md <- the 25-machine inventory and verified gaps
 │   ├── state-machines.json <- machine inventory checked by tests
 │   ├── state-machine-proposals.md <- judged proposals
-│   └── state-machine-proposals.json <- proposal evidence links
+│   ├── state-machine-proposals.json <- proposal evidence links
+│   └── kiroween/ <- Kiroween submission docs
 ├── public/
 │   ├── index.html <- the control panel
 │   ├── app.js <- state and interactions, no framework
@@ -613,18 +614,20 @@ modelduck/
 │   ├── demo-video-3min-SCRIPT.md
 │   ├── demo-video-3min-PLAYER.html
 │   └── modelduck-demo-3min.srt
-├── .aikit/ <- project memory: map, ADRs, ledger
+├── .aikit/ <- project memory and ledger
+├── .kiro/ <- Kiro agent-mode workspace
 ├── .gitignore
 ├── start.bat
 ├── package.json
-├── package-lock.json <- pinned dependency tree
+├── package-lock.json <- pinned dependencies
 ├── README.md
 ├── LICENSE
 ├── COMMERCIAL.md
+├── JUDGES.md <- judges' demo walkthrough
 ├── LICENSES/
 ├── docs/ <- threat model and design notes
 │   └── THREAT-MODEL.md
-├── MODELDUCK_IDEA_ANALYSIS.md <- approved/proposed idea audit
+├── MODELDUCK_IDEA_ANALYSIS.md <- idea audit
 ├── MODELDUCK_IMPLEMENT_LIST.md <- implementation waves
 └── REUSE.toml
 ```
