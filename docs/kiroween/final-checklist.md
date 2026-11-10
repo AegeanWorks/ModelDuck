@@ -64,8 +64,8 @@ Use this to verify eligibility before hitting Submit on Devpost.
 ## 7. Bonus prize eligibility (verify before claiming)
 
 - [x] **Open source bonus**: MIT is OSI-approved — eligible to claim.
-- [ ] **Best use of AI for security**: ADR-018 (cross-site protection) + ADR-019 (GGUF guard) + threat model could qualify. Describe in submission.
-- [ ] **Community favorite**: No action — votes accumulate after submission.
+- [x] **Social Blitz Prize**: https://x.com/AegeanWorks/status/2120257703058763937
+  → Add this URL to the Devpost submission's Social Blitz Prize field
 
 ## 8. Pre-submission sanity checks
 
