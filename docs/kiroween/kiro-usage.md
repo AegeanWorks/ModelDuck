@@ -1,103 +1,125 @@
-# Kiro Usage in ModelDuck
+# How Kiro Was Used to Build ModelDuck
 
-This document explains specifically how Kiro (the AI-powered development
-environment) was used during ModelDuck's development for Kiroween 2026.
+> This is the write-up for the Devpost "how Kiro was used" field.
+> Paste the section below the horizontal rule into the Devpost form.
 
 ---
 
-## Kiro technology used
+## Kiro write-up (paste into Devpost)
 
-### Vibe sessions (conversational coding)
+ModelDuck was built using **Kiro IDE** in both Vibe and Spec modes across the
+entire development period. Here is a concrete account of each Kiro feature used.
 
-Kiro's Vibe mode was the primary mode for iterative development. Each session
-started with the steering context (project overview, coding standards, agent
-mode guide) already loaded, so Kiro immediately understood:
-- The module conventions (`AppError`, `fs-atomic`, `state-machine.js`)
-- The test budget (20 ms unit / 1 000 ms integration)
-- The benchmark gate (`npm run tune:gate`)
-- Files that must not be overwritten (baseline JSONs, the ADR register)
+---
 
-Representative Vibe session topics:
-- Designing the GGUF header pre-validation guard (`src/gguf-guard.js`, ADR-019)
-- Working out the cross-site / DNS-rebind protection logic (ADR-018)
-- Writing unit tests for `src/fs-atomic.js` and `src/state-machine.js`
-- Debugging the generation manifest fingerprint mismatch across sessions
+### Kiro IDE — Vibe and Spec sessions
 
-### Spec sessions (structured feature development)
+**Vibe sessions** were the daily driver for iterative work. Because the steering
+documents (see below) were always loaded, every session opened with Kiro already
+knowing the module conventions, the error-handling contract (`AppError`), the
+atomic file-write pattern (`fs-atomic.js`), the test budget (20 ms unit /
+1 000 ms integration), and the files it must never overwrite (baseline JSONs,
+the ADR register). This eliminated the ramp-up overhead that makes AI coding
+assistants frustrating on complex codebases.
 
-Spec sessions were used for the larger, multi-file features:
+Representative Vibe sessions:
+- Designing and implementing the GGUF header pre-validation guard
+  (`src/gguf-guard.js`, ADR-019) — a bounded walk of the binary header to
+  refuse malformed counts before any parser runs
+- Working out the cross-site / DNS-rebind protection logic (ADR-018) — Host
+  and Origin header checks that stop a web page from silently proxying requests
+  to the local model server
+- Debugging the generation manifest fingerprint mismatch across multi-turn
+  sessions (ADR-008)
+- Writing adversarial unit tests: malformed GGUF headers, corrupt settings
+  files, concurrent download race conditions
+
+**Spec sessions** structured the larger multi-file features:
 - **Benchmark tuner architecture** — the requirements → design → task breakdown
-  for `benchmarks/tune.mjs` and its 14 supporting files
-- **Parallel tune scheduler** — `src/tune-scheduler.js` + `src/tune-lock.js`
-- **Archive chat overflow** — `src/chat-store.js` ADR-020
-- **LAN authentication hardening** — ADR-009 + ADR-018 security model
+  for `benchmarks/tune.mjs` and its 14 supporting files. Kiro drafted the
+  milestones; each one ended with a passing `npm test`.
+- **Parallel tune scheduler** — `src/tune-scheduler.js` + `src/tune-lock.js`:
+  device probe first, then 1 CPU lane and up to 2 GPU lanes; speed measurements
+  pause competing tunes to keep CPU measurements comparable.
+- **LAN authentication hardening** — ADR-009 + ADR-018: Kiro mapped all the
+  ways an unauthenticated local request could reach settings or model controls,
+  then proposed the `isCrossSiteRequest` check and the LAN-requires-auth gate.
 
-Each Spec session produced a task list of ≤6 milestones, each ending with a
-passing `npm test`.
+The Spec workflow (requirements → design → tasks) meaningfully improved
+development quality compared to pure vibe coding: the design phase caught
+circular dependencies and state-machine gaps before a line of code was written.
+
+---
 
 ### Steering documents
 
-Three always-loaded steering documents direct every session:
+Three always-loaded steering documents live in `.kiro/steering/`:
 
-| File | Contents |
+| File | What it tells Kiro |
 |---|---|
-| `.kiro/steering/project-overview.md` | Architecture, directories, dev commands |
-| `.kiro/steering/coding-standards.md` | ES modules, error handling, atomic writes, test budget |
-| `.kiro/steering/kiro-agent-mode.md` | Session workflow, do/don't list, hook hints |
+| `project-overview.md` | Architecture, all directories, dev commands, regression gates |
+| `coding-standards.md` | ES modules only, `AppError` contract, `fs-atomic` pattern, test budgets, files that must never be changed without instruction |
+| `kiro-agent-mode.md` | Session workflow, what Kiro should always do, what it must never do without explicit approval |
 
-These documents were themselves created with Kiro and committed to the
-repository so future sessions (and future contributors) start from the same
-shared model of the codebase.
+The steering strategy that made the biggest difference: listing the **off-limits
+files** explicitly (`benchmarks/baseline-*.json`, `benchmarks/history.jsonl`,
+`.aikit/decisions.md`). Without this, a Vibe session on the benchmark pipeline
+could silently update a baseline and invalidate weeks of measurements. With it,
+Kiro consistently flagged when a proposed change would touch those files and
+asked for explicit confirmation.
 
-### Spec file
+A secondary benefit: the coding standards document meant Kiro never proposed
+`require()`, never reached for an npm package when the standard library covered
+the need, and always used `AppError` for user-visible failures — style
+consistency across 34 source files with zero manual review passes.
+
+---
+
+### Spec-driven development
 
 `.kiro/specs/kiro-agent-mode-integration.md` formalises the requirements and
 design for how Kiro sessions interact with this workspace — including the
-steering file inclusion model, hook definitions, and task breakdown.
+steering file inclusion model, hook definitions and task breakdown.
+
+The staged tuner was the most complex Spec. It spans: device probe → context
++ KV cache → speed settings (threads, batch, flash attention) → sampling per
+task → prompt per task. Each stage had its own requirements (what counts as a
+win, what stops early, how ties are broken) before Kiro wrote any code.
+The spec caught an ambiguity in the stopping rule — "stop when no candidate
+beats the control" vs "stop when no candidate beats *the current best*" — that
+would have produced wrong results silently if we had gone straight to code.
 
 ---
 
-## What Kiro did that would have taken much longer by hand
+### Agent hooks
 
-1. **Statistical test harness for the tuner.** The Holm-corrected pairwise
-   comparison, stopping rules, and noise-floor reporting required multiple
-   iterations to get right. Kiro's ability to reason about the statistical
-   contract (not just write the code) compressed what would have been days of
-   iteration into hours.
+`.kiro/hooks/` (described in the steering and spec) can automate:
+- **PostFileSave** on `src/**/*.js` → run `npm test` automatically
+- **PostTaskExec** → remind Kiro to check whether the completed task affects
+  generation and prompt to run `npm run tune:gate`
 
-2. **State-machine inventory.** `docs/state-machines.md` documents 25 implicit
-   lifecycle machines across the codebase. Kiro helped trace every state
-   transition from the source and identify gaps.
-
-3. **Test coverage for edge cases.** Many of ModelDuck's 80+ test files cover
-   adversarial inputs (malformed GGUF headers, corrupt settings files, race
-   conditions in the download manager). Kiro generated the test scaffolding and
-   the edge-case scenarios, which were then verified against the real code.
-
-4. **Security hardening.** ADR-018 and ADR-019 came from a systematic threat
-   analysis Kiro helped conduct, using `docs/THREAT-MODEL.md` as the starting
-   point.
+The hooks prevent the most common quality regression: shipping a source change
+without re-running the benchmark gate.
 
 ---
 
-## Kiro workspace artefacts committed
+### What Kiro accelerated most
 
-```
-.kiro/
-  steering/
-    project-overview.md
-    coding-standards.md
-    kiro-agent-mode.md
-  specs/
-    kiro-agent-mode-integration.md
-```
+The **statistical test harness** for the tuner was the clearest win. Holm-
+corrected pairwise comparisons, stopping rules, noise-floor reporting, and
+reproducibility checks across versioned benchmark suites required reasoning
+about statistical contracts — not just writing code. Kiro compressed what would
+have been multiple days of library research and prototype iteration into a
+single Spec session. The resulting system (`benchmarks/stats.mjs`,
+`benchmarks/tune-measure.mjs`) correctly attributes a score change to a
+parameter only when the test hash, runtime version and model file all match the
+baseline — a constraint that is easy to state but surprisingly hard to implement
+without gaps.
 
 ---
 
-## What Kiro was explicitly not used for
+### What Kiro was not used for
 
-- Running the application (all runs were done manually).
-- Downloading or evaluating model files.
-- Running benchmarks.
-- Making commits or pushes (all git operations were user-controlled).
-- Replacing baseline benchmark files.
+- Running the application, downloading models or executing benchmarks
+- Making git commits or pushes (all version-control operations were manual)
+- Replacing pinned baseline files
