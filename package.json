@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "description": "A local GGUF coding-model server and tuner with an OpenAI-compatible API. Runs on the CPU or a Vulkan GPU; no cloud account required.",
-  "license": "SEE LICENSE IN LICENSE",
+  "license": "MIT",
   "engines": {
     "node": ">=20.0.0"
   },

@@ -4,4 +4,4 @@ version = 1
 path = ["**"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 AegeanWorks"
-SPDX-License-Identifier = "LicenseRef-AL-1.1"
+SPDX-License-Identifier = "MIT"
