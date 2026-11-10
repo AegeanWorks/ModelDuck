@@ -1,55 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "coder-recall-repeat2",
+    "task_id": "qwen-prompts-16k",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794262789.1493554,
+    "updated_at": 1794287861.003484,
     "owner": "commandcode:9b9e6718",
     "started_by": "commandcode:9b9e6718",
     "continuations": [],
-    "completed_at": 1794262789.4359357
+    "completed_at": 1794287861.5232193
   },
   "checkpoints": [
-    {
-      "task_id": "default-context-16k",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[4/4] Check: /api/state reports settings.contextSize=16384; a real POST load of qwen2.5-0.5b returned contextSize=16384, threads=12, Vulkan 25 layers, estimate 1.03 GB. npm test 608 pass/1 skip; project gates 4/4; tune:gate 9/9 on the frozen 4K baselines. Profiles and recipes moved to 16K with backups. checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794252462.9349675,
-      "timestamp_str": "2026-11-09 22:27:42",
-      "agent": "commandcode:9b9e6718"
-    },
-    {
-      "task_id": "default-context-16k",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'default-context-16k' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794252463.333992,
-      "timestamp_str": "2026-11-09 22:27:43",
-      "agent": "commandcode:9b9e6718"
-    },
-    {
-      "task_id": "context-fixed-floor",
-      "phase": "phase 1",
-      "phase_num": 1,
-      "description": "[1/1] Plan: remove context from tuner steps, quality axes, settings presets and the API path; enforce a 16K floor in settings and the engine; migrate baseline loads to the floor",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794253055.0971267,
-      "timestamp_str": "2026-11-09 22:37:35",
-      "agent": "commandcode:9b9e6718",
-      "impact_assessment": {
-        "why": "The user ruled context out of tuning and presets: coding needs at least 16K, and a search or preset could still select 4K.",
-        "benefits": "Every save, profile and tune serves at least 16K; the tuner only tunes KV; no silent context downgrade on load.",
-        "risks": "contract: settings, presets, tuner steps, profiles, recipes, baseline load, engine load; dependency: memory fit; concurrency: none; state: profiles and recipes (backups kept)",
-        "mitigation": "update every layer, keep rates/settings untouched, update the affected tests, run the gates and load a model end to end"
-      }
-    },
     {
       "task_id": "context-fixed-floor",
       "phase": "phase 4",
@@ -259,6 +221,44 @@
       "status": "completed",
       "timestamp": 1794262789.435937,
       "timestamp_str": "2026-11-10 01:19:49",
+      "agent": "commandcode:9b9e6718"
+    },
+    {
+      "task_id": "qwen-prompts-16k",
+      "phase": "phase 1",
+      "phase_num": 1,
+      "description": "[1/1] Plan: finish Qwen 0.5B's comprehension/recall prompt stages at the 16K floor with full-final, installing the tuner profile if a task changes",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794287839.9768784,
+      "timestamp_str": "2026-11-10 08:17:19",
+      "agent": "commandcode:9b9e6718",
+      "impact_assessment": {
+        "why": "Those prompt stages were still pending; the coder recall promptRepeat=2 finding suggested re-checking qwen.",
+        "benefits": "Complete, honest profile provenance; a measured answer on prompt/repeat for both tasks.",
+        "risks": "contract: profile and recipe; dependency: Vulkan; concurrency: box load; state: profile overwrite (backup kept)",
+        "mitigation": "focused prompt grid, full-final, install only the tuner result, run tests and gates"
+      }
+    },
+    {
+      "task_id": "qwen-prompts-16k",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[4/4] Check: comprehension kept the suite prompt/repeat1 at 48.4%/64 (+0, p=1); recall kept suite/repeat1 at 31.7%/62 (+0, p=1). The best challengers were rejected after Holm: answer-only comp 54.9 vs 46.5 (raw p=.0916, Holm .366), repeat2 recall 41.3 vs 35.5 (p=.3415). Tuner profile installed (prompt stages done) with backup; recipe regenerated. npm test 608 pass/1 skip; project gates 4/4. checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794287861.003484,
+      "timestamp_str": "2026-11-10 08:17:41",
+      "agent": "commandcode:9b9e6718"
+    },
+    {
+      "task_id": "qwen-prompts-16k",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'qwen-prompts-16k' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794287861.5232215,
+      "timestamp_str": "2026-11-10 08:17:41",
       "agent": "commandcode:9b9e6718"
     }
   ]
