@@ -215,6 +215,23 @@ test("a clean tripwire row passes on the checked subset with full tolerance hone
   assert.equal(row.tripwire.of, 4);
 });
 
+test("a clean tripwire row never invents a delta from a seed-fractional probe rate", () => {
+  // Same per-item majorities, but the probe's fractional rate (seed-averaged
+  // partial credit) differs from the baseline's majority-based rate: the row
+  // must compare majorities on both sides, so a clean check shows delta 0.
+  const baselineEntryTask = { settings: {}, rate: 50, items: 2, latencyMs: 100, outcomes: { "a": 1, "b": 0 } };
+  const baseline = { models: { m: { tasks: { code: baselineEntryTask } } } };
+  const current = { m: { code: {
+    rate: 33.3, items: 2, latencyMs: 90, outcomes: { "a": 1, "b": 0 },
+    tripwire: { checkedItems: 2, of: 2 },
+  } } };
+  const row = compareToBaseline(baseline, current, { toleranceItems: 1 }).rows[0];
+  assert.equal(row.regression, false);
+  assert.equal(row.delta, 0); // majority basis on both sides: no fake delta
+  assert.equal(row.baselineRate, 50);
+  assert.equal(row.rate, 50);
+});
+
 test("an escalated tripwire row compares exactly like an old full-run row", () => {
   const baselineEntryTask = { settings: {}, rate: 100, items: 4, latencyMs: 100, outcomes: { "a": 1, "b": 1, "c": 1, "d": 1 } };
   const baseline = { models: { m: { tasks: { code: baselineEntryTask } } } };

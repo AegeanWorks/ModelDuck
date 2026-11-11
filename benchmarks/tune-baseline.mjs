@@ -104,8 +104,9 @@ export function compareToBaseline(baseline, current, { toleranceItems = 1, alpha
         continue;
       }
       // IDEA-1765: an un-escalated tripwire verdict stands on the checked
-      // subset only, so the comparison is computed on exactly those items:
-      // the baseline's rate over the checked outcomes against the probe's.
+      // subset only, so the comparison is computed in the same basis on both
+      // sides: per-item majorities (the baseline stores 0/1 outcomes, so a
+      // seed-fractional probe rate would fake a delta out of nothing).
       if (now.tripwire && !now.tripwire.escalated) {
         const checkedIds = Object.keys(now.outcomes ?? {});
         const savedChecked = checkedIds.map((id) => Number(saved.outcomes?.[id]));
@@ -114,16 +115,18 @@ export function compareToBaseline(baseline, current, { toleranceItems = 1, alpha
           rows.push({ model, task, missing: true, regression: true });
           continue;
         }
-        const subsetBaseline = round((savedChecked.reduce((sum, value) => sum + (value ? 100 : 0), 0) / checkedIds.length));
+        const share = (values) => round(values.reduce((sum, value) => sum + (value ? 100 : 0), 0) / (values.length || 1));
+        const subsetBaseline = share(savedChecked);
+        const subsetNow = share(checkedIds.map((id) => Number(now.outcomes?.[id])));
         const tolerance = (toleranceItems / (now.items || checkedIds.length || 1)) * 100;
         const paired = saved.outcomes && now.outcomes ? pairedOutcomes(saved.outcomes, now.outcomes) : null;
-        const delta = round(now.rate - subsetBaseline);
+        const delta = round(subsetNow - subsetBaseline);
         rows.push({
           model,
           task,
           tripwire: { checked: now.tripwire.checkedItems, of: now.tripwire.of, escalated: false },
           baselineRate: subsetBaseline,
-          rate: now.rate,
+          rate: subsetNow,
           delta,
           tolerance: round(tolerance),
           latencyDeltaMs: null,
