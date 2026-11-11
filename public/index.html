@@ -358,7 +358,7 @@
             <label class="field">
               <span>Checkpoint interval (tokens)</span>
               <input id="setting-checkpoint-interval" type="number" min="128" max="32768" step="128" />
-              <small>Take a checkpoint every N tokens while a long context is trimmed. Reload to apply.</small>
+              <small>Fallback interval before the context size is known; with a model loaded the interval scales automatically to cover the context. Reload to apply.</small>
             </label>
             <label class="field">
               <span>Max checkpoints</span>

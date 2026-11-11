@@ -172,7 +172,7 @@ const SETTING_HELP = {
   "setting-flash": "Use flash attention where the backend supports it; reload to apply.",
   "setting-mmap": "Map weights through the OS page cache instead of copying them into RAM; reload to apply.",
   "setting-checkpoints": "Keep prefix states so long contexts can be reused faster; reload to apply.",
-  "setting-checkpoint-interval": "How many tokens between prefix checkpoints; reload to apply.",
+  "setting-checkpoint-interval": "Fallback checkpoint interval before the context size is known; with a model loaded the interval scales to cover the context; reload to apply.",
   "setting-checkpoint-max": "How many checkpoints one sequence may keep. More costs memory; reload to apply.",
   "setting-kv": "Precision of the KV cache. Lower precision saves memory and may lose a little quality; reload to apply.",
   "server-port": "Port the local server listens on after the next restart.",
