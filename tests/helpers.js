@@ -168,7 +168,7 @@ export class FakeEngine {
 
 export async function makeHarness(
   t,
-  { models = 1, engine = new FakeEngine(), benchmarkDir = null, benchmarks = null, tunes = null, host = "127.0.0.1", baseHost = "127.0.0.1" } = {},
+  { models = 1, engine = new FakeEngine(), benchmarkDir = null, benchmarks = null, tunes = null, host = "127.0.0.1", baseHost = "127.0.0.1", reloadLease = null } = {},
 ) {
   const home = await mkdtemp(path.join(os.tmpdir(), "modelduck-test-"));
   const paths = resolvePaths({ home });
@@ -216,6 +216,7 @@ export async function makeHarness(
     ...(benchmarkDir ? { benchmarkDir } : {}),
     ...(benchmarks ? { benchmarks } : {}),
     ...(tunes ? { tunes } : {}),
+    ...(reloadLease ? { reloadLease } : {}),
   });
 
   await new Promise((resolve) => server.listen(0, host, resolve));

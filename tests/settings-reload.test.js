@@ -155,6 +155,72 @@ test("the settings API returns the fingerprint and the reload verdict", async (t
   assert.equal(updated.reload.fingerprint.length, 16);
 });
 
+test("lease.status() snapshots the deferred rebuild without mutating it", async () => {
+  const engine = makeRebuildEngine({ fingerprint: "stale" });
+  const lease = new EngineRebuildLease({ engine, logger: null, delayMs: 5 });
+  assert.deepEqual(lease.status(), {
+    pending: false,
+    pendingFingerprint: null,
+    phase: "load",
+    running: false,
+    lastError: null,
+  });
+  const asked = reloadSettings({ contextSize: 8192, autoReloadOnSettingsChange: true });
+  lease.update(asked);
+  const scheduled = lease.status();
+  assert.equal(scheduled.pending, true);
+  assert.equal(scheduled.pendingFingerprint, reloadFingerprint(asked)); // which settings the rebuild will apply
+  await sleep(40);
+  const settled = lease.status();
+  assert.equal(settled.pending, false);
+  assert.equal(settled.running, false);
+  assert.equal(settled.lastError, null);
+  lease.dispose();
+});
+
+test("lease.status() keeps the failure code after a bounded teardown", async () => {
+  const engine = makeRebuildEngine({ fingerprint: "stale", unloadImpl: () => sleep(5000) });
+  const lease = new EngineRebuildLease({ engine, logger: null, delayMs: 2, disposeTimeoutMs: 15 });
+  lease.update(reloadSettings({ autoReloadOnSettingsChange: true }));
+  await sleep(60);
+  const failed = lease.status();
+  assert.equal(failed.pending, false);
+  assert.equal(failed.lastError.code, "MODEL_DISPOSE_FAILED");
+});
+
+test("GET /api/settings reports the lease state and its background failures", async (t) => {
+  class FingerprintedEngine extends FakeEngine {
+    get reloadFingerprint() {
+      return "0000000000000000";
+    }
+  }
+  const idle = await makeHarness(t, { engine: new FingerprintedEngine() });
+  const before = await (await fetch(`${idle.base}/api/settings`)).json();
+  assert.equal(before.reload.pending, false);
+  assert.equal(before.reload.pendingFingerprint, null);
+  assert.equal(before.reload.lastError, null);
+
+  class HungDisposeEngine extends FingerprintedEngine {
+    async unload() {
+      return sleep(2000);
+    }
+  }
+  const hung = new HungDisposeEngine();
+  const lease = new EngineRebuildLease({ engine: hung, logger: null, delayMs: 2, disposeTimeoutMs: 15 });
+  const failing = await makeHarness(t, { engine: hung, reloadLease: lease });
+  const write = await fetch(`${failing.base}/api/settings`, {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ settings: { autoReloadOnSettingsChange: true } }),
+  });
+  assert.equal(write.status, 200);
+  await sleep(60);
+  const after = await (await fetch(`${failing.base}/api/settings`)).json();
+  assert.equal(after.reload.pending, false);
+  assert.equal(after.reload.lastError.code, "MODEL_DISPOSE_FAILED");
+  lease.dispose();
+});
+
 test("generation manifests attest the reload fingerprint", () => {
   const manifest = buildGenerationManifest({
     model: { id: "m" },

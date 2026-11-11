@@ -115,11 +115,13 @@ export function createHttpServer({
   profileFingerprint = currentFingerprint,
   tuneStepsFile = null,
   instance = null,
+  reloadLease = null,
 }) {
   const tuned = new TunedSettings({ profilesDir, registry, settings, fingerprint: profileFingerprint });
   // IDEA-1098: the release-barriered rebuild lease; off unless the user turns
   // autoReloadOnSettingsChange on, and it always defers to a busy engine.
-  const reloadLease = engine ? new EngineRebuildLease({ engine, logger }) : null;
+  // Tests may inject a lease with fast timers; production keeps the defaults.
+  const lease = reloadLease ?? (engine ? new EngineRebuildLease({ engine, logger }) : null);
   const tunedInfo = (applied) => applied && { catalogId: applied.catalogId, task: applied.task, speedPreset: applied.speedPreset, stages: applied.stages, systemPrompt: applied.settings.systemPrompt ?? null, rate: applied.rate ?? null, typeWarnings: applied.typeWarnings ?? [], stale: applied.stale, warnings: applied.warnings };
 
   async function route(req, res) {
@@ -783,8 +785,14 @@ export function createHttpServer({
 
     if (pathname === "/api/settings" && method === "GET") {
       // IDEA-1098: the fingerprint of the reload-affecting settings, so the
-      // caller can compare against the live engine's exposed fingerprint.
-      sendJson(res, 200, { settings: settings.value, settingsFingerprint: reloadFingerprint(settings.value) });
+      // caller can compare against the live engine's exposed fingerprint,
+      // plus a read-only lease snapshot so a deferred rebuild and its last
+      // failure (e.g. MODEL_DISPOSE_FAILED) are observable after the PUT.
+      sendJson(res, 200, {
+        settings: settings.value,
+        settingsFingerprint: reloadFingerprint(settings.value),
+        reload: lease ? lease.status() : null,
+      });
       return;
     }
 
@@ -805,8 +813,8 @@ export function createHttpServer({
       const next = await settings.update(body.settings ?? body);
       // IDEA-1098: whether the live engine differs from the new ask, and (with
       // autoReloadOnSettingsChange) whether the lease scheduled the rebuild.
-      const reload = reloadLease
-        ? reloadLease.update(next)
+      const reload = lease
+        ? lease.update(next)
         : { required: false, fingerprint: reloadFingerprint(next), scheduled: false };
       sendJson(res, 200, { settings: next, reload });
       return;
@@ -1078,7 +1086,7 @@ export function createHttpServer({
   });
 
   server.on("close", () => {
-    reloadLease?.dispose();
+    lease?.dispose();
   });
 
   return server;

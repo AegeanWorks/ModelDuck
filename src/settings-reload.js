@@ -87,6 +87,21 @@ export class EngineRebuildLease {
   }
 
   /**
+   * IDEA-1098: a synchronous, read-only snapshot of the rebuild state. The
+   * server reports it so a client can observe a deferred rebuild and the
+   * last failure (e.g. MODEL_DISPOSE_FAILED) that never reached a PUT reply.
+   */
+  status() {
+    return {
+      pending: this.pending,
+      pendingFingerprint: this.#pendingFingerprint,
+      phase: this.#phase,
+      running: this.#running,
+      lastError: this.lastError,
+    };
+  }
+
+  /**
    * File the newest settings and answer whether the live engine needs a
    * reload. Scheduling happens only with autoReloadOnSettingsChange: the
    * default stays off, so a settings change never reloads on its own.
