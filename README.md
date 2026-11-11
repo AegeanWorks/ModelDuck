@@ -19,7 +19,7 @@ server and the tuning control panel: Models, Bench & Tune, Settings and Server.
 ## 30-Second Cold-Start Quick Reference
 
 - **Runtime Prerequisites**: Node.js 20 or newer, 8 GB RAM, and a modern browser.
-  Windows 10/11 is the tested platform; macOS and Linux use the same commands.
+  Windows 10/11 is tested; macOS and Linux share the commands.
 - **Model folder override**: `MODELDUCK_MODELS=D:\Models` or `--models D:\Models`.
 - **Data folder override**: `MODELDUCK_HOME=D:\ModelDuckData` or `--home D:\ModelDuckData`.
 - **Canonical Regression Shield Gate**:
@@ -30,10 +30,9 @@ server and the tuning control panel: Models, Bench & Tune, Settings and Server.
   ```bash
   npm run tune:gate
   ```
-  Re-measures the three core models' baseline per task and fails when a task
-  loses more than one item; `--update-baseline` re-tunes them deliberately. The
-  cross-model comparison (`bench`, `bench:all`, `bench:full`) is optional and
-  never gates.
+  Re-measures the three core models' baselines per task and fails when a
+  task loses more than one item; `--update-baseline` re-tunes deliberately.
+  Cross-model `bench`/`bench:all`/`bench:full` is optional and never gates.
 
 ### First run
 
@@ -45,13 +44,12 @@ server and the tuning control panel: Models, Bench & Tune, Settings and Server.
    The first run installs `node-llama-cpp` and its prebuilt CPU runtime.
 2. ModelDuck opens at **http://127.0.0.1:4141**. On Windows it uses an installed
    Edge or Chrome to open a standalone app window; otherwise your default
-   browser. Closing that window does not stop the local server; press **Ctrl+C**
-   in the terminal to quit.
+   browser. Closing the window leaves the server running; **Ctrl+C** quits.
 3. Click **Models → Discover**, download a starter model, then **Install → Load**.
 4. Open **Bench & Tune → Tune** to optimize the model, or **Models → Load** to serve it.
    Chat lives in ChatDuck; point it at `http://127.0.0.1:4141`.
 
-No model is bundled. Start with **Qwen2.5 0.5B Instruct** (469 MB) or
+Bundled: none. Start with **Qwen2.5 0.5B Instruct** (469 MB) or
 **Qwen2.5 1.5B Instruct** (1.1 GB, better answers).
 
 ### AIKit Commands (run from the AIKit folder)
@@ -88,8 +86,8 @@ device. It is off by default so a missing driver never prevents local inference 
 ## What you get
 
 - **Model library** — scan a folder, import a GGUF by path, or download a curated
-  model from Hugging Face, checked against a pinned SHA-256, with resumable `.part`
-  downloads (restarts reuse the running download).
+  Hugging Face model, checked against a pinned SHA-256, with resumable `.part`
+  downloads (restarts reuse one).
 - **Model controls** - context size (16K floor or higher), CPU threads and thread pool, batch size,
   context sequences, GPU backend/layers, KV cache, checkpoint interval, max and memory budget,
   flash attention, mmap, temperature, top-p/top-k/min-p, repeat penalty, max reply tokens, system
@@ -125,7 +123,7 @@ The default set is SmolLM2 135M, Qwen2.5 0.5B and Qwen2.5 Coder 1.5B;
 `--full-matrix` adds three more (hours on a CPU).
 [benchmarks/README.md](benchmarks/README.md) lists every task in suite v17, and
 [NOTICE](benchmarks/NOTICE-benchmarks.md) records the licences. Public items
-may be in a model's training data, so own and public questions are reported apart.
+may sit in a model's training data; own and public questions are reported apart.
 
 ```bash
 npm run bench -- --download        # first run: fetch missing models, core phase
@@ -299,7 +297,7 @@ The **Server** panel controls the local API surface:
 | Only keep last JIT model | On: a new JIT request replaces the previous JIT model. Off: a second JIT request is refused while a model is loaded |
 | Per-request MCPs / mcp.json | Persisted switches for a future MCP adapter; no tools are exposed yet |
 
-Web pages from another site are refused (`403 cross_site_refused`) on every route except `/v1/*` with CORS on, and a request reaching this computer's loopback must name a loopback host, so a DNS-rebound page cannot pass as the UI.
+Web pages from another site are refused (`403 cross_site_refused`) on every route except `/v1/*` with CORS on; a loopback-bound request must also name a loopback host, so a DNS-rebound page cannot pass as the UI.
 
 Endpoints (selected; `src/server.js` has the complete route list):
 
@@ -452,6 +450,7 @@ modelduck/
 │   ├── benchmark-base.js <- benchmark base choice
 │   ├── checkpoint-merge.js <- toy qwenFS checkpoint-merge math (offline analysis only)
 │   ├── checkpoint-policy.js <- checkpoint interval, coverage and memory plan
+│   ├── settings-reload.js <- reload fingerprint + release-barriered rebuild lease
 │   ├── openai.js <- OpenAI-compatible models/chat endpoints, stop and param contract
 │   ├── http.js <- JSON, SSE, static serving, loopback guard, backpressure writer
 │   ├── jit.js <- just-in-time loading and idle unload
@@ -534,6 +533,7 @@ modelduck/
 │   ├── state-machine-proposals.test.js
 │   ├── config.test.js
 │   ├── checkpoint-policy.test.js
+│   ├── settings-reload.test.js
 │   ├── checkpoint-merge.test.js
 │   ├── fs-atomic.test.js
 │   ├── model-registry.test.js

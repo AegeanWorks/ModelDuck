@@ -26,6 +26,7 @@ import { publicCatalog } from "./model-catalog.js";
 import { currentFingerprint, importRecipe, isPartRun, launchRecipe, listProfiles, loadProfile, profileIdFor, profileRecipe, saveProfile, typeWarnings } from "./model-profiles.js";
 import { answersFile, answerPaceByProfile, listRuns, loadRun, summarizeAnswers } from "./tune-runs.js";
 import { TunedSettings, diffSettings } from "./tuned-settings.js";
+import { EngineRebuildLease, reloadFingerprint } from "./settings-reload.js";
 import { readSteps, writeSteps } from "./tune-steps.js";
 import { DEFAULT_STEPS, estimateTune, expectedAnswers, settingNames } from "../benchmarks/tune-grid.mjs";
 import { STAGES } from "../benchmarks/tune.mjs";
@@ -116,6 +117,9 @@ export function createHttpServer({
   instance = null,
 }) {
   const tuned = new TunedSettings({ profilesDir, registry, settings, fingerprint: profileFingerprint });
+  // IDEA-1098: the release-barriered rebuild lease; off unless the user turns
+  // autoReloadOnSettingsChange on, and it always defers to a busy engine.
+  const reloadLease = engine ? new EngineRebuildLease({ engine, logger }) : null;
   const tunedInfo = (applied) => applied && { catalogId: applied.catalogId, task: applied.task, speedPreset: applied.speedPreset, stages: applied.stages, systemPrompt: applied.settings.systemPrompt ?? null, rate: applied.rate ?? null, typeWarnings: applied.typeWarnings ?? [], stale: applied.stale, warnings: applied.warnings };
 
   async function route(req, res) {
@@ -778,7 +782,9 @@ export function createHttpServer({
     }
 
     if (pathname === "/api/settings" && method === "GET") {
-      sendJson(res, 200, { settings: settings.value });
+      // IDEA-1098: the fingerprint of the reload-affecting settings, so the
+      // caller can compare against the live engine's exposed fingerprint.
+      sendJson(res, 200, { settings: settings.value, settingsFingerprint: reloadFingerprint(settings.value) });
       return;
     }
 
@@ -797,7 +803,12 @@ export function createHttpServer({
       });
       const body = await readJsonBody(req);
       const next = await settings.update(body.settings ?? body);
-      sendJson(res, 200, { settings: next });
+      // IDEA-1098: whether the live engine differs from the new ask, and (with
+      // autoReloadOnSettingsChange) whether the lease scheduled the rebuild.
+      const reload = reloadLease
+        ? reloadLease.update(next)
+        : { required: false, fingerprint: reloadFingerprint(next), scheduled: false };
+      sendJson(res, 200, { settings: next, reload });
       return;
     }
 
@@ -1064,6 +1075,10 @@ export function createHttpServer({
 
   server.on("clientError", (_error, socket) => {
     socket.end("HTTP/1.1 400 Bad Request\r\n\r\n");
+  });
+
+  server.on("close", () => {
+    reloadLease?.dispose();
   });
 
   return server;

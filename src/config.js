@@ -51,6 +51,8 @@ export const DEFAULT_SETTINGS = Object.freeze({
   checkpointMax: 32,
   checkpointMemoryMb: 64,
   kvCache: "f16",
+  // IDEA-1098: off by default; a settings change never reloads the model on its own.
+  autoReloadOnSettingsChange: false,
   useTunedProfile: true,
   speedPreset: "fastest",
   systemPrompt: DEFAULT_SYSTEM_PROMPT,
@@ -311,6 +313,10 @@ export function normalizeSettings(input = {}) {
     ),
     kvCache: KV_CACHE_TYPES.has(kvCache) ? kvCache : DEFAULT_SETTINGS.kvCache,
     useTunedProfile: source.useTunedProfile === undefined ? true : normalizeBoolean(source.useTunedProfile, true),
+    autoReloadOnSettingsChange:
+      source.autoReloadOnSettingsChange === undefined
+        ? false
+        : normalizeBoolean(source.autoReloadOnSettingsChange, false),
     speedPreset: ["fastest", "light", "quiet"].includes(source.speedPreset) ? source.speedPreset : "fastest",
     systemPrompt:
       typeof source.systemPrompt === "string"

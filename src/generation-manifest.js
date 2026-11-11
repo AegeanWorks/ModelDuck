@@ -213,6 +213,7 @@ export function buildGenerationManifest({
           gpuLayers: allocation.gpuLayers ?? null,
           fallback: allocation.fallback ?? null,
           checkpoints: allocation.checkpoints ?? null,
+          reloadFingerprint: allocation.reloadFingerprint ?? null,
         }
       : null,
   };

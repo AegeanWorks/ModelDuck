@@ -3,6 +3,7 @@ import os from "node:os";
 import { AppError } from "./errors.js";
 import { normalizeSettings } from "./config.js";
 import { deriveCheckpointPlan } from "./checkpoint-policy.js";
+import { reloadFingerprint } from "./settings-reload.js";
 import { samplerOptions } from "./sampler-chain.js";
 import { toGenerationError, toLoadError } from "./engine-errors.js";
 import { formatBytes } from "./fs-atomic.js";
@@ -274,6 +275,29 @@ export class LlamaEngine {
 
   get busy() {
     return this.#running > 0 || this.#loading || this.#unloading;
+  }
+
+  /**
+   * IDEA-1098: the fingerprint of the reload-affecting settings this loaded
+   * context actually has, so callers can tell whether the running engine
+   * matches the current ask. Null while no model is loaded.
+   */
+  get reloadFingerprint() {
+    if (this.#state.status !== "ready") return null;
+    return reloadFingerprint({
+      contextSize: this.#state.contextSize,
+      threads: this.#state.threads,
+      batchSize: this.#state.batchSize,
+      kvCache: this.#state.kvCache,
+      flashAttention: this.#state.flashAttention,
+      useMmap: this.#state.useMmap,
+      checkpoints: this.#state.checkpoints,
+      checkpointInterval: this.#state.checkpointInterval,
+      checkpointMax: this.#state.checkpointMax,
+      checkpointMemoryMb: this.#state.checkpointMemoryMb,
+      gpuLayers: this.#state.gpuLayers,
+      gpuBackend: this.#state.gpuBackend,
+    });
   }
 
   /** IDEA-1094: cancel a load stuck between native awaits; the load throws canceled. */
@@ -923,6 +947,7 @@ export class LlamaEngine {
         gpuLayers: this.#state.gpuLayers ?? null,
         fallback: this.#state.contextFallback ?? null,
         checkpoints: this.#checkpointPlan(),
+        reloadFingerprint: this.reloadFingerprint,
       },
     });
     // IDEA-1076: exact-repeat deterministic answers skip regeneration entirely.
@@ -1197,6 +1222,7 @@ export class LlamaEngine {
         gpuLayers: this.#state.gpuLayers ?? null,
         fallback: this.#state.contextFallback ?? null,
         checkpoints: this.#checkpointPlan(),
+        reloadFingerprint: this.reloadFingerprint,
       },
     });
     const startedAt = Date.now();
