@@ -86,10 +86,10 @@ device. It is off by default so a missing driver never prevents local inference 
 ## What you get
 
 - **Model library** — scan a folder, import a GGUF by path, or download a curated
-  Hugging Face model, checked against a pinned SHA-256, with resumable `.part`
-  downloads (restarts reuse one).
+  Hugging Face model, checked against a pinned SHA-256, with resumable `.part` downloads.
 - **Model controls** - context size (16K floor or higher), CPU threads and thread pool, batch size,
-  context sequences, GPU backend/layers, KV cache, checkpoint interval, max and memory budget,
+  context sequences, GPU backend/layers, KV cache, checkpoint interval (a pre-load
+  fallback), max and memory budget,
   flash attention, mmap, temperature, top-p/top-k/min-p, repeat penalty, max reply tokens, system
   prompt, reasoning, context overflow, structured output and prompt repetition,
   saved in `settings.json`.
