@@ -5,22 +5,12 @@
     "last_phase": "in_progress",
     "active_phase": 2,
     "status": "in_progress",
-    "updated_at": 1794432085.5981731,
+    "updated_at": 1794432165.1869166,
     "owner": "vibe:1",
     "started_by": "vibe:1",
     "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "context-floor-ui-test",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'context-floor-ui-test' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794258052.6539898,
-      "timestamp_str": "2026-11-10 00:00:52",
-      "agent": "commandcode:9b9e6718"
-    },
     {
       "task_id": "coder-recall-repeat2",
       "phase": "phase 1",
@@ -261,6 +251,17 @@
       "status": "in_progress",
       "timestamp": 1794432085.5981731,
       "timestamp_str": "2026-11-12 00:21:25",
+      "agent": "vibe:1"
+    },
+    {
+      "task_id": "push-delta-fixes",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[4/4] Fix 1 landed: the settings UI hints in public/index.html and public/app.js describe the checkpoint interval as the pre-load fallback; UI task opened, verified live on port 4199, reviewed and closed; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794432165.1869166,
+      "timestamp_str": "2026-11-12 00:22:45",
       "agent": "vibe:1"
     }
   ]
