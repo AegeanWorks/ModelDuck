@@ -3,31 +3,14 @@
   "active_task": {
     "task_id": "push-delta-fixes",
     "last_phase": "in_progress",
-    "active_phase": 2,
+    "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1794432165.1869166,
+    "updated_at": 1794432468.3699713,
     "owner": "vibe:1",
     "started_by": "vibe:1",
     "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "coder-recall-repeat2",
-      "phase": "phase 1",
-      "phase_num": 1,
-      "description": "[1/1] Plan: run the tuner's sampling+prompt stages for coder recall at the 16K floor with --full-final; install its preset over the greedy one if it wins",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794262771.0150638,
-      "timestamp_str": "2026-11-10 01:19:31",
-      "agent": "commandcode:9b9e6718",
-      "impact_assessment": {
-        "why": "The floor and full-final raise statistical power; the earlier greedy preset was an A/B, not a tuner result.",
-        "benefits": "A tuner-produced recall preset with its own receipt; a measured quality gain.",
-        "risks": "contract: profile and recipe; dependency: Vulkan; concurrency: box load; state: profile overwrite (backup kept)",
-        "mitigation": "seed a valid progress, full-final on 62 items, head-to-head on 65 against the current preset before installing, run tests and gates"
-      }
-    },
     {
       "task_id": "coder-recall-repeat2",
       "phase": "phase 4",
@@ -262,6 +245,17 @@
       "status": "in_progress",
       "timestamp": 1794432165.1869166,
       "timestamp_str": "2026-11-12 00:22:45",
+      "agent": "vibe:1"
+    },
+    {
+      "task_id": "push-delta-fixes",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "Phase 4 passed: aikit check modelduck --strict 4/4 gates (npm test 647: 646 pass + 1 skip); live tune:gate on the three core models identical rates (+0, b=0 c=0, tripwire 12 per rung, cold re-warm 0 reused/108 fresh per model); UI task closed after live review at port 4199; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794432468.3699713,
+      "timestamp_str": "2026-11-12 00:27:48",
       "agent": "vibe:1"
     }
   ]
