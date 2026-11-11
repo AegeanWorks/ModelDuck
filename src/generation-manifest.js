@@ -212,6 +212,7 @@ export function buildGenerationManifest({
           backend: allocation.backend ?? null,
           gpuLayers: allocation.gpuLayers ?? null,
           fallback: allocation.fallback ?? null,
+          checkpoints: allocation.checkpoints ?? null,
         }
       : null,
   };

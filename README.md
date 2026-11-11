@@ -30,11 +30,10 @@ server and the tuning control panel: Models, Bench & Tune, Settings and Server.
   ```bash
   npm run tune:gate
   ```
-  Re-measures the three core models' baseline settings per task and fails when a
-  task loses more than one item; `npm run tune:gate -- --update-baseline` re-tunes
-  them deliberately. The cross-model comparison (`npm run bench`, `bench:all`,
-  `bench:full`) is optional and never gates. Use `npm run bench -- --download`
-  once for models.
+  Re-measures the three core models' baseline per task and fails when a task
+  loses more than one item; `--update-baseline` re-tunes them deliberately. The
+  cross-model comparison (`bench`, `bench:all`, `bench:full`) is optional and
+  never gates.
 
 ### First run
 
@@ -45,7 +44,7 @@ server and the tuning control panel: Models, Bench & Tune, Settings and Server.
    ```
    The first run installs `node-llama-cpp` and its prebuilt CPU runtime.
 2. ModelDuck opens at **http://127.0.0.1:4141**. On Windows it uses an installed
-   Edge or Chrome to open a standalone app window; otherwise it opens your default
+   Edge or Chrome to open a standalone app window; otherwise your default
    browser. Closing that window does not stop the local server; press **Ctrl+C**
    in the terminal to quit.
 3. Click **Models → Discover**, download a starter model, then **Install → Load**.
@@ -90,9 +89,9 @@ device. It is off by default so a missing driver never prevents local inference 
 
 - **Model library** — scan a folder, import a GGUF by path, or download a curated
   model from Hugging Face, checked against a pinned SHA-256, with resumable `.part`
-  downloads (a repeated start reuses the running download).
+  downloads (restarts reuse the running download).
 - **Model controls** - context size (16K floor or higher), CPU threads and thread pool, batch size,
-  context sequences, GPU backend/layers, KV cache, checkpoint interval and max,
+  context sequences, GPU backend/layers, KV cache, checkpoint interval, max and memory budget,
   flash attention, mmap, temperature, top-p/top-k/min-p, repeat penalty, max reply tokens, system
   prompt, reasoning, context overflow, structured output and prompt repetition,
   saved in `settings.json`.
@@ -125,7 +124,7 @@ chosen configuration.
 The default set is SmolLM2 135M, Qwen2.5 0.5B and Qwen2.5 Coder 1.5B;
 `--full-matrix` adds three more (hours on a CPU).
 [benchmarks/README.md](benchmarks/README.md) lists every task in suite v17, and
-[NOTICE](benchmarks/NOTICE-benchmarks.md) records the item licences. Public items
+[NOTICE](benchmarks/NOTICE-benchmarks.md) records the licences. Public items
 may be in a model's training data, so own and public questions are reported apart.
 
 ```bash
@@ -452,6 +451,7 @@ modelduck/
 │   ├── benchmark-runner.js <- one benchmark child, JSON progress
 │   ├── benchmark-base.js <- benchmark base choice
 │   ├── checkpoint-merge.js <- toy qwenFS checkpoint-merge math (offline analysis only)
+│   ├── checkpoint-policy.js <- checkpoint interval, coverage and memory plan
 │   ├── openai.js <- OpenAI-compatible models/chat endpoints, stop and param contract
 │   ├── http.js <- JSON, SSE, static serving, loopback guard, backpressure writer
 │   ├── jit.js <- just-in-time loading and idle unload
@@ -533,6 +533,7 @@ modelduck/
 │   ├── state-machine-coverage.test.js
 │   ├── state-machine-proposals.test.js
 │   ├── config.test.js
+│   ├── checkpoint-policy.test.js
 │   ├── checkpoint-merge.test.js
 │   ├── fs-atomic.test.js
 │   ├── model-registry.test.js

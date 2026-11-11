@@ -2,6 +2,7 @@ import os from "node:os";
 
 import { AppError } from "./errors.js";
 import { normalizeSettings } from "./config.js";
+import { deriveCheckpointPlan } from "./checkpoint-policy.js";
 import { samplerOptions } from "./sampler-chain.js";
 import { toGenerationError, toLoadError } from "./engine-errors.js";
 import { formatBytes } from "./fs-atomic.js";
@@ -217,6 +218,7 @@ export class LlamaEngine {
   #checkpoints = true;
   #checkpointInterval = 8192;
   #checkpointMax = 32;
+  #checkpointMemoryMb = 64;
   #grammarCache = null;
   #responseCache = new Map(); // IDEA-1076: memory-only, cleared on unload.
   #gpuBackend = null;
@@ -235,6 +237,7 @@ export class LlamaEngine {
     checkpoints: null,
     checkpointInterval: null,
     checkpointMax: null,
+    checkpointMemoryMb: null,
     kvCache: null,
     runtimeVersion: null,
     loadedAt: null,
@@ -477,6 +480,7 @@ export class LlamaEngine {
     checkpoints,
     checkpointInterval,
     checkpointMax,
+    checkpointMemoryMb,
     kvCache,
     // IDEA-1627: batch 1 is the repro path, explicitly opted in. The app
     // keeps the 32 floor; only a deterministic repro run passes true.
@@ -615,6 +619,14 @@ export class LlamaEngine {
       this.#checkpoints = checkpoints !== false;
       this.#checkpointInterval = Math.max(128, Math.min(32768, Number(checkpointInterval) || 8192));
       this.#checkpointMax = Math.max(1, Math.min(64, Number(checkpointMax) || 32));
+      // IDEA-1087: 0 = unlimited, so null/undefined falls back instead of 0.
+      const rawCheckpointMemory = checkpointMemoryMb === undefined || checkpointMemoryMb === null
+        ? 64
+        : Number(checkpointMemoryMb);
+      this.#checkpointMemoryMb = Math.max(
+        0,
+        Math.min(256, Number.isFinite(rawCheckpointMemory) ? Math.round(rawCheckpointMemory) : 64),
+      );
 
       let lastError = null;
       for (const attempt of attempts) {
@@ -662,6 +674,7 @@ export class LlamaEngine {
         checkpoints: this.#checkpoints,
         checkpointInterval: this.#checkpointInterval,
         checkpointMax: this.#checkpointMax,
+        checkpointMemoryMb: this.#checkpointMemoryMb,
         kvCache: kvLabel,
         runtimeVersion,
         loadedAt: new Date().toISOString(),
@@ -909,6 +922,7 @@ export class LlamaEngine {
         backend: this.#gpuBackend ?? "cpu",
         gpuLayers: this.#state.gpuLayers ?? null,
         fallback: this.#state.contextFallback ?? null,
+        checkpoints: this.#checkpointPlan(),
       },
     });
     // IDEA-1076: exact-repeat deterministic answers skip regeneration entirely.
@@ -1182,6 +1196,7 @@ export class LlamaEngine {
         backend: this.#gpuBackend ?? "cpu",
         gpuLayers: this.#state.gpuLayers ?? null,
         fallback: this.#state.contextFallback ?? null,
+        checkpoints: this.#checkpointPlan(),
       },
     });
     const startedAt = Date.now();
@@ -1450,10 +1465,34 @@ export class LlamaEngine {
    * the pool asynchronously, so a chat that starts right after another ended
    * waits briefly for it instead of failing with "No sequences left".
    */
+  /**
+   * IDEA-1087: the deterministic checkpoint plan for the loaded context. The
+   * interval scales so checkpoints cover the context uniformly, and the
+   * memory budget caps the checkpoint store's footprint.
+   */
+  #checkpointPlan() {
+    return deriveCheckpointPlan({
+      contextSize: this.#context?.contextSize ?? null,
+      checkpoints: this.#checkpoints,
+      checkpointMax: this.#checkpointMax,
+      checkpointInterval: this.#checkpointInterval,
+      checkpointMemoryMb: this.#checkpointMemoryMb,
+    });
+  }
+
+  #checkpointOptions() {
+    const plan = this.#checkpointPlan();
+    return plan.enabled
+      ? {
+          max: plan.max,
+          interval: plan.interval,
+          ...(plan.memoryMb ? { maxMemory: plan.memoryMb * 1024 * 1024 } : {}),
+        }
+      : { max: 1, interval: false };
+  }
+
   async #acquireSequence({ waitMs = 2000 } = {}) {
-    const options = {
-      checkpoints: this.#checkpoints ? { max: this.#checkpointMax, interval: this.#checkpointInterval } : { max: 1, interval: false },
-    };
+    const options = { checkpoints: this.#checkpointOptions() };
     const deadline = Date.now() + waitMs;
     while ((this.#context.sequencesLeft ?? 1) === 0 && Date.now() < deadline) {
       await new Promise((resolve) => setTimeout(resolve, 5));

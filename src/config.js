@@ -49,6 +49,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
   checkpoints: true,
   checkpointInterval: 8192,
   checkpointMax: 32,
+  checkpointMemoryMb: 64,
   kvCache: "f16",
   useTunedProfile: true,
   speedPreset: "fastest",
@@ -301,6 +302,13 @@ export function normalizeSettings(input = {}) {
       DEFAULT_SETTINGS.checkpointInterval,
     ),
     checkpointMax: clampInteger(source.checkpointMax, 1, 64, DEFAULT_SETTINGS.checkpointMax),
+    // IDEA-1087: 0 = unlimited checkpoint memory, capped at 256 MiB.
+    checkpointMemoryMb: clampInteger(
+      source.checkpointMemoryMb,
+      0,
+      256,
+      DEFAULT_SETTINGS.checkpointMemoryMb,
+    ),
     kvCache: KV_CACHE_TYPES.has(kvCache) ? kvCache : DEFAULT_SETTINGS.kvCache,
     useTunedProfile: source.useTunedProfile === undefined ? true : normalizeBoolean(source.useTunedProfile, true),
     speedPreset: ["fastest", "light", "quiet"].includes(source.speedPreset) ? source.speedPreset : "fastest",
