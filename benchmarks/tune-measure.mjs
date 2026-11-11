@@ -15,7 +15,8 @@ function stdev(values) {
   return Math.sqrt(values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length);
 }
 
-const settingsKey = (settings) => JSON.stringify(Object.keys(settings).sort().map((key) => [key, settings[key]]));
+/** Stable identity of one settings object; shared by the measurement cache and the gate answer cache (IDEA-1764). */
+export const settingsKey = (settings) => JSON.stringify(Object.keys(settings).sort().map((key) => [key, settings[key]]));
 
 /** Fixed-budget quota default: no cap unless the caller sets one (IDEA-1580). */
 export const QUOTA_DEFAULT = Infinity;
@@ -40,6 +41,8 @@ export class Measurements {
     // Called with every newly measured answer, for the run record (ADR-050).
     this.onAnswers = onAnswers;
     this.runs = 0;
+    // IDEA-1764: answers served by restore() instead of the model.
+    this.reusedRows = 0;
     this.slots = new Map();
     // Why measuring stopped early (the model cannot load at all), or null.
     this.stopped = null;
@@ -90,6 +93,7 @@ export class Measurements {
       slot.memoryBytes = out.memoryBytes ?? slot.memoryBytes;
       slot.gpuVram = out.gpuVram ?? slot.gpuVram;
     }
+    this.reusedRows += itemIds.length - missing.length;
     return { prompts: itemIds.map((id) => slot.items.get(id)), memoryBytes: slot.memoryBytes, gpuVram: slot.gpuVram };
   }
 }

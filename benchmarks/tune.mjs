@@ -868,12 +868,42 @@ export function resultFrom(state, { budgetExhausted = false, stopped = null, opt
 }
 
 /** Re-measure fixed presets (no search) on each task's last rung, as the tune gate does. */
-export async function measurePresets({ evaluate, load, presets, rungs, options = {} }) {
+export async function measurePresets({ evaluate, load, presets, rungs, options = {}, restore = [], onAnswers = () => {}, tripwire = null, escalate = null }) {
   const settings = { ...DEFAULT_TUNE_OPTIONS, ...options };
-  const measurements = new Measurements(evaluate, Infinity);
+  const measurements = new Measurements(evaluate, Infinity, onAnswers);
+  // IDEA-1764: a gate may prefill exact settings/seed/item rows instead of
+  // re-asking the model; the restore path is the tuner's G8 semantics.
+  for (const saved of restore) {
+    try {
+      measurements.restore(saved.settings, saved.seed, saved.rows);
+    } catch {
+      // a stale or partial row never blocks a fresh measurement
+    }
+  }
   const measured = {};
   for (const [task, preset] of Object.entries(presets)) {
-    measured[task] = publicStats(await score(measurements, { ...load, ...preset }, rungs[task].at(-1), settings.seeds));
+    const itemIds = rungs[task].at(-1);
+    const merged = { ...load, ...preset };
+    // IDEA-1765: ask the tripwire window first; only a drift signal spends
+    // the rest of the rung, and the shared Measurements cache makes the
+    // escalation skip the probe items.
+    let probe = null;
+    if (typeof tripwire === "function") probe = tripwire(task, itemIds);
+    if (Array.isArray(probe) && probe.length > 0 && probe.length < itemIds.length) {
+      const probeStats = publicStats(await score(measurements, merged, probe, settings.seeds));
+      probeStats.tripwire = { checkedItems: probe.length, of: itemIds.length };
+      if (typeof escalate !== "function" || !(await escalate(task, probeStats))) {
+        measured[task] = probeStats;
+        continue;
+      }
+      const full = publicStats(await score(measurements, merged, itemIds, settings.seeds));
+      full.tripwire = { checkedItems: probe.length, of: itemIds.length, escalated: true };
+      measured[task] = full;
+      continue;
+    }
+    measured[task] = publicStats(await score(measurements, merged, itemIds, settings.seeds));
   }
+  measured.reusedAnswers = measurements.reusedRows;
+  measured.freshAnswers = measurements.runs;
   return measured;
 }

@@ -47,7 +47,7 @@ server and the tuning control panel: Models, Bench & Tune, Settings and Server.
    browser. Closing the window leaves the server running; **Ctrl+C** quits.
 3. Click **Models → Discover**, download a starter model, then **Install → Load**.
 4. Open **Bench & Tune → Tune** to optimize the model, or **Models → Load** to serve it.
-   Chat lives in ChatDuck; point it at `http://127.0.0.1:4141`.
+   Chat lives in ChatDuck; point it at 127.0.0.1:4141.
 
 Bundled: none. Start with **Qwen2.5 0.5B Instruct** (469 MB) or
 **Qwen2.5 1.5B Instruct** (1.1 GB, better answers).
@@ -120,10 +120,10 @@ phase (`npm run bench`) changes one load setting at a time across models, and th
 chosen configuration.
 
 The default set is SmolLM2 135M, Qwen2.5 0.5B and Qwen2.5 Coder 1.5B;
-`--full-matrix` adds three more (hours on a CPU).
+`--full-matrix` adds three more.
 [benchmarks/README.md](benchmarks/README.md) lists every task in suite v17, and
 [NOTICE](benchmarks/NOTICE-benchmarks.md) records the licences. Public items
-may sit in a model's training data; own and public questions are reported apart.
+may sit in training data; own and public questions are reported apart.
 
 ```bash
 npm run bench -- --download        # first run: fetch missing models, core phase
@@ -286,16 +286,16 @@ The **Server** panel controls the local API surface:
 
 | Setting | Behaviour |
 |---|---|
-| Server port | Saved for the next restart; CLI `--port` overrides it for one run |
+| Server port | Saved for restarts; CLI `--port` overrides it for one run |
 | Require authentication | Requires `Authorization: Bearer <key>` or `X-API-Key` on `/v1/*`; also protects `/api/*` for clients from other machines |
-| Active API keys | Generate a key once, then revoke it; only a SHA-256 hash is stored |
+| Active API keys | Generate then revoke; only a SHA-256 hash is stored |
 | Serve on local network | Binds `0.0.0.0` on restart; needs Require authentication, else startup turns it off with a warning |
 | Enable CORS | Adds `Access-Control-Allow-Origin: *` and answers preflight on `/v1/*` only; needs Require authentication |
-| Just-in-time loading | `/v1/chat/completions` can load a named installed model on demand |
+| Just-in-time loading | `/v1/chat/completions` loads a named installed model on demand |
 | Auto unload unused JIT | Unloads a JIT model after the idle TTL |
 | Max idle TTL | 1–1440 minutes |
 | Only keep last JIT model | On: a new JIT request replaces the previous JIT model. Off: a second JIT request is refused while a model is loaded |
-| Per-request MCPs / mcp.json | Persisted switches for a future MCP adapter; no tools are exposed yet |
+| Per-request MCPs / mcp.json | Persisted switches for a future MCP adapter (no tools yet) |
 
 Web pages from another site are refused (`403 cross_site_refused`) on every route except `/v1/*` with CORS on; a loopback-bound request must also name a loopback host, so a DNS-rebound page cannot pass as the UI.
 
@@ -332,8 +332,8 @@ POST   /api/benchmarks/base
 
 `GET /api/benchmarks` returns the two baseline phases, recent linked runs, own
 versus public item rates and recommendations from the latest model run. The run
-endpoints are loopback-only and start one child benchmark at a time; they refuse
-while a reply is generating so the CPU measurements stay comparable. Settings,
+endpoints are loopback-only, start one child benchmark at a time and refuse
+while a reply generates so measurements stay comparable. Settings,
 model and download changes stay local.
 `POST /api/benchmarks/base` saves one model-phase variant as the base the next
 chat-phase run loads. `POST /api/benchmarks/run` with `{"phase":"tune","model":"<id>"}`
@@ -508,6 +508,7 @@ modelduck/
 │   ├── tune-run.mjs     <- tune entry point
 │   ├── tune-job.mjs     <- open a model, tune it, reuse its profile
 │   ├── tune-gate.mjs    <- tune:gate regression gate
+│   ├── gate-cache.mjs    <- fingerprinted gate answer cache
 │   ├── tune-baseline.mjs <- baseline compare
 │   ├── tune-prompt.mjs  <- --interactive step questions
 │   ├── presets/         <- measured, shareable profile recipes
@@ -563,6 +564,7 @@ modelduck/
 │   ├── answer-reading.test.js
 │   ├── tune-lock.test.js
 │   ├── tune-runs.test.js
+│   ├── gate-cache.test.js
 │   ├── tune-scheduler.test.js
 │   ├── tune-steps.test.js
 │   ├── tune-steps-store.test.js

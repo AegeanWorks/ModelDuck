@@ -440,10 +440,13 @@ test("measuring saved presets scores each task's last rung with the tune's own r
     presets: { math: { temperature: 0, maxTokens: 128, systemPrompt: "Think from first principles." }, recall: { temperature: 0.7, maxTokens: 64 } },
     rungs: RUNGS,
   });
-  assert.deepEqual(Object.keys(measured).sort(), ["math", "recall"]);
+  // IDEA-1764: the gate's reuse accounting rides along as two counters.
+  assert.deepEqual(Object.keys(measured).sort(), ["freshAnswers", "math", "recall", "reusedAnswers"]);
   assert.equal(measured.math.rate, 100);
   assert.equal(measured.math.items, 8);
   assert.equal(measured.recall.seeds, 3, "a non-zero temperature uses every seed");
+  assert.equal(measured.reusedAnswers, 0);
+  assert.equal(measured.freshAnswers > 0, true);
 });
 
 /** Stage 0 alone, with a model whose device behaviour is given per backend/layers. */

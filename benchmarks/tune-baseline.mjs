@@ -103,6 +103,35 @@ export function compareToBaseline(baseline, current, { toleranceItems = 1, alpha
         rows.push({ model, task, missing: true, regression: true });
         continue;
       }
+      // IDEA-1765: an un-escalated tripwire verdict stands on the checked
+      // subset only, so the comparison is computed on exactly those items:
+      // the baseline's rate over the checked outcomes against the probe's.
+      if (now.tripwire && !now.tripwire.escalated) {
+        const checkedIds = Object.keys(now.outcomes ?? {});
+        const savedChecked = checkedIds.map((id) => Number(saved.outcomes?.[id]));
+        const measurable = savedChecked.filter((value) => Number.isFinite(value));
+        if (!measurable.length) {
+          rows.push({ model, task, missing: true, regression: true });
+          continue;
+        }
+        const subsetBaseline = round((savedChecked.reduce((sum, value) => sum + (value ? 100 : 0), 0) / checkedIds.length));
+        const tolerance = (toleranceItems / (now.items || checkedIds.length || 1)) * 100;
+        const paired = saved.outcomes && now.outcomes ? pairedOutcomes(saved.outcomes, now.outcomes) : null;
+        const delta = round(now.rate - subsetBaseline);
+        rows.push({
+          model,
+          task,
+          tripwire: { checked: now.tripwire.checkedItems, of: now.tripwire.of, escalated: false },
+          baselineRate: subsetBaseline,
+          rate: now.rate,
+          delta,
+          tolerance: round(tolerance),
+          latencyDeltaMs: null,
+          regression: delta < -tolerance || (paired ? paired.b > paired.c : false),
+          ...(paired && { b: paired.b, c: paired.c, pValue: paired.pValue }),
+        });
+        continue;
+      }
       const tolerance = (toleranceItems / (now.items || saved.items || 1)) * 100;
       const delta = round(now.rate - saved.rate);
       const paired = saved.outcomes && now.outcomes ? pairedOutcomes(saved.outcomes, now.outcomes) : null;
@@ -115,6 +144,7 @@ export function compareToBaseline(baseline, current, { toleranceItems = 1, alpha
         tolerance: round(tolerance),
         regression: delta < -tolerance,
         latencyDeltaMs: saved.latencyMs !== null && saved.latencyMs !== undefined && now.latencyMs !== null && now.latencyMs !== undefined ? round(now.latencyMs - saved.latencyMs) : null,
+        ...(now.tripwire && { tripwire: { checked: now.tripwire.checkedItems, of: now.tripwire.of, escalated: true } }),
         ...(paired && { b: paired.b, c: paired.c, pValue: paired.pValue, regressed: paired.regressed }),
       };
       rows.push(row);

@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { AppError } from "../src/errors.js";
 import { ensureDirectory } from "../src/fs-atomic.js";
 import { resolvePaths } from "../src/config.js";
+import { cachedRowCount, gateCacheFile, gateFingerprint, generationDigest, loadGateCache, mergeAnswerGroups, probeDisagrees, saveGateCache, tripwireWindow } from "./gate-cache.mjs";
 import { currentGitInfo, recordRun } from "./history.mjs";
 import { CORE_MODEL_IDS } from "./matrix.mjs";
 import { BENCHMARK_MODELS } from "./suite.mjs";
@@ -20,7 +21,7 @@ const BASELINE = path.join(HERE, "baseline-profiles.json");
 const LATEST = path.join(HERE, "results", "latest-tune-gate.json");
 const TASK_IDS = TASKS.map((task) => task.id);
 
-const USAGE = `Usage: npm run tune:gate [-- --update-baseline [--models <ids>] [--passes <n>] [--from-profile <home>]] [--models-dir <dir>] [--max-runs <n>]
+const USAGE = `Usage: npm run tune:gate [-- --update-baseline [--models <ids>] [--passes <n>] [--from-profile <home>]] [--models-dir <dir>] [--max-runs <n>] [--fresh]
 
 Re-measures each core model's baseline settings per task and fails when a task's
 pass rate drops by more than one item (G-001). --update-baseline re-tunes the
@@ -29,6 +30,10 @@ three core models and replaces benchmarks/baseline-profiles.json deliberately (G
 descent's passes, for a quicker baseline. --from-profile <home> uses the already
 measured profiles/<model>.json from that home instead of tuning; a missing profile
 is measured as the app defaults. The gate checks the models the baseline has.
+Cached answers: identical settings/seed/item rows from the last gate are reused
+when the whole world fingerprint is unchanged (suite, tasks, tuner, model, runtime,
+hardware and the generation-path file contents); any change re-measures everything.
+--fresh ignores and overwrites the cache.
 `;
 
 function parseArgs(argv) {
@@ -41,6 +46,7 @@ function parseArgs(argv) {
     else if (arg === "--max-runs") options.maxRuns = Number(argv[++index]);
     else if (arg === "--models") options.models = String(argv[++index] ?? "").split(",").map((id) => id.trim()).filter(Boolean);
     else if (arg === "--passes") options.passes = Number(argv[++index]);
+    else if (arg === "--fresh") options.fresh = true;
     else if (arg === "--from-profile") options.fromProfile = argv[++index];
     else throw new AppError("Unknown option", { code: "bad_option", why: `${arg} is not a tune:gate option.`, fix: USAGE });
   }
@@ -128,6 +134,11 @@ async function gate(options, home) {
   }
   const current = {};
   let identity = null;
+  const repoRoot = path.join(HERE, "..");
+  // IDEA-1764: the reuse fingerprint covers the whole world identity plus the
+  // generation-path file contents, so a cached answer always comes from a
+  // bit-identical world.
+  const codeDigest = await generationDigest(repoRoot);
   for (const [catalogId, entry] of Object.entries(baseline.models)) {
     const target = await openTarget({ model: fileOf(catalogId), home, modelsDir: options.modelsDir });
     identity = identityOf(target.fingerprint);
@@ -140,22 +151,53 @@ async function gate(options, home) {
       });
     }
     const presets = Object.fromEntries(Object.entries(entry.tasks).map(([task, saved]) => [task, saved.settings]));
-    process.stdout.write(`Measuring ${catalogId} on its baseline settings…\n`);
-    current[catalogId] = await withEngine(target, (engine) => measurePresets({
+    const fingerprint = gateFingerprint(target.fingerprint, codeDigest);
+    const cacheFile = gateCacheFile(repoRoot, catalogId);
+    const cached = options.fresh ? null : await loadGateCache(cacheFile, fingerprint).catch(() => null);
+    const restore = cached?.groups?.length ? cached.groups : [];
+    const reusedRows = cachedRowCount(restore);
+    // IDEA-1765: each gate checks a rotating window of the last rung; a
+    // drift signal escalates the task to the full measurement.
+    const rotation = cached?.runs ?? 0;
+    const freshGroups = [];
+    process.stdout.write(`Measuring ${catalogId} on its baseline settings…${reusedRows ? ` (${reusedRows} cached answers, window ${rotation + 1})` : ""}\n`);
+    const measuredPresets = await withEngine(target, (engine) => measurePresets({
       evaluate: createEvaluator({ engine, modelId: target.entry.id }),
       load: { ...tuneBase(), ...entry.load },
       presets,
       rungs: tuneRungs(Object.keys(presets)),
+      restore,
+      // IDEA-1765: the tripwire window for this run, rotating per gate.
+      tripwire: (task, allIds) => tripwireWindow(allIds, rotation),
+      escalate: (task, probeStats) =>
+        probeStats?.failed === true ||
+        probeDisagrees(entry.tasks[task]?.outcomes, probeStats?.outcomes),
+      // Transient errors are not measurements: a failed load must not be
+      // cached and replayed as a real answer (the tuner's G2 store skips them
+      // the same way).
+      onAnswers: (settings, seed, rows) => {
+        const kept = rows.filter((row) => row && !row.error);
+        if (kept.length) freshGroups.push({ settings, seed, rows: kept });
+      },
     }));
+    const { reusedAnswers, freshAnswers, ...currentTasks } = measuredPresets;
+    process.stdout.write(`  answers: ${reusedAnswers} reused, ${freshAnswers} fresh${reusedRows || freshAnswers ? "" : " (cache cold)"}\n`);
+    current[catalogId] = currentTasks;
+    await saveGateCache(cacheFile, { fingerprint, groups: mergeAnswerGroups(restore, freshGroups), runs: cached?.runs ?? 0 }).catch((error) => {
+      process.stdout.write(`  note: the answer cache could not be saved (${error.message}); the next gate re-measures.\n`);
+    });
   }
   const comparison = compareToBaseline(baseline, current);
   const warned = new Set();
   for (const row of comparison.rows) {
     const verdict = row.missing ? "MISSING" : row.regression ? "FAIL" : "ok";
     const latency = row.latencyDeltaMs === null || row.latencyDeltaMs === undefined ? "" : ` · latency ${row.latencyDeltaMs >= 0 ? "+" : ""}${row.latencyDeltaMs} ms`;
-    const paired = row.b !== undefined ? ` · paired b=${row.b} c=${row.c} p=${row.pValue} Holm p=${row.pAdjusted}` : "";
+    // IDEA-1765: a tripwire row shows what was actually checked; rows kept
+    // out of the Holm pool carry their un-adjusted p.
+    const tripwireNote = row.tripwire ? ` · checked ${row.tripwire.checked}/${row.tripwire.of}` : "";
+    const paired = row.b !== undefined ? ` · paired b=${row.b} c=${row.c} p=${row.pValue}${row.pAdjusted !== undefined ? ` Holm p=${row.pAdjusted}` : ""}` : "";
     const items = row.regressed?.length ? ` · regressed: ${row.regressed.slice(0, 8).join(", ")}${row.regressed.length > 8 ? ` (+${row.regressed.length - 8} more)` : ""}` : "";
-    process.stdout.write(`${verdict.padEnd(7)} ${row.model} ${row.task}: ${row.missing ? "not measured" : `${row.baselineRate}% → ${row.rate}% (${row.delta >= 0 ? "+" : ""}${row.delta}, tolerance ${row.tolerance})${paired}${items}${latency}`}\n`);
+    process.stdout.write(`${verdict.padEnd(7)} ${row.model} ${row.task}: ${row.missing ? "not measured" : `${row.baselineRate}% → ${row.rate}% (${row.delta >= 0 ? "+" : ""}${row.delta}, tolerance ${row.tolerance})${tripwireNote}${paired}${items}${latency}`}\n`);
     if (row.regression && !warned.has(row.model)) {
       warned.add(row.model);
       const warning = hardwareWarning(baseline, { cpu: null, threads: null });
