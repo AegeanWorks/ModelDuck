@@ -1,61 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "qwen-code-sampling-16k",
+    "task_id": "push-delta-fixes",
     "last_phase": "in_progress",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1794346103.794042,
-    "owner": "mistral:vibe",
-    "started_by": "kilo:goal",
-    "continuations": [
-      {
-        "agent": "mistral:vibe",
-        "from": "kilo:goal",
-        "at": 1794346099.3443995
-      }
-    ],
-    "completed_at": 1794346104.011482
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1794432085.5981731,
+    "owner": "vibe:1",
+    "started_by": "vibe:1",
+    "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "context-docs-16k",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'context-docs-16k' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794257921.6985781,
-      "timestamp_str": "2026-11-09 23:58:41",
-      "agent": "commandcode:9b9e6718"
-    },
-    {
-      "task_id": "context-floor-ui-test",
-      "phase": "phase 1",
-      "phase_num": 1,
-      "description": "[1/1] Plan: pin the UI context floor (min 16384) and the KV-only quality copy in ui-shell.test.js so they cannot regress",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794258039.1800127,
-      "timestamp_str": "2026-11-10 00:00:39",
-      "agent": "commandcode:9b9e6718",
-      "impact_assessment": {
-        "why": "The floor is enforced server-side; the UI contract was only checked by hand.",
-        "benefits": "A static regression guard for the input bound and the stage copy.",
-        "risks": "contract: UI markup and app help; dependency: none; concurrency: none; state: none",
-        "mitigation": "read the existing ui-shell test patterns, assert the exact attributes and copy, run the file and the suite"
-      }
-    },
-    {
-      "task_id": "context-floor-ui-test",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[4/4] Check: ui-shell asserts the context input min=16384/max=32768, the quality stage copy is KV-only, and no load.contextSize tune key remains; the file passes 7/7 and npm test 608 pass/1 skip; project gates 4/4. checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794258052.356506,
-      "timestamp_str": "2026-11-10 00:00:52",
-      "agent": "commandcode:9b9e6718"
-    },
     {
       "task_id": "context-floor-ui-test",
       "phase": "completed",
@@ -267,6 +222,46 @@
       "timestamp": 1794346104.0114834,
       "timestamp_str": "2026-11-11 00:28:24",
       "agent": "mistral:vibe"
+    },
+    {
+      "task_id": "push-delta-fixes",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Fix the stale checkpoint-interval hints (UI + README), surface the rebuild-lease status via GET /api/settings, and make the gate-cache digest derive from engine.js's import closure",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794431791.0873299,
+      "timestamp_str": "2026-11-12 00:16:31",
+      "agent": "vibe:1",
+      "impact_assessment": {
+        "why": "The push-delta review verified three defects: misleading interval-setting docs, invisible lease failure state, and a hand-maintained gate-cache digest list",
+        "benefits": "Honest UI/README wording, observable MODEL_DISPOSE_FAILED state, self-maintaining cache invalidation",
+        "risks": "contract: GET /api/settings gains a read-only reload field; dependency: none (stdlib only); concurrency: status() must be a synchronous snapshot; state: gate-cache digest shifts once (deliberate cold re-warm)",
+        "mitigation": "Failing-first tests per change, npm test green, aikit check modelduck before each commit; PUT verdict byte-identical"
+      },
+      "plan_digest": "10e29477530c5258d33951bc270cc7b4c9df9009b8dd163d5fae9e9021783828"
+    },
+    {
+      "task_id": "push-delta-fixes",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[2/4] Fix 2 landed: lease.status() snapshot plus GET /api/settings reload field, failing-first tests, npm test 647/646+1skip, checklists: passed (aikit check modelduck 4/4)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794432082.5109472,
+      "timestamp_str": "2026-11-12 00:21:22",
+      "agent": "vibe:1"
+    },
+    {
+      "task_id": "push-delta-fixes",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[3/4] Fix 3 landed: gate-cache digest derives from src/engine.js's static import closure plus five explicit gate drivers; broken imports fail loudly; ADR-092 recorded; checklists: passed (npm test 647 green both milestones)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794432085.5981731,
+      "timestamp_str": "2026-11-12 00:21:25",
+      "agent": "vibe:1"
     }
   ]
 }
