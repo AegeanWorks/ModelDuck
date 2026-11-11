@@ -7,6 +7,41 @@ function sseJson(res, value) {
   return res.write(`data: ${JSON.stringify(value)}\n\n`);
 }
 
+const RETRYABLE_STREAM_CODES = new Set(["ECONNRESET", "EPIPE", "ETIMEDOUT"]);
+
+// IDEA-1074: transport-level causes stay retryable even when wrapped in `cause`;
+// model and validation errors (AppError codes) stay terminal.
+function retryableStreamFailure(error) {
+  if (!error) return false;
+  if (String(error.name ?? "") === "AbortError") return true;
+  if (RETRYABLE_STREAM_CODES.has(String(error.code ?? ""))) return true;
+  return retryableStreamFailure(error.cause ?? null);
+}
+
+export function streamFailure(error, partial = "") {
+  const text = String(partial ?? "");
+  return {
+    message: String(error?.message ?? "Stream failed"),
+    type: "server_error",
+    code: String(error?.code ?? "generation_failed"),
+    phase: text ? "mid_stream" : "before_first_token",
+    partial: text,
+    retryable: retryableStreamFailure(error),
+  };
+}
+
+export function endFailedStream(res, logger, failure) {
+  if (!res.destroyed) {
+    sseJson(res, { error: failure });
+    res.write("data: [DONE]\n\n");
+  }
+  logger.warn?.(
+    `[modelduck] OpenAI stream failed: ${failure.message} ` +
+      `(code ${failure.code}, phase ${failure.phase}, partial ${failure.partial.length} chars, ` +
+      `retryable ${failure.retryable})`,
+  );
+}
+
 function contentText(content, role) {
   if (typeof content === "string") return content;
   if (Array.isArray(content)) {
@@ -233,6 +268,9 @@ async function handleCompletions({ res, body, prompt, engine, current, settings,
       ...extra,
     });
 
+  // IDEA-1074: accumulate partial output so a mid-stream failure keeps the text the
+  // client already rendered instead of discarding it.
+  let partial = "";
   try {
     chunk("");
     const result = await engine.complete({
@@ -241,6 +279,7 @@ async function handleCompletions({ res, body, prompt, engine, current, settings,
       settings: requestSettings,
       signal: controller.signal,
       onToken: (text) => {
+        partial += text;
         if (!res.destroyed) chunk(text);
       },
     });
@@ -252,15 +291,7 @@ async function handleCompletions({ res, body, prompt, engine, current, settings,
       res.write("data: [DONE]\n\n");
     }
   } catch (error) {
-    if (!res.destroyed) {
-      sseJson(res, {
-        error: {
-          message: error.message,
-          type: "server_error",
-          code: error.code ?? "generation_failed",
-        },
-      });
-    }
+    endFailedStream(res, logger, streamFailure(error, partial));
   } finally {
     finished = true;
     jit?.touch();
@@ -445,6 +476,9 @@ export async function handleOpenAI(
       ...extra,
     });
 
+  // IDEA-1074: accumulate partial output so a mid-stream failure keeps the text the
+  // client already rendered instead of discarding it.
+  let partial = "";
   try {
     chunk({ role: "assistant", content: "" });
     const result = await engine.chat({
@@ -454,6 +488,7 @@ export async function handleOpenAI(
       settings: requestSettings,
       signal: controller.signal,
       onToken: (text) => {
+        partial += text;
         if (!res.destroyed) chunk({ content: text });
       },
     });
@@ -469,15 +504,7 @@ export async function handleOpenAI(
       res.write("data: [DONE]\n\n");
     }
   } catch (error) {
-    if (!res.destroyed) {
-      sseJson(res, {
-        error: {
-          message: error.message,
-          type: "server_error",
-          code: error.code ?? "generation_failed",
-        },
-      });
-    }
+    endFailedStream(res, logger, streamFailure(error, partial));
   } finally {
     finished = true;
     engine.dropSession(conversationId);
