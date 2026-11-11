@@ -3,8 +3,9 @@ import test from "node:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-import { gateCacheFile, generationDigest, loadGateCache, mergeAnswerGroups, saveGateCache } from "../benchmarks/gate-cache.mjs";
+import { gateCacheFile, generationDigest, generationPathFiles, loadGateCache, mergeAnswerGroups, saveGateCache } from "../benchmarks/gate-cache.mjs";
 import { measurePresets } from "../benchmarks/tune.mjs";
 
 // IDEA-1764: the gate persists its measured answers under a strict fingerprint
@@ -30,10 +31,46 @@ test("generationDigest digests the generation-path files and tracks edits", asyn
   assert.notEqual(await generationDigest(root, files), before); // an edit invalidates
 });
 
-test("generationDigest covers every declared generation-path file", async () => {
-  const here = path.dirname(new URL(".", import.meta.url).pathname);
-  const digest = await generationDigest(path.join(here, ".."));
-  assert.match(digest, /^[0-9a-f]{32}$/);
+test("generationPathFiles derives the generation path from engine.js's import closure", async (t) => {
+  const { root, cleanup } = await makeRoot();
+  t.after(cleanup);
+  const mkdir = (await import("node:fs/promises")).mkdir;
+  await mkdir(path.join(root, "src"), { recursive: true });
+  await writeFile(path.join(root, "src", "engine.js"), 'import { a } from "./sampler.js";\nimport { b } from "./util.js";\n', "utf8");
+  await writeFile(path.join(root, "src", "sampler.js"), 'import { b } from "./util.js";\n', "utf8");
+  await writeFile(path.join(root, "src", "util.js"), "export const b = 1;\n", "utf8");
+  await writeFile(path.join(root, "src", "server.js"), "// never imported: outside the generation path\n", "utf8");
+  const files = await generationPathFiles(root);
+  assert.deepEqual(files, ["src/engine.js", "src/sampler.js", "src/util.js"]); // transitive closure, sorted
+
+  const before = await generationDigest(root);
+  await writeFile(path.join(root, "src", "util.js"), "export const b = 2;\n", "utf8");
+  const afterTransitiveEdit = await generationDigest(root);
+  assert.notEqual(afterTransitiveEdit, before); // a transitive edit invalidates
+
+  await writeFile(path.join(root, "src", "server.js"), "// unrelated edit\n", "utf8");
+  assert.equal(await generationDigest(root), afterTransitiveEdit); // non-path edits alone do not
+});
+
+test("a broken generation-path import fails loudly, never silently skips", async (t) => {
+  const { root, cleanup } = await makeRoot();
+  t.after(cleanup);
+  const mkdir = (await import("node:fs/promises")).mkdir;
+  await mkdir(path.join(root, "src"), { recursive: true });
+  await writeFile(path.join(root, "src", "engine.js"), 'import { a } from "./missing.js";\n', "utf8");
+  await assert.rejects(() => generationPathFiles(root), /missing\.js/);
+});
+
+test("generationDigest covers the real engine closure and the gate drivers, and nothing else", async () => {
+  const repo = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
+  const files = await generationPathFiles(repo);
+  for (const required of ["src/engine.js", "src/sampler-chain.js", "src/checkpoint-policy.js", "src/config.js"]) {
+    assert.ok(files.includes(required), `${required} must stay on the generation path`);
+  }
+  for (const outside of ["src/server.js", "src/downloader.js", "src/model-registry.js"]) {
+    assert.ok(!files.includes(outside), `${outside} is not on the generation path`);
+  }
+  assert.match(await generationDigest(repo), /^[0-9a-f]{32}$/);
 });
 
 test("loadGateCache returns nothing for missing, stale or corrupt caches", async (t) => {

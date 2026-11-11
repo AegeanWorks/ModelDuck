@@ -18,12 +18,13 @@ import { settingsKey } from "./tune-measure.mjs";
 
 export const GATE_CACHE_SCHEMA = 1;
 
-/** Files whose content can change sampled answers or how answers score. */
-export const GENERATION_PATH_FILES = Object.freeze([
-  "src/engine.js",
-  "src/sampler-chain.js",
-  "src/checkpoint-policy.js",
-  "src/config.js",
+/**
+ * Benchmark drivers that frame the sampled answers and how they score. The
+ * runtime half of the generation path is not listed here: it is *derived*
+ * (see generationPathFiles) so a module the engine imports can never silently
+ * fall outside the digest.
+ */
+export const GATE_DRIVER_FILES = Object.freeze([
   "benchmarks/tune.mjs",
   "benchmarks/tune-evaluate.mjs",
   "benchmarks/tune-measure.mjs",
@@ -37,10 +38,49 @@ export function gateCacheFile(root, modelId) {
   return path.join(root, "benchmarks", "results", "gate-cache", `${safeId}.json`);
 }
 
+const RELATIVE_FROM = /(?:from|import)\s+["'](\.[^"']+)["']/g;
+
+function toRepoPath(root, absolute) {
+  return path.relative(root, absolute).split(path.sep).join("/");
+}
+
+/**
+ * The runtime generation path: every module reachable from the engine's
+ * static import closure. The engine must import an answer-affecting module
+ * to run it, so the closure is the self-maintaining source of truth — a new
+ * module is invalidated by construction. An unresolvable relative import
+ * fails loudly instead of quietly shrinking the digest (dynamic imports
+ * are deliberately not chased; the engine loads statically).
+ */
+export async function generationPathFiles(root, entry = "src/engine.js") {
+  const seen = new Set();
+  const queue = [entry];
+  const files = [];
+  while (queue.length > 0) {
+    const current = queue.pop();
+    if (seen.has(current)) continue;
+    seen.add(current);
+    const absolute = path.join(root, current);
+    const content = await readFile(absolute, "utf8").catch(() => null);
+    if (content === null) {
+      throw new Error(`generation path: cannot read ${current} (broken or moved import)`);
+    }
+    files.push(current);
+    for (const match of content.matchAll(RELATIVE_FROM)) {
+      const specifier = match[1];
+      const resolved = path.resolve(path.dirname(absolute), specifier);
+      const repoPath = toRepoPath(root, resolved);
+      if (!seen.has(repoPath)) queue.push(repoPath);
+    }
+  }
+  return files.sort();
+}
+
 /** Content digest of the generation-path files, missing files included. */
-export async function generationDigest(root, files = GENERATION_PATH_FILES) {
+export async function generationDigest(root, files = null) {
+  const list = files ?? (await generationPathFiles(root)).concat(GATE_DRIVER_FILES).sort();
   const hashes = await Promise.all(
-    files.map(async (file) => {
+    list.map(async (file) => {
       const content = await readFile(path.join(root, file), "utf8").catch(() => null);
       return `${file}:${content === null ? "missing" : createHash("sha256").update(content).digest("hex").slice(0, 16)}`;
     }),
