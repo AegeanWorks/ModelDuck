@@ -502,13 +502,14 @@ modelduck/
 │   ├── tune.mjs         <- staged, resumable settings search
 │   ├── tune-measure.mjs <- candidate scoring, statistics, run cache
 │   ├── tune-speed.mjs   <- speed stage, Fastest and Light presets
-│   ├── tune-device.mjs  <- stage 0: CPU or GPU, per model
-│   ├── tune-grid.mjs    <- load and sampling search spaces
-│   ├── tune-evaluate.mjs <- runs tune items on the real engine
+│   ├── tune-device.mjs  <- device pick per model
+│   ├── tune-grid.mjs    <- load/sampling spaces
+│   ├── tune-evaluate.mjs <- runs items on the engine
 │   ├── tune-run.mjs     <- tune entry point
-│   ├── tune-job.mjs     <- open a model, tune it, reuse its profile
-│   ├── tune-gate.mjs    <- tune:gate regression gate
-│   ├── gate-cache.mjs    <- fingerprinted gate answer cache
+│   ├── tune-job.mjs     <- open, tune, reuse a profile
+│   ├── tune-gate.mjs    <- regression gate
+│   ├── model-pool.mjs    <- gate lane pool
+│   ├── gate-cache.mjs    <- gate answer cache
 │   ├── tune-baseline.mjs <- baseline compare
 │   ├── tune-prompt.mjs  <- --interactive step questions
 │   ├── presets/         <- measured, shareable profile recipes
@@ -538,6 +539,7 @@ modelduck/
 │   ├── checkpoint-merge.test.js
 │   ├── fs-atomic.test.js
 │   ├── model-registry.test.js
+│   ├── model-pool.test.js
 │   ├── model-profiles.test.js
 │   ├── downloader.test.js
 │   ├── benchmark-suite.test.js
