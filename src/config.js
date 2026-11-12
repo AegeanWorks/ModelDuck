@@ -46,6 +46,8 @@ export const DEFAULT_SETTINGS = Object.freeze({
   useMmap: "auto",
   gpuLayers: 0,
   gpuBackend: "cpu",
+  // IDEA-1786 (ADR-096): empty means no speculative decoding.
+  draftModel: "",
   checkpoints: true,
   checkpointInterval: 8192,
   checkpointMax: 32,
@@ -296,6 +298,9 @@ export function normalizeSettings(input = {}) {
     gpuBackend: GPU_BACKENDS.has(String(source.gpuBackend ?? "cpu"))
       ? String(source.gpuBackend ?? "cpu")
       : DEFAULT_SETTINGS.gpuBackend,
+    // IDEA-1786 (ADR-096): an installed-model id or empty; the load resolves
+    // it against the registry and junk means "no draft".
+    draftModel: typeof source.draftModel === "string" ? source.draftModel.trim() : "",
     checkpoints: source.checkpoints === undefined ? true : normalizeBoolean(source.checkpoints, true),
     checkpointInterval: clampInteger(
       source.checkpointInterval,

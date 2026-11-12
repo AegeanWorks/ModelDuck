@@ -44,8 +44,9 @@ async function fixture(t, models = [MODEL]) {
   return directory;
 }
 
-test("a measured variant becomes an apply-ready chat base", () => {
-  const selection = selectionFromVariant(MODEL);
+test("a measured variant becomes an apply-ready chat base, carrying a draft model", () => {
+  const selection = selectionFromVariant({ ...MODEL, draftModel: "qwen2.5-coder-0.5b-q8" });
+  assert.equal(selection.settings.draftModel, "qwen2.5-coder-0.5b-q8", "the draft model rides the base");
   assert.equal(selection.schema, 1);
   assert.equal(selection.variantId, "coder-f16");
   assert.equal(selection.catalogId, "qwen2.5-coder-1.5b-instruct-q4");

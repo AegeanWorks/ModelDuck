@@ -41,7 +41,7 @@ const digestOf = (text) => createHash("sha256").update(String(text ?? "")).diges
 const pick = (settings, keys) => Object.fromEntries(keys.filter((key) => key in settings).map((key) => [key, settings[key]]));
 
 /** Model-level load keys: changing one costs a full model reload. */
-export const MODEL_LEVEL_KEYS = Object.freeze(["useMmap", "gpuLayers", "gpuBackend"]);
+export const MODEL_LEVEL_KEYS = Object.freeze(["useMmap", "gpuLayers", "gpuBackend", "draftModel"]);
 
 /** Context-level load keys: changing one only re-creates the context (ADR-095). */
 export const CONTEXT_LEVEL_KEYS = Object.freeze(["contextSize", "threads", "batchSize", "sequences", "flashAttention", "kvCache", "checkpoints", "checkpointInterval", "checkpointMax"]);

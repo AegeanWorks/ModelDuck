@@ -67,6 +67,22 @@ test("the model reloads only for model-level settings; context-level changes rec
   assert.equal(engine.loads[0].maxThreads, 64, "per-candidate thread hints are never clipped");
 });
 
+test("a draft model rides the load option and its change pays the full reload", async () => {
+  const engine = recordingEngine();
+  const evaluate = createEvaluator({ engine, modelId: "m1" });
+  await evaluate({ ...SETTINGS, draftModel: "d1" }, ["read-sumTo-1"], 42);
+  assert.equal(engine.loads.length, 1, "the first load carries the draft model");
+  assert.equal(engine.loads[0].draftModel, "d1");
+  // Context-level churn keeps the resident draft: no reload.
+  await evaluate({ ...SETTINGS, draftModel: "d1", threads: 8 }, ["read-sumTo-1"], 42);
+  assert.equal(engine.loads.length, 1);
+  assert.equal(engine.reconfigures.length, 1);
+  // Turning the draft off is a model-level change: full reload.
+  await evaluate({ ...SETTINGS }, ["read-sumTo-1"], 42);
+  assert.equal(engine.loads.length, 2);
+  assert.equal(engine.loads[1].draftModel, undefined);
+});
+
 test("sampling settings, the seed and the tuned token budget reach the engine", async () => {
   const engine = recordingEngine();
   await createEvaluator({ engine, modelId: "m1" })({ ...SETTINGS, temperature: 0.6, maxTokens: 96 }, ["read-sumTo-1"], 1234);

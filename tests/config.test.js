@@ -85,6 +85,12 @@ test("normalizeSettings keeps defaults for junk values", () => {
   assert.equal(settings.checkpointMax, DEFAULT_SETTINGS.checkpointMax);
 });
 
+test("draftModel normalizes to a trimmed catalog id or empty", () => {
+  assert.equal(normalizeSettings({ draftModel: "  qwen2.5-0.5b-instruct-q4 " }).draftModel, "qwen2.5-0.5b-instruct-q4");
+  assert.equal(normalizeSettings({ draftModel: 42 }).draftModel, "", "junk turns the draft off");
+  assert.equal(normalizeSettings({}).draftModel, "");
+});
+
 test("checkpoint interval and max are clamped to safe values", () => {
   const low = normalizeSettings({ checkpointInterval: 1, checkpointMax: 0 });
   assert.equal(low.checkpointInterval, 128);
