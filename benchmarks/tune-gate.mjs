@@ -12,6 +12,7 @@ import { CORE_MODEL_IDS } from "./matrix.mjs";
 import { BENCHMARK_MODELS } from "./suite.mjs";
 import { TASKS, tuneRungs } from "./tasks.mjs";
 import { measurePresets } from "./tune.mjs";
+import { runPool } from "./model-pool.mjs";
 import { BASELINE_SCHEMA, TUNER_VERSION, baselineEntry, comparability, compareToBaseline, hardwareWarning, presetSettings } from "./tune-baseline.mjs";
 import { createEvaluator } from "./tune-evaluate.mjs";
 import { openTarget, runTune, tuneBase, withEngine } from "./tune-job.mjs";
@@ -34,6 +35,9 @@ Cached answers: identical settings/seed/item rows from the last gate are reused
 when the whole world fingerprint is unchanged (suite, tasks, tuner, model, runtime,
 hardware and the generation-path file contents); any change re-measures everything.
 --fresh ignores and overwrites the cache.
+--models-parallel <n> measures up to n models at once (default: all core models,
+up to 3). Answers are unchanged; under contention the latency column reads
+noisier, so pass 1 for strict sequential latency readings.
 `;
 
 function parseArgs(argv) {
@@ -46,6 +50,7 @@ function parseArgs(argv) {
     else if (arg === "--max-runs") options.maxRuns = Number(argv[++index]);
     else if (arg === "--models") options.models = String(argv[++index] ?? "").split(",").map((id) => id.trim()).filter(Boolean);
     else if (arg === "--passes") options.passes = Number(argv[++index]);
+    else if (arg === "--models-parallel") options.modelsParallel = Math.max(1, Math.round(Number(argv[++index])) || 1);
     else if (arg === "--fresh") options.fresh = true;
     else if (arg === "--from-profile") options.fromProfile = argv[++index];
     else throw new AppError("Unknown option", { code: "bad_option", why: `${arg} is not a tune:gate option.`, fix: USAGE });
@@ -139,12 +144,43 @@ async function gate(options, home) {
   // generation-path file contents, so a cached answer always comes from a
   // bit-identical world.
   const codeDigest = await generationDigest(repoRoot);
-  for (const [catalogId, entry] of Object.entries(baseline.models)) {
-    const target = await openTarget({ model: fileOf(catalogId), home, modelsDir: options.modelsDir });
-    identity = identityOf(target.fingerprint);
-    const changed = comparability(baseline, identity);
-    if (changed.length) {
-      throw new AppError("The tune baseline is not comparable", {
+  // The models are independent measurements (own engine, own cache file), so
+  // they run concurrently in a bounded pool: wall time becomes the slowest
+  // model instead of the sum. Answers cannot change — each model keeps its
+  // recorded serial inference path — but under contention an item's own
+  // latency reading inflates, so latency rows read lower-fidelity while
+  // --models-parallel 1 keeps the strictly sequential run.
+  const parallelWidth = options.modelsParallel ?? Math.min(3, Object.keys(baseline.models).length);
+  const measured = await runPool(
+    Object.entries(baseline.models),
+    async ([catalogId, entry]) => {
+      try {
+        return { catalogId, error: null, currentTasks: await measureModel(catalogId, entry, { baseline, options, home, repoRoot, codeDigest }) };
+      } catch (error) {
+        // A lane's failure never poisons the others' results; the gate aborts
+        // on the first failure in model order once every lane has settled.
+        return { catalogId, error, currentTasks: null };
+      }
+    },
+    parallelWidth,
+  );
+  for (const item of measured) {
+    if (item.error) throw item.error;
+    current[item.catalogId] = item.currentTasks.tasks;
+    if (identity === null) identity = item.currentTasks.identity;
+  }
+
+  /**
+   * One model's whole gate measurement: comparability check, restored cache,
+   * tripwire window measurement and cache save. Isolated so the pool can run
+   * models concurrently without sharing any mutable state.
+   */
+  async function measureModel(catalogId, entry, { baseline, options, home, repoRoot, codeDigest }) {
+  const target = await openTarget({ model: fileOf(catalogId), home, modelsDir: options.modelsDir });
+  const identity = identityOf(target.fingerprint);
+  const changed = comparability(baseline, identity);
+  if (changed.length) {
+    throw new AppError("The tune baseline is not comparable", {
         code: "tune_baseline_incomparable",
         why: `It was recorded with a different ${changed.join(", ")} (G-003).`,
         fix: "Update it deliberately with npm run tune:gate -- --update-baseline, and note why in benchmarks/CHANGELOG.md.",
@@ -182,10 +218,10 @@ async function gate(options, home) {
     }));
     const { reusedAnswers, freshAnswers, ...currentTasks } = measuredPresets;
     process.stdout.write(`  answers: ${reusedAnswers} reused, ${freshAnswers} fresh${reusedRows || freshAnswers ? "" : " (cache cold)"}\n`);
-    current[catalogId] = currentTasks;
     await saveGateCache(cacheFile, { fingerprint, groups: mergeAnswerGroups(restore, freshGroups), runs: cached?.runs ?? 0 }).catch((error) => {
       process.stdout.write(`  note: the answer cache could not be saved (${error.message}); the next gate re-measures.\n`);
     });
+    return { identity, tasks: currentTasks };
   }
   const comparison = compareToBaseline(baseline, current);
   const warned = new Set();
