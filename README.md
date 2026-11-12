@@ -557,6 +557,8 @@ modelduck/
 │   ├── benchmark-tune.test.js
 │   ├── benchmark-tune-evaluate.test.js
 │   ├── benchmark-tune-baseline.test.js
+│   ├── benchmark-link.test.js
+│   ├── cli-entry-guards.test.js
 │   ├── benchmark-tune-stats.test.js
 │   ├── tuned-settings.test.js
 │   ├── jit-tuned.test.js
