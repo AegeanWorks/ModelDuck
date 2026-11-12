@@ -379,6 +379,80 @@ export class LlamaEngine {
    * first, so its weights count as available. GPU offload moves weights out of
    * RAM, so the check is skipped when layers are offloaded.
    */
+  /**
+   * Normalised context-level load inputs, shared by load and reconfigure so a
+   * rebuild applies exactly the clamps a fresh load would. The checkpoint
+   * fields are engine state: written here exactly where load always wrote them.
+   */
+  #contextShape({ threads, maxThreads, batchSize, sequences, flashAttention, kvCache, checkpoints, checkpointInterval, checkpointMax, checkpointMemoryMb, deterministicRepro = false }) {
+    const actualThreads = Math.max(1, Math.min(64, Number(threads) || 4));
+    const actualMaxThreads = Math.max(1, Math.min(64, Number(maxThreads) || actualThreads));
+    // IDEA-1627: batch 1 is valid only on the explicit repro path; the app
+    // keeps the 32 floor so a mistyped batch never silently slows to a crawl.
+    const batchFloor = deterministicRepro === true ? 1 : 32;
+    const actualBatchSize = Math.max(batchFloor, Math.min(8192, Number(batchSize) || 512));
+    const actualSequences = Math.max(1, Math.min(8, Number(sequences) || 1));
+    const kvLabel = validKvLabel(kvCache);
+    const { key: kvKey, value: kvValue } = splitKvCache(kvLabel);
+    this.#checkpoints = checkpoints !== false;
+    this.#checkpointInterval = Math.max(128, Math.min(32768, Number(checkpointInterval) || 8192));
+    this.#checkpointMax = Math.max(1, Math.min(64, Number(checkpointMax) || 32));
+    // IDEA-1087: 0 = unlimited, so null/undefined falls back instead of 0.
+    const rawCheckpointMemory = checkpointMemoryMb === undefined || checkpointMemoryMb === null
+      ? 64
+      : Number(checkpointMemoryMb);
+    this.#checkpointMemoryMb = Math.max(
+      0,
+      Math.min(256, Number.isFinite(rawCheckpointMemory) ? Math.round(rawCheckpointMemory) : 64),
+    );
+    return {
+      actualThreads,
+      actualMaxThreads,
+      actualBatchSize,
+      actualSequences,
+      kvLabel,
+      kvKeyType: KV_CACHE_TYPES[kvKey],
+      kvValueType: KV_CACHE_TYPES[kvValue],
+      attention: mapAttention(flashAttention),
+    };
+  }
+
+  /**
+   * The single-attempt context creation a load always used, extracted so a
+   * rebuild (reconfigure) recreates the context with byte-identical options.
+   * Returns the last allocation error, or null once a context exists.
+   */
+  async #attemptContext({ wanted, shape, epoch }) {
+    let lastError = null;
+    for (const attempt of [wanted]) {
+      this.#assertLoadAlive(epoch);
+      try {
+        const contextOptions = {
+          contextSize: attempt,
+          threads: shape.actualThreads,
+          batchSize: shape.actualBatchSize,
+          sequences: shape.actualSequences,
+        };
+        if (shape.kvKeyType !== "F16" || shape.kvValueType !== "F16") {
+          contextOptions.flashAttention = true;
+          contextOptions.experimentalKvCacheKeyType = shape.kvKeyType;
+          contextOptions.experimentalKvCacheValueType = shape.kvValueType;
+        } else if (shape.attention !== "auto") {
+          contextOptions.flashAttention = shape.attention;
+        }
+        this.#context = await this.#model.createContext(contextOptions);
+        this.#maxConcurrent = shape.actualSequences;
+        break;
+      } catch (error) {
+        lastError = error;
+        this.#logger.warn?.(
+          "[modelduck] Context size " + attempt + " with KV " + shape.kvLabel + " failed: " + (error?.message || error),
+        );
+      }
+    }
+    return lastError;
+  }
+
   async #planFit(entry, { contextSize, kvCache, gpuLayers, batchSize, sequences, flashAttention }) {
     const requested = Math.max(16384, Number(contextSize) || 16384);
     const contextTokens = Math.max(512, Math.min(requested, entry.contextLength || Infinity));
@@ -594,25 +668,14 @@ export class LlamaEngine {
         : "cpu";
       await this.#startRuntime(module, backend);
 
-      const actualThreads = Math.max(1, Math.min(64, Number(threads) || 4));
-      const actualMaxThreads = Math.max(1, Math.min(64, Number(maxThreads) || actualThreads));
-      // IDEA-1627: batch 1 is valid only on the explicit repro path; the app
-      // keeps the 32 floor so a mistyped batch never silently slows to a crawl.
-      const batchFloor = deterministicRepro === true ? 1 : 32;
-      const actualBatchSize = Math.max(batchFloor, Math.min(8192, Number(batchSize) || 512));
-      const actualSequences = Math.max(1, Math.min(8, Number(sequences) || 1));
-      const kvLabel = validKvLabel(kvCache);
-      const { key: kvKey, value: kvValue } = splitKvCache(kvLabel);
-      const kvKeyType = KV_CACHE_TYPES[kvKey];
-      const kvValueType = KV_CACHE_TYPES[kvValue];
-      const attention = mapAttention(flashAttention);
+      const shape = this.#contextShape({ threads, maxThreads, batchSize, sequences, flashAttention, kvCache, checkpoints, checkpointInterval, checkpointMax, checkpointMemoryMb, deterministicRepro });
       const mmap = mapMmap(useMmap);
       const gpuLayerValue =
         gpuLayers === "auto" || gpuLayers === "max"
           ? gpuLayers
           : Math.max(0, Math.min(200, Number(gpuLayers) || 0));
-      if (this.#llama.maxThreads !== actualMaxThreads) {
-        this.#llama.maxThreads = actualMaxThreads;
+      if (this.#llama.maxThreads !== shape.actualMaxThreads) {
+        this.#llama.maxThreads = shape.actualMaxThreads;
       }
 
       this.#model = await this.#llama.loadModel({
@@ -639,46 +702,7 @@ export class LlamaEngine {
       // for less may go under it, and the load never silently shrinks further.
       const requested = Math.max(16384, Number(contextSize) || 16384);
       const wanted = Math.max(512, Math.min(requested, trained));
-      const attempts = [wanted];
-      this.#checkpoints = checkpoints !== false;
-      this.#checkpointInterval = Math.max(128, Math.min(32768, Number(checkpointInterval) || 8192));
-      this.#checkpointMax = Math.max(1, Math.min(64, Number(checkpointMax) || 32));
-      // IDEA-1087: 0 = unlimited, so null/undefined falls back instead of 0.
-      const rawCheckpointMemory = checkpointMemoryMb === undefined || checkpointMemoryMb === null
-        ? 64
-        : Number(checkpointMemoryMb);
-      this.#checkpointMemoryMb = Math.max(
-        0,
-        Math.min(256, Number.isFinite(rawCheckpointMemory) ? Math.round(rawCheckpointMemory) : 64),
-      );
-
-      let lastError = null;
-      for (const attempt of attempts) {
-        this.#assertLoadAlive(epoch);
-        try {
-          const contextOptions = {
-            contextSize: attempt,
-            threads: actualThreads,
-            batchSize: actualBatchSize,
-            sequences: actualSequences,
-          };
-          if (kvKeyType !== "F16" || kvValueType !== "F16") {
-            contextOptions.flashAttention = true;
-            contextOptions.experimentalKvCacheKeyType = kvKeyType;
-            contextOptions.experimentalKvCacheValueType = kvValueType;
-          } else if (attention !== "auto") {
-            contextOptions.flashAttention = attention;
-          }
-          this.#context = await this.#model.createContext(contextOptions);
-          this.#maxConcurrent = actualSequences;
-          break;
-        } catch (error) {
-          lastError = error;
-          this.#logger.warn?.(
-            `[modelduck] Context size ${attempt} with KV ${kvLabel} failed: ${error?.message || error}`,
-          );
-        }
-      }
+      const lastError = await this.#attemptContext({ wanted, shape, epoch });
       if (!this.#context) throw lastError ?? new Error("No context could be created");
 
       this.#assertStatus("ready");
@@ -687,11 +711,11 @@ export class LlamaEngine {
         model: publicModel(entry),
         contextSize: this.#context.contextSize,
         trainContextSize: trained,
-        threads: actualThreads,
-        maxThreads: actualMaxThreads,
-        batchSize: actualBatchSize,
-        sequences: actualSequences,
-        flashAttention: kvKeyType !== "F16" || kvValueType !== "F16" ? "on" : flashAttention ?? "auto",
+        threads: shape.actualThreads,
+        maxThreads: shape.actualMaxThreads,
+        batchSize: shape.actualBatchSize,
+        sequences: shape.actualSequences,
+        flashAttention: shape.kvKeyType !== "F16" || shape.kvValueType !== "F16" ? "on" : flashAttention ?? "auto",
         useMmap: mmap,
         gpuLayers: this.#model.gpuLayers,
         gpuBackend: this.#llama.gpu || "cpu",
@@ -699,7 +723,7 @@ export class LlamaEngine {
         checkpointInterval: this.#checkpointInterval,
         checkpointMax: this.#checkpointMax,
         checkpointMemoryMb: this.#checkpointMemoryMb,
-        kvCache: kvLabel,
+        kvCache: shape.kvLabel,
         runtimeVersion,
         loadedAt: new Date().toISOString(),
         error: null,
@@ -729,6 +753,162 @@ export class LlamaEngine {
         error: error?.message || String(error),
       };
       throw toLoadError(error);
+    } finally {
+      this.#loading = false;
+    }
+  }
+
+  /**
+   * IDEA-1786 (ADR-095): recreate the context on the resident model. Context
+   * level settings (context, threads, batch, sequences, attention, KV,
+   * checkpoints) decide how the weights run, not which weights run, so a
+   * settings sweep rebuilds the context in place instead of paying a full
+   * model reload. Model-level settings (mmap, GPU layers/backend) still need
+   * load().
+   */
+  async reconfigure({
+    contextSize,
+    threads,
+    maxThreads,
+    batchSize,
+    sequences,
+    flashAttention,
+    checkpoints,
+    checkpointInterval,
+    checkpointMax,
+    checkpointMemoryMb,
+    kvCache,
+    force = false,
+  }) {
+    if (this.#running > 0) {
+      throw new AppError("Stop the current reply first", {
+        code: "generation_in_progress",
+        status: 409,
+        why: "The context cannot be recreated while a reply is generating.",
+        fix: "Click Stop, then try again.",
+      });
+    }
+    if (this.#loading) {
+      throw new AppError("A model is already loading", {
+        code: "model_loading",
+        status: 409,
+        why: "Wait for the current load to finish before starting another one.",
+        fix: "Give the current model a moment to finish loading.",
+      });
+    }
+    if (this.#unloading) {
+      throw new AppError("The model is unloading", {
+        code: "model_unloading",
+        status: 409,
+        why: "Wait for the unload to finish before loading another model.",
+        fix: "Give the current model a moment, then try again.",
+      });
+    }
+    if (this.#state.status !== "ready" || !this.#context || !this.#model) {
+      throw new AppError("No model is loaded", {
+        code: "model_not_loaded",
+        status: 409,
+        why: "ModelDuck needs a loaded model before it can re-create its context.",
+        fix: "Open Models, load an installed model, then try again.",
+      });
+    }
+    const entry = this.#registry.findById(this.#state.model?.id);
+    if (!entry) {
+      throw new AppError("Model not found", {
+        code: "model_not_found",
+        status: 404,
+        why: "That model is no longer in the library.",
+        fix: "Refresh the model list and choose an installed model.",
+      });
+    }
+    // The current state already holds normalised values, so omitted keys keep
+    // the loaded context's actuals (every clamp is idempotent).
+    const current = this.#state;
+    const shape = this.#contextShape({
+      threads: threads ?? current.threads,
+      maxThreads: maxThreads ?? current.maxThreads,
+      batchSize: batchSize ?? current.batchSize,
+      sequences: sequences ?? current.sequences,
+      flashAttention,
+      kvCache: kvCache ?? current.kvCache,
+      checkpoints: checkpoints ?? this.#checkpoints,
+      checkpointInterval: checkpointInterval ?? this.#checkpointInterval,
+      checkpointMax: checkpointMax ?? this.#checkpointMax,
+      checkpointMemoryMb: checkpointMemoryMb ?? this.#checkpointMemoryMb,
+    });
+    const trained = this.#model.trainContextSize || 16384;
+    // Context is a fixed 16K floor for coding (ADR-089); only a model trained
+    // for less may go under it, and a rebuild never silently shrinks further.
+    const requested = Math.max(16384, Number(contextSize ?? current.contextSize) || 16384);
+    const wanted = Math.max(512, Math.min(requested, trained));
+    const fit = await this.#planFit(entry, { contextSize: wanted, kvCache: shape.kvLabel, gpuLayers: this.#state.gpuLayers, batchSize: shape.actualBatchSize, sequences: shape.actualSequences, flashAttention: shape.attention });
+    if (fit.verdict === "will_not_fit" && !force) {
+      throw new AppError("This model will not fit in memory", {
+        code: "model_will_not_fit",
+        status: 507,
+        why: "It needs about " + formatBytes(fit.estimateBytes) + " at " + wanted + " tokens, but only " + formatBytes(fit.availableBytes) + " is free; rebuilding the context would push the computer into swap.",
+        fix: "Lower Context size to " + fit.largestSafeContext + " tokens, use the q8_0 KV cache, or close other programs and try again.",
+      });
+    }
+
+    this.#loading = true;
+    const epoch = ++this.#loadEpoch;
+    try {
+      this.#disposeSessions();
+      try {
+        if (this.#context) await this.#context.dispose();
+      } finally {
+        this.#context = null;
+      }
+      // A replayable cached answer would mask the latency a sweep measures; a
+      // rebuild keeps only fresh generations.
+      this.#responseCache.clear();
+      if (this.#llama.maxThreads !== shape.actualMaxThreads) {
+        this.#llama.maxThreads = shape.actualMaxThreads;
+      }
+      const lastError = await this.#attemptContext({ wanted, shape, epoch });
+      if (!this.#context) throw lastError ?? new Error("No context could be created");
+      this.#state = {
+        ...this.#state,
+        status: "ready",
+        contextSize: this.#context.contextSize,
+        trainContextSize: trained,
+        threads: shape.actualThreads,
+        maxThreads: shape.actualMaxThreads,
+        batchSize: shape.actualBatchSize,
+        sequences: shape.actualSequences,
+        flashAttention: shape.kvKeyType !== "F16" || shape.kvValueType !== "F16" ? "on" : flashAttention ?? current.flashAttention,
+        checkpoints: this.#checkpoints,
+        checkpointInterval: this.#checkpointInterval,
+        checkpointMax: this.#checkpointMax,
+        checkpointMemoryMb: this.#checkpointMemoryMb,
+        kvCache: shape.kvLabel,
+        error: null,
+        lastStats: null,
+        fit,
+        contextFallback:
+          this.#context.contextSize < wanted
+            ? {
+                requested: wanted,
+                actual: this.#context.contextSize,
+                reason: lastError?.message || "The requested context could not be allocated.",
+              }
+            : null,
+      };
+      return { ...this.#state };
+    } catch (error) {
+      await this.#disposeModel();
+      this.#setStatus("error");
+      this.#state = {
+        ...this.#state,
+        error: error?.message || String(error),
+      };
+      throw toLoadError(new AppError("The context could not be recreated", {
+        code: "context_recreate_failed",
+        status: 500,
+        why: "Rebuilding the context failed (" + (error?.message || error) + "); the model was released, so a fresh load resets the engine.",
+        fix: "Check free memory and load the model again, or rebuild at a smaller context size.",
+      }));
     } finally {
       this.#loading = false;
     }

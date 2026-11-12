@@ -40,31 +40,54 @@ const digestOf = (text) => createHash("sha256").update(String(text ?? "")).diges
 
 const pick = (settings, keys) => Object.fromEntries(keys.filter((key) => key in settings).map((key) => [key, settings[key]]));
 
+/** Model-level load keys: changing one costs a full model reload. */
+export const MODEL_LEVEL_KEYS = Object.freeze(["useMmap", "gpuLayers", "gpuBackend"]);
+
+/** Context-level load keys: changing one only re-creates the context (ADR-095). */
+export const CONTEXT_LEVEL_KEYS = Object.freeze(["contextSize", "threads", "batchSize", "sequences", "flashAttention", "kvCache", "checkpoints", "checkpointInterval", "checkpointMax"]);
+
+/** The runtime thread cap lifted above every axis candidate, so a context
+ * rebuilt at a thread count is never silently clipped to a previous setting. */
+const THREAD_CAP = 64;
+
 /**
  * The `evaluate(settings, itemIds, seed)` the tuner drives, on a real engine.
- * It reloads the model only when a load setting changes and answers every
- * item with the tuned token budget, as chat would. With `parallel` > 1 the
- * model is loaded with that many sequences and that many items are answered at
- * once; `settings.parallelism: 1` (the timing stages) answers one at a time.
+ * A model-level setting change reloads the model; a context-level change
+ * rebuilds the context in place on the resident model (ADR-095), so threads,
+ * batch, context, KV and attention sweeps pay ~60-80 ms instead of a full
+ * model reload. Answers are byte-identical either way: a rebuilt context is
+ * the same options a dedicated load would have created. With `parallel` > 1
+ * the model is loaded with that many sequences and that many items are
+ * answered at once; `settings.parallelism: 1` (the timing stages) answers one
+ * at a time.
  */
 export function createEvaluator({ engine, modelId, prompts = PROMPTS, systemPrompt = SYSTEM_PROMPT, timeoutMs = 120_000, parallel = 1, beforeAnswer = async () => {}, onItem = () => {} }) {
   const byId = new Map(prompts.map((prompt) => [prompt.id, prompt]));
-  let loadedSignature = null;
+  let modelSignature = null;
+  let contextSignature = null;
   let memoryBytes = null;
   let gpuVram = null;
 
   async function ensureLoaded(settings) {
     const load = { ...LOAD_DEFAULTS, ...pick(settings, LOAD_KEYS), sequences: Math.max(1, parallel) };
-    const signature = JSON.stringify(load);
-    if (signature === loadedSignature) return load;
-    loadedSignature = null;
-    await engine.load({ modelId, ...load, maxThreads: load.threads });
+    const nextModel = JSON.stringify(pick(load, MODEL_LEVEL_KEYS));
+    const nextContext = JSON.stringify(pick(load, CONTEXT_LEVEL_KEYS));
+    if (modelSignature === nextModel && contextSignature === nextContext) return load;
+    const reloadModel = modelSignature !== nextModel;
+    modelSignature = null;
+    contextSignature = null;
+    if (reloadModel) {
+      await engine.load({ modelId, ...load, maxThreads: THREAD_CAP });
+    } else {
+      await engine.reconfigure(load);
+    }
     const memory = (await engine.status())?.memory ?? null;
     memoryBytes = memory?.cpuRam ?? null;
     // M9: the KV cache lives in VRAM on a GPU, so the tie-break needs both.
     gpuVram = memory?.gpuVram ?? null;
     await warmUp(load);
-    loadedSignature = signature;
+    modelSignature = nextModel;
+    contextSignature = nextContext;
     return load;
   }
 

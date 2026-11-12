@@ -6,9 +6,13 @@ import { createEvaluator } from "../benchmarks/tune-evaluate.mjs";
 function recordingEngine(reply = () => "quack") {
   const engine = {
     loads: [],
+    reconfigures: [],
     chats: [],
     async load(options) {
       engine.loads.push(options);
+    },
+    async reconfigure(options) {
+      engine.reconfigures.push(options);
     },
     async status() {
       return { memory: { cpuRam: 4096, gpuVram: 8192 } };
@@ -36,16 +40,31 @@ test("an evaluation scores items with the suite checks and reports latency, spee
   ]);
 });
 
-test("the model reloads only when a load setting changes", async () => {
+test("the model reloads only for model-level settings; context-level changes reconfigure in place", async () => {
   const engine = recordingEngine();
   const evaluate = createEvaluator({ engine, modelId: "m1" });
   await evaluate(SETTINGS, ["read-sumTo-1"], 42);
   await evaluate({ ...SETTINGS, temperature: 0.9, maxTokens: 128 }, ["read-sumTo-1"], 7);
   assert.equal(engine.loads.length, 1);
+  assert.equal(engine.reconfigures.length, 0);
+  // A thread sweep candidate only re-creates the context on the resident model.
   await evaluate({ ...SETTINGS, threads: 8 }, ["read-sumTo-1"], 42);
+  assert.equal(engine.loads.length, 1, "no model reload for a threads candidate");
+  assert.equal(engine.reconfigures.length, 1);
+  assert.equal(engine.reconfigures[0].threads, 8);
+  assert.equal(engine.reconfigures[0].modelId, undefined, "the resident model is implied");
+  // A batch candidate reconfigures too, and never reloads.
+  await evaluate({ ...SETTINGS, threads: 8, batchSize: 256 }, ["read-sumTo-1"], 42);
+  assert.equal(engine.loads.length, 1);
+  assert.equal(engine.reconfigures.length, 2);
+  assert.equal(engine.reconfigures[1].batchSize, 256);
+  // A model-level setting change still pays the full load.
+  await evaluate({ ...SETTINGS, threads: 8, batchSize: 256, gpuLayers: 4 }, ["read-sumTo-1"], 42);
   assert.equal(engine.loads.length, 2);
-  assert.equal(engine.loads[1].threads, 8);
+  assert.equal(engine.loads[1].gpuLayers, 4);
   assert.equal(engine.loads[1].modelId, "m1");
+  // The first load lifts the runtime thread cap above every axis candidate.
+  assert.equal(engine.loads[0].maxThreads, 64, "per-candidate thread hints are never clipped");
 });
 
 test("sampling settings, the seed and the tuned token budget reach the engine", async () => {
