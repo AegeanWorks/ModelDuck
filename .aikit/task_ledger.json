@@ -3,36 +3,15 @@
   "active_task": {
     "task_id": "speculative-decode",
     "last_phase": "in_progress",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1794502237.0841973,
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1794503203.5459795,
     "owner": "vibe:1",
     "started_by": "vibe:1",
-    "continuations": []
+    "continuations": [],
+    "completed_at": 1794503203.8717802
   },
   "checkpoints": [
-    {
-      "task_id": "gate-model-parallelism",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[2/3] Landed as in-process lanes (correcting the plan note: child processes are the scheduler's need, not the gate's): bounded model pool + isolated measureModel + --models-parallel (1 restores sequential); npm test 651/650+1skip; live cold --fresh dogfood passed with all nine verdicts identical (+0, b=0 c=0) in 116s vs ~4-5min sequential; ADR-093 recorded; checklists: passed pending strict check",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794463904.4783926,
-      "timestamp_str": "2026-11-12 09:11:44",
-      "agent": "vibe:1"
-    },
-    {
-      "task_id": "gate-model-parallelism",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "Phase 4 passed: npm test 651 (650 pass + 1 skip); aikit check modelduck features strict pass pending final bookkeeping commit; live cold --fresh gate dogfood on the three core models passed with identical verdicts (+0, b=0 c=0) in 116 seconds; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794463918.0046532,
-      "timestamp_str": "2026-11-12 09:11:58",
-      "agent": "vibe:1"
-    },
     {
       "task_id": "gate-model-parallelism",
       "phase": "completed",
@@ -257,6 +236,27 @@
       "status": "in_progress",
       "timestamp": 1794502237.0841973,
       "timestamp_str": "2026-11-12 19:50:37",
+      "agent": "vibe:1"
+    },
+    {
+      "task_id": "speculative-decode",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] Outcome: rejected by measurement, implementation reverted before delivery. Dogfood proved bit-identity on both Qwen pairs and both lanes (greedy and temp-0.7), but acceptance never engaged: 0 validated / 0 refuted in every configuration (defaults, minTokens 6/16, minConfidence 0, CPU + Vulkan), and the target paid abort/alignment overhead per token (169 t/s vs 51-71 t/s on GPU; 25 vs 17-27 on CPU). The library's own CLI shows the same zero usage - upstream JS-orchestrated drafting cannot win the per-token race; decision was taken to the user and the direction was park-until-upstream. Revert landed as a refactor commit (src/ and public/ byte-identical to the pre-task state; UI task resolved by hand: baseline-content parity verified, ui_task.json removed). ADR-096 records the full evidence, both re-open conditions and two surviving engineering findings (async dispose-aggregator race in draft-pool claims; per-sequence predictor contract). npm test 671/670+1skip. checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794503203.5459795,
+      "timestamp_str": "2026-11-12 20:06:43",
+      "agent": "vibe:1"
+    },
+    {
+      "task_id": "speculative-decode",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'speculative-decode' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794503203.8717825,
+      "timestamp_str": "2026-11-12 20:06:43",
       "agent": "vibe:1"
     }
   ]
