@@ -5,36 +5,12 @@
     "last_phase": "in_progress",
     "active_phase": 2,
     "status": "in_progress",
-    "updated_at": 1794501496.572427,
+    "updated_at": 1794502105.7815666,
     "owner": "vibe:1",
     "started_by": "vibe:1",
-    "continuations": [],
-    "impact_assessment": {
-      "why": "Decode is ~84% of ask time (ADR-093, 2401 answers); speculative decoding is the only remaining order-of-magnitude speed lever; node-llama-cpp 3.22.2 exports DraftSequenceTokenPredictor and Qwen family tokenizers verified identical (tokHash e2fadeac783c).",
-      "benefits": "1.5-2.5x decode on Qwen pairs where acceptance is high; every gate/tuner sweep and served reply benefits; built-in validated/refuted stats measure effectiveness directly.",
-      "risks": "contract: RNG-stream divergence on temp>0 lanes makes spec-on answers non-bit-identical; dependency: engine must own draft model+context lifecycle across load/reconfigure/unload/dispose; concurrency: none - draft sequence is used only by the predictor, one per target sequence, never shared across conversations; state: predictor attaches per sequence so session cache and checkpoint interplay must be handled; memory: extra draft model+context (~0.5GB class).",
-      "mitigation": "Wire draftModel default off; on greedy lanes output is bit-identical by construction (target always samples every token; predictions consumed only when equal - read from dist LlamaContext.js); dogfood proves greedy bit-identity on two Qwen pairs and records sampling-lane behaviour; live gate verdicts must be unchanged; draft lifecycle in #disposeModel + sessions; draft context capped at a small fixed size."
-    }
+    "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "gate-model-parallelism",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/3] Measure the gate's models concurrently (child-process lanes like tune-scheduler): a bounded model pool, --models-parallel with sequential fallback, per-model cache and comparability preserved, first-error-at-end semantics",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794463196.0135627,
-      "timestamp_str": "2026-11-12 08:59:56",
-      "agent": "vibe:1",
-      "impact_assessment": {
-        "why": "The gate is the only remaining sequential cold cost; per-model inference config stays bit-identical so answers cannot change, only wall time",
-        "benefits": "Cold gate wall time drops from the sum of the three models to the slowest (about 1.8-2x)",
-        "risks": "contract: stdout interleaves per model and a failing model aborts at end-of-batch instead of mid-loop; dependency: none; concurrency: three in-process engines initialize simultaneously (memory-checked, ~2GB total q4); state: each model keeps its own gate-cache file and fingerprint",
-        "mitigation": "Bounded pool unit-tested for concurrency and ordering; live cold dogfood must reproduce all nine verdicts at delta zero; --models-parallel 1 restores today's behavior"
-      },
-      "plan_digest": "773a8288943b1a3facbacfeeae3660d07858be73bb175a8a2ab29234a4f8757e"
-    },
     {
       "task_id": "push-delta-fixes",
       "phase": "superseded",
@@ -270,6 +246,17 @@
         "mitigation": "Wire draftModel default off; on greedy lanes output is bit-identical by construction (target always samples every token; predictions consumed only when equal - read from dist LlamaContext.js); dogfood proves greedy bit-identity on two Qwen pairs and records sampling-lane behaviour; live gate verdicts must be unchanged; draft lifecycle in #disposeModel + sessions; draft context capped at a small fixed size."
       },
       "plan_digest": "1bec357c6f021b9918c243710c91c135a6ebf03d74e2140708929e75e068bf46"
+    },
+    {
+      "task_id": "speculative-decode",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[2/4] Engine speculative-decoding plumbing: load() gains draftModel (guarded: refuse self-draft 422 draft_model_self, unknown draft 404 draft_model_not_found); loads the draft model+context (8192-token cap, sequence pool mirrors the main context) after the main model; #acquireSequence pairs one DraftSequenceTokenPredictor per target sequence and reconciles paired draft sequences back to the pool when sessions auto-dispose; teardown/#disposeModel release the draft side with receipts; state.draftModel reports the draft id; reconfigure keeps draft resources. tests/engine-draft.test.js: 6 failing-first pins, all green; npm test 677/676+1skip; strict check: only the expected open-UI-task/uncommitted findings. checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794502105.7815666,
+      "timestamp_str": "2026-11-12 19:48:25",
+      "agent": "vibe:1"
     }
   ]
 }
