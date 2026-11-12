@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { BASELINE_SCHEMA, TUNER_VERSION, baselineEntry, comparability, compareToBaseline, presetSettings } from "../benchmarks/tune-baseline.mjs";
+import { AppError } from "../src/errors.js";
+import { BASELINE_SCHEMA, TUNER_VERSION, baselineEntry, comparability, compareToBaseline, presetSettings, requireBaselineModels } from "../benchmarks/tune-baseline.mjs";
 
 const IDENTITY = { suiteVersion: 8, taskHash: "abc", nodeLlamaCpp: "3.22.2", tunerVersion: TUNER_VERSION };
 const PROFILE = {
@@ -67,4 +68,17 @@ test("a paired loss fails only when significant after Holm; noise does not (V1)"
   const real = compareToBaseline(base, { qwen: { code: { rate: 75, items: 24, latencyMs: 100, outcomes: outcomes([0, 1, 2, 3, 4, 5]) } } });
   assert.equal(real.rows[0].regression, true);
   assert.equal(real.passed, false);
+});
+
+test("requireBaselineModels rejects a baseline that lists no models", () => {
+  for (const broken of [undefined, {}, { models: {} }]) {
+    assert.throws(
+      () => requireBaselineModels(broken),
+      (error) => error instanceof AppError && error.code === "tune_baseline_empty" && Boolean(error.why) && Boolean(error.fix),
+      `expected a clean rejection for ${JSON.stringify(broken)}`,
+    );
+  }
+  // A real baseline passes through and returns its models, so the gate keeps today's shape.
+  const baseline = { schema: BASELINE_SCHEMA, models: { m: { tasks: {} } } };
+  assert.equal(requireBaselineModels(baseline), baseline.models);
 });

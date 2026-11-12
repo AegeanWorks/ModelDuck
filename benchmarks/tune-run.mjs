@@ -1,4 +1,5 @@
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { AppError } from "../src/errors.js";
 import { watchParent } from "../src/tune-lock.js";
@@ -156,7 +157,19 @@ async function main() {
     emit(options, { type: "complete", phase: "tune", model: target.profileId, tasks: Object.keys(outcome.profile.tasks), runs: outcome.result.runs, budgetExhausted: outcome.result.budgetExhausted, quick: Boolean(options.quick), guard: outcome.result.guard ?? null });
 }
 
-main().catch((error) => {
-  process.stderr.write(`${error.message}\n${error.why ? `Why: ${error.why}\n` : ""}${error.fix ? `Fix: ${error.fix}\n` : ""}`);
-  process.exitCode = error.code === "bad_option" || error.code === "unknown_task" ? 2 : 1;
-});
+// A CLI, not a library: importing this module must not start a tune
+// (the same guard report.mjs and merge-shards.mjs already ship).
+const invokedDirectly = (() => {
+  try {
+    return process.argv[1] != null && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+  } catch {
+    return false;
+  }
+})();
+
+if (invokedDirectly) {
+  main().catch((error) => {
+    process.stderr.write(`${error.message}\n${error.why ? `Why: ${error.why}\n` : ""}${error.fix ? `Fix: ${error.fix}\n` : ""}`);
+    process.exitCode = error.code === "bad_option" || error.code === "unknown_task" ? 2 : 1;
+  });
+}

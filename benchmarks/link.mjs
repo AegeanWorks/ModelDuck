@@ -5,10 +5,11 @@ import { currentGitInfo, linkRun } from "./history.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
-function parseArgs(argv) {
+export function parseArgs(argv) {
   const options = {
     uid: null,
     force: false,
+    commit: null,
     dbPath: path.join(HERE, "history.sqlite"),
     historyPath: path.join(HERE, "history.jsonl"),
   };
@@ -28,6 +29,12 @@ function parseArgs(argv) {
         break;
       case "--force":
         options.force = true;
+        break;
+      case "--commit":
+        // G-002: attach the run to the commit that holds the benchmarked
+        // change, which is usually not HEAD when the history record was
+        // committed in between. The default keeps today's HEAD behavior.
+        options.commit = take();
         break;
       case "--db":
         options.dbPath = path.resolve(take());
@@ -59,6 +66,8 @@ Options:
                      An explicit UID links anything, including shard or
                      repro runs; the default never does.
   --force          Allow linking while tracked files are dirty
+  --commit <hash>  Link to that commit instead of HEAD (the commit that
+                     holds the benchmarked change, not the record chore)
   --db <path>      Override the SQLite path
   --history <path> Override the JSONL history path
   -h, --help       Show this help
@@ -71,7 +80,7 @@ async function main() {
     return;
   }
 
-  const git = currentGitInfo(path.resolve(HERE, ".."));
+  const git = currentGitInfo(path.resolve(HERE, ".."), options.commit ?? "HEAD");
   if (!git.hash) throw new Error("Could not resolve the current git commit.");
   if (git.dirty && !options.force) {
     throw new Error(
@@ -100,7 +109,19 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  process.stderr.write(`\n[bench:link] ${error.message}\n`);
-  process.exit(1);
-});
+// A CLI, not a library: importing this module must not link anything
+// (the same guard report.mjs and merge-shards.mjs already ship).
+const invokedDirectly = (() => {
+  try {
+    return process.argv[1] != null && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+  } catch {
+    return false;
+  }
+})();
+
+if (invokedDirectly) {
+  main().catch((error) => {
+    process.stderr.write(`\n[bench:link] ${error.message}\n`);
+    process.exit(1);
+  });
+}

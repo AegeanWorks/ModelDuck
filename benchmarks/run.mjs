@@ -1152,9 +1152,21 @@ async function main() {
   if (options.json) process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 }
 
-main().catch((error) => {
-  process.stderr.write(`\n[bench] ${error?.message || error}\n`);
-  if (error?.why) process.stderr.write(`  Why: ${error.why}\n`);
-  if (error?.fix) process.stderr.write(`  Fix: ${error.fix}\n`);
-  process.exit(1);
-});
+// A CLI, not a library: importing this module must not start a benchmark
+// (the same guard report.mjs and merge-shards.mjs already ship).
+const invokedDirectly = (() => {
+  try {
+    return process.argv[1] != null && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+  } catch {
+    return false;
+  }
+})();
+
+if (invokedDirectly) {
+  main().catch((error) => {
+    process.stderr.write(`\n[bench] ${error?.message || error}\n`);
+    if (error?.why) process.stderr.write(`  Why: ${error.why}\n`);
+    if (error?.fix) process.stderr.write(`  Fix: ${error.fix}\n`);
+    process.exit(1);
+  });
+}

@@ -5,7 +5,27 @@
  * fails on a paired, Holm-adjusted regression beyond one item — naming the
  * regressed items. Latency is reported but never gates.
  */
+import { AppError } from "../src/errors.js";
 import { holm, mcnemarExact } from "./stats.mjs";
+
+/**
+ * A gate verdict needs at least one model to measure. An empty or missing
+ * models map would otherwise pass vacuously (`rows.every(...)` is true on an
+ * empty list) and crash later where the identity is read. The check is here
+ * so both the gate and any tool that loads a baseline gets the same clean
+ * contract error instead of a TypeError.
+ */
+export function requireBaselineModels(baseline) {
+  const models = baseline?.models;
+  if (!models || typeof models !== "object" || Array.isArray(models) || Object.keys(models).length === 0) {
+    throw new AppError("The tune baseline lists no models", {
+      code: "tune_baseline_empty",
+      why: "A gate with nothing to measure would pass without proving anything.",
+      fix: "Re-record the baseline deliberately with npm run tune:gate -- --update-baseline.",
+    });
+  }
+  return models;
+}
 import { TUNER_VERSION } from "./tune.mjs";
 
 export { TUNER_VERSION };

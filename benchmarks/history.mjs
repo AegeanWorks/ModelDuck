@@ -132,7 +132,7 @@ export function deriveRunScope(result = {}) {
   return "standard";
 }
 
-export function currentGitInfo(cwd = process.cwd()) {
+export function currentGitInfo(cwd = process.cwd(), ref = "HEAD") {
   const run = (args) =>
     execFileSync("git", args, {
       cwd,
@@ -141,10 +141,10 @@ export function currentGitInfo(cwd = process.cwd()) {
       stdio: ["ignore", "pipe", "ignore"],
     }).trim();
   try {
-    const hash = run(["rev-parse", "HEAD"]);
-    const subject = run(["log", "-1", "--format=%s"]);
+    const hash = run(["rev-parse", ref]);
+    const subject = run(["log", "-1", "--format=%s", ref]);
     const branch = run(["rev-parse", "--abbrev-ref", "HEAD"]);
-    const committedAt = run(["log", "-1", "--format=%cI"]);
+    const committedAt = run(["log", "-1", "--format=%cI", ref]);
     const dirty = run(["status", "--porcelain", "--untracked-files=no"]).length > 0;
     return { hash, subject, branch, committedAt, dirty };
   } catch {

@@ -1,3 +1,6 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { defaultThreads, resolvePaths } from "../src/config.js";
 import { LlamaEngine } from "../src/engine.js";
 import {
@@ -244,7 +247,19 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  process.stderr.write(`\n[verify-manifest] ${error?.message || error}\n`);
-  process.exitCode = 1;
-});
+// A CLI, not a library: importing this module must not verify anything
+// (the same guard report.mjs and merge-shards.mjs already ship).
+const invokedDirectly = (() => {
+  try {
+    return process.argv[1] != null && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+  } catch {
+    return false;
+  }
+})();
+
+if (invokedDirectly) {
+  main().catch((error) => {
+    process.stderr.write(`\n[verify-manifest] ${error?.message || error}\n`);
+    process.exitCode = 1;
+  });
+}

@@ -13,7 +13,7 @@ import { BENCHMARK_MODELS } from "./suite.mjs";
 import { TASKS, tuneRungs } from "./tasks.mjs";
 import { measurePresets } from "./tune.mjs";
 import { runPool } from "./model-pool.mjs";
-import { BASELINE_SCHEMA, TUNER_VERSION, baselineEntry, comparability, compareToBaseline, hardwareWarning, presetSettings } from "./tune-baseline.mjs";
+import { BASELINE_SCHEMA, TUNER_VERSION, baselineEntry, comparability, compareToBaseline, hardwareWarning, presetSettings, requireBaselineModels } from "./tune-baseline.mjs";
 import { createEvaluator } from "./tune-evaluate.mjs";
 import { openTarget, runTune, tuneBase, withEngine } from "./tune-job.mjs";
 
@@ -137,6 +137,7 @@ async function gate(options, home) {
   } catch {
     throw new AppError("No tune baseline yet", { code: "tune_baseline_missing", why: `${BASELINE} is missing or unreadable.`, fix: "Run npm run tune:gate -- --update-baseline once, deliberately." });
   }
+  requireBaselineModels(baseline);
   const current = {};
   let identity = null;
   const repoRoot = path.join(HERE, "..");
@@ -273,7 +274,19 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  process.stderr.write(`${error.message}\n${error.why ? `Why: ${error.why}\n` : ""}${error.fix ? `Fix: ${error.fix}\n` : ""}`);
-  process.exitCode = error.code === "bad_option" ? 2 : 1;
-});
+// A CLI, not a library: importing this module must not run a real gate
+// (the same guard report.mjs and merge-shards.mjs already ship).
+const invokedDirectly = (() => {
+  try {
+    return process.argv[1] != null && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+  } catch {
+    return false;
+  }
+})();
+
+if (invokedDirectly) {
+  main().catch((error) => {
+    process.stderr.write(`${error.message}\n${error.why ? `Why: ${error.why}\n` : ""}${error.fix ? `Fix: ${error.fix}\n` : ""}`);
+    process.exitCode = error.code === "bad_option" ? 2 : 1;
+  });
+}
