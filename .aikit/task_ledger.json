@@ -1,27 +1,22 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "speculative-decode",
+    "task_id": "judge-calibrate",
     "last_phase": "in_progress",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1794503203.5459795,
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1794505817.614001,
     "owner": "vibe:1",
     "started_by": "vibe:1",
     "continuations": [],
-    "completed_at": 1794503203.8717802
+    "impact_assessment": {
+      "why": "Sampler levers are measured out: no suite headroom on any lane; remaining cheap quality lever is measurement precision - the judge half re-judges cached answers in minutes after ADR-094.",
+      "benefits": "Sharper gate sensitivity at zero answer-side cost; no re-measurement; bigger lever-to-cost ratio than any sampler axis.",
+      "risks": "contract: verdict semantics are pinned by ADR-089/090/091 contracts and tests, a calibration must not silently drift them; dependency: judge edits must stay strictly within ADR-094 judge drivers or caches burn; concurrency: none - the calibration is code-and-stats, not a change in what is asked; state: cached answers reused by fingerprint, so evidence must show identical verdicts on identical rows.",
+      "mitigation": "Failing-first tests pin the old behavior before any change; live gate must show all verdicts identical on reused rows; the judge-only boundary is pinned by the existing gate-cache split tests."
+    }
   },
   "checkpoints": [
-    {
-      "task_id": "gate-model-parallelism",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'gate-model-parallelism' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794463918.4609041,
-      "timestamp_str": "2026-11-12 09:11:58",
-      "agent": "vibe:1"
-    },
     {
       "task_id": "cli-hardening",
       "phase": "in_progress",
@@ -258,6 +253,24 @@
       "timestamp": 1794503203.8717825,
       "timestamp_str": "2026-11-12 20:06:43",
       "agent": "vibe:1"
+    },
+    {
+      "task_id": "judge-calibrate",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/5] Plan: (a) record ADR-097 - the sampler-knob verification round (frequency/presence/DRY-window verified live through the native AddonSampler but with no real-suite headroom: on the failing qwen2.5-0.5b code lane the repeat-block tunes to OFF and penalties are neutral-or-harmful; comprehension/recall lanes have 1-2 token answers with no repetition exposure; XTC engages on greedy and is not quality-safe), so the axes are not built and the probes stay in results/; (b) audit the judge drivers (tune-gate.mjs, tune-measure.mjs - ADR-094 judge half) for an evidence-backed calibration improvement; (c) implement judge-only with failing-first tests - answers reused, never re-asked; (d) live gate verdict evidence; (e) ADR-098, complete, strict check.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794505817.614001,
+      "timestamp_str": "2026-11-12 20:50:17",
+      "agent": "vibe:1",
+      "impact_assessment": {
+        "why": "Sampler levers are measured out: no suite headroom on any lane; remaining cheap quality lever is measurement precision - the judge half re-judges cached answers in minutes after ADR-094.",
+        "benefits": "Sharper gate sensitivity at zero answer-side cost; no re-measurement; bigger lever-to-cost ratio than any sampler axis.",
+        "risks": "contract: verdict semantics are pinned by ADR-089/090/091 contracts and tests, a calibration must not silently drift them; dependency: judge edits must stay strictly within ADR-094 judge drivers or caches burn; concurrency: none - the calibration is code-and-stats, not a change in what is asked; state: cached answers reused by fingerprint, so evidence must show identical verdicts on identical rows.",
+        "mitigation": "Failing-first tests pin the old behavior before any change; live gate must show all verdicts identical on reused rows; the judge-only boundary is pinned by the existing gate-cache split tests."
+      },
+      "plan_digest": "a647cdd7cbe6518792148e905eb5d959788f92702a52cd33fc3e9dd75f70cbec"
     }
   ]
 }
