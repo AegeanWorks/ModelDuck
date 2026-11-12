@@ -1,77 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "cli-hardening",
+    "task_id": "gate-cache-split",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794479863.5069509,
+    "updated_at": 1794486962.6227038,
     "owner": "vibe:1",
     "started_by": "vibe:1",
     "continuations": [],
-    "completed_at": 1794479863.70449
+    "completed_at": 1794486962.8332596
   },
   "checkpoints": [
-    {
-      "task_id": "code-prompt-repeat",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'code-prompt-repeat' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794329982.1184745,
-      "timestamp_str": "2026-11-10 19:59:42",
-      "agent": "commandcode:9b9e6718"
-    },
-    {
-      "task_id": "qwen-code-sampling-16k",
-      "phase": "phase 1",
-      "phase_num": 1,
-      "description": "[1/2] Plan: finish the Qwen 0.5B code sampling stage at the 16K floor with --continue and full-final, re-measure its prompt only if the sampler signature changes, then regenerate the committed preset recipe",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794342617.3075514,
-      "timestamp_str": "2026-11-10 23:30:17",
-      "agent": "kilo:goal",
-      "impact_assessment": {
-        "why": "The qwen2.5-0.5b-instruct-q4 profile's code sampling stage is the last unfinished part-run on a core model after the 16K floor work; the app and pendingWork keep resuming it, and the served code settings rest on a pass-1-only search.",
-        "benefits": "Complete stage provenance at 16K; a confirmed or revised greedy sampler for code; a committed preset recipe that matches the profile the tuner now serves.",
-        "risks": "contract: preset recipe and preset README claims; dependency: Vulkan runtime and local model; concurrency: box load, tune-lock; state: installed profile overwrite",
-        "mitigation": "named profile backup before the run; --continue resumes saved progress (ADR-040/051); exact answer reuse (G8); npm test and aikit check after; preset regenerated only from the final profile"
-      }
-    },
-    {
-      "task_id": "qwen-code-sampling-16k",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[2/2] Check: the resumed --continue --full-final pass confirmed greedy for code: pass-2 sampler kept temperature=0, best challenger 0.4 scored 36% vs 35.1% (paired p=.893, Holm p=1); maxTokens 512, repeatPenalty 1, dry 0 kept; pair maxTokens+sampler chose greedy. Full-final code 35.4% [23.4-49.6] at 48 items, holdout 31.4, matching the stored receipt, so the unchanged sampler signature needs no prompt re-measure (pendingWork empty, all stages done). Preset recipe regenerated from the final profile. npm test 608 pass/1 skip; project gates 4/4 (README tree drift left by the Kiroween commit fixed within the char budget). checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794346099.3443995,
-      "timestamp_str": "2026-11-11 00:28:19",
-      "agent": "mistral:vibe",
-      "continued_from": "kilo:goal"
-    },
-    {
-      "task_id": "qwen-code-sampling-16k",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/4] Check: npm test 608 pass/1 skip; aikit check 4/4 gates; README tree drift from the Kiroween commit fixed within the 32,500-char budget; preset recipe regenerated from the final profile with all stages done. checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794346103.794042,
-      "timestamp_str": "2026-11-11 00:28:23",
-      "agent": "mistral:vibe"
-    },
-    {
-      "task_id": "qwen-code-sampling-16k",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'qwen-code-sampling-16k' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794346104.0114834,
-      "timestamp_str": "2026-11-11 00:28:24",
-      "agent": "mistral:vibe"
-    },
     {
       "task_id": "push-delta-fixes",
       "phase": "in_progress",
@@ -254,6 +194,69 @@
       "status": "completed",
       "timestamp": 1794479863.7044914,
       "timestamp_str": "2026-11-12 13:37:43",
+      "agent": "vibe:1"
+    },
+    {
+      "task_id": "gate-cache-split",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Plan and failing-first tests for the two-digest gate cache split: answer identity (engine closure + tune-evaluate/tune/tune-job + world fingerprint incl taskHash) for row reuse; judge identity (tune-gate/tune-measure/tasks) re-verdicts from reusable rows; schema 2 discards schema 1; tripwire rotation and --fresh unchanged",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794485860.5970123,
+      "timestamp_str": "2026-11-12 15:17:40",
+      "agent": "vibe:1",
+      "impact_assessment": {
+        "why": "the single reuse fingerprint burns all cached answers whenever any gate driver changes, e.g. the CLI entry guards cost a full 111s re-warm though they cannot affect an answer",
+        "benefits": "judge-only changes (gate orchestration, stats, rungs) reuse bit-identical answers and only re-judge, saving a full cold re-measure on harness-only commits",
+        "risks": "contract: reusing answers under a stale answer identity would hide quality drift; dependency: none; concurrency: none (paint points per model as today); state: cache schema bump discards all schema-1 rows once",
+        "mitigation": "answer identity keeps every answer-affecting input (engine closure, prompt and settings assembly, taskHash/suiteVersion/tunerVersion/model/runtime); verdicts are recomputed each run by the live judge code; the tripwire still measures a fresh rotating window; --fresh unchanged; failing-first tests prove schema-1 discard and identity discrimination"
+      },
+      "plan_digest": "7f55143dd2363401a622b5bedd642bdc7fa9de536ff734dd22d8050c94418ea4"
+    },
+    {
+      "task_id": "gate-cache-split",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4]+[3/4] Landed: NOTICE - ANSWER_DRIVER_FILES=tune-evaluate/tune/tune-job, JUDGE_DRIVER_FILES=tune-gate/tune-measure/tasks; answerDigest+answerFingerprint new exports; schema 2 discards schema-1 records and stores judgeDigest as evidence; tune-gate reuses rows under answerFingerprint. npm test 666/665 pass+1 skip; 4 new failing-first-then-green tests. Live proof: covered window untouched 108 reused/0 fresh, judge-only tune-gate tweak 108 reused/0 fresh, answer-side tune-evaluate tweak 0 reused/108 fresh burn, verdicts identical everywhere; answer tweak + throwaway comment reverted",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794486951.01439,
+      "timestamp_str": "2026-11-12 15:35:51",
+      "agent": "vibe:1"
+    },
+    {
+      "task_id": "gate-cache-split",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] ADR-094 appended to .aikit/decisions.md; npm test 662->666 (665 pass+1 skip); live gate a++ passed with identical verdicts",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794486951.2217515,
+      "timestamp_str": "2026-11-12 15:35:51",
+      "agent": "vibe:1",
+      "checklists": "passed"
+    },
+    {
+      "task_id": "gate-cache-split",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "Correction of the previous two checkpoint texts: the split is answer drivers (tune-evaluate.mjs, tune.mjs, tune-job.mjs) vs judge drivers (tune-gate.mjs, tune-measure.mjs, tasks.mjs); the live gate after the redo passed with 108 fresh per model and all nine verdicts identical to baseline. Everything else in those records stands.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794486962.6227038,
+      "timestamp_str": "2026-11-12 15:36:02",
+      "agent": "vibe:1",
+      "checklists": "passed"
+    },
+    {
+      "task_id": "gate-cache-split",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'gate-cache-split' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794486962.8332608,
+      "timestamp_str": "2026-11-12 15:36:02",
       "agent": "vibe:1"
     }
   ]
