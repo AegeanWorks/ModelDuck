@@ -54,6 +54,21 @@ export function mcnemarExact(b, c) {
 }
 
 /**
+ * IDEA-1787 (ADR-098): one-sided exact McNemar — the probability of seeing at
+ * most c fixes among n discordant pairs under a fair coin, i.e. the loss-tail
+ * evidence. Gate decisions are strictly directional (a gate only fails when
+ * losses exceed fixes), so a two-sided p spends half its alpha on the
+ * never-firing gain side; this reports only the direction the gate acts on.
+ */
+export function mcnemarOneSided(b, c) {
+  const n = b + c;
+  if (n === 0) return 1;
+  let tail = 0;
+  for (let index = 0; index <= c; index += 1) tail += Math.exp(logChoose(n, index) - n * Math.LN2);
+  return Math.min(1, tail);
+}
+
+/**
  * IDEA-1617: Q8_0 is the lossless ceiling reference for bench comparisons.
  * A bench that never measured the ceiling cannot tell a tie from a win, and
  * a non-ceiling variant must never be reported lossless without the ceiling

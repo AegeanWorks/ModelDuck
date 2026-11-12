@@ -6,7 +6,7 @@
  * regressed items. Latency is reported but never gates.
  */
 import { AppError } from "../src/errors.js";
-import { holm, mcnemarExact } from "./stats.mjs";
+import { holm, mcnemarOneSided } from "./stats.mjs";
 
 /**
  * A gate verdict needs at least one model to measure. An empty or missing
@@ -36,6 +36,9 @@ export const BASELINE_SCHEMA = 2;
 export const IDENTITY_KEYS = Object.freeze(["suiteVersion", "taskHash", "nodeLlamaCpp", "tunerVersion"]);
 
 const round = (value) => Number(value.toFixed(1));
+// IDEA-1787 (ADR-098): p-values need real digits, not the one-decimal rate
+// rounding above; a 0.0313 loss tail must not collapse to 0.0 or 0.1.
+const round4 = (value) => Number(value.toFixed(4));
 
 const outcomesOf = (stats) => {
   if (!stats) return null;
@@ -102,15 +105,20 @@ function pairedOutcomes(savedOutcomes, nowOutcomes) {
       regressed.push(id);
     } else if (!was && now) c += 1;
   }
-  return { b, c, pValue: round(mcnemarExact(b, c), 4), regressed };
+  // IDEA-1787 (ADR-098): gate decisions are directional (a gate only fails when
+  // losses outnumber fixes), so the evidence is the one-sided loss tail; the
+  // two-sided test spent half its alpha on the never-firing gain side.
+  return { b, c, pValue: round4(mcnemarOneSided(b, c)), regressed };
 }
 
 /**
  * Compare re-measured task rates with the baseline. `current` maps model →
  * task → { rate, items, latencyMs, outcomes? }. With per-item outcomes on both
- * sides the decision is paired (McNemar, Holm across a model's tasks); without
- * them it falls back to the one-item rate rule. A drop larger than one item is a
- * regression; latency is reported but never gates, since it depends on the machine.
+ * sides the decision is paired (directional exact McNemar, IDEA-1787/ADR-098:
+ * the reported p is the loss-tail probability P(fixes <= c), Holm-adjusted
+ * across the paired rows); without them it falls back to the one-item rate
+ * rule. A drop larger than one item plus loss-tail evidence is a regression;
+ * latency is reported but never gates, since it depends on the machine.
  */
 export function compareToBaseline(baseline, current, { toleranceItems = 1, alpha = 0.05 } = {}) {
   const rows = [];
@@ -182,7 +190,7 @@ export function compareToBaseline(baseline, current, { toleranceItems = 1, alpha
   if (pValues.length) {
     const adjusted = holm(pValues);
     order.forEach((row, index) => {
-      row.pAdjusted = round(adjusted[index], 4);
+      row.pAdjusted = round4(adjusted[index]);
       // A paired, significant loss beyond the item tolerance fails; a bare rate
       // dip without paired significance does not (it is noise until proven).
       if (row.b !== undefined) {

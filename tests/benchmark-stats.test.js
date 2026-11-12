@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { compareRuns, holm, itemSummary, mcnemarExact, signFlipPValue, wilson } from "../benchmarks/stats.mjs";
+import { compareRuns, holm, itemSummary, mcnemarExact, mcnemarOneSided, signFlipPValue, wilson } from "../benchmarks/stats.mjs";
 
 test("Wilson intervals match published values and stay inside 0-100", () => {
   assert.deepEqual(wilson(20, 21), { low: 77.3, high: 99.2 });
@@ -134,4 +134,14 @@ test("a ceiling shortfall is reported even alongside minor regressions", () => {
   assert.equal(result.verdict, "warn");
   assert.ok(result.reasons.some((reason) => /ceiling/.test(reason)), result.reasons.join("; "));
   assert.deepEqual(result.variants[0].regressed, ["i3"], "the pairwise regression is still reported");
+});
+
+test("mcnemarOneSided reports the loss tail the gate acts on", () => {
+  const close = (a, b) => assert.ok(Math.abs(a - b) < 1e-9, `${a} != ${b}`);
+  close(mcnemarOneSided(5, 0), 0.03125); // five losses, no fixes: real regression
+  close(mcnemarOneSided(5, 1), 7 / 64); // borderline tolerated
+  close(mcnemarOneSided(7, 1), 9 / 256); // decisive
+  close(mcnemarOneSided(1, 0), 0.5); // a single flip is noise
+  close(mcnemarOneSided(0, 5), 1); // pure gains never fire
+  close(mcnemarOneSided(0, 0), 1); // no discordant pairs
 });
