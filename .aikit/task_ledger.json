@@ -3,49 +3,15 @@
   "active_task": {
     "task_id": "judge-calibrate",
     "last_phase": "in_progress",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1794505817.614001,
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1794506871.2308576,
     "owner": "vibe:1",
     "started_by": "vibe:1",
     "continuations": [],
-    "impact_assessment": {
-      "why": "Sampler levers are measured out: no suite headroom on any lane; remaining cheap quality lever is measurement precision - the judge half re-judges cached answers in minutes after ADR-094.",
-      "benefits": "Sharper gate sensitivity at zero answer-side cost; no re-measurement; bigger lever-to-cost ratio than any sampler axis.",
-      "risks": "contract: verdict semantics are pinned by ADR-089/090/091 contracts and tests, a calibration must not silently drift them; dependency: judge edits must stay strictly within ADR-094 judge drivers or caches burn; concurrency: none - the calibration is code-and-stats, not a change in what is asked; state: cached answers reused by fingerprint, so evidence must show identical verdicts on identical rows.",
-      "mitigation": "Failing-first tests pin the old behavior before any change; live gate must show all verdicts identical on reused rows; the judge-only boundary is pinned by the existing gate-cache split tests."
-    }
+    "completed_at": 1794506874.2952757
   },
   "checkpoints": [
-    {
-      "task_id": "cli-hardening",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/4] Guard the five self-running benchmark CLIs with the repo's own invokedDirectly pattern (report.mjs/merge-shards.mjs precedent); fail-first proof imports; no answers change",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794479219.8904,
-      "timestamp_str": "2026-11-12 13:26:59",
-      "agent": "vibe:1",
-      "impact_assessment": {
-        "why": "Importing tune-gate.mjs today runs the entire 2-minute gate (hit live during the delta); the same hazard exists in link, run, tune-run, verify-manifest, and the repo already ships the guard in report.mjs and merge-shards.mjs",
-        "benefits": "Scripts become importable for tests and tools without side effects; the guard convention becomes uniform across all seven CLIs",
-        "risks": "contract: none at CLI entry (node script.mjs still runs main); dependency: none; concurrency: none; state: none",
-        "mitigation": "Copy the shipped pattern exactly; verify by importing each script in tests (which would run main before the fix) plus a live cold gate for G-001 since tune-gate.mjs is a gate driver"
-      },
-      "plan_digest": "4a6e2264ea628ae7e74080c19fce781a7fafb19c27b2479db8685676137a9e52"
-    },
-    {
-      "task_id": "cli-hardening",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[2/4] P1-P3 landed: invokedDirectly guards on the five unguarded CLIs (import-clean proven on all seven, persistent test added); requireBaselineModels in tune-baseline.mjs wired into gate(); bench:link --commit flag with currentGitInfo(cwd, ref); npm test 662/661+1skip; live cold re-warm gate passed in 111s with all nine verdicts identical (+0, b=0 c=0); checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794479735.181518,
-      "timestamp_str": "2026-11-12 13:35:35",
-      "agent": "vibe:1"
-    },
     {
       "task_id": "cli-hardening",
       "phase": "in_progress",
@@ -271,6 +237,27 @@
         "mitigation": "Failing-first tests pin the old behavior before any change; live gate must show all verdicts identical on reused rows; the judge-only boundary is pinned by the existing gate-cache split tests."
       },
       "plan_digest": "a647cdd7cbe6518792148e905eb5d959788f92702a52cd33fc3e9dd75f70cbec"
+    },
+    {
+      "task_id": "judge-calibrate",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/5] Judge calibrated: compareToBaseline now reports the one-sided exact loss tail (mcnemarOneSided) at 4 real digits (round4); failing-first tests pin (5,0) fires, (5,1) tolerated, (7,1) fires; live gate run d561160d re-judged with all nine rows byte-identical (b=0 c=0) and passed; cache burn diagnosed as expected (last save predated the ADR-095 engine rebuild 78de93f); cache re-established. Checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794506871.2308576,
+      "timestamp_str": "2026-11-12 21:07:51",
+      "agent": "vibe:1"
+    },
+    {
+      "task_id": "judge-calibrate",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'judge-calibrate' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794506874.2952778,
+      "timestamp_str": "2026-11-12 21:07:54",
+      "agent": "vibe:1"
     }
   ]
 }
