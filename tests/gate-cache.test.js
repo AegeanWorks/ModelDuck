@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { gateCacheFile, generationDigest, generationPathFiles, loadGateCache, mergeAnswerGroups, saveGateCache } from "../benchmarks/gate-cache.mjs";
+import { ANSWER_DRIVER_FILES, GATE_DRIVER_FILES, JUDGE_DRIVER_FILES, answerDigest, answerFingerprint, gateCacheFile, generationDigest, generationPathFiles, loadGateCache, mergeAnswerGroups, saveGateCache } from "../benchmarks/gate-cache.mjs";
 import { measurePresets } from "../benchmarks/tune.mjs";
 
 // IDEA-1764: the gate persists its measured answers under a strict fingerprint
@@ -72,6 +72,92 @@ test("generationDigest covers the real engine closure and the gate drivers, and 
   }
   assert.match(await generationDigest(repo), /^[0-9a-f]{32}$/);
 });
+
+/** A fixture repository whose files can be edited to prove identity discrimination. */
+async function makeSplitRoot() {
+  const { root, cleanup } = await makeRoot();
+  const { mkdir } = await import("node:fs/promises");
+  await mkdir(path.join(root, "src"), { recursive: true });
+  await mkdir(path.join(root, "benchmarks"), { recursive: true });
+  const write = (relative, body) => writeFile(path.join(root, ...relative.split("/")), `${body}\n`, "utf8");
+  await write("src/engine.js", "export const x = 1;");
+  await write("benchmarks/tune-evaluate.mjs", "export const a = 1;");
+  await write("benchmarks/tune.mjs", "export const b = 1;");
+  await write("benchmarks/tune-job.mjs", "export const c = 1;");
+  await write("benchmarks/tune-gate.mjs", "export const d = 1;");
+  await write("benchmarks/tune-measure.mjs", "export const e = 1;");
+  await write("benchmarks/tasks.mjs", "export const f = 1;");
+  return { root, cleanup, write };
+}
+
+/** A world fingerprint with every answer-affecting input: items, suite, model and runtime. */
+const WORLD = {
+  cpu: "test-cpu", cores: 8, platform: "linux", arch: "x64", nodeLlamaCpp: "3.22.2",
+  suiteVersion: 17, taskHash: "abc123", tunerVersion: 9, modelFile: "m.gguf", modelSize: 42,
+};
+
+test("the digest split partitions the gate drivers into answer and judge sets", () => {
+  const combined = [...ANSWER_DRIVER_FILES, ...JUDGE_DRIVER_FILES];
+  assert.equal(new Set(combined).size, ANSWER_DRIVER_FILES.length + JUDGE_DRIVER_FILES.length); // no overlap
+  assert.deepEqual([...combined].sort(), [...GATE_DRIVER_FILES].sort()); // full partition, nothing dropped
+});
+
+test("a judge-only edit keeps the answer identity and shifts only the evidence digest", async (t) => {
+  const { root, cleanup, write } = await makeSplitRoot(t);
+  t.after(cleanup);
+  const answerBefore = await answerDigest(root);
+  const evidenceBefore = await generationDigest(root);
+  // Judge-only driver: gate orchestration, stats, rung order.
+  await write("benchmarks/tune-gate.mjs", "export const d = 2;");
+  assert.equal(await answerDigest(root), answerBefore); // answers stay reusable
+  assert.notEqual(await generationDigest(root), evidenceBefore); // the evidence digest still tracks it
+  // An answer-side edit shifts the reuse identity too.
+  await write("benchmarks/tune-evaluate.mjs", "export const a = 2;");
+  assert.notEqual(await answerDigest(root), answerBefore);
+});
+
+test("cached rows survive a judge-only change and burn on an answer change", async (t) => {
+  const { root, cleanup, write } = await makeSplitRoot(t);
+  t.after(cleanup);
+  const reuse = answerFingerprint(WORLD, await answerDigest(root));
+  const file = path.join(root, "cache.json");
+  await saveGateCache(file, { fingerprint: reuse, judgeDigest: "judge-1", groups: [{ settings: settingsOf(), seed: 42, rows: [{ id: "a", passed: 1, total: 1 }] }] });
+  const loaded = await loadGateCache(file, reuse);
+  assert.equal(loaded.groups.length, 1);
+  assert.equal(loaded.judgeDigest, "judge-1"); // stored as evidence of the last judging world
+  await write("benchmarks/tune-gate.mjs", "export const d = 2;"); // judge-only change
+  const afterJudgeEdit = answerFingerprint(WORLD, await answerDigest(root));
+  assert.equal(afterJudgeEdit, reuse);
+  const survived = await loadGateCache(file, afterJudgeEdit);
+  assert.equal(survived.groups.length, 1); // rows reused, the live judge code re-verdicts them
+  await write("src/engine.js", "export const x = 2;"); // answer-side change
+  const afterAnswerEdit = answerFingerprint(WORLD, await answerDigest(root));
+  assert.notEqual(afterAnswerEdit, reuse);
+  assert.equal(await loadGateCache(file, afterAnswerEdit), null); // stale answers never judged
+  // A schema-1 record (pre-split) is discarded, never misread.
+  await writeFile(file, JSON.stringify({ schema: 1, fingerprint: afterAnswerEdit, groups: [] }), "utf8");
+  assert.equal(await loadGateCache(file, afterAnswerEdit), null);
+});
+
+test("the answer identity burns on every world change: items, suite, tuner, model, runtime", async (t) => {
+  const { root, cleanup } = await makeSplitRoot(t);
+  t.after(cleanup);
+  const digest = await answerDigest(root);
+  const base = answerFingerprint(WORLD, digest);
+  const worlds = [
+    { ...WORLD, taskHash: "def456" },          // item content changed
+    { ...WORLD, suiteVersion: 18 },            // checks or wording changed under the suite convention
+    { ...WORLD, tunerVersion: 10 },
+    { ...WORLD, modelFile: "other.gguf" },
+    { ...WORLD, modelSize: 43 },
+    { ...WORLD, nodeLlamaCpp: "3.23.0" },
+    { ...WORLD, cores: 16 },
+  ];
+  for (const world of worlds) {
+    assert.notEqual(answerFingerprint(world, digest), base, `a changed ${JSON.stringify(world)} must not reuse answers`);
+  }
+});
+
 
 test("loadGateCache returns nothing for missing, stale or corrupt caches", async (t) => {
   const dir = await mkdtemp(path.join(os.tmpdir(), "modelduck-gate-cache-"));

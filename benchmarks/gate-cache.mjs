@@ -9,28 +9,49 @@ import { settingsKey } from "./tune-measure.mjs";
  * IDEA-1764: the gate's fingerprinted answer cache.
  *
  * The gate reuses a measured answer only when the world that produced it is
- * bit-for-bit the one it is judging. The reuse identity digests the whole
- * `currentFingerprint` (suite, task hash, tuner version, model file and size,
- * cpu/cores/platform/arch, node-llama-cpp) plus a content digest of the files
- * that decide sampled answers and their scoring. Any axis change discards the
- * stale cache file — a fresh gate again measures everything.
+ * bit-for-bit the one it is judging. The reuse identity digests the answer half
+ * of that world: the whole `currentFingerprint` (suite, task hash, tuner
+ * version, model file and size, cpu/cores/platform/arch, node-llama-cpp) plus a
+ * content digest of the files that frame sampled answers — the engine's
+ * runtime closure and the drivers that assemble prompts and settings. The
+ * judge half (verdicts, stats, orchestration) is NOT part of the reuse
+ * identity: its code runs fresh on every gate, so a judge-only change re-judges
+ * the same bit-identical answers instead of re-asking them. Any answer-side
+ * axis change still discards the stale cache file — a fresh gate again measures
+ * everything.
  */
 
-export const GATE_CACHE_SCHEMA = 1;
+export const GATE_CACHE_SCHEMA = 2;
 
 /**
- * Benchmark drivers that frame the sampled answers and how they score. The
- * runtime half of the generation path is not listed here: it is *derived*
- * (see generationPathFiles) so a module the engine imports can never silently
- * fall outside the digest.
+ * Benchmark drivers that frame the sampled answers: the evaluator's prompt
+ * assembly (`tune-evaluate.mjs`), the settings rows `measurePresets` composes
+ * (`tune.mjs`) and the measurement defaults (`tune-job.mjs`). An edit to any of
+ * these can change an answer, so they belong to the reuse identity. The runtime
+ * half of the generation path is not listed here: it is *derived* (see
+ * generationPathFiles) so a module the engine imports can never silently fall
+ * outside the digest.
  */
-export const GATE_DRIVER_FILES = Object.freeze([
+export const ANSWER_DRIVER_FILES = Object.freeze([
   "benchmarks/tune.mjs",
   "benchmarks/tune-evaluate.mjs",
+  "benchmarks/tune-job.mjs",
+]);
+
+/**
+ * Judge-only drivers: gate orchestration, verdicts and paired stats
+ * (`tune-gate.mjs`, `tune-measure.mjs`) and the rung/holdout order (`tasks.mjs`,
+ * whose item content is guarded by `taskHash` in the world fingerprint). Editing
+ * them re-judges reused answers, never re-frames them.
+ */
+export const JUDGE_DRIVER_FILES = Object.freeze([
   "benchmarks/tune-measure.mjs",
   "benchmarks/tasks.mjs",
   "benchmarks/tune-gate.mjs",
 ]);
+
+/** The digest universe: the answer half plus the judge half. */
+export const GATE_DRIVER_FILES = Object.freeze([...ANSWER_DRIVER_FILES, ...JUDGE_DRIVER_FILES]);
 
 /** Where one model's gate cache lives; `benchmarks/results/` is gitignored. */
 export function gateCacheFile(root, modelId) {
@@ -76,9 +97,8 @@ export async function generationPathFiles(root, entry = "src/engine.js") {
   return files.sort();
 }
 
-/** Content digest of the generation-path files, missing files included. */
-export async function generationDigest(root, files = null) {
-  const list = files ?? (await generationPathFiles(root)).concat(GATE_DRIVER_FILES).sort();
+/** Content digest of the given files, missing files included. */
+async function contentDigest(root, list) {
   const hashes = await Promise.all(
     list.map(async (file) => {
       const content = await readFile(path.join(root, file), "utf8").catch(() => null);
@@ -88,16 +108,34 @@ export async function generationDigest(root, files = null) {
   return createHash("sha256").update(hashes.join("\n")).digest("hex").slice(0, 32);
 }
 
-/** The reuse identity: the whole world fingerprint plus the code digest. */
-export function gateFingerprint(fingerprint = {}, codeDigest) {
+/** The full evidence digest: the generation path plus every gate driver. */
+export async function generationDigest(root, files = null) {
+  const list = files ?? (await generationPathFiles(root)).concat(GATE_DRIVER_FILES).sort();
+  return contentDigest(root, list);
+}
+
+/** The answer half only: everything a sampled answer depends on, judgers excluded. */
+export async function answerDigest(root, files = null) {
+  const list = files ?? (await generationPathFiles(root)).concat(ANSWER_DRIVER_FILES).sort();
+  return contentDigest(root, list);
+}
+
+/** The reuse identity: the whole world fingerprint plus a code digest. */
+export function gateFingerprint(fingerprint = {}, codeDigest, codeKey = "generationCode") {
   const sorted = Object.fromEntries(Object.entries(fingerprint).sort(([left], [right]) => (left < right ? -1 : 1)));
-  return createHash("sha256").update(JSON.stringify({ ...sorted, generationCode: codeDigest })).digest("hex").slice(0, 32);
+  return createHash("sha256").update(JSON.stringify({ ...sorted, [codeKey]: codeDigest })).digest("hex").slice(0, 32);
+}
+
+/** The answer cache's reuse identity: the answer side of the world only. */
+export function answerFingerprint(fingerprint = {}, digest) {
+  return gateFingerprint(fingerprint, digest, "answerCode");
 }
 
 /**
- * One model's saved answers, or null when the file is missing, corrupt, or
- * stamped with a different fingerprint. Corrupt or stale caches are discarded
- * (a fresh measurement covers them), never repaired from partial data.
+ * One model's saved answers, or null when the file is missing, corrupt, on a
+ * different schema, or stamped with a different answer identity. Corrupt or
+ * stale caches are discarded (a fresh measurement covers them), never repaired
+ * from partial data.
  */
 export async function loadGateCache(file, fingerprint) {
   let record = null;
@@ -110,15 +148,21 @@ export async function loadGateCache(file, fingerprint) {
   const groups = Array.isArray(record.groups)
     ? record.groups.filter((group) => group && Array.isArray(group.rows))
     : [];
-  return { groups, cachedAt: record.savedAt ?? null, runs: Number(record.runs) || 0 };
+  return {
+    groups,
+    cachedAt: record.savedAt ?? null,
+    runs: Number(record.runs) || 0,
+    judgeDigest: typeof record.judgeDigest === "string" ? record.judgeDigest : null,
+  };
 }
 
-/** Save the merged cache atomically (tmp + rename, PRINCIPLE-013). */
-export async function saveGateCache(file, { fingerprint, groups, runs = 0 }) {
+/** Save the merged cache atomically (tmp + rename, PRINCIPLE-013). `judgeDigest` is evidence of the last judging world, never a reuse key. */
+export async function saveGateCache(file, { fingerprint, judgeDigest = null, groups, runs = 0 }) {
   await mkdir(path.dirname(file), { recursive: true });
   await writeJsonAtomic(file, {
     schema: GATE_CACHE_SCHEMA,
     fingerprint,
+    judgeDigest,
     savedAt: new Date().toISOString(),
     runs: Math.max(0, Math.round(runs)) + 1,
     groups,

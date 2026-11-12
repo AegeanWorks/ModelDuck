@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { AppError } from "../src/errors.js";
 import { ensureDirectory } from "../src/fs-atomic.js";
 import { resolvePaths } from "../src/config.js";
-import { cachedRowCount, gateCacheFile, gateFingerprint, generationDigest, loadGateCache, mergeAnswerGroups, probeDisagrees, saveGateCache, tripwireWindow } from "./gate-cache.mjs";
+import { answerDigest, answerFingerprint, cachedRowCount, gateCacheFile, generationDigest, loadGateCache, mergeAnswerGroups, probeDisagrees, saveGateCache, tripwireWindow } from "./gate-cache.mjs";
 import { currentGitInfo, recordRun } from "./history.mjs";
 import { CORE_MODEL_IDS } from "./matrix.mjs";
 import { BENCHMARK_MODELS } from "./suite.mjs";
@@ -32,8 +32,10 @@ descent's passes, for a quicker baseline. --from-profile <home> uses the already
 measured profiles/<model>.json from that home instead of tuning; a missing profile
 is measured as the app defaults. The gate checks the models the baseline has.
 Cached answers: identical settings/seed/item rows from the last gate are reused
-when the whole world fingerprint is unchanged (suite, tasks, tuner, model, runtime,
-hardware and the generation-path file contents); any change re-measures everything.
+when the answer world is unchanged (suite, tasks, tuner, model, runtime, hardware
+and the answer-side file contents: the engine closure and prompt/settings
+assembly); a judge-only change re-judges the same answers; an answer-side change
+re-measures everything.
 --fresh ignores and overwrites the cache.
 --models-parallel <n> measures up to n models at once (default: all core models,
 up to 3). Answers are unchanged; under contention the latency column reads
@@ -142,9 +144,11 @@ async function gate(options, home) {
   let identity = null;
   const repoRoot = path.join(HERE, "..");
   // IDEA-1764: the reuse fingerprint covers the whole world identity plus the
-  // generation-path file contents, so a cached answer always comes from a
-  // bit-identical world.
+  // answer half of the code (engine closure and the drivers that frame
+  // prompts and settings), so a cached answer always comes from a
+  // bit-identical answer world; judge code runs fresh on every gate.
   const codeDigest = await generationDigest(repoRoot);
+  const answersDigest = await answerDigest(repoRoot);
   // The models are independent measurements (own engine, own cache file), so
   // they run concurrently in a bounded pool: wall time becomes the slowest
   // model instead of the sum. Answers cannot change — each model keeps its
@@ -156,7 +160,7 @@ async function gate(options, home) {
     Object.entries(baseline.models),
     async ([catalogId, entry]) => {
       try {
-        return { catalogId, error: null, currentTasks: await measureModel(catalogId, entry, { baseline, options, home, repoRoot, codeDigest }) };
+        return { catalogId, error: null, currentTasks: await measureModel(catalogId, entry, { baseline, options, home, repoRoot, codeDigest, answersDigest }) };
       } catch (error) {
         // A lane's failure never poisons the others' results; the gate aborts
         // on the first failure in model order once every lane has settled.
@@ -176,7 +180,7 @@ async function gate(options, home) {
    * tripwire window measurement and cache save. Isolated so the pool can run
    * models concurrently without sharing any mutable state.
    */
-  async function measureModel(catalogId, entry, { baseline, options, home, repoRoot, codeDigest }) {
+  async function measureModel(catalogId, entry, { baseline, options, home, repoRoot, codeDigest, answersDigest }) {
   const target = await openTarget({ model: fileOf(catalogId), home, modelsDir: options.modelsDir });
   const identity = identityOf(target.fingerprint);
   const changed = comparability(baseline, identity);
@@ -188,7 +192,7 @@ async function gate(options, home) {
       });
     }
     const presets = Object.fromEntries(Object.entries(entry.tasks).map(([task, saved]) => [task, saved.settings]));
-    const fingerprint = gateFingerprint(target.fingerprint, codeDigest);
+    const fingerprint = answerFingerprint(target.fingerprint, answersDigest);
     const cacheFile = gateCacheFile(repoRoot, catalogId);
     const cached = options.fresh ? null : await loadGateCache(cacheFile, fingerprint).catch(() => null);
     const restore = cached?.groups?.length ? cached.groups : [];
@@ -219,7 +223,7 @@ async function gate(options, home) {
     }));
     const { reusedAnswers, freshAnswers, ...currentTasks } = measuredPresets;
     process.stdout.write(`  answers: ${reusedAnswers} reused, ${freshAnswers} fresh${reusedRows || freshAnswers ? "" : " (cache cold)"}\n`);
-    await saveGateCache(cacheFile, { fingerprint, groups: mergeAnswerGroups(restore, freshGroups), runs: cached?.runs ?? 0 }).catch((error) => {
+    await saveGateCache(cacheFile, { fingerprint, judgeDigest: codeDigest, groups: mergeAnswerGroups(restore, freshGroups), runs: cached?.runs ?? 0 }).catch((error) => {
       process.stdout.write(`  note: the answer cache could not be saved (${error.message}); the next gate re-measures.\n`);
     });
     return { identity, tasks: currentTasks };
