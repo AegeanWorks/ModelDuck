@@ -34,7 +34,7 @@ export function resetProfileCache() {
 
 export const LOAD_KEYS = Object.freeze([
   "contextSize", "kvCache", "flashAttention", "useMmap", "batchSize", "threads",
-  "checkpoints", "checkpointInterval", "checkpointMax", "gpuLayers", "gpuBackend", "draftModel",
+  "checkpoints", "checkpointInterval", "checkpointMax", "gpuLayers", "gpuBackend",
 ]);
 
 /** What a profile was measured on; any difference makes it stale. */

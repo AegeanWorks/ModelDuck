@@ -20,10 +20,6 @@ import {
 } from "./generation-manifest.js";
 
 const MAX_SESSIONS = 1;
-// IDEA-1786 (ADR-096): a draft context only needs room for one prompt
-// (~1.7K tokens) plus the answer budget and the speculative lookahead, so a
-// tight window keeps a 0.5B draft model cheap to hold beside the target.
-const DRAFT_CONTEXT_MAX = 8192;
 const KV_CACHE_TYPES = {
   f16: "F16",
   q8_0: "Q8_0",
@@ -212,13 +208,6 @@ export class LlamaEngine {
   #llama = null;
   #model = null;
   #context = null;
-  // IDEA-1786 (ADR-096): the speculative-decoding side; one draft model and
-  // context per load, one draft sequence per live target sequence.
-  #draftModel = null;
-  #draftModelId = null;
-  #draftContext = null;
-  #draftPredictorClass = null;
-  #draftPairs = new Map(); // target sequence -> its draft sequence
   #chatSessionClass = null;
   #completionClass = null;
   #sessions = new Map();
@@ -237,7 +226,6 @@ export class LlamaEngine {
   #state = {
     status: "idle",
     model: null,
-    draftModel: null,
     contextSize: null,
     trainContextSize: null,
     threads: null,
@@ -465,51 +453,6 @@ export class LlamaEngine {
     return lastError;
   }
 
-  /**
-   * IDEA-1786 (ADR-096): load the speculative-decoding side. A smaller
-   * same-tokenizer draft model predicts token lookahead; the target still
-   * samples every token and consumes a prediction only when its own sample
-   * equals it, so output stays bit-identical on deterministic lanes. The
-   * draft context is a small, one-sequence-per-target pool capped at
-   * DRAFT_CONTEXT_MAX so the draft stays cheap to hold beside the target.
-   */
-  async #loadDraft({ draftModel, modelId, mmap, gpuLayerValue, epoch, sequences }) {
-    this.#draftPairs.clear();
-    this.#draftContext = null;
-    this.#draftModel = null;
-    this.#draftModelId = null;
-    if (!draftModel) return;
-    if (draftModel === modelId) {
-      throw new AppError("A model cannot draft itself", {
-        code: "draft_model_self",
-        status: 422,
-        why: "Speculative decoding pairs a small draft model with a larger target; identical weights draft nothing.",
-        fix: "Choose a smaller model from the same family, or turn the draft model off.",
-      });
-    }
-    const draftEntry = this.#registry.findById(draftModel);
-    if (!draftEntry) {
-      throw new AppError("The draft model is no longer in the library", {
-        code: "draft_model_not_found",
-        status: 404,
-        why: "That draft model is not installed any more.",
-        fix: "Refresh the model list and choose an installed model as the draft.",
-      });
-    }
-    this.#draftModel = await this.#llama.loadModel({
-      modelPath: draftEntry.path,
-      useMmap: mmap,
-      gpuLayers: gpuLayerValue,
-    });
-    this.#assertLoadAlive(epoch);
-    this.#draftContext = await this.#draftModel.createContext({
-      contextSize: { max: DRAFT_CONTEXT_MAX },
-      sequences: Math.max(1, Number(sequences) || 1),
-    });
-    this.#assertLoadAlive(epoch);
-    this.#draftModelId = draftEntry.id;
-  }
-
   async #planFit(entry, { contextSize, kvCache, gpuLayers, batchSize, sequences, flashAttention }) {
     const requested = Math.max(16384, Number(contextSize) || 16384);
     const contextTokens = Math.max(512, Math.min(requested, entry.contextLength || Infinity));
@@ -632,7 +575,6 @@ export class LlamaEngine {
     useMmap,
     gpuLayers,
     gpuBackend,
-    draftModel = null,
     checkpoints,
     checkpointInterval,
     checkpointMax,
@@ -715,7 +657,6 @@ export class LlamaEngine {
       this.#assertLoadAlive(epoch);
       this.#chatSessionClass = module.LlamaChatSession;
       this.#completionClass = module.LlamaCompletion;
-      this.#draftPredictorClass = module.DraftSequenceTokenPredictor ?? null;
       const runtimeVersion = await module.getModuleVersion().catch(() => null);
       const requestedBackend = ["auto", "cuda", "vulkan", "metal"].includes(
         process.env.MODELDUCK_GPU,
@@ -756,9 +697,6 @@ export class LlamaEngine {
           });
         }
       }
-      // IDEA-1786 (ADR-096): load the draft side before the contexts so a
-      // failure fails the whole load once and cleanup stays in one place.
-      await this.#loadDraft({ draftModel, modelId, mmap, gpuLayerValue, epoch, sequences: shape.actualSequences });
       const trained = this.#model.trainContextSize || 16384;
       // Context is a fixed 16K floor for coding (ADR-089); only a model trained
       // for less may go under it, and the load never silently shrinks further.
@@ -771,7 +709,6 @@ export class LlamaEngine {
       this.#state = {
         status: "ready",
         model: publicModel(entry),
-        draftModel: this.#draftModelId,
         contextSize: this.#context.contextSize,
         trainContextSize: trained,
         threads: shape.actualThreads,
@@ -1019,23 +956,6 @@ export class LlamaEngine {
     } finally {
       this.#model = null;
     }
-    // IDEA-1786 (ADR-096): the draft side goes with the load that brought it.
-    this.#draftPairs.clear();
-    try {
-      if (this.#draftContext) await this.#draftContext.dispose();
-    } catch (error) {
-      errors.push(`draft context: ${error?.message || error}`);
-    } finally {
-      this.#draftContext = null;
-    }
-    try {
-      if (this.#draftModel) await this.#draftModel.dispose();
-    } catch (error) {
-      errors.push(`draft model: ${error?.message || error}`);
-    } finally {
-      this.#draftModel = null;
-      this.#draftModelId = null;
-    }
     this.#grammarCache = null; // IDEA-1163: a model swap must never reuse a stale grammar.
     // IDEA-1076: cached answers belong to the unloaded model; never reuse them.
     this.#responseCache.clear();
@@ -1043,7 +963,6 @@ export class LlamaEngine {
     this.#state = {
       status: "idle",
       model: null,
-      draftModel: null,
       contextSize: null,
       trainContextSize: null,
       threads: null,
@@ -1784,41 +1703,7 @@ export class LlamaEngine {
     while ((this.#context.sequencesLeft ?? 1) === 0 && Date.now() < deadline) {
       await new Promise((resolve) => setTimeout(resolve, 5));
     }
-    // IDEA-1786 (ADR-096): claim the draft sequence only once a target slot is
-    // free, so a wait never strands a claim outside the pairs map.
-    const draftSequence = this.#claimDraftSequence();
-    if (draftSequence) {
-      options.tokenPredictor = new this.#draftPredictorClass(draftSequence);
-    }
-    const sequence = this.#context.getSequence(options);
-    if (draftSequence) this.#draftPairs.set(sequence, draftSequence);
-    return sequence;
-  }
-
-  /**
-   * One draft sequence per target sequence, never shared (the runtime
-   * forbids a predictor on two sequences). Disposing a session disposes its
-   * target sequence in place, so pairs whose target has been disposed are
-   * returned to the draft pool right before the next claim; the pool can
-   * never leak a sequence.
-   */
-  #claimDraftSequence() {
-    if (!this.#draftContext || !this.#draftPredictorClass) return null;
-    for (const [target, draft] of this.#draftPairs) {
-      if (draft.disposed || target.disposed) {
-        this.#draftPairs.delete(target);
-        if (!draft.disposed) draft.dispose();
-      }
-    }
-    if ((this.#draftContext.sequencesLeft ?? 1) === 0) {
-      throw new AppError("No draft sequence is free", {
-        code: "draft_sequence_busy",
-        status: 503,
-        why: "Every draft sequence is still serving a live reply.",
-        fix: "Wait for the replies in flight to finish, or load without the draft model.",
-      });
-    }
-    return this.#draftContext.getSequence();
+    return this.#context.getSequence(options);
   }
 
   #disposeIdleSessions() {
@@ -1837,15 +1722,6 @@ export class LlamaEngine {
   }
 
   async #disposeModel() {
-    this.#draftPairs.clear();
-    if (this.#draftContext) {
-      await this.#draftContext.dispose().catch(() => {});
-      this.#draftContext = null;
-    }
-    if (this.#draftModel) {
-      await this.#draftModel.dispose().catch(() => {});
-      this.#draftModel = null;
-    }
     if (this.#context) {
       await this.#context.dispose().catch(() => {});
       this.#context = null;

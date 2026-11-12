@@ -19,7 +19,6 @@ const SETTING_KEYS = [
   "useMmap",
   "gpuLayers",
   "gpuBackend",
-  "draftModel",
   "checkpoints",
   "checkpointInterval",
   "checkpointMax",
