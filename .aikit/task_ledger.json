@@ -1,28 +1,22 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "reconfigure-context",
+    "task_id": "speculative-decode",
     "last_phase": "in_progress",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1794495593.071797,
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1794501496.572427,
     "owner": "vibe:1",
     "started_by": "vibe:1",
     "continuations": [],
-    "completed_at": 1794495593.2266333
+    "impact_assessment": {
+      "why": "Decode is ~84% of ask time (ADR-093, 2401 answers); speculative decoding is the only remaining order-of-magnitude speed lever; node-llama-cpp 3.22.2 exports DraftSequenceTokenPredictor and Qwen family tokenizers verified identical (tokHash e2fadeac783c).",
+      "benefits": "1.5-2.5x decode on Qwen pairs where acceptance is high; every gate/tuner sweep and served reply benefits; built-in validated/refuted stats measure effectiveness directly.",
+      "risks": "contract: RNG-stream divergence on temp>0 lanes makes spec-on answers non-bit-identical; dependency: engine must own draft model+context lifecycle across load/reconfigure/unload/dispose; concurrency: none - draft sequence is used only by the predictor, one per target sequence, never shared across conversations; state: predictor attaches per sequence so session cache and checkpoint interplay must be handled; memory: extra draft model+context (~0.5GB class).",
+      "mitigation": "Wire draftModel default off; on greedy lanes output is bit-identical by construction (target always samples every token; predictions consumed only when equal - read from dist LlamaContext.js); dogfood proves greedy bit-identity on two Qwen pairs and records sampling-lane behaviour; live gate verdicts must be unchanged; draft lifecycle in #disposeModel + sessions; draft context capped at a small fixed size."
+    }
   },
   "checkpoints": [
-    {
-      "task_id": "push-delta-fixes",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "Phase 4 passed: aikit check modelduck --strict 4/4 gates (npm test 647: 646 pass + 1 skip); live tune:gate on the three core models identical rates (+0, b=0 c=0, tripwire 12 per rung, cold re-warm 0 reused/108 fresh per model); UI task closed after live review at port 4199; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794432468.3699713,
-      "timestamp_str": "2026-11-12 00:27:48",
-      "agent": "vibe:1"
-    },
     {
       "task_id": "gate-model-parallelism",
       "phase": "in_progress",
@@ -258,6 +252,24 @@
       "timestamp": 1794495593.2266347,
       "timestamp_str": "2026-11-12 17:59:53",
       "agent": "vibe:1"
+    },
+    {
+      "task_id": "speculative-decode",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Plan: engine gains a draftModel load option that loads a same-tokenizer draft model + draft context on the resident llama runtime and attaches DraftSequenceTokenPredictor per sequence in #acquireSequence (CLI-canonical pattern). draftModel is a MODEL_LEVEL key (second model = full reload on change); flows through config normalisation, benchmark-base SETTING_KEYS, model-profiles LOAD_KEYS, tune-evaluate MODEL_LEVEL_KEYS; ADR-096. Dogfood must prove bit-identity on greedy lanes (guaranteed by construction: the target samples every token; predictions are used only when identical) and record sampling-lane behaviour plus validated/refuted acceptance and wall-clock.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794501496.572427,
+      "timestamp_str": "2026-11-12 19:38:16",
+      "agent": "vibe:1",
+      "impact_assessment": {
+        "why": "Decode is ~84% of ask time (ADR-093, 2401 answers); speculative decoding is the only remaining order-of-magnitude speed lever; node-llama-cpp 3.22.2 exports DraftSequenceTokenPredictor and Qwen family tokenizers verified identical (tokHash e2fadeac783c).",
+        "benefits": "1.5-2.5x decode on Qwen pairs where acceptance is high; every gate/tuner sweep and served reply benefits; built-in validated/refuted stats measure effectiveness directly.",
+        "risks": "contract: RNG-stream divergence on temp>0 lanes makes spec-on answers non-bit-identical; dependency: engine must own draft model+context lifecycle across load/reconfigure/unload/dispose; concurrency: none - draft sequence is used only by the predictor, one per target sequence, never shared across conversations; state: predictor attaches per sequence so session cache and checkpoint interplay must be handled; memory: extra draft model+context (~0.5GB class).",
+        "mitigation": "Wire draftModel default off; on greedy lanes output is bit-identical by construction (target always samples every token; predictions consumed only when equal - read from dist LlamaContext.js); dogfood proves greedy bit-identity on two Qwen pairs and records sampling-lane behaviour; live gate verdicts must be unchanged; draft lifecycle in #disposeModel + sessions; draft context capped at a small fixed size."
+      },
+      "plan_digest": "1bec357c6f021b9918c243710c91c135a6ebf03d74e2140708929e75e068bf46"
     }
   ]
 }
