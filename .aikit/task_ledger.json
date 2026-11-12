@@ -1,68 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "gate-cache-split",
+    "task_id": "reconfigure-context",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794486962.6227038,
+    "updated_at": 1794495593.071797,
     "owner": "vibe:1",
     "started_by": "vibe:1",
     "continuations": [],
-    "completed_at": 1794486962.8332596
+    "completed_at": 1794495593.2266333
   },
   "checkpoints": [
-    {
-      "task_id": "push-delta-fixes",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/4] Fix the stale checkpoint-interval hints (UI + README), surface the rebuild-lease status via GET /api/settings, and make the gate-cache digest derive from engine.js's import closure",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794431791.0873299,
-      "timestamp_str": "2026-11-12 00:16:31",
-      "agent": "vibe:1",
-      "impact_assessment": {
-        "why": "The push-delta review verified three defects: misleading interval-setting docs, invisible lease failure state, and a hand-maintained gate-cache digest list",
-        "benefits": "Honest UI/README wording, observable MODEL_DISPOSE_FAILED state, self-maintaining cache invalidation",
-        "risks": "contract: GET /api/settings gains a read-only reload field; dependency: none (stdlib only); concurrency: status() must be a synchronous snapshot; state: gate-cache digest shifts once (deliberate cold re-warm)",
-        "mitigation": "Failing-first tests per change, npm test green, aikit check modelduck before each commit; PUT verdict byte-identical"
-      },
-      "plan_digest": "10e29477530c5258d33951bc270cc7b4c9df9009b8dd163d5fae9e9021783828"
-    },
-    {
-      "task_id": "push-delta-fixes",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[2/4] Fix 2 landed: lease.status() snapshot plus GET /api/settings reload field, failing-first tests, npm test 647/646+1skip, checklists: passed (aikit check modelduck 4/4)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794432082.5109472,
-      "timestamp_str": "2026-11-12 00:21:22",
-      "agent": "vibe:1"
-    },
-    {
-      "task_id": "push-delta-fixes",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[3/4] Fix 3 landed: gate-cache digest derives from src/engine.js's static import closure plus five explicit gate drivers; broken imports fail loudly; ADR-092 recorded; checklists: passed (npm test 647 green both milestones)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794432085.5981731,
-      "timestamp_str": "2026-11-12 00:21:25",
-      "agent": "vibe:1"
-    },
-    {
-      "task_id": "push-delta-fixes",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[4/4] Fix 1 landed: the settings UI hints in public/index.html and public/app.js describe the checkpoint interval as the pre-load fallback; UI task opened, verified live on port 4199, reviewed and closed; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794432165.1869166,
-      "timestamp_str": "2026-11-12 00:22:45",
-      "agent": "vibe:1"
-    },
     {
       "task_id": "push-delta-fixes",
       "phase": "in_progress",
@@ -257,6 +206,57 @@
       "status": "completed",
       "timestamp": 1794486962.8332608,
       "timestamp_str": "2026-11-12 15:36:02",
+      "agent": "vibe:1"
+    },
+    {
+      "task_id": "reconfigure-context",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Plan: split the tuner's load signature into model-level keys (useMmap, gpuLayers, gpuBackend -> full engine.load) and context-level keys (contextSize, threads, batchSize, sequences, flashAttention, kvCache, checkpoints* -> new LlamaEngine.reconfigure that disposes sessions+context and recreates on the resident model). ensureLoaded then reconfigures on context-only changes so sweeps threads/batch pay ~60-80ms instead of a ~1-2.5s model reload; warm-up stays for latency fidelity; answers bit-identical by construction (dedicated-context semantics unchanged, proven in threads-dogfood)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794494018.7210417,
+      "timestamp_str": "2026-11-12 17:33:38",
+      "agent": "vibe:1",
+      "impact_assessment": {
+        "why": "the probes measured model load 987-1698ms vs context create 58-78ms; every threads/batch/context/KV candidate in device, quality and speed stages pays a full model reload today",
+        "benefits": "~1-2s saved per context-level candidate; threads axis 7 values, batch 6, context 6, KV - roughly 20-40s per model per tune with zero answer change",
+        "risks": "contract: reconfigure must dispose sessions, response cache and checkpointer state bound to the old context or the engine could answer from a stale context; latency readings of reconfigure-path candidates may differ slightly from dedicated-load readings (measured 942 vs 836ms single-shot at threads=1) but every candidate in a sweep is measured through the same path so comparisons stay internally consistent; state: #state.threads/batch/sequences/flashAttention must update on reconfigure; dependency: none new; concurrency: reconfigure refuses while #running (same phase machine as load)",
+        "mitigation": "failing-first tests pin: reconfigure recreates the context exactly once without calling loadModel again, updates the state fields, refuses during generation, and clears the in-memory response cache; tune-evaluate tests pin that a threads change never triggers engine.load; live gate run proves all nine verdicts identical (engine closure changes the answer digest once, then re-warms)"
+      },
+      "plan_digest": "ddd39f278beb404c0dff1060add920bd968bd772ca6e8d83d9f5c7b14a2866ae"
+    },
+    {
+      "task_id": "reconfigure-context",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4]+[3/4] Landed: LlamaEngine.reconfigure (context rebuild on resident model, guards + planFit + responseCache clear + context_recreate_failed recovery via fresh load), shared #contextShape/#attemptContext extracted from load (identical options by construction), tune-evaluate ensureLoaded split into MODEL_LEVEL_KEYS/CONTEXT_LEVEL_KEYS signatures with maxThreads lifted to 64; warm-up kept on both paths. Failing-first tests: tests/engine-reconfigure.test.js (5 pins), benchmark-tune-evaluate.test.js contract updated. npm test 671/670+1 skip. Live proof: reconf-dogfood 1 load + 2 reconfigures at ~55ms with stable digests; live gate cold re-warm passed, all nine verdicts identical",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794495592.8798432,
+      "timestamp_str": "2026-11-12 17:59:52",
+      "agent": "vibe:1"
+    },
+    {
+      "task_id": "reconfigure-context",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] ADR-095 appended; suite green; live gate passed with identical verdicts; checklists passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794495593.071797,
+      "timestamp_str": "2026-11-12 17:59:53",
+      "agent": "vibe:1",
+      "checklists": "passed"
+    },
+    {
+      "task_id": "reconfigure-context",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'reconfigure-context' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794495593.2266347,
+      "timestamp_str": "2026-11-12 17:59:53",
       "agent": "vibe:1"
     }
   ]
