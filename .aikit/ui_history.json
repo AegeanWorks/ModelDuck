@@ -723,5 +723,23 @@
     "final_snapshot_digest": "",
     "final_snapshot_entries": 0,
     "surface_digest": "350c8746885de5d8aa19b267f0927593ab2aa33b23c1c89e2696feef71c6594d"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [],
+    "no_visual_reason": "",
+    "baseline_commit": "dfb3b09760bfcbf24639c3d035f482eff81e4092",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1794503330.1070352,
+    "finished_at": 1794503348.4855387,
+    "strikes": 0,
+    "reviewer": "Mistral Vibe (AI; zero-surface-change bookkeeping run after the ADR-096 revert: src/ and public/ are byte-identical to the pre-task audit state (git diff 78de93f -- src public is empty; verified empty), suite 671 tests / 670 pass / 1 skip)",
+    "allowed_removals": [],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "dc7b3ec393283f6e772576147b2d5808752511b4f5bcab8e153202925c9cdeb9"
   }
 ]
