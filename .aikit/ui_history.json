@@ -705,5 +705,23 @@
     "final_snapshot_digest": "",
     "final_snapshot_entries": 0,
     "surface_digest": "5bd55d8d34f35b1a7ad02223464729808b750156b7456c8470f502444e434012"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [],
+    "no_visual_reason": "",
+    "baseline_commit": "6d80d2519e1754b6134aa205fa9f8ff2573c586a",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1794495921.8353815,
+    "finished_at": 1794495961.7611966,
+    "strikes": 0,
+    "reviewer": "Mistral Vibe (AI; backend-only surface change: LlamaEngine context rebuild and load-helper extraction, no UI markup or styles touched; evidence: full suite 671 tests / 670 pass + 1 skip, live gate re-measuring 108 answers per model across three models with all nine verdicts identical, and a live evaluator dogfood proving 1 load + 2 reconfigures with stable digests)",
+    "allowed_removals": [],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "350c8746885de5d8aa19b267f0927593ab2aa33b23c1c89e2696feef71c6594d"
   }
 ]

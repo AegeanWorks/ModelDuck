@@ -101,7 +101,7 @@ device. It is off by default so a missing driver never prevents local inference 
   own page is a control panel for Models, Bench & Tune, Settings and Server.
 - **Benchmark** — its own tab and gate: run either phase and read per-test rates;
   older-suite reports appear only when asked.
-- **Settings tuner** — **Bench & Tune → Tune** finds each model's best settings in order: device (CPU/GPU, partial offload when full won't fit), context + KV cache, speed (threads, batch, flash, mmap), then sampling and prompt per task. A setting changes only on a clear paired gain (Holm-corrected); laggards stop early, presets are checked on unseen items, and every step is saved so tunes resume anywhere. **Run all** tunes CPU and GPU lanes; **Runs** keeps every run; the Tune panel shows quick/full estimates, a pausable queue, and **Quick pass**. **Recommended for this PC** ranks by measured quality and speed; details in **How tuning works**. A sampling re-tune re-measures its prompt.
+- **Settings tuner** — **Bench & Tune → Tune** finds each model's best settings in order: device (CPU/GPU, partial offload when full won't fit), context + KV cache, speed (threads, batch, flash, mmap), then sampling and prompt per task. A setting changes only on a clear paired gain (Holm-corrected); laggards stop early, presets are checked on unseen items, and every step is saved so tunes resume anywhere. **Run all** tunes CPU and GPU lanes; **Runs** keeps every run; the Tune panel shows quick/full estimates, a pausable queue, and **Quick pass**. **Recommended for this PC** ranks by measured quality/speed. A sampling re-tune re-measures its prompt.
 - **Small surface area** — Node's HTTP server and a vanilla UI; no build or CDN.
 - **Explicit state** — subsystem states (model phase, downloads, benchmark jobs)
   live in `src/state-machine.js` and are readable as JSON at `GET /api/health`;
@@ -563,6 +563,7 @@ modelduck/
 │   ├── tuned-settings.test.js
 │   ├── jit-tuned.test.js
 │   ├── engine-parallel.test.js
+│   ├── engine-reconfigure.test.js
 │   ├── engine-system-prompt.test.js
 │   ├── engine-memory.test.js
 │   ├── answer-reading.test.js
