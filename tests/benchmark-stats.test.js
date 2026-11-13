@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { compareRuns, holm, itemSummary, mcnemarExact, mcnemarOneSided, signFlipPValue, wilson } from "../benchmarks/stats.mjs";
+import { compareRuns, holm, itemSummary, mcnemarExact, mcnemarOneSided, signFlipOneSided, signFlipPValue, wilson } from "../benchmarks/stats.mjs";
 
 test("Wilson intervals match published values and stay inside 0-100", () => {
   assert.deepEqual(wilson(20, 21), { low: 77.3, high: 99.2 });
@@ -144,4 +144,18 @@ test("mcnemarOneSided reports the loss tail the gate acts on", () => {
   close(mcnemarOneSided(1, 0), 0.5); // a single flip is noise
   close(mcnemarOneSided(0, 5), 1); // pure gains never fire
   close(mcnemarOneSided(0, 0), 1); // no discordant pairs
+});
+
+test("signFlipOneSided reports the loss tail for clustered evidence", () => {
+  const close = (a, b) => assert.ok(Math.abs(a - b) < 1e-9, `${a} != ${b}`);
+  // Equal magnitudes take the exact binomial shortcut: five net losses -> 1/32.
+  close(signFlipOneSided([-1, -1, -1, -1, -1]), 0.03125);
+  // Mixed magnitudes flip exactly: sums of [-3, -1] range over {-4, -2, 2, 4}; loss tail of -4 is 1/4.
+  close(signFlipOneSided([-3, -1]), 0.25);
+  // Exact enumeration of sign flips of [-2, -1, 1]: three of eight sums sit at or below the observed -2.
+  close(signFlipOneSided([-2, -1, 1]), 0.375);
+  // Pure gains are never regression evidence: the loss tail is 1 (nothing is at or below it).
+  close(signFlipOneSided([2, 1, 1]), 1);
+  // No discordant clusters: no evidence either way.
+  close(signFlipOneSided([]), 1);
 });

@@ -4,7 +4,7 @@ import test from "node:test";
 import { promptAxes } from "../benchmarks/tune-grid.mjs";
 import { Measurements } from "../benchmarks/tune-measure.mjs";
 import { predictWeightedMs, speedStage, taskProfiles } from "../benchmarks/tune-speed.mjs";
-import { measurePresets, tune } from "../benchmarks/tune.mjs";
+import { groupEvidence, measurePresets, tune } from "../benchmarks/tune.mjs";
 
 const ids = (prefix, count) => Array.from({ length: count }, (_value, index) => `${prefix}-${index}`);
 const RUNGS = {
@@ -1350,4 +1350,32 @@ test("the tolerance counts items, not rounded percents (D4)", async () => {
     });
     assert.equal(tasks.math.settings.maxTokens, 64, `one item lost is within tolerance on ${size} items`);
   }
+});
+
+test("the search's regression guard spends its alpha on the loss side", async () => {
+  const ids = Array.from({ length: 16 }, (_v, index) => `i${index}`);
+  // Five items regress (-1) and none improve: the plain path must report the
+  // one-sided loss tail 1/32, not the two-sided 1/16, so `worse` fires.
+  const before = { fractions: Object.fromEntries(ids.map((id) => [id, 1])) };
+  const losses = new Set(ids.slice(0, 5));
+  const after = { fractions: Object.fromEntries(ids.map((id) => [id, losses.has(id) ? 0 : 1])) };
+  const evidence = groupEvidence(before, after, ids);
+  assert.ok(Math.abs(evidence.pValue - 0.0313) < 0.00006, `p=${evidence.pValue}`);
+  assert.equal(evidence.b, 5);
+  assert.equal(evidence.c, 0);
+  assert.ok(evidence.b > evidence.c && evidence.pValue < 0.05, "a uniform five-loss regression is worse");
+  // Clustered: two loss clusters of one function each against no gain cluster.
+  const clustered = groupEvidence(before, after, ids, (id) => id);
+  assert.ok(Math.abs(clustered.pValue - 0.0313) < 0.00006, `clustered p=${clustered.pValue}`);
+});
+
+test("a tolerated loss-mix keeps both tails of the search guard honest", () => {
+  const ids = Array.from({ length: 16 }, (_v, index) => `i${index}`);
+  // Five regressions (1 -> 0) and one fix (0 -> 1): the loss tail 7/64 must not fire.
+  const regressed = new Set(ids.slice(0, 5));
+  const before = { fractions: Object.fromEntries(ids.map((id, index) => [id, index === 10 ? 0 : 1])) };
+  const after = { fractions: Object.fromEntries(ids.map((id, index) => [id, regressed.has(id) ? 0 : 1])) };
+  const evidence = groupEvidence(before, after, ids);
+  assert.ok(Math.abs(evidence.pValue - 7 / 64) < 0.00006, `p=${evidence.pValue}`);
+  assert.equal(evidence.b > evidence.c && evidence.pValue < 0.05, false);
 });

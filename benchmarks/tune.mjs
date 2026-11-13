@@ -7,7 +7,7 @@ import {
 } from "./tune-grid.mjs";
 import { Measurements, axisKeys, candidatesFor, costDelta, lookPoints, paired, pairedClustered, pairedDiffs, pick, publicStats, round, score, scoreSequential, solvedCount } from "./tune-measure.mjs";
 import { deviceStage } from "./tune-device.mjs";
-import { holm, mcnemarExact, signFlipPValue } from "./stats.mjs";
+import { holm, mcnemarExact, mcnemarOneSided, signFlipOneSided } from "./stats.mjs";
 import { speedStage } from "./tune-speed.mjs";
 
 /**
@@ -24,7 +24,7 @@ import { speedStage } from "./tune-speed.mjs";
  * profiles go stale automatically instead of relying on a note. Part of
  * every fingerprint and gate identity.
  */
-export const TUNER_VERSION = 9;
+export const TUNER_VERSION = 10;
 
 export const DEFAULT_TUNE_OPTIONS = Object.freeze({
   seeds: Object.freeze([42, 7, 1234]),
@@ -117,8 +117,13 @@ function choose(candidates, floorSolved, speedTie, cost) {
 // A coding view needs this many items for its paired test to mean anything.
 const MIN_GROUP_ITEMS = 8;
 
-/** Paired b/c between two runs on one view's items. */
-function groupEvidence(before, after, ids, clusterOf = null) {
+/**
+ * Paired b/c between two runs on one view's items (IDEA-1787/ADR-100): both
+ * tails are one-sided, matching the strictly directional `worse:` flag this
+ * evidence powers - the old two-sided tests spent half their alpha on a gain
+ * tail that can never fire.
+ */
+export function groupEvidence(before, after, ids, clusterOf = null) {
   const inView = new Set(ids);
   const diffs = pairedDiffs(before, after).filter(({ id }) => inView.has(id));
   let b = 0;
@@ -136,9 +141,9 @@ function groupEvidence(before, after, ids, clusterOf = null) {
       const cluster = clusterOf(id) ?? id;
       sums.set(cluster, (sums.get(cluster) ?? 0) + diff);
     }
-    pValue = round(signFlipPValue([...sums.values()]), 4);
+    pValue = round(signFlipOneSided([...sums.values()]), 4);
   } else {
-    pValue = round(mcnemarExact(b, c), 4);
+    pValue = round(mcnemarOneSided(b, c), 4);
   }
   return { b, c, pValue };
 }

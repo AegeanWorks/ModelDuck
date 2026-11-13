@@ -178,6 +178,41 @@ export function signFlipPValue(differences, { exactLimit = SIGN_FLIP_EXACT_LIMIT
   return extreme / permutations;
 }
 
+/**
+ * IDEA-1787 (ADR-100): the one-sided loss tail of the clustered sign-flip
+ * permutation test. The search's `worse:` guard is strictly directional, so
+ * the two-sided `signFlipPValue` it used spent half its alpha on the gain
+ * tail that can never fire; this counts only permutations at or below the
+ * observed sum, the direction losses accumulate toward.
+ */
+export function signFlipOneSided(differences, { exactLimit = SIGN_FLIP_EXACT_LIMIT, permutations = SIGN_FLIP_PERMUTATIONS } = {}) {
+  const nonzero = differences.filter((value) => value !== 0);
+  const count = nonzero.length;
+  if (!count) return 1;
+  const neg = nonzero.filter((value) => value < 0).length;
+  const pos = count - neg;
+  if (nonzero.every((value) => Math.abs(value) === Math.abs(nonzero[0]))) return mcnemarOneSided(neg, pos);
+  const observed = nonzero.reduce((sum, value) => sum + value, 0);
+  if (count <= exactLimit) {
+    const total = 2 ** count;
+    let extreme = 0;
+    for (let mask = 0; mask < total; mask += 1) {
+      let sum = 0;
+      for (let index = 0; index < count; index += 1) sum += (mask >> index) & 1 ? nonzero[index] : -nonzero[index];
+      if (sum <= observed + 1e-12) extreme += 1;
+    }
+    return extreme / total;
+  }
+  const random = lcg(0x5EED);
+  let extreme = 0;
+  for (let draw = 0; draw < permutations; draw += 1) {
+    let sum = 0;
+    for (const value of nonzero) sum += random() < 0.5 ? value : -value;
+    if (sum <= observed + 1e-12) extreme += 1;
+  }
+  return extreme / permutations;
+}
+
 /** Holm step-down adjustment; returns adjusted p-values in input order. */
 export function holm(pValues) {
   const order = pValues.map((p, index) => ({ p, index })).sort((left, right) => left.p - right.p);
