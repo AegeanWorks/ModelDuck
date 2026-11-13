@@ -429,18 +429,18 @@ generation-affecting change.
 ```text
 modelduck/
 ├── src/
-│   ├── main.js <- CLI, startup, browser window, graceful shutdown
-│   ├── server.js <- routes, SSE tune stream, static files, security checks
+│   ├── main.js <- CLI, startup, window, shutdown
+│   ├── server.js <- routes, SSE tune stream, static files
 │   ├── engine.js <- node-llama-cpp session lifecycle and statistics
-│   ├── memory-fit.js <- pre-load memory estimate, fit verdict, quant ladder
+│   ├── memory-fit.js <- pre-load memory estimate, fit verdict
 │   ├── model-profiles.js <- tuned per-model, per-task settings store, launch recipes
-│   ├── tuned-settings.js <- applies a profile at load and OpenAI/JIT time, diff helper
+│   ├── tuned-settings.js <- applies a profile at load and JIT time, diff helper
 │   ├── tune-steps.js    <- the user's tune step lists
 │   ├── tune-scheduler.js <- tunes several models in CPU and GPU lanes
 │   ├── tune-lock.js     <- pauses other tunes while one times answers
-│   ├── tune-runs.js     <- a record of every tune run
-│   ├── engine-errors.js <- actionable load and generation error mapping
-│   ├── model-registry.js <- GGUF scan/import/delete and metadata
+│   ├── tune-runs.js     <- record of every tune run
+│   ├── engine-errors.js <- actionable load and generation errors
+│   ├── model-registry.js <- GGUF scan/import and metadata
 │   ├── gguf-guard.js <- bounded GGUF header check before any parser runs
 │   ├── downloader.js <- resumable Hugging Face downloads, receipts, token broker
 │   ├── settings.js <- validated persisted settings, schema fence
@@ -496,6 +496,7 @@ modelduck/
 │   ├── own-items-v12.mjs
 │   ├── own-items-v13.mjs
 │   ├── comprehension-items.mjs
+│   ├── paraphrase-items.mjs
 │   ├── recommend.mjs
 │   ├── stats.mjs
 │   ├── tasks.mjs        <- suite items and tuning rungs
@@ -557,6 +558,7 @@ modelduck/
 │   ├── benchmark-tune.test.js
 │   ├── benchmark-tune-evaluate.test.js
 │   ├── benchmark-tune-baseline.test.js
+│   ├── benchmark-suite-paraphrase.test.js
 │   ├── benchmark-link.test.js
 │   ├── cli-entry-guards.test.js
 │   ├── benchmark-tune-stats.test.js
