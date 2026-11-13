@@ -1,68 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "judge-calibrate",
+    "task_id": "suite-generalize",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794506871.2308576,
+    "updated_at": 1794568908.3376682,
     "owner": "vibe:1",
     "started_by": "vibe:1",
     "continuations": [],
-    "completed_at": 1794506874.2952757
+    "completed_at": 1794568908.5990007
   },
   "checkpoints": [
-    {
-      "task_id": "cli-hardening",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "P1-P3 landed in 6d81f0a: invokedDirectly guards on 5 benchmark CLIs, requireBaselineModels empty-baseline AppError, link.mjs --commit flag; npm test 662/661 pass+1 skip; live cold re-warm gate a0cd0d32 passed 111s with identical verdicts; all four bench retro-links recorded",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794479859.792199,
-      "timestamp_str": "2026-11-12 13:37:39",
-      "agent": "vibe:1"
-    },
-    {
-      "task_id": "cli-hardening",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "P1-P3 landed in 6d81f0a; npm test 662/661+1 skip; live cold re-warm gate a0cd0d32 111s identical verdicts; four bench retro-links committed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794479863.5069509,
-      "timestamp_str": "2026-11-12 13:37:43",
-      "agent": "vibe:1",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "cli-hardening",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'cli-hardening' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794479863.7044914,
-      "timestamp_str": "2026-11-12 13:37:43",
-      "agent": "vibe:1"
-    },
-    {
-      "task_id": "gate-cache-split",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/4] Plan and failing-first tests for the two-digest gate cache split: answer identity (engine closure + tune-evaluate/tune/tune-job + world fingerprint incl taskHash) for row reuse; judge identity (tune-gate/tune-measure/tasks) re-verdicts from reusable rows; schema 2 discards schema 1; tripwire rotation and --fresh unchanged",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794485860.5970123,
-      "timestamp_str": "2026-11-12 15:17:40",
-      "agent": "vibe:1",
-      "impact_assessment": {
-        "why": "the single reuse fingerprint burns all cached answers whenever any gate driver changes, e.g. the CLI entry guards cost a full 111s re-warm though they cannot affect an answer",
-        "benefits": "judge-only changes (gate orchestration, stats, rungs) reuse bit-identical answers and only re-judge, saving a full cold re-measure on harness-only commits",
-        "risks": "contract: reusing answers under a stale answer identity would hide quality drift; dependency: none; concurrency: none (paint points per model as today); state: cache schema bump discards all schema-1 rows once",
-        "mitigation": "answer identity keeps every answer-affecting input (engine closure, prompt and settings assembly, taskHash/suiteVersion/tunerVersion/model/runtime); verdicts are recomputed each run by the live judge code; the tripwire still measures a fresh rotating window; --fresh unchanged; failing-first tests prove schema-1 discard and identity discrimination"
-      },
-      "plan_digest": "7f55143dd2363401a622b5bedd642bdc7fa9de536ff734dd22d8050c94418ea4"
-    },
     {
       "task_id": "gate-cache-split",
       "phase": "in_progress",
@@ -257,6 +206,56 @@
       "status": "completed",
       "timestamp": 1794506874.2952778,
       "timestamp_str": "2026-11-12 21:07:54",
+      "agent": "vibe:1"
+    },
+    {
+      "task_id": "suite-generalize",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/6] Plan: batched suite revision, one paid re-baseline for all answer-side members. (a) Author paraphrase pools as FIXED new suite items in 1/2/3-sentence strata, placed hold-out side (never seen by the search rungs, measured by the gate) so tuned presets get a phrasing-generalization verdict they currently cannot receive; (b) port the ADR-098 judge calibration into tune.mjs groupEvidence (one-sided mcnemarOneSided + real round4 digits for the directional worse: flag; verified defect: two-sided p quantized to toFixed(1) makes worse: compare against 0.05 degenerate); (c) bump SUITE_VERSION and TUNER_VERSION to 18/10, restore-able. Quality guard per user directive: after the re-tune, rates on ORIGINAL items must not regress beyond gate tolerance vs the current baseline rates; if worse, revert the batch. Milestones: [2/6] paraphrase items + failing-first suite tests; [3/6] guard port + failing-first tune tests; [4/6] version bumps + pre-measure snapshot (profiles/baseline copies) for revert; [5/6] re-tune 3 models + --update-baseline + original-items quality verdict (revert if worse); [6/6] live gate, ADR-100, ledger complete, strict check.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794553668.0089045,
+      "timestamp_str": "2026-11-13 10:07:48",
+      "agent": "vibe:1",
+      "impact_assessment": {
+        "why": "All cheap quality levers are measured out (ADR-096/097/099); the only verified remaining quality investment is evaluation-side: nothing in the system measures whether a tuned preset generalizes past one authoring voice, and the search's regression guard is miscalibrated (verified defect). Both are answer-side, so batching them pays one re-baseline instead of two.",
+        "benefits": "Tuned settings get chosen under a correctly-calibrated judge and validated against phrasing-unseen paraphrase items; the gate gains paraphrase-lane verdicts for future audits; quality lever without any runtime speed cost (measurement-only change), satisfying the explicit constraint that neither quality nor performance work may harm the other.",
+        "risks": "contract: suite/taskHash changes invalidate all 3 profiles and the baseline (G-003 by design) - the re-tune and --update-baseline are the contract path; dependency: paraphrase items must be checkable by the existing evaluator (same check DSL) and land in the holdout, not the search; concurrency: full re-tunes are long (hours) and must run unattended via background processes without pausing the RAF-time budget; state: profiles and baseline are overwrite-on-tune, so without a snapshot the old world is unrecoverable - the user directive (revert if quality worsens) demands restore points.",
+        "mitigation": "Failing-first tests pin both members before any change (item validity, holdout placement, guard firing/tolerance semantics); a pre-measure snapshot copies profiles-dir and the baseline JSON before any tune runs, so the verification verdict (original-items rates vs current baseline, beyond-tolerance regression => revert) is executable; version bumps make every stale artifact loudly incomparable instead of silently wrong."
+      },
+      "plan_digest": "1bbc9525ec99f17eb4667d69318397903be74a4d39e4838f8a8fe4aec6f66653"
+    },
+    {
+      "task_id": "suite-generalize",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/6] Version bumps and revert safety in place: SUITE_VERSION 18 + TUNER_VERSION 10 committed (429e98f paraphrase probes, 90923e0 one-sided search guard); full npm test green 681 pass/0 fail; pre-measure snapshot copied to ~/.modelduck/snapshots/before-suite-v18 (3 profiles + baseline-profiles.json, 1.6MB) so the user's revert-if-worse directive is executable: restore snapshot + git revert restores the v17/tuner9 world. Checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794554337.3900623,
+      "timestamp_str": "2026-11-13 10:18:57",
+      "agent": "vibe:1"
+    },
+    {
+      "task_id": "suite-generalize",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[5/6] Measured and verified, no revert needed: all 3 models re-tuned on suite v18/tuner v10 (~36k answers total), baseline rebuilt from profiles and committed (93af778), live gate passed with all 9 paired rows identical; full-lane item-outcome comparison old-vs-new baseline shows no beyond-tolerance regression (worst coder code -6.2pp vs 8.3pp tolerance; recall lanes up to +13.0pp). First paraphrase verdicts: coder comprehension 61.1% vs 83.3% lane (-22.1pp phrasing gap), 0.5b 33.3% vs 50%, code lanes 66.7-100%. Lesson recorded: window-vs-lane rate mix caused a false alarm; verdicts must use full-lane item outcomes. Checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794568908.3376682,
+      "timestamp_str": "2026-11-13 14:21:48",
+      "agent": "vibe:1"
+    },
+    {
+      "task_id": "suite-generalize",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'suite-generalize' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794568908.5990026,
+      "timestamp_str": "2026-11-13 14:21:48",
       "agent": "vibe:1"
     }
   ]
