@@ -2148,6 +2148,45 @@ function renderBenchSuite(suite) {
     section.append(head, meta, types, details);
     els.benchSuite.appendChild(section);
   }
+  if (suite.multistep) els.benchSuite.appendChild(renderMultistepSuite(suite.multistep));
+}
+
+/** The opt-in multistep chains, shown after the tuned tasks and marked as not tuned or gated. */
+function renderMultistepSuite(multistep) {
+  const section = document.createElement("section");
+  // Its own class: it sits with the tuned tasks but is not one of them.
+  section.className = "suite-optin";
+  const head = document.createElement("div");
+  head.className = "suite-task-head";
+  const title = document.createElement("div");
+  title.append(
+    Object.assign(document.createElement("p"), { className: "eyebrow", textContent: "Opt-in evaluation" }),
+    Object.assign(document.createElement("h4"), { textContent: multistep.label }),
+  );
+  const count = document.createElement("div");
+  count.className = "suite-task-count";
+  count.append(
+    Object.assign(document.createElement("strong"), { textContent: String(multistep.checks) }),
+    Object.assign(document.createElement("small"), { textContent: "checks" }),
+  );
+  head.append(title, count);
+  const meta = Object.assign(document.createElement("p"), {
+    className: "suite-task-meta",
+    textContent: `${multistep.chains.length} chains · ${multistep.steps} steps · ${multistep.description} Run: ${multistep.command}`,
+  });
+  const types = document.createElement("div");
+  types.className = "suite-types";
+  for (const chain of multistep.chains) {
+    const row = document.createElement("div");
+    row.className = "suite-type";
+    row.append(
+      Object.assign(document.createElement("span"), { className: "suite-type-name", textContent: chain.label }),
+      Object.assign(document.createElement("span"), { className: "suite-type-count", textContent: `${chain.steps} steps · ${chain.kind}` }),
+    );
+    types.appendChild(row);
+  }
+  section.append(head, meta, types);
+  return section;
 }
 
 /** Whether a type's difference stands out from noise (ADR-059); older profiles have no p. */

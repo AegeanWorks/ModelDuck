@@ -2998,7 +2998,8 @@ label.small-btn {
   text-transform: uppercase;
 }
 
-.suite-task {
+.suite-task,
+.suite-optin {
   padding: 18px 0;
   border-bottom: 1px solid var(--line);
 }

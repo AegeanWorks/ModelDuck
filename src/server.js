@@ -38,6 +38,7 @@ import { restartRequiredFor } from "./server-settings.js";
 import { machineCatalog } from "./state-machine.js";
 import { systemInfo } from "./system.js";
 import { TASKS, suiteSummary } from "../benchmarks/tasks.mjs";
+import { multistepSummary } from "../benchmarks/multistep-items.mjs";
 
 function validateTuneSelection(tasks, stages) {
   const unknownTasks = (tasks ?? []).filter((id) => !TASKS.some((task) => task.id === id));
@@ -246,7 +247,8 @@ export function createHttpServer({
     }
 
     if (pathname === "/api/benchmarks/suite" && method === "GET") {
-      sendJson(res, 200, suiteSummary());
+      // The opt-in multistep chains sit beside the tuned tasks; they are not one of them.
+      sendJson(res, 200, { ...suiteSummary(), multistep: multistepSummary() });
       return;
     }
 

@@ -121,6 +121,51 @@ wall-clock time. The model phase runs one factor at a time on representative
 models at temperature 0; the model-usage phase runs generation-only variants on the
 configuration chosen by the first phase with 42-seed sampling.
 
+## Multistep chains (opt-in)
+
+```bash
+npm run bench:multistep -- --model <id>            # all chains, the model's tuned code preset
+npm run bench:multistep -- --model <id> --defaults # app defaults (greedy) instead
+npm run bench:multistep -- --model <id> --chains multistep-csv,multistep-median --seeds 42,7
+```
+
+A single-turn item cannot see a model that solves the first request and then
+breaks, forgets or contradicts it on the next. A multistep chain is one
+conversation: each step changes or builds on the code the model wrote before, and
+it is checked with that code loaded first (`benchmarks/multistep-items.mjs`). There
+are 5 chains × 3 steps and 59 executable checks, run in the same `node --permission`
+sandbox as the suite.
+
+| Chain | What carries over |
+|---|---|
+| `multistep-counter` | An object API grows `dec`/`reset`, then `history` across every method |
+| `multistep-csv` | `parseCsv` then `totalBy` are built on the model's own earlier functions |
+| `multistep-median` | Feedback: `median` must stop sorting its input in place, then `mode`/`summary` reuse it |
+| `multistep-shipping` | Rules from the first message decide a refusal and a parcel quote two turns later |
+| `multistep-slug` | `slugify` gains an option, then `uniqueSlug` builds on it |
+
+A step that says "you do not need to repeat" passes only if earlier code is
+carried, and a step that changes behaviour fails if the model resends its old
+answer; tests prove both for every step, and that every reference solves its
+step. A failed step still feeds its real reply forward, because carrying its own
+mistakes is part of the task. The report gives checks per step and chain, the
+chains solved in every step, and the **rate at each step depth**; the result goes to
+`results/latest-multistep-<model>.json`.
+
+Measured on an i5-14400F with a Radeon RX 9060 XT (Vulkan), each model's tuned code
+preset, seed 42, about 10 s per model:
+
+| Model | Checks | Step 1 | Step 2 | Step 3 |
+|---|---:|---:|---:|---:|
+| Qwen2.5 Coder 1.5B Q4 | 47/59 (79.7%) | 81.8% | 84.2% | 72.2% |
+| Qwen2.5 0.5B Q4 | 17/59 (28.8%) | 50% | 15.8% | 16.7% |
+
+The 0.5B model holds half of the first step and then loses most of what follows.
+That is the gap the chains are for. One seed is a demo, not a claim: pass
+`--seeds 42,7,1234` before comparing models. The chains are not in `PROMPTS` or
+`TASKS`, so the test hash, the task-subset hash, profiles, baselines and the gate are
+unchanged. They are versioned on their own (`MULTISTEP_VERSION`, `multistepHash`).
+
 ## Statistics and the gate
 
 Check percentages stay in the report, but the gate works on **items**: an item

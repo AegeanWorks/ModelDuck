@@ -30,6 +30,7 @@
     "bench:chat": "node benchmarks/run.mjs --phase chat",
     "bench:merge": "node benchmarks/merge-shards.mjs",
     "bench:curve": "node benchmarks/context-curve.mjs",
+    "bench:multistep": "node benchmarks/multistep-run.mjs",
     "verify:manifest": "node benchmarks/verify-manifest.mjs"
   },
   "dependencies": {

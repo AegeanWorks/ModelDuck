@@ -880,4 +880,9 @@ test("the benchmark suite route describes every task's questions", async (t) => 
   assert.ok(suite.suiteVersion >= 14);
   assert.deepEqual(suite.tasks.map((task) => task.id), ["code", "comprehension", "recall"]);
   assert.ok(suite.tasks.every((task) => task.types.length && task.held > 0 && task.tunedOn > 0));
+  // The opt-in multistep chains are described beside the tasks, never as a tuned task.
+  assert.equal(suite.multistep.id, "multistep");
+  assert.equal(suite.multistep.optIn, true);
+  assert.equal(suite.multistep.chains.length, 5);
+  assert.match(suite.multistep.command, /bench:multistep/);
 });

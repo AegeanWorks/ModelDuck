@@ -352,6 +352,7 @@ async function main() {
     await evaluate('document.querySelector(\'[data-bench-tab="tune"]\').click(), true');
     await evaluate('document.querySelector(\'[data-bench-tab="suite"]\').click(), true');
     assert.ok(await waitFor(() => evaluate('document.querySelectorAll(".suite-task").length === 3'), 8_000), "the Bench suite did not render three tasks");
+    assert.equal(await evaluate('document.querySelectorAll(".suite-optin").length'), 1, "the Bench suite does not describe the opt-in multistep chains");
     assert.equal(await evaluate('document.querySelectorAll(".suite-stat").length'), 4, "the Bench suite is missing its summary stats");
     assert.equal(await evaluate('document.querySelectorAll(".suite-details").length'), 3, "the Bench suite is missing its detail disclosures");
     assert.equal(await evaluate('document.querySelectorAll("#tune-tasks input[type=checkbox]").length'), 3, "the tuning task scope is missing");

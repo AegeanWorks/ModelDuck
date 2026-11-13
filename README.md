@@ -77,6 +77,7 @@ npm run tune -- --model <id> --interactive   # choose every setting's steps firs
 npm run tune -- --model <id> --stages quality,speed   # run some stages; the rest stay default
 npm run tune -- --model <id> --stages device   # about a minute: does it run faster on the GPU?
 npm run tune -- --model <id> --quick --budget 5   # stop after 5 minutes, keep the best so far
+npm run bench:multistep -- --model <id>   # multistep chains: one conversation, scored per step
 npm run tune -- --model <id> --settings threads,batchSize   # re-tune only these settings
 npm run tune:gate            # re-measure the core models' baseline settings (G-001)
 ```
@@ -514,6 +515,9 @@ modelduck/
 │   ├── stats-util.mjs
 │   ├── settings-perf.mjs
 │   ├── multi-step-perf.mjs
+│   ├── multistep-items.mjs   <- opt-in multistep chains (not tuned or gated)
+│   ├── multistep-evaluate.mjs
+│   ├── multistep-run.mjs
 │   ├── ai-benchmark-advisor.mjs
 │   ├── AI-BENCHMARK-README.md
 │   ├── CHANGELOG.md
@@ -555,6 +559,7 @@ modelduck/
 │   ├── benchmark-tune-timing.test.js
 │   ├── benchmark-tune-parallel.test.js
 │   ├── tune-budget.test.js
+│   ├── benchmark-multistep.test.js
 │   ├── benchmark-tune-baseline.test.js
 │   ├── benchmark-suite-paraphrase.test.js
 │   ├── benchmark-link.test.js
