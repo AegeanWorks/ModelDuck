@@ -1,4 +1,4 @@
-/** Multi-step performance tests for ModelDuck.
+/** Multi-step performance tests for ModelDuck with proper statistical analysis.
  *
  * These tests measure realistic workflows that exercise multiple components
  * working together, providing more meaningful performance metrics than
@@ -15,25 +15,33 @@ import path from "node:path";
 import { SettingsStore } from "../src/settings.js";
 import { normalizeSettings, DEFAULT_SETTINGS } from "../src/config.js";
 import { writeJsonAtomic } from "../src/fs-atomic.js";
+import { 
+  mean, 
+  stdDev, 
+  median, 
+  percentiles,
+  confidenceInterval,
+  filterOutliers,
+  coefficientOfVariation,
+  relativeStdDevPercent,
+  summarizeStats,
+  formatWithAutoUnit,
+  formatValue
+} from "./stats-util.mjs";
 
 const logger = { warn() {}, error() {} };
 
-function mean(values) {
-  return values.reduce((a, b) => a + b, 0) / values.length;
-}
+const DEFAULT_WARMUP = 2;
+const DEFAULT_ITERATIONS = 5;
 
-function formatMs(ms) {
-  return `${(ms * 1000).toFixed(1)} ms`;
-}
-
-function formatSec(ms) {
-  return `${ms.toFixed(1)} s`;
-}
-
-async function benchmark(name, fn, iterations = 5, note = "") {
-  // Warmup
-  await fn();
+/** Run a benchmark with proper statistical analysis */
+async function benchmark(name, fn, iterations = DEFAULT_ITERATIONS, warmup = DEFAULT_WARMUP, filterOutliersFlag = false) {
+  // Warmup runs
+  for (let i = 0; i < warmup; i++) {
+    await fn();
+  }
   
+  // Collect timing data
   const times = [];
   for (let i = 0; i < iterations; i++) {
     const start = performance.now();
@@ -42,23 +50,30 @@ async function benchmark(name, fn, iterations = 5, note = "") {
     times.push(end - start);
   }
   
-  const m = mean(times);
-  const min = Math.min(...times);
-  const max = Math.max(...times);
+  // Filter outliers if requested
+  const dataToUse = filterOutliersFlag ? filterOutliers(times).filtered : times;
   
-  const unit = m > 1 ? "s" : "ms";
-  const scale = unit === "s" ? 1 : 1000;
+  // Calculate statistics
+  const stats = summarizeStats(dataToUse, name);
   
+  // Format output
   console.log(`${name}:`);
-  console.log(`  Mean: ${(m * scale).toFixed(1)} ${unit}`);
-  console.log(`  Min:  ${(min * scale).toFixed(1)} ${unit}`);
-  console.log(`  Max:  ${(max * scale).toFixed(1)} ${unit}`);
-  if (note) {
-    console.log(`  Note: ${note}`);
+  console.log(`  Iterations: ${stats.count}`);
+  console.log(`  Mean: ${formatWithAutoUnit(stats.mean)}`);
+  console.log(`  Median: ${formatWithAutoUnit(stats.median)}`);
+  console.log(`  Std Dev: ${formatWithAutoUnit(stats.stdDev)} (CV: ${stats.rSD.toFixed(1)}%)`);
+  console.log(`  95% CI: [${formatWithAutoUnit(stats.confidenceInterval.lower)}, ${formatWithAutoUnit(stats.confidenceInterval.upper)}]`);
+  console.log(`  Min: ${formatWithAutoUnit(stats.min)} | Max: ${formatWithAutoUnit(stats.max)}`);
+  console.log(`  Percentiles: p5=${formatWithAutoUnit(stats.percentiles.p5)}, p50=${formatWithAutoUnit(stats.percentiles.p50)}, p95=${formatWithAutoUnit(stats.percentiles.p95)}, p99=${formatWithAutoUnit(stats.percentiles.p99)}`);
+  console.log(`  Throughput: ${formatValue(stats.throughput, "ops/sec")}`);
+  
+  if (filterOutliersFlag && times.length !== dataToUse.length) {
+    const removed = times.length - dataToUse.length;
+    console.log(`  Note: ${removed} outliers filtered (1.5*IQR rule)`);
   }
   console.log();
   
-  return { name, mean: m, min, max, iterations };
+  return { name, stats, rawTimes: times, filteredTimes: dataToUse };
 }
 
 /**
@@ -81,7 +96,7 @@ async function benchmarkSettingsLifecycle(tmpDir) {
     return store2.value;
   }
   
-  return benchmark("Settings lifecycle (load→update→update→reload)", run, 3, "I/O-bound with fsync");
+  return benchmark("1. Settings lifecycle (load→update→update→reload)", run, 3, 2, false);
 }
 
 /**
@@ -109,7 +124,7 @@ async function benchmarkNormalizationPipeline() {
     return merged;
   }
   
-  return benchmark("Normalization pipeline (patch→fence→normalize→merge)", run, 1000, "CPU-bound");
+  return benchmark("2. Normalization pipeline (patch→fence→normalize→merge)", run, 100, 2, true);
 }
 
 /**
@@ -139,7 +154,7 @@ async function benchmarkVersionValidation(tmpDir) {
     }
   }
   
-  return benchmark("Version validation (4 scenarios: v0/v1/v2/none)", run, 3, "I/O-bound with fsync");
+  return benchmark("3. Version validation (4 scenarios: v0/v1/v2/none)", run, 5, 2, false);
 }
 
 /**
@@ -166,7 +181,7 @@ async function benchmarkBatchUpdates(tmpDir) {
     await store.load();
   }
   
-  return benchmark("Batch updates (5 sequential updates + reload)", run, 2, "I/O-bound with fsync");
+  return benchmark("4. Batch updates (5 sequential updates + reload)", run, 2, 2, false);
 }
 
 /**
@@ -191,7 +206,7 @@ async function benchmarkParallelLoads(tmpDir) {
     await Promise.all(promises);
   }
   
-  return benchmark("Parallel loads (3 files simultaneously)", run, 3, "I/O-bound with fsync");
+  return benchmark("5. Parallel loads (3 files simultaneously)", run, 5, 2, false);
 }
 
 /**
@@ -211,12 +226,40 @@ async function benchmarkDeepMerge() {
     return current;
   }
   
-  return benchmark("Deep merge (100 iterations, 5 levels deep)", run, 100, "CPU-bound");
+  return benchmark("6. Deep merge (100 iterations, 5 levels deep)", run, 100, 2, true);
+}
+
+/** Generate a markdown table of all results */
+function generateResultsTable(results) {
+  const headers = ["Test", "Mean", "Median", "Std Dev", "95% CI", "p50", "p95", "Throughput"];
+  const rows = results.map(r => {
+    const s = r.stats;
+    return [
+      r.name.replace(/^\d+\. /, ""),
+      formatWithAutoUnit(s.mean),
+      formatWithAutoUnit(s.median),
+      formatWithAutoUnit(s.stdDev),
+      `[${formatWithAutoUnit(s.confidenceInterval.lower)}, ${formatWithAutoUnit(s.confidenceInterval.upper)}]`,
+      formatWithAutoUnit(s.percentiles.p50),
+      formatWithAutoUnit(s.percentiles.p95),
+      formatValue(s.throughput, "ops/sec")
+    ];
+  });
+  
+  // Format as markdown table
+  let md = "\n\n## Statistical Summary\n\n";
+  md += "| " + headers.join(" | ") + " |\n";
+  md += "| " + headers.map(() => "---").join(" | ") + " |\n";
+  for (const row of rows) {
+    md += "| " + row.join(" | ") + " |\n";
+  }
+  
+  return md;
 }
 
 async function main() {
   console.log("=".repeat(70));
-  console.log("ModelDuck Multi-Step Performance Tests");
+  console.log("ModelDuck Multi-Step Performance Tests - Proper Statistical Analysis");
   console.log("=".repeat(70));
   console.log();
 
@@ -224,22 +267,35 @@ async function main() {
   console.log(`Using temp directory: ${tmpDir}`);
   console.log();
 
+  const results = [];
+  
   try {
-    await benchmarkSettingsLifecycle(tmpDir);
-    await benchmarkNormalizationPipeline();
-    await benchmarkVersionValidation(tmpDir);
-    await benchmarkBatchUpdates(tmpDir);
-    await benchmarkParallelLoads(tmpDir);
-    await benchmarkDeepMerge();
+    results.push(await benchmarkSettingsLifecycle(tmpDir));
+    results.push(await benchmarkNormalizationPipeline());
+    results.push(await benchmarkVersionValidation(tmpDir));
+    results.push(await benchmarkBatchUpdates(tmpDir));
+    results.push(await benchmarkParallelLoads(tmpDir));
+    results.push(await benchmarkDeepMerge());
 
     console.log("=".repeat(70));
-    console.log("Multi-step performance tests complete!");
+    console.log("All tests completed!");
     console.log("=".repeat(70));
+    
+    // Generate markdown table
+    console.log(generateResultsTable(results));
+    
     console.log();
-    console.log("Summary:");
-    console.log("- I/O-bound tests dominate due to fsync for atomic writes");
-    console.log("- CPU-bound tests (normalization, deep merge) are much faster");
-    console.log("- Parallel loads show concurrent I/O performance");
+    console.log("Key Statistical Values:");
+    console.log("- Mean: Arithmetic average");
+    console.log("- Median: Middle value (50th percentile)");
+    console.log("- Std Dev: Measure of variability");
+    console.log("- CV: Coefficient of variation (stdDev/mean)");
+    console.log("- 95% CI: 95% confidence interval for the mean");
+    console.log("- Percentiles: Distribution points");
+    console.log("- Throughput: Operations per second");
+    console.log();
+    console.log("Note: I/O-bound tests include fsync for atomic writes.");
+    console.log("      Outliers filtered using 1.5*IQR rule where noted.");
   } finally {
     await fs.rm(tmpDir, { recursive: true, force: true });
   }
