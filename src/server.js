@@ -24,6 +24,7 @@ import {
 } from "./http.js";
 import { publicCatalog } from "./model-catalog.js";
 import { currentFingerprint, importRecipe, isPartRun, launchRecipe, listProfiles, loadProfile, profileIdFor, profileRecipe, saveProfile, typeWarnings } from "./model-profiles.js";
+import { SHIPPED_PRESETS_DIR, matchPreset, presetProfile, readShippedPresets } from "./preset-match.js";
 import { answersFile, answerPaceByProfile, listRuns, loadRun, summarizeAnswers } from "./tune-runs.js";
 import { TunedSettings, diffSettings } from "./tuned-settings.js";
 import { EngineRebuildLease, reloadFingerprint } from "./settings-reload.js";
@@ -111,6 +112,7 @@ export function createHttpServer({
   publicDir = PUBLIC_DIR,
   benchmarkDir = BENCHMARK_DIR,
   profilesDir = null,
+  presetsDir = SHIPPED_PRESETS_DIR,
   tuneRunsDir = null,
   profileFingerprint = currentFingerprint,
   tuneStepsFile = null,
@@ -690,6 +692,69 @@ export function createHttpServer({
       await saveProfile(profilesDir, imported);
       const loaded = await loadProfile(profilesDir, imported.catalogId, await profileFingerprint(entry));
       sendJson(res, 201, { catalogId: imported.catalogId, imported: true, stale: loaded?.stale ?? [], warnings: loaded?.warnings ?? [] });
+      return;
+    }
+
+    // Shipped presets (benchmarks/presets): how each fits this computer, before anything is applied.
+    if (pathname === "/api/presets" && method === "GET") {
+      const installed = registry ? registry.listPublic() : [];
+      const presets = [];
+      for (const recipe of await readShippedPresets(presetsDir)) {
+        const entry = installed.find((model) => profileIdFor(model.fileName) === recipe.catalogId) ?? null;
+        const match = entry ? matchPreset(recipe, await profileFingerprint(entry)) : { status: "not_installed", keeps: [], reasons: [], next: null };
+        const rates = Object.fromEntries(Object.entries(recipe.tasks ?? {}).map(([task, preset]) => [task, { rate: preset?.stats?.rate ?? null, items: preset?.stats?.items ?? null }]));
+        presets.push({ catalogId: recipe.catalogId, modelId: entry?.id ?? null, measuredAt: recipe.createdAt ?? null, measuredOn: recipe.fingerprint?.cpu ?? null, rates, ...match });
+      }
+      sendJson(res, 200, { presets });
+      return;
+    }
+
+    // Apply a shipped preset on request (G-004: never automatically). It is an
+    // imported profile (ADR-067) and never replaces one tuned here unless asked.
+    if (pathname === "/api/presets/apply" && method === "POST") {
+      if (!profilesDir) throw new AppError("Profiles are unavailable", { status: 503 });
+      if (!isLoopbackRequest(req)) {
+        throw new AppError("Presets apply only on this computer", {
+          code: "profile_local_only",
+          status: 403,
+          why: "Applying a preset changes this computer's settings.",
+          fix: "Open the ModelDuck UI on the computer running the server.",
+        });
+      }
+      const body = await readJsonBody(req);
+      const catalogId = String(body.catalogId ?? "");
+      const recipe = (await readShippedPresets(presetsDir)).find((item) => item.catalogId === catalogId);
+      if (!recipe) {
+        throw new AppError("There is no shipped preset for that model", {
+          code: "preset_missing",
+          status: 404,
+          why: `No preset in benchmarks/presets is for "${catalogId}".`,
+          fix: "Tune this model instead: Bench & Tune → Quick pass.",
+        });
+      }
+      const entry = registry.listPublic().find((model) => profileIdFor(model.fileName) === catalogId) ?? null;
+      if (!entry) {
+        throw new AppError("That model is not installed", {
+          code: "profile_model_missing",
+          status: 422,
+          why: `The preset is for ${catalogId}, which is not in the model folder.`,
+          fix: "Download that model from Models → Discover, then apply the preset.",
+        });
+      }
+      const fingerprint = await profileFingerprint(entry);
+      const existing = await loadProfile(profilesDir, catalogId, fingerprint).catch(() => null);
+      if (existing && !existing.profile.search?.imported && body.force !== true) {
+        throw new AppError("This model already has a profile tuned on this computer", {
+          code: "preset_would_replace_tune",
+          status: 409,
+          why: "A preset measured elsewhere would replace settings measured here.",
+          fix: "Keep the tuned profile, or apply the preset again with force to replace it.",
+        });
+      }
+      const match = matchPreset(recipe, fingerprint);
+      await saveProfile(profilesDir, presetProfile(recipe, match));
+      const loaded = await loadProfile(profilesDir, catalogId, fingerprint);
+      sendJson(res, 201, { catalogId, status: match.status, keeps: match.keeps, reasons: match.reasons, next: match.next, warnings: loaded?.warnings ?? [] });
       return;
     }
 

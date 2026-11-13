@@ -2630,6 +2630,33 @@ label.small-btn {
   border-top: 1px solid var(--line);
 }
 
+.tune-presets {
+  display: grid;
+  gap: 10px;
+  padding-top: 8px;
+}
+
+.tune-preset {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 12px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.tune-preset span,
+.tune-preset p {
+  grid-column: 1;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.tune-preset .small-btn {
+  grid-column: 2;
+  grid-row: 1 / span 3;
+}
+
 .tune-budget {
   display: inline-flex;
   align-items: center;

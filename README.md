@@ -165,8 +165,10 @@ Every run records `suiteVersion`, a SHA-256 `testHash`, `runtimeMs`, model
 settings and sampling settings. A result delta is only attributed to a parameter
 when the test hash matches the baseline; a prompt/check/matrix edit must bump the
 version, update [benchmarks/CHANGELOG.md](benchmarks/CHANGELOG.md) and update the
-baseline deliberately. Presets only fill the settings form; trust them after both
-phases pass (ModelDuck does not record which preset passed).
+baseline deliberately. Form presets only fill the settings form; trust them after
+both phases pass. Shipped tune presets (`benchmarks/presets`) apply only when you
+click **Apply** under Bench & Tune → Shipped presets; on another computer only
+their sampling and prompt settings apply.
 
 The test hash covers the global and per-variant system prompts, `promptIds`, and
 the sampling fields used by the matrix. Each run also records the node-llama-cpp
@@ -299,32 +301,19 @@ Web pages from another site are refused (`403 cross_site_refused`) on every rout
 Endpoints (selected; `src/server.js` has the complete route list):
 
 ```text
-GET    /api/server-settings
-PUT    /api/server-settings
-POST   /api/server-settings/api-keys
-DELETE /api/server-settings/api-keys/:id
-GET    /api/benchmarks
-GET    /api/benchmarks/suite
-GET    /api/benchmarks/status
-POST   /api/benchmarks/run
-POST   /api/benchmarks/cancel
-GET    /api/recommendations
-GET    /api/profiles
-GET    /api/profiles/:id/export
-POST   /api/profiles/import
-GET    /api/tune/overview
-GET    /api/tune/status
-GET    /api/tune/estimate
-GET    /api/tune/stream
-POST   /api/tune/start
-POST   /api/tune/pause
-POST   /api/tune/resume
-POST   /api/tune/priority
-POST   /api/tune/cancel
-GET    /api/tune/steps
-PUT    /api/tune/steps
-GET    /api/profiles/:id
-POST   /api/benchmarks/base
+GET|PUT /api/server-settings
+POST    /api/server-settings/api-keys
+DELETE  /api/server-settings/api-keys/:id
+GET     /api/benchmarks  /suite  /status
+POST    /api/benchmarks/run  /cancel  /base
+GET     /api/recommendations
+GET     /api/profiles  /:id  /:id/export
+POST    /api/profiles/import
+GET     /api/presets          shipped presets and how each fits here
+POST    /api/presets/apply    apply one on request; never over a tune made here
+GET     /api/tune/overview  /status  /estimate  /stream
+POST    /api/tune/start  /pause  /resume  /priority  /cancel
+GET|PUT /api/tune/steps
 ```
 
 `GET /api/benchmarks` returns the two baseline phases, recent linked runs, own
@@ -431,6 +420,7 @@ modelduck/
 │   ├── engine.js
 │   ├── memory-fit.js
 │   ├── model-profiles.js
+│   ├── preset-match.js
 │   ├── tuned-settings.js
 │   ├── tune-steps.js
 │   ├── tune-scheduler.js
@@ -586,6 +576,7 @@ modelduck/
 │   ├── tune-prompt.test.js
 │   ├── fifteen-push-fixes.test.js
 │   ├── preset-recipes.test.js
+│   ├── preset-match.test.js
 │   ├── benchmark-history.test.js
 │   ├── benchmark-report.test.js
 │   ├── benchmark-runner.test.js

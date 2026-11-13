@@ -2555,6 +2555,68 @@ async function importProfile(file) {
   }
 }
 
+const PRESET_FIT = Object.freeze({
+  exact: "Measured on this computer and this model file: load and sampling settings apply.",
+  portable: "Measured on another computer: the sampling and prompt settings apply; the load settings stay at this computer's defaults.",
+  none: "Measured on another model file: it does not apply.",
+  not_installed: "This model is not installed. Download it from Models → Discover first.",
+});
+
+/** Shipped presets with how each fits here; applying one is always the user's click (G-004). */
+async function loadShippedPresets() {
+  const box = $("tune-presets");
+  if (!box) return;
+  box.replaceChildren();
+  let presets = [];
+  try {
+    ({ presets } = await request("/api/presets"));
+  } catch (error) {
+    showError(error);
+    return;
+  }
+  if (!presets.length) {
+    const empty = document.createElement("p");
+    empty.textContent = "No shipped presets.";
+    box.appendChild(empty);
+    return;
+  }
+  for (const preset of presets) {
+    const row = document.createElement("div");
+    row.className = "tune-preset";
+    const name = document.createElement("strong");
+    name.textContent = preset.catalogId;
+    const rate = preset.rates?.code?.rate;
+    const meta = document.createElement("span");
+    meta.textContent = [rate != null ? `code ${rate}% on ${preset.rates.code.items ?? "?"} items` : "", preset.measuredOn ? `measured on ${preset.measuredOn}` : ""].filter(Boolean).join(" · ");
+    const fit = document.createElement("p");
+    fit.textContent = [PRESET_FIT[preset.status] ?? preset.status, ...(preset.reasons ?? [])].join(" ");
+    const apply = document.createElement("button");
+    apply.type = "button";
+    apply.className = "small-btn";
+    apply.textContent = "Apply";
+    apply.disabled = preset.status !== "exact" && preset.status !== "portable";
+    apply.setAttribute("aria-label", `Apply the shipped preset for ${preset.catalogId}`);
+    apply.addEventListener("click", () => void applyShippedPreset(preset.catalogId));
+    row.append(name, meta, fit, apply);
+    box.appendChild(row);
+  }
+}
+
+async function applyShippedPreset(catalogId, { force = false } = {}) {
+  try {
+    const result = await request("/api/presets/apply", { method: "POST", body: { catalogId, ...(force && { force: true }) } });
+    await loadTuneOverview();
+    showToast("Preset applied", { message: `${catalogId}: ${PRESET_FIT[result.status] ?? result.status}`, fix: result.next ?? "" });
+  } catch (error) {
+    if (error?.info?.code === "preset_would_replace_tune" && !force) {
+      const confirmed = await askConfirm("Replace the profile tuned here?", `${error.info.why} ${error.info.fix ?? ""}`.trim(), "Replace with preset");
+      if (confirmed) await applyShippedPreset(catalogId, { force: true });
+      return;
+    }
+    showError(error);
+  }
+}
+
 function tuneCell(text, title = "") {
   const cell = document.createElement("td");
   cell.textContent = text;
@@ -3505,6 +3567,9 @@ function bindEvents() {
   els.benchmarkCancel.addEventListener("click", cancelBenchmark);
   els.benchmarkPhase.addEventListener("change", syncBenchmarkPhase);
   syncBenchmarkPhase();
+  $("tune-presets-details")?.addEventListener("toggle", (event) => {
+    if (event.target.open) void loadShippedPresets();
+  });
   const tuneImport = $("tune-import-profile");
   tuneImport?.addEventListener("change", () => {
     const file = tuneImport.files?.[0];

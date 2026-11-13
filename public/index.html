@@ -543,6 +543,10 @@
                 <label class="tune-budget" title="Stop each model after this many minutes and keep the best settings found so far; leave empty for no limit"><span>Minutes per model</span><input id="tune-budget" type="number" min="0.5" max="1440" step="0.5" inputmode="decimal" placeholder="No limit" /></label>
               </div>
             </div>
+            <details class="tune-presets-details" id="tune-presets-details">
+              <summary>Shipped presets (measured settings you can apply in seconds)</summary>
+              <div class="tune-presets" id="tune-presets" aria-live="polite"></div>
+            </details>
             <details class="tune-only-details">
               <summary>Only some settings (optional; replaces the stage choice above)</summary>
               <div class="tune-only" id="tune-only" role="group" aria-label="Only these settings"></div>

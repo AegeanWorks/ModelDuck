@@ -3,9 +3,15 @@
 Each `*.modelduck-profile.json` file is a shareable profile recipe exported from
 `profileRecipe()`. It carries settings, the fingerprint they were measured under
 and the receipt (rate, items, latency, tokens, tokens/s, host RAM and GPU VRAM).
-It carries no weights and is never applied automatically: import it from
-**Models → Profiles** or `POST /api/profiles/import`, inspect the settings, then
-load it.
+It carries no weights and is never applied automatically. **Bench & Tune →
+Shipped presets** lists each one with how it fits this computer, and **Apply**
+(`POST /api/presets/apply`) applies it when you click it. The model file must
+match by name and size. On the computer it was measured on, the whole recipe
+applies. Anywhere else only the sampling and prompt presets apply: the load
+settings (device, GPU layers, threads) stay at the defaults until the Device and
+Speed stages measure them there. A profile tuned on this computer is never
+replaced unless you confirm it. You can also import a file from **Import
+profile** or `POST /api/profiles/import`.
 
 Memory is reported as host RAM plus GPU VRAM. The tuner records both; the
 earlier host-only figure understated a Vulkan load by about 1.3 GB.

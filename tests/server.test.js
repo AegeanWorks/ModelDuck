@@ -498,6 +498,68 @@ test("a profile recipe exports as a file and imports for an installed model", as
   assert.equal((await missing.json()).error.code, "profile_model_missing");
 });
 
+test("a shipped preset for an installed model is listed with its fit and applied on request", async (t) => {
+  const presetsDir = await mkdtemp(path.join(os.tmpdir(), "modelduck-presets-"));
+  t.after(() => rm(presetsDir, { recursive: true, force: true }));
+  const harness = await makeHarness(t, { presetsDir });
+  const [installed] = harness.registry.listPublic();
+  const id = profileIdFor(installed.fileName);
+  const here = await currentFingerprint(installed, { nodeLlamaCpp: "test" });
+  const recipe = (fingerprint) => ({
+    schema: 1, kind: "modelduck-profile", catalogId: id, createdAt: "2026-11-08T00:00:00.000Z", fingerprint,
+    load: { settings: { threads: 12, gpuBackend: "vulkan", gpuLayers: "max" }, stats: null }, speed: null,
+    tasks: { code: { settings: { temperature: 0.4 }, stats: { rate: 58.8, items: 136 } } },
+  });
+  // Measured on another computer: only the task presets apply.
+  await writeFile(path.join(presetsDir, `${id}.modelduck-profile.json`), JSON.stringify(recipe({ ...here, cpu: "Some Other CPU" })));
+  await writeFile(path.join(presetsDir, "absent.modelduck-profile.json"), JSON.stringify({ ...recipe(here), catalogId: "absent-model" }));
+
+  const list = await (await fetch(`${harness.base}/api/presets`)).json();
+  const row = list.presets.find((preset) => preset.catalogId === id);
+  assert.equal(row.status, "portable");
+  assert.equal(row.modelId, installed.id);
+  assert.equal(row.rates.code.rate, 58.8, "the measured receipt is shown before applying");
+  assert.equal(list.presets.find((preset) => preset.catalogId === "absent-model").status, "not_installed");
+
+  const applied = await fetch(`${harness.base}/api/presets/apply`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ catalogId: id }) });
+  assert.equal(applied.status, 201);
+  const body = await applied.json();
+  assert.equal(body.status, "portable");
+  assert.match(body.next, /device/i);
+  const read = await (await fetch(`${harness.base}/api/profiles/${encodeURIComponent(id)}`)).json();
+  assert.equal(read.profile.tasks.code.settings.temperature, 0.4);
+  assert.deepEqual(read.profile.load.settings, {}, "the other computer's GPU settings are not applied");
+  assert.deepEqual(read.profile.search.preset, { status: "portable", source: "shipped" });
+
+  const absent = await fetch(`${harness.base}/api/presets/apply`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ catalogId: "absent-model" }) });
+  assert.equal(absent.status, 422);
+  assert.equal((await absent.json()).error.code, "profile_model_missing");
+});
+
+test("a shipped preset never replaces a profile tuned on this computer unless asked", async (t) => {
+  const presetsDir = await mkdtemp(path.join(os.tmpdir(), "modelduck-presets-"));
+  t.after(() => rm(presetsDir, { recursive: true, force: true }));
+  const harness = await makeHarness(t, { presetsDir });
+  const [installed] = harness.registry.listPublic();
+  const id = profileIdFor(installed.fileName);
+  const here = await currentFingerprint(installed, { nodeLlamaCpp: "test" });
+  await writeFile(path.join(presetsDir, `${id}.modelduck-profile.json`), JSON.stringify({
+    schema: 1, kind: "modelduck-profile", catalogId: id, fingerprint: here,
+    load: { settings: { threads: 4 }, stats: null }, tasks: { code: { settings: { temperature: 0.4 }, stats: { rate: 50 } } },
+  }));
+  await saveProfile(harness.paths.profiles, profileFromTune(
+    { load: { settings: { threads: 8 } }, tasks: { code: { settings: { temperature: 0.2 }, stats: { rate: 80 } } }, sweeps: [], runs: 10, budgetExhausted: false, stages: { device: { status: "done" } } },
+    { catalogId: id, fingerprint: here },
+  ));
+  const post = (body) => fetch(`${harness.base}/api/presets/apply`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  const refused = await post({ catalogId: id });
+  assert.equal(refused.status, 409);
+  assert.equal((await refused.json()).error.code, "preset_would_replace_tune");
+  const forced = await post({ catalogId: id, force: true });
+  assert.equal(forced.status, 201);
+  assert.equal((await forced.json()).status, "exact", "same model and machine");
+});
+
 test("loading applies the model's tuned profile for the chosen task", async (t) => {
   const harness = await makeHarness(t);
   const [installed] = harness.registry.listPublic();
