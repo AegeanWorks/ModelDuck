@@ -457,12 +457,12 @@ modelduck/
 │   ├── server-settings.js
 │   ├── config.js
 │   ├── errors.js
-│   ├── fs-atomic.js <- atomic writes, backups, quarantine and home lock
-│   ├── model-catalog.js <- curated GGUF catalogue
-│   ├── sampler-chain.js <- canonical ordered sampler chain shared by chat and completions
-│   ├── state-machine.js <- engine/download/benchmark states and transitions
-│   ├── recommend.js <- what to run on this PC: measured models and estimates
-│   └── system.js <- CPU, memory and platform snapshot, loop-lag health
+│   ├── fs-atomic.js
+│   ├── model-catalog.js
+│   ├── sampler-chain.js
+│   ├── state-machine.js
+│   ├── recommend.js
+│   └── system.js
 ├── docs/
 │   ├── THREAT-MODEL.md <- local-inference threat model
 │   ├── state-machines.md <- the 25-machine inventory and verified gaps
@@ -524,6 +524,8 @@ modelduck/
 │   ├── stats-util.mjs
 │   ├── settings-perf.mjs
 │   ├── multi-step-perf.mjs
+│   ├── ai-benchmark-advisor.mjs
+│   ├── AI-BENCHMARK-README.md
 │   ├── CHANGELOG.md
 │   ├── history.jsonl
 │   ├── curves/
