@@ -429,34 +429,34 @@ generation-affecting change.
 ```text
 modelduck/
 ├── src/
-│   ├── main.js <- CLI, startup, window, shutdown
-│   ├── server.js <- routes, SSE tune stream, static files
-│   ├── engine.js <- node-llama-cpp session lifecycle and statistics
-│   ├── memory-fit.js <- pre-load memory estimate, fit verdict
-│   ├── model-profiles.js <- tuned per-model, per-task settings store, launch recipes
-│   ├── tuned-settings.js <- applies a profile at load and JIT time, diff helper
-│   ├── tune-steps.js    <- the user's tune step lists
-│   ├── tune-scheduler.js <- tunes several models in CPU and GPU lanes
-│   ├── tune-lock.js     <- pauses other tunes while one times answers
-│   ├── tune-runs.js     <- record of every tune run
-│   ├── engine-errors.js <- actionable load and generation errors
-│   ├── model-registry.js <- GGUF scan/import and metadata
-│   ├── gguf-guard.js <- bounded GGUF header check before any parser runs
-│   ├── downloader.js <- resumable Hugging Face downloads, receipts, token broker
-│   ├── settings.js <- validated persisted settings, schema fence
-│   ├── generation-manifest.js <- prompt/history/template fingerprints, allocation attestation
-│   ├── benchmark-report.js <- report summary for the Bench panel
-│   ├── benchmark-runner.js <- one benchmark child, JSON progress
-│   ├── benchmark-base.js <- benchmark base choice
-│   ├── checkpoint-merge.js <- toy qwenFS checkpoint-merge math (offline analysis only)
-│   ├── checkpoint-policy.js <- checkpoint interval, coverage and memory plan
-│   ├── settings-reload.js <- reload fingerprint + release-barriered rebuild lease
-│   ├── openai.js <- OpenAI-compatible models/chat endpoints, stop and param contract
-│   ├── http.js <- JSON, SSE, static serving, loopback guard, backpressure writer
-│   ├── jit.js <- just-in-time loading and idle unload
-│   ├── server-settings.js <- API keys, CORS, LAN and JIT settings
-│   ├── config.js <- paths, defaults and CLI parsing
-│   ├── errors.js <- actionable error objects
+│   ├── main.js
+│   ├── server.js
+│   ├── engine.js
+│   ├── memory-fit.js
+│   ├── model-profiles.js
+│   ├── tuned-settings.js
+│   ├── tune-steps.js
+│   ├── tune-scheduler.js
+│   ├── tune-lock.js
+│   ├── tune-runs.js
+│   ├── engine-errors.js
+│   ├── model-registry.js
+│   ├── gguf-guard.js
+│   ├── downloader.js
+│   ├── settings.js
+│   ├── generation-manifest.js
+│   ├── benchmark-report.js
+│   ├── benchmark-runner.js
+│   ├── benchmark-base.js
+│   ├── checkpoint-merge.js
+│   ├── checkpoint-policy.js
+│   ├── settings-reload.js
+│   ├── openai.js
+│   ├── http.js
+│   ├── jit.js
+│   ├── server-settings.js
+│   ├── config.js
+│   ├── errors.js
 │   ├── fs-atomic.js <- atomic writes, backups, quarantine and home lock
 │   ├── model-catalog.js <- curated GGUF catalogue
 │   ├── sampler-chain.js <- canonical ordered sampler chain shared by chat and completions
@@ -499,20 +499,20 @@ modelduck/
 │   ├── paraphrase-items.mjs
 │   ├── recommend.mjs
 │   ├── stats.mjs
-│   ├── tasks.mjs        <- suite items and tuning rungs
-│   ├── tune.mjs         <- staged, resumable settings search
-│   ├── tune-measure.mjs <- candidate scoring, statistics, run cache
-│   ├── tune-speed.mjs   <- speed stage, Fastest and Light presets
-│   ├── tune-device.mjs  <- device pick per model
-│   ├── tune-grid.mjs    <- load/sampling spaces
-│   ├── tune-evaluate.mjs <- runs items on the engine
-│   ├── tune-run.mjs     <- tune entry point
-│   ├── tune-job.mjs     <- open, tune, reuse a profile
-│   ├── tune-gate.mjs    <- regression gate
-│   ├── model-pool.mjs    <- gate lane pool
-│   ├── gate-cache.mjs    <- gate answer cache
-│   ├── tune-baseline.mjs <- baseline compare
-│   ├── tune-prompt.mjs  <- --interactive step questions
+│   ├── tasks.mjs
+│   ├── tune.mjs
+│   ├── tune-measure.mjs
+│   ├── tune-speed.mjs
+│   ├── tune-device.mjs
+│   ├── tune-grid.mjs
+│   ├── tune-evaluate.mjs
+│   ├── tune-run.mjs
+│   ├── tune-job.mjs
+│   ├── tune-gate.mjs
+│   ├── model-pool.mjs
+│   ├── gate-cache.mjs
+│   ├── tune-baseline.mjs
+│   ├── tune-prompt.mjs
 │   ├── presets/         <- measured, shareable profile recipes
 │   ├── NOTICE-benchmarks.md
 │   ├── test-hash.mjs
@@ -521,6 +521,9 @@ modelduck/
 │   ├── report.mjs
 │   ├── link.mjs
 │   ├── context-curve.mjs
+│   ├── stats-util.mjs
+│   ├── settings-perf.mjs
+│   ├── multi-step-perf.mjs
 │   ├── CHANGELOG.md
 │   ├── history.jsonl
 │   ├── curves/
