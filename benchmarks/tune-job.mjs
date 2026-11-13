@@ -15,6 +15,7 @@ import { codeGroupOf, taskIdOfCategory, tuneRungs, withDiscriminatingRungs } fro
 import { STAGES, resultFrom, tune } from "./tune.mjs";
 import { expectedAnswers, promptAxes, qualityAxes, quickRungs, samplingAxes, speedAxes } from "./tune-grid.mjs";
 import { createEvaluator } from "./tune-evaluate.mjs";
+import { chooseParallel, probeItemIds, probeParallel } from "./tune-parallel.mjs";
 import { createPhaseTimer } from "./tune-timing.mjs";
 
 /** One installed model, ready to tune or measure: where it is, its profile name and what it runs on. */
@@ -66,7 +67,7 @@ export function tuneBase() {
  * The profile is saved after every finished setting, so stopping keeps what
  * was found and a later run resumes. Resolves `{ skipped, warnings, profile, result }`.
  */
-export async function runTune(target, { tasks, stages = STAGES, only = null, steps = null, force = false, continueRun = false, quick = false, guard = false, fullFinal = false, maxRuns = 0, passes = 0, onEvent = () => {}, onStart = () => {} }) {
+export async function runTune(target, { tasks, stages = STAGES, only = null, steps = null, force = false, continueRun = false, quick = false, guard = false, fullFinal = false, maxRuns = 0, passes = 0, parallel: requestedParallel = 1, onEvent = () => {}, onStart = () => {}, onNote = () => {} }) {
   const saved = force ? null : await loadProfile(target.paths.profiles, target.profileId, target.fingerprint);
   const plan = planTune(saved, tasks, stages, only, { continueRun });
   const warnings = saved?.warnings ?? [];
@@ -105,12 +106,15 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
   const probes = stages.includes("device") && (!only?.length || only.includes("device"));
   const startOn = plan.resume?.device?.settings?.gpuBackend ?? saved?.profile.load?.settings?.gpuBackend ?? base.gpuBackend ?? "cpu";
   // A continue or re-tune reuses exact settings/seed/item matches from earlier answers (G8).
-  const restore = await cachedAnswers(target.paths.tuneRuns, { profileId: target.profileId, fingerprint: target.fingerprint }).catch(() => []);
+  // Which ones is known once the width is: answers made at another width are never mixed in.
+  let restore = [];
+  let width = 1;
+  let parallelInfo = { requested: requestedParallel, used: 1, reason: null, probe: null };
   // Every run is recorded with every answer, whatever its outcome (ADR-050).
   const run = await startRun(target.paths.tuneRuns, {
     profileId: target.profileId,
     model: target.entry.fileName,
-    request: { stages, tasks, only, force, continueRun, quick, guard, maxRuns, passes, rerun: plan.rerun ?? [] },
+    request: { stages, tasks, only, force, continueRun, quick, guard, maxRuns, passes, parallel: requestedParallel, rerun: plan.rerun ?? [] },
     fingerprint: target.fingerprint,
     expectedAnswers: expectedAnswers(used, { logicalCores, tasks, stages, only, quick }),
   });
@@ -126,6 +130,8 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
       outputTokens: answer.outputTokens ?? null, tokensPerSecond: answer.tokensPerSecond ?? null, digest: answer.digest ?? null, error: answer.error ?? null,
       unreadable: Boolean(answer.unreadable), text: answer.text ?? null,
       stopReason: answer.stopReason ?? null, promptTokens: answer.promptTokens ?? null, firstTokenMs: answer.firstTokenMs ?? null,
+      // The width this tune ran at; rows with no tag were answered serially (cachedAnswers).
+      ...(width > 1 && { parallel: width }),
     })));
   };
   let lastState = null;
@@ -142,7 +148,30 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
       });
     }
     const evaluate = createEvaluator({ engine, modelId: target.entry.id, beforeAnswer: () => lock.pauseIfNeeded(), timer });
+    if (requestedParallel !== 1) {
+      const decision = chooseParallel({ requested: requestedParallel, logicalCores });
+      parallelInfo = { requested: requestedParallel, used: 1, reason: decision.reason, probe: null };
+      if (probes) {
+        // The device chosen mid-run could differ from the one probed, so the probe waits for a known device.
+        parallelInfo.reason = "the device stage runs in this process, so the backend is not chosen yet; run --stages device first, then the other stages with --parallel";
+      } else if (decision.n > 1) {
+        const settings = { ...base, gpuBackend: startOn, temperature: 0, repeatPenalty: 1, maxTokens: 96 };
+        const ids = probeItemIds({ ids: tasks.flatMap((task) => activeRungs[task]?.[0] ?? []), width: decision.n, limit: 4, settings });
+        parallelInfo.probe = await probeParallel({ evaluate, width: decision.n, items: ids, settings, seed: 42 });
+        if (parallelInfo.probe.ok) {
+          width = decision.n;
+          parallelInfo.used = width;
+        } else {
+          parallelInfo.reason = parallelInfo.probe.reason;
+        }
+      }
+      onNote(width > 1
+        ? `Parallel: answering ${width} at a time in the untimed stages (${parallelInfo.probe.speedup}× faster on the probe, ${parallelInfo.probe.matched} of ${parallelInfo.probe.total} answers byte-identical). Their latency figures are concurrent, not serial; the speed stage still times one answer at a time.`
+        : `Parallel: answering one at a time, because ${parallelInfo.reason}.`);
+    }
+    restore = await cachedAnswers(target.paths.tuneRuns, { profileId: target.profileId, fingerprint: target.fingerprint, parallel: width }).catch(() => []);
     return tune({
+      parallel: width,
       evaluate,
       // Question types, so each task's result is broken down (ADR-056), and coding views for the balance rule (ADR-070).
       typeOf: (id) => CATEGORY_OF.get(id) ?? null,
@@ -181,14 +210,14 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
       },
     });
   }).catch(async (error) => {
-    await run.finish({ outcome: "failed", error: error.why ?? error.message, timing: timer.summary(), ...(lastState && snapshot(lastState)) });
+    await run.finish({ outcome: "failed", error: error.why ?? error.message, timing: timer.summary(), parallel: parallelInfo, ...(lastState && snapshot(lastState)) });
     throw error;
   }).finally(() => {
     process.off("exit", cleanUp);
     return lock.unregister();
   });
   const timing = timer.summary();
-  await run.finish({ outcome: result.stopped ? "stopped" : "done", error: result.stopped ?? null, timing, ...snapshot({ ...result.progress, sweeps: result.sweeps, runs: result.runs }) });
+  await run.finish({ outcome: result.stopped ? "stopped" : "done", error: result.stopped ?? null, timing, parallel: parallelInfo, ...snapshot({ ...result.progress, sweeps: result.sweeps, runs: result.runs }) });
   // A tune that could not load the model at all has nothing to save; what earlier axes found is already saved.
   if (result.stopped) {
     throw new AppError("The tune stopped: the model could not be loaded", {
@@ -197,7 +226,7 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
       fix: "Check the GPU driver and free memory (a restart often clears a stuck GPU), or pick the CPU backend, then run the tune again. Results saved before this point are kept.",
     });
   }
-  return { skipped: false, warnings, profile: await save(result), result, timing };
+  return { skipped: false, warnings, profile: await save(result), result, timing, parallel: parallelInfo };
 }
 
 const shown = (value) => (typeof value === "string" && value.length > 48 ? `"${value.slice(0, 45)}…"` : typeof value === "string" ? `"${value}"` : value);

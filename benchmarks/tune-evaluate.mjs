@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { AppError } from "../src/errors.js";
 import { LOAD_KEYS } from "../src/model-profiles.js";
 import { PROMPTS, SYSTEM_PROMPT, checkCount, evaluateResponse } from "./suite.mjs";
+import { itemNeed, slotWidth } from "./tune-parallel.mjs";
 
 const LOAD_DEFAULTS = Object.freeze({
   contextSize: 16384,
@@ -61,8 +62,10 @@ const THREAD_CAP = 64;
  * answered at once; `settings.parallelism: 1` (the timing stages) answers one
  * at a time.
  */
-export function createEvaluator({ engine, modelId, prompts = PROMPTS, systemPrompt = SYSTEM_PROMPT, timeoutMs = 120_000, parallel = 1, beforeAnswer = async () => {}, onItem = () => {}, timer = null }) {
+export function createEvaluator({ engine, modelId, prompts = PROMPTS, systemPrompt = SYSTEM_PROMPT, timeoutMs = 120_000, parallel: parallelOption = 1, beforeAnswer = async () => {}, onItem = () => {}, timer = null }) {
   const byId = new Map(prompts.map((prompt) => [prompt.id, prompt]));
+  // How many answers the tune asks to run at once. A call may run narrower (widthFor), never wider.
+  let parallel = Math.max(1, Math.floor(Number(parallelOption)) || 1);
   // Wall-clock accounting is optional (tune-timing.mjs): without a timer every step runs as before.
   const timed = (phase, fn) => (timer ? timer.measure(phase, fn) : fn());
   let modelSignature = null;
@@ -70,8 +73,22 @@ export function createEvaluator({ engine, modelId, prompts = PROMPTS, systemProm
   let memoryBytes = null;
   let gpuVram = null;
 
-  async function ensureLoaded(settings) {
-    const load = { ...LOAD_DEFAULTS, ...pick(settings, LOAD_KEYS), sequences: Math.max(1, parallel) };
+  /**
+   * How many answers this call may run at once. Sequences share the context, so
+   * a slot holds `context / width` tokens: the width is the largest one whose
+   * slot still holds the call's largest item. Timing stages always run alone.
+   */
+  function widthFor(settings, items) {
+    if (settings.parallelism === 1 || parallel <= 1) return 1;
+    const need = Math.max(0, ...items.map((prompt) => itemNeed(prompt, {
+      systemPrompt: settings.systemPrompt ?? systemPrompt,
+      maxTokens: settings.maxTokens ?? prompt.maxTokens ?? SAMPLING_DEFAULTS.maxTokens,
+    })));
+    return slotWidth({ parallel, contextSize: settings.contextSize ?? LOAD_DEFAULTS.contextSize, need });
+  }
+
+  async function ensureLoaded(settings, width = settings.parallelism === 1 ? 1 : parallel) {
+    const load = { ...LOAD_DEFAULTS, ...pick(settings, LOAD_KEYS), sequences: Math.max(1, width) };
     const nextModel = JSON.stringify(pick(load, MODEL_LEVEL_KEYS));
     const nextContext = JSON.stringify(pick(load, CONTEXT_LEVEL_KEYS));
     if (modelSignature === nextModel && contextSignature === nextContext) return load;
@@ -173,14 +190,14 @@ export function createEvaluator({ engine, modelId, prompts = PROMPTS, systemProm
     });
     let load;
     try {
-      load = await ensureLoaded(settings);
+      load = await ensureLoaded(settings, widthFor(settings, items));
     } catch (error) {
       // Unstable KV types can refuse to load; that is a result for these settings, not a reason to stop the tune.
       const reason = `load failed: ${error.message}`;
       return { prompts: items.map((prompt) => ({ id: prompt.id, passed: 0, total: checkCount(prompt), error: reason, ms: null, tokensPerSecond: null })), memoryBytes: null, gpuVram: null };
     }
     const results = new Array(items.length);
-    const width = settings.parallelism === 1 ? 1 : Math.max(1, parallel);
+    const width = load.sequences;
     let next = 0;
     const worker = async () => {
       while (next < items.length) {
@@ -196,6 +213,11 @@ export function createEvaluator({ engine, modelId, prompts = PROMPTS, systemProm
     return { prompts: results, memoryBytes, gpuVram };
   };
   // The context budget loads the model first so the GPU's free memory can be read (ADR-043).
-  evaluate.ensureLoaded = ensureLoaded;
+  evaluate.ensureLoaded = (settings) => ensureLoaded(settings);
+  // The width the tune asked for; a determinism probe sets it before the tune starts (tune-parallel.mjs).
+  Object.defineProperty(evaluate, "parallel", { get: () => parallel, enumerable: true });
+  evaluate.setParallel = (n) => {
+    parallel = Math.max(1, Math.floor(Number(n)) || 1);
+  };
   return evaluate;
 }

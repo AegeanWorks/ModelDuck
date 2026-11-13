@@ -232,7 +232,7 @@ const OUTCOME_FINGERPRINT_KEYS = Object.freeze(["suiteVersion", "taskHash", "nod
  * settings and seed. A continue or re-tune reuses these instead of re-asking;
  * `answers.jsonl` already holds settings, seed and item for every answer.
  */
-export async function cachedAnswers(dir, { profileId, fingerprint = null, limitRuns = 3, limitRows = 20000 } = {}) {
+export async function cachedAnswers(dir, { profileId, fingerprint = null, limitRuns = 3, limitRows = 20000, parallel = 1 } = {}) {
   const FINGERPRINT_KEYS = ["suiteVersion", "taskHash", "nodeLlamaCpp", "tunerVersion"];
   const names = await fs.promises.readdir(dir).catch(() => []);
   const runs = [];
@@ -263,6 +263,9 @@ export async function cachedAnswers(dir, { profileId, fingerprint = null, limitR
           continue;
         }
         if (!row || !row.item || row.error) continue;
+        // Answers made at another width are another world: batching can change the numerics,
+        // so a tune reuses only rows of its own width. A row with no tag was answered serially.
+        if ((row.parallel ?? 1) !== (parallel ?? 1)) continue;
         if (rows >= limitRows) break;
         rows += 1;
         const key = `${JSON.stringify(row.settings ?? null)}|${row.seed}`;

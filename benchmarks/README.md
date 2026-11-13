@@ -46,6 +46,17 @@ Every tune ends with one `Time …` line that says where the wall-clock time wen
 (generate, load, judge, other) and how many model loads and answers it took; the
 same figures are stored as `timing` on the run record in `tune-runs/`. Use it to
 see what a change really saved before trusting an estimate.
+
+`npm run tune -- ... --parallel <2-4|auto>` answers several items at once in the
+untimed stages (quality, sampling, prompt); device and speed still time one answer
+at a time. It is opt-in because it is not always safe or faster. Before the tune, a
+probe answers a few greedy items wide and one at a time. The tune runs wide only
+when every answer is byte-identical and the wide pass takes at least 15% less wall
+time; otherwise it says why and answers one at a time. Measured on an i5-14400F
+under load: Qwen2.5 0.5B matched 4 of 4 but was not faster (16.7 s wide vs 15.6 s),
+and SmolLM2 135M changed 1 of 4 answers at width 2. Answers are tagged with their
+width and a later run reuses only answers of its own width. The device must already
+be chosen, so run `--stages device` first.
 Suite v18 has 277 items in ten categories: the 265 counted below plus 12 paraphrase
 probes (6 code, 6 comprehension) that only the held-back check and the gate ask,
 never the search. Of the 265, 262 are searched; 3 long-context needles are KV-confirmation only:

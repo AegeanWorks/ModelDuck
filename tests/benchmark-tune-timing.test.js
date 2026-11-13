@@ -34,23 +34,56 @@ test("a phase that throws is still recorded, and the error is not swallowed", as
   assert.equal(timer.summary().phases.generate, 300);
 });
 
-test("concurrent phases add up past wall time and are flagged as overlapped", async () => {
+/** A phase that stays open until the test releases it, so concurrency is exact on the fake clock. */
+function hold(timer, phase) {
+  let release;
+  const done = timer.measure(phase, () => new Promise((resolve) => { release = resolve; }));
+  return { done, release: () => release() };
+}
+
+test("answers running at once count their phase's wall time once, not once per answer", async () => {
   const clock = fakeClock();
   const timer = createPhaseTimer({ clock });
-  // Two answers start together and end together: 1 s of wall time, 2 s of summed work.
-  let releaseFirst;
-  let releaseSecond;
-  const first = timer.measure("generate", () => new Promise((resolve) => { releaseFirst = resolve; }));
-  const second = timer.measure("generate", () => new Promise((resolve) => { releaseSecond = resolve; }));
+  // Two answers start together; one ends at 1 s, the other at 1.5 s.
+  const first = hold(timer, "generate");
+  const second = hold(timer, "generate");
   clock.advance(1000);
-  releaseFirst();
-  releaseSecond();
-  await Promise.all([first, second]);
+  first.release();
+  await first.done;
+  clock.advance(500);
+  second.release();
+  await second.done;
   const summary = timer.summary();
-  assert.equal(summary.wallMs, 1000);
-  assert.equal(summary.phases.generate, 2000);
+  assert.equal(summary.wallMs, 1500);
+  assert.equal(summary.phases.generate, 1500, "the wall time during which any answer was generating");
+  assert.equal(summary.overlapped, false);
+  assert.equal(summary.phases.other, 0);
+});
+
+test("different phases running at once are flagged as overlapped, and other never goes negative", async () => {
+  const clock = fakeClock();
+  const timer = createPhaseTimer({ clock });
+  const generating = hold(timer, "generate");
+  const judging = hold(timer, "judge");
+  clock.advance(1000);
+  generating.release();
+  judging.release();
+  await Promise.all([generating.done, judging.done]);
+  const summary = timer.summary();
+  assert.equal(summary.phases.generate, 1000);
+  assert.equal(summary.phases.judge, 1000);
   assert.equal(summary.overlapped, true);
-  assert.equal(summary.phases.other, 0, "other never goes negative");
+  assert.equal(summary.phases.other, 0);
+});
+
+test("a summary taken while a phase is open counts it up to now", async () => {
+  const clock = fakeClock();
+  const timer = createPhaseTimer({ clock });
+  const open = hold(timer, "load");
+  clock.advance(700);
+  assert.equal(timer.summary().phases.load, 700);
+  open.release();
+  await open.done;
 });
 
 test("an unknown phase is refused so a typo cannot hide time", () => {

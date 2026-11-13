@@ -10,6 +10,7 @@ import { estimateTune, expectedAnswers, normalizeSteps, settingNames, timeLeft }
 import { openTarget, runTune, summary } from "./tune-job.mjs";
 import { STAGES } from "./tune.mjs";
 import { askSteps } from "./tune-prompt.mjs";
+import { parseParallel } from "./tune-parallel.mjs";
 import { formatTiming } from "./tune-timing.mjs";
 
 const USAGE = `Usage: npm run tune -- --model <catalogId|file.gguf> [options]
@@ -38,6 +39,10 @@ older test, runtime, CPU or model file is kept with a warning until --force.
   --quick            provisional first-rung pass; the app follows it with a full continue
   --guard            stop the remaining tasks when a held-back check falls back (full pass only; a quick pass presets first and guards on its full continue)
   --full-final       score each final preset on every task item, not only the last search rung (slower, higher power)
+  --parallel <n|auto> answer up to n items at once in the untimed stages (1-4, default 1). A probe first
+                     checks that wide answers match one-at-a-time answers byte for byte, and falls
+                     back to one at a time if they differ. Needs the device already chosen: run
+                     --stages device first, then the other stages with --parallel.
 `;
 
 function parseArgs(argv) {
@@ -57,6 +62,7 @@ function parseArgs(argv) {
     else if (arg === "--quick") options.quick = true;
     else if (arg === "--guard") options.guard = true;
     else if (arg === "--full-final") options.fullFinal = true;
+    else if (arg === "--parallel") options.parallel = parseParallel(take(index++, arg));
     else if (arg === "--force") options.force = true;
     else if (arg === "--interactive") options.interactive = true;
     else if (arg === "--grid") options.grid = take(index++, arg);
@@ -125,6 +131,8 @@ async function main() {
     quick: Boolean(options.quick),
     guard: Boolean(options.guard),
     fullFinal: Boolean(options.fullFinal),
+    parallel: options.parallel ?? 1,
+    onNote: (message) => log(options, message),
     maxRuns: options.maxRuns,
     passes: options.passes,
     onStart: (plan) => {

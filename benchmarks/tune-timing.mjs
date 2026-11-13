@@ -9,13 +9,17 @@ const PHASE_SET = new Set(TIMING_PHASES);
  * Wall-clock accounting for one tune process.
  *
  * `measure(phase, fn)` adds the time `fn` takes to `phase`, even when it throws.
- * Phases that run at once (parallel answers) add up past the wall time; the
- * summary then says `overlapped` and `other` stays 0, because shares of the
- * wall time would no longer mean anything.
+ * A phase's time is the wall time during which at least one call of it was
+ * running, so answers generating side by side count once, not once each.
+ * When different phases run at once (one answer generating while another is
+ * judged) their times add up past the wall time; the summary then says
+ * `overlapped` and `other` stays 0.
  */
 export function createPhaseTimer({ clock = () => performance.now() } = {}) {
   const startedAt = clock();
   const totals = Object.fromEntries(TIMING_PHASES.map((phase) => [phase, 0]));
+  // Per phase: how many calls are running, and since when at least one has been.
+  const active = Object.fromEntries(TIMING_PHASES.map((phase) => [phase, { running: 0, since: 0 }]));
   const counts = {};
 
   function measure(phase, fn) {
@@ -26,8 +30,13 @@ export function createPhaseTimer({ clock = () => performance.now() } = {}) {
         fix: "Use one of the named phases so no time is lost to a typo.",
       });
     }
-    const started = clock();
-    const record = () => { totals[phase] += clock() - started; };
+    const slot = active[phase];
+    if (slot.running === 0) slot.since = clock();
+    slot.running += 1;
+    const record = () => {
+      slot.running -= 1;
+      if (slot.running === 0) totals[phase] += clock() - slot.since;
+    };
     // fn starts now, not a tick later, so concurrent phases begin when they are asked to.
     let pending;
     try {
@@ -45,7 +54,9 @@ export function createPhaseTimer({ clock = () => performance.now() } = {}) {
 
   function summary() {
     const wallMs = Math.max(0, Math.round(clock() - startedAt));
-    const phases = Object.fromEntries(TIMING_PHASES.map((phase) => [phase, Math.round(totals[phase])]));
+    const now = clock();
+    const open = (phase) => (active[phase].running > 0 ? now - active[phase].since : 0);
+    const phases = Object.fromEntries(TIMING_PHASES.map((phase) => [phase, Math.round(totals[phase] + open(phase))]));
     const summed = TIMING_PHASES.reduce((sum, phase) => sum + phases[phase], 0);
     return { wallMs, phases: { ...phases, other: Math.max(0, wallMs - summed) }, counts: { ...counts }, overlapped: summed > wallMs };
   }

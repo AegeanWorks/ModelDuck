@@ -121,7 +121,7 @@ chosen configuration.
 
 The default set is SmolLM2 135M, Qwen2.5 0.5B and Qwen2.5 Coder 1.5B;
 `--full-matrix` adds three more.
-[benchmarks/README.md](benchmarks/README.md) lists every task in suite v17, and
+[benchmarks/README.md](benchmarks/README.md) lists every task in suite v18, and
 [NOTICE](benchmarks/NOTICE-benchmarks.md) records the licences. Public items
 may sit in training data; own and public questions are reported apart.
 
@@ -152,17 +152,13 @@ measured model, quantization, KV cache, context and reload settings. `--base-var
 <variantId>` uses one for a single run without saving it. With no selection, the
 model-usage phase uses Qwen2.5 0.5B Q4 at its default settings.
 
-`npm run bench -- --model <catalogId>` (the tuner replaces it in the Bench panel)
-sweeps 17 reload settings for that model on the 16-item smoke set, writes
-`results/latest-single-model.json`, and recommends the best quality, overall,
-coding and speed-within-budget configuration for that model. It records history
-but never reads, compares or replaces the shared baseline; `--update-baseline` is
-refused.
+`npm run bench -- --model <catalogId>` sweeps 17 reload settings on the 16-item
+smoke set, writes `results/latest-single-model.json` and recommends per goal; it
+never reads or replaces a baseline (`--update-baseline` is refused).
 
-Parallel segments: `--shard i/n` runs one deterministic slice; combine them with
-`npm run bench:merge -- --phase model --total n` (pass the same `--tag` when
-scopes share a folder). The merge refuses mismatched suites, hashes, runtimes or
-settings; shards never touch a baseline.
+Shards (`--shard i/n`) are deterministic slices; `bench:merge` combines them (same
+`--tag` when scopes share a folder) and refuses mismatched suites, hashes,
+runtimes or settings. Shards never touch a baseline.
 
 Every run records `suiteVersion`, a SHA-256 `testHash`, `runtimeMs`, model
 settings and sampling settings. A result delta is only attributed to a parameter
@@ -506,6 +502,8 @@ modelduck/
 │   ├── tune-device.mjs
 │   ├── tune-grid.mjs
 │   ├── tune-evaluate.mjs
+│   ├── tune-timing.mjs
+│   ├── tune-parallel.mjs
 │   ├── tune-run.mjs
 │   ├── tune-job.mjs
 │   ├── tune-gate.mjs
@@ -562,6 +560,8 @@ modelduck/
 │   ├── benchmark-tasks.test.js
 │   ├── benchmark-tune.test.js
 │   ├── benchmark-tune-evaluate.test.js
+│   ├── benchmark-tune-timing.test.js
+│   ├── benchmark-tune-parallel.test.js
 │   ├── benchmark-tune-baseline.test.js
 │   ├── benchmark-suite-paraphrase.test.js
 │   ├── benchmark-link.test.js
