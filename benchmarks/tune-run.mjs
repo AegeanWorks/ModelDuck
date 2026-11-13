@@ -11,6 +11,7 @@ import { openTarget, runTune, summary } from "./tune-job.mjs";
 import { STAGES } from "./tune.mjs";
 import { askSteps } from "./tune-prompt.mjs";
 import { parseBudget } from "./tune-budget.mjs";
+import { formatFailures } from "./tune-failures.mjs";
 import { parseParallel } from "./tune-parallel.mjs";
 import { formatTiming } from "./tune-timing.mjs";
 
@@ -46,6 +47,9 @@ older test, runtime, CPU or model file is kept with a warning until --force.
                      --stages device first, then the other stages with --parallel.
   --budget <minutes> stop asking new answers after this many minutes (decimals allowed); what
                      was found is saved and --continue finishes the rest later
+  --escalate         when a setting beats the current one on the search rung but misses the
+                     gate, test it once more alone on pool items the search never used, and
+                     keep it only if it wins there (one-sided paired test). More answers, more power.
 `;
 
 function parseArgs(argv) {
@@ -67,6 +71,7 @@ function parseArgs(argv) {
     else if (arg === "--full-final") options.fullFinal = true;
     else if (arg === "--parallel") options.parallel = parseParallel(take(index++, arg));
     else if (arg === "--budget") options.budget = parseBudget(take(index++, arg));
+    else if (arg === "--escalate") options.escalate = true;
     else if (arg === "--force") options.force = true;
     else if (arg === "--interactive") options.interactive = true;
     else if (arg === "--grid") options.grid = take(index++, arg);
@@ -137,6 +142,7 @@ async function main() {
     fullFinal: Boolean(options.fullFinal),
     parallel: options.parallel ?? 1,
     budgetMinutes: options.budget ?? null,
+    escalate: Boolean(options.escalate),
     onNote: (message) => log(options, message),
     maxRuns: options.maxRuns,
     passes: options.passes,
@@ -168,6 +174,8 @@ async function main() {
   const verifierCache = javascriptTestCacheStats();
   log(options, `Verifier cache: ${verifierCache.hits} hits / ${verifierCache.misses} checks run (${verifierCache.size} entries)`);
   if (outcome.timing) log(options, formatTiming(outcome.timing));
+  const failureReport = outcome.failures ? formatFailures(outcome.failures) : "";
+  if (failureReport) log(options, failureReport);
   log(options, `Saved ${path.join(target.paths.profiles, `${target.profileId}.json`)}`);
     emit(options, { type: "complete", phase: "tune", model: target.profileId, tasks: Object.keys(outcome.profile.tasks), runs: outcome.result.runs, budgetExhausted: outcome.result.budgetExhausted, timeExhausted: Boolean(outcome.result.timeExhausted), quick: Boolean(options.quick), guard: outcome.result.guard ?? null });
 }

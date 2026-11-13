@@ -48,10 +48,15 @@ export const DEFAULT_TUNE_OPTIONS = Object.freeze({
   taskWeights: null,
   // A fully scored axis (system prompts) first answers this share of its items.
   screenFraction: 0.25,
+  // Opt-in: retest an unproven rung leader alone on fresh pool items (see sweep()).
+  // Off by default, so the default search and TUNER_VERSION stay as they are.
+  escalate: false,
 });
 
 // A screen of fewer items cannot tell a significant gap from noise, so it is skipped.
 const MIN_SCREEN_ITEMS = 8;
+// Fewer fresh items than this cannot carry a one-sided gain test.
+const MIN_ESCALATE_ITEMS = 8;
 
 export const STAGES = Object.freeze(["device", "quality", "speed", "sampling", "prompt"]);
 
@@ -303,6 +308,41 @@ async function sweep(context, { stage, task, axis, current, rungs, forced, cost,
     ? `Kept ${JSON.stringify(Object.values(incumbent.patch)[0])}: the best challenger, ${JSON.stringify(Object.values(chosen.patch)[0])}, ` +
       `scored ${chosen.stats.rate}% against ${incumbent.stats.rate}% (paired p=${evidence.pValue}, Holm p=${round(chosenP, 4)}), short of the p ≤ ${options.changeAlpha} a change needs.`
     : undefined;
+  // Opt-in escalation: a leader that beat the current setting but not the
+  // multi-candidate gate is tested once more, alone, on pool items the search
+  // never used. It was picked on the rung, so the fresh items carry no
+  // selection bias, and one pre-chosen comparison needs no Holm correction.
+  // The test is one-sided for a gain, on the fresh items only.
+  let escalation = null;
+  if (unproven && options.escalate && confirmItems?.length >= MIN_ESCALATE_ITEMS && !chosen.stats.failed) {
+    const fresh = {};
+    for (const entry of [incumbent, chosen]) {
+      const stats = await score(measurements, { ...current, ...entry.patch, ...forced }, confirmItems, options.seeds);
+      if (!stats) return { ...record, aborted: true, winner: null };
+      fresh[entry.incumbent ? "incumbent" : "challenger"] = stats;
+      context.onEvent({ type: "candidate", stage, task, axis: axis.name, rung: confirmItems.length, escalate: true, patch: entry.patch, rate: stats.rate, latencyMs: stats.latencyMs, outputTokens: stats.outputTokens, tokensPerSecond: stats.tokensPerSecond, runs: measurements.runs });
+    }
+    // groupEvidence(before, after) is small when `after` loses; with the challenger
+    // as `before` it is small when the challenger wins (b: its wins, c: its losses).
+    const gain = groupEvidence(fresh.challenger, fresh.incumbent, confirmItems, context.clusterOf);
+    const confirmed = gain.b > gain.c && gain.pValue <= options.changeAlpha && !fresh.challenger.failed;
+    escalation = {
+      items: confirmItems.length,
+      b: gain.c,
+      c: gain.b,
+      pValue: gain.pValue,
+      incumbentRate: fresh.incumbent.rate,
+      challengerRate: fresh.challenger.rate,
+      confirmed,
+    };
+    if (confirmed) {
+      winner = chosen;
+      kept = undefined;
+    } else {
+      kept = `${kept} Escalated to ${confirmItems.length} fresh items: ${fresh.challenger.rate}% against ${fresh.incumbent.rate}% ` +
+        `(won ${gain.b}, lost ${gain.c}, one-sided p=${gain.pValue}), short of the p ≤ ${options.changeAlpha} a change needs.`;
+    }
+  }
   // Confirmation on items the search never used (S1/S3): the rung leader and the
   // incumbent alone are scored on the leftover pool, and the challenger must
   // still lead on the combined solved count to stand.
@@ -342,6 +382,7 @@ async function sweep(context, { stage, task, axis, current, rungs, forced, cost,
     ...(groups && { groups }),
     ...(guard && { groupGuard: guard }),
     ...(confirmation && { confirmation }),
+    ...(escalation && { escalation }),
     ...(chosen !== incumbent && { pAdjusted: round(chosenP, 4) }),
     previous: incumbent.patch,
     winner: winner.patch,

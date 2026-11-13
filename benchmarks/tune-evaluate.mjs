@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { AppError } from "../src/errors.js";
 import { LOAD_KEYS } from "../src/model-profiles.js";
 import { PROMPTS, SYSTEM_PROMPT, checkCount, evaluateResponse } from "./suite.mjs";
+import { failureClass } from "./tune-failures.mjs";
 import { itemNeed, slotWidth } from "./tune-parallel.mjs";
 
 const LOAD_DEFAULTS = Object.freeze({
@@ -173,9 +174,11 @@ export function createEvaluator({ engine, modelId, prompts = PROMPTS, systemProm
         promptTokens: result.stats?.promptTokens ?? null,
         firstTokenMs: result.stats?.firstTokenMs ?? null,
         digest: digestOf(result.text),
+        // Why it failed, so a tune can say which lever helps (tune-failures.mjs).
+        failure: failureClass({ text: result.text, stopReason: result.stats?.stopReason ?? null, evaluation }),
       };
     } catch (error) {
-      return { passed: 0, total: checkCount(prompt), error: error.message, ms: Date.now() - started, tokensPerSecond: null, outputTokens: null, stopReason: null, promptTokens: null, firstTokenMs: null, digest: null };
+      return { passed: 0, total: checkCount(prompt), error: error.message, ms: Date.now() - started, tokensPerSecond: null, outputTokens: null, stopReason: null, promptTokens: null, firstTokenMs: null, digest: null, failure: "error" };
     } finally {
       clearTimeout(abortTimer);
       engine.dropSession(conversationId);

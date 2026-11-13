@@ -65,6 +65,41 @@ stops a few answers past the limit rather than a whole rung: a 0.5-minute budget
 ended at 31 s. In the app, **Minutes per model** on the Tune tab does the same per
 model; a quick pass that uses up its time keeps its preset provisional and skips
 the full continue.
+
+`npm run tune -- ... --escalate` adds power where the search has the least. Code
+rungs are small: after leaving out items no setting ever flipped, Qwen2.5 Coder 1.5B
+searched on 20 items and Qwen2.5 0.5B on 16. On a rung that small, the best of up to
+nine candidates leads by 5 to 20 points by chance alone, and the Holm-corrected gate
+rightly rejects it. With `--escalate`, a leader that misses the gate is tested once
+more, alone, against the current setting on the pool items the search never used.
+It counts as a change only if it wins there (one-sided paired test, p ≤ 0.2). It was
+picked on other items, so the fresh items carry no selection bias. The flag is
+opt-in and leaves the default search and `TUNER_VERSION` unchanged.
+
+Measured on the code task, sampling and prompt stages (i5-14400F, Radeon RX 9060 XT,
+cached answers reused), escalation retested every unproven leader:
+
+| Model | Rung leader (search rung) | Fresh items: leader vs current |
+|---|---|---|
+| Coder 1.5B | T=1 (58.3% vs 45%, 20 items) | 57.2% vs 63.0% on 81 (won 7, lost 20) |
+| Coder 1.5B | "Return only the code" prompt | 60.5% vs 63.0% on 81 |
+| Coder 1.5B | reasoning `auto` | 64.2% vs 63.0% on 81 (won 1, lost 1) |
+| Qwen 0.5B | "Change the fewest functions" prompt (68.8%, 16 items) | 29.4% vs 29.4% on 85 |
+| Qwen 0.5B | T=0.4 | 29.0% vs 29.4% on 85 (won 17, lost 16) |
+
+None held, so for both models greedy decoding with the default prompt is the best
+setting in the search space, and the earlier "gains" were noise. Escalation cost
+384 extra answers (about 4 minutes) on the 1.5B model and turned "maybe" into a
+measured "no".
+
+Every tune also ends with a `Why code answers failed …` line, and every saved answer
+carries a `failure` class: `truncated`, `empty`, `unreadable`, `timeout`, `crash`,
+`threw`, `wrong` or `error`. The classes say which lever is left. For 600 failing
+Coder 1.5B code answers they were: wrong output 78%, threw 10%, truncated 5%,
+did not run 3%, unreadable 0.5%. Settings can fix a token budget or a format, not
+wrong logic. Choosing among the model's own answers without tests did not help
+either: majority vote by output scored 43.8% against 46.3% for a single sampled
+answer (5 answers, 32 items), and it stayed near 57% on 84 items with 3 answers.
 Suite v18 has 277 items in ten categories: the 265 counted below plus 12 paraphrase
 probes (6 code, 6 comprehension) that only the held-back check and the gate ask,
 never the search. Of the 265, 262 are searched; 3 long-context needles are KV-confirmation only:

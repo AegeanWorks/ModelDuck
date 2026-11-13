@@ -16,6 +16,7 @@ import { STAGES, resultFrom, tune } from "./tune.mjs";
 import { expectedAnswers, promptAxes, qualityAxes, quickRungs, samplingAxes, speedAxes } from "./tune-grid.mjs";
 import { createEvaluator } from "./tune-evaluate.mjs";
 import { budgetDeadline } from "./tune-budget.mjs";
+import { summarizeFailures } from "./tune-failures.mjs";
 import { chooseParallel, probeItemIds, probeParallel } from "./tune-parallel.mjs";
 import { createPhaseTimer } from "./tune-timing.mjs";
 
@@ -70,7 +71,7 @@ export function tuneBase() {
  * The profile is saved after every finished setting, so stopping keeps what
  * was found and a later run resumes. Resolves `{ skipped, warnings, profile, result }`.
  */
-export async function runTune(target, { tasks, stages = STAGES, only = null, steps = null, force = false, continueRun = false, quick = false, guard = false, fullFinal = false, maxRuns = 0, passes = 0, parallel: requestedParallel = 1, budgetMinutes = null, onEvent = () => {}, onStart = () => {}, onNote = () => {} }) {
+export async function runTune(target, { tasks, stages = STAGES, only = null, steps = null, force = false, continueRun = false, quick = false, guard = false, fullFinal = false, maxRuns = 0, passes = 0, parallel: requestedParallel = 1, budgetMinutes = null, escalate = false, onEvent = () => {}, onStart = () => {}, onNote = () => {} }) {
   const saved = force ? null : await loadProfile(target.paths.profiles, target.profileId, target.fingerprint);
   const plan = planTune(saved, tasks, stages, only, { continueRun });
   const warnings = saved?.warnings ?? [];
@@ -117,7 +118,7 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
   const run = await startRun(target.paths.tuneRuns, {
     profileId: target.profileId,
     model: target.entry.fileName,
-    request: { stages, tasks, only, force, continueRun, quick, guard, maxRuns, passes, parallel: requestedParallel, budgetMinutes, rerun: plan.rerun ?? [] },
+    request: { stages, tasks, only, force, continueRun, quick, guard, maxRuns, passes, parallel: requestedParallel, budgetMinutes, escalate, rerun: plan.rerun ?? [] },
     fingerprint: target.fingerprint,
     expectedAnswers: expectedAnswers(used, { logicalCores, tasks, stages, only, quick }),
   });
@@ -135,8 +136,12 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
       stopReason: answer.stopReason ?? null, promptTokens: answer.promptTokens ?? null, firstTokenMs: answer.firstTokenMs ?? null,
       // The width this tune ran at; rows with no tag were answered serially (cachedAnswers).
       ...(width > 1 && { parallel: width }),
+      failure: answer.failure ?? null,
     })));
+    for (const answer of answers) fresh.push({ task: TASK_OF.get(answer.id) ?? null, failure: answer.failure });
   };
+  // Answers measured by this process (not restored), for the failure report.
+  const fresh = [];
   let lastState = null;
   // The time budget starts here, so the model load and any probe count against it.
   const deadline = budgetDeadline(budgetMinutes);
@@ -205,7 +210,7 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
       speedAxes: speedAxes({ logicalCores }, used.load),
       samplingAxes: (task) => samplingAxes(task, used.sampling),
       promptAxes: (task) => promptAxes(used.prompt, task),
-      options: { ...(maxRuns > 0 && { maxRuns }), ...(passes > 0 && { passes }), ...(Number.isFinite(deadline) && { deadline }) },
+      options: { ...(maxRuns > 0 && { maxRuns }), ...(passes > 0 && { passes }), ...(Number.isFinite(deadline) && { deadline }), ...(escalate && { escalate: true }) },
       onEvent,
       onAnswers,
       onProgress: async (state) => {
@@ -222,7 +227,8 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
     return lock.unregister();
   });
   const timing = timer.summary();
-  await run.finish({ outcome: result.stopped ? "stopped" : "done", error: result.stopped ?? null, timing, parallel: parallelInfo, ...snapshot({ ...result.progress, sweeps: result.sweeps, runs: result.runs }) });
+  const failures = summarizeFailures(fresh);
+  await run.finish({ outcome: result.stopped ? "stopped" : "done", error: result.stopped ?? null, timing, parallel: parallelInfo, failures, ...snapshot({ ...result.progress, sweeps: result.sweeps, runs: result.runs }) });
   // A tune that could not load the model at all has nothing to save; what earlier axes found is already saved.
   if (result.stopped) {
     throw new AppError("The tune stopped: the model could not be loaded", {
@@ -231,7 +237,7 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
       fix: "Check the GPU driver and free memory (a restart often clears a stuck GPU), or pick the CPU backend, then run the tune again. Results saved before this point are kept.",
     });
   }
-  return { skipped: false, warnings, profile: await save(result), result, timing, parallel: parallelInfo };
+  return { skipped: false, warnings, profile: await save(result), result, timing, parallel: parallelInfo, failures };
 }
 
 const shown = (value) => (typeof value === "string" && value.length > 48 ? `"${value.slice(0, 45)}…"` : typeof value === "string" ? `"${value}"` : value);
