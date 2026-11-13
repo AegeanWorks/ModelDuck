@@ -19,7 +19,7 @@ test("the three tasks cover every suite item exactly once", () => {
 test("the full final set is every scored task item, not the last search rung", () => {
   const { rungs } = withDiscriminatingRungs(tuneRungs(["code"]), new Set(), ["code"]);
   assert.equal(rungs.final.code.length, 48, "the search rung stays 48");
-  assert.equal(rungs.full.code.length, 136, "the opt-in final set is the whole code task");
+  assert.equal(rungs.full.code.length, 142, "the opt-in final set is the whole code task, paraphrase probes included");
 });
 
 test("the needed context names the suite's short code prompts and long recall", () => {
@@ -158,11 +158,15 @@ test("every task's last rung scores at least 36 items, enough to separate settin
   }
 });
 
-test("a quarter of each task is held back from tuning, across its categories, never in a rung", () => {
+test("a quarter of each task is held back from tuning, across its categories, never in a rung (ADR-054, paraphrase probes on top)", () => {
   for (const task of TASKS) {
     const all = taskPrompts(task.id);
+    const paraphrases = all.filter((prompt) => prompt.paraphrase);
     const held = taskHoldout(task.id);
-    assert.ok(held.length >= all.length * 0.2 && held.length <= all.length * 0.3, `${task.id} holds back ${held.length} of ${all.length}`);
+    const sampled = held.filter((id) => !paraphrases.some((prompt) => prompt.id === id));
+    const share = sampled.length / (all.length - paraphrases.length);
+    assert.ok(share >= 0.2 && share <= 0.3, `${task.id} samples back ${sampled.length} of ${all.length - paraphrases.length}`);
+    assert.equal(held.length, sampled.length + paraphrases.length, `${task.id} holds every paraphrase probe wholly`);
     const tuned = new Set(taskRungs(task.id).flat());
     assert.ok(held.every((id) => !tuned.has(id)), `${task.id} holds back an item it also tunes on`);
     const categories = new Set(all.filter((prompt) => held.includes(prompt.id)).map((prompt) => prompt.category));
@@ -187,7 +191,7 @@ test("the suite summary describes every task's question types, sources, checks a
   assert.equal(code.types.reduce((sum, type) => sum + type.items, 0), code.items);
   assert.equal(code.types.reduce((sum, type) => sum + type.held, 0), code.held);
   const comprehension = summary.tasks.find((task) => task.id === "comprehension");
-  assert.equal(comprehension.items, 64);
+  assert.equal(comprehension.items, 70);
   assert.deepEqual(comprehension.types.map((type) => type.category), ["code-comprehension"]);
   assert.deepEqual(comprehension.types[0].checks, ["exact"]);
 });

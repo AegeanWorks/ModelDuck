@@ -12,7 +12,7 @@
  * computed from the exact source shown, so a changed snippet and its check
  * cannot drift apart.
  */
-const COMPREHENSION_BANK = [
+export const COMPREHENSION_BANK = [
   {
     name: "sumTo",
     code: "function sumTo(n) { let total = 0; for (let i = 1; i <= n; i += 1) total += i; return total; }",

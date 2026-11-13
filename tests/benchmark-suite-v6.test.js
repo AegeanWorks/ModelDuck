@@ -39,7 +39,7 @@ test("v8 suite: unique ids, new families present, smoke ids resolve", () => {
   const categories = new Set(PROMPTS.map((prompt) => prompt.category));
   for (const family of ["code", "bugfix", "code-comprehension", "recall"]) assert.ok(categories.has(family), family);
   for (const id of SMOKE_PROMPT_IDS) assert.ok(ids.includes(id), id);
-  assert.equal(executable.length, 66 + 12, "v13 adds six long functions and six long bug fixes");
+  assert.equal(executable.length, 66 + 12 + 6, "v13 adds six long functions and six long bug fixes, v18 six code paraphrase probes");
 });
 
 test("every executable case is satisfied by a reference solution", () => {
@@ -140,7 +140,7 @@ const PUBLIC_REFERENCE = {
 test("public items carry source and license, and translated code cases hold", () => {
   const publicItems = PROMPTS.filter((prompt) => prompt.category.startsWith("public-"));
   assert.equal(publicItems.length, 20);
-  assert.equal(PROMPTS.length - publicItems.length, 245, "ModelDuck's own questions stay in the suite");
+  assert.equal(PROMPTS.length - publicItems.length, 257, "ModelDuck's own questions stay in the suite");
   for (const prompt of publicItems) {
     assert.ok(prompt.source?.dataset && prompt.source?.license, prompt.id);
     for (const check of prompt.checks.filter((item) => item.type === "jsTests")) {

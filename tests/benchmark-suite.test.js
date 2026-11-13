@@ -26,7 +26,7 @@ import {
 test("the benchmark keeps at least three different small model classes", () => {
   assert.ok(BENCHMARK_MODELS.length >= 3);
   assert.ok(new Set(BENCHMARK_MODELS.map((model) => model.kind)).size >= 3);
-  assert.equal(PROMPTS.length, 265);
+  assert.equal(PROMPTS.length, 277);
   const gallery = readFileSync(fileURLToPath(new URL("../assets/screenshots/README.md", import.meta.url)), "utf8");
   assert.ok(gallery.includes(`${PROMPTS.length} questions`), "the screenshot gallery names the current suite size");
 });

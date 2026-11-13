@@ -15,7 +15,7 @@ npm run ui:shots
 | 0:00–0:08 | `01-overview.png` | Cold open: “Serve the model. Tune the code.” |
 | 0:08–0:16 | `02-models-installed.png` | Two local GGUF models, no cloud account. |
 | 0:16–0:24 | `03-models-discover.png` | Catalog models sized for this PC. |
-| 0:24–0:34 | `11-bench-suite.png` | The three-task coding suite: 265 questions. |
+| 0:24–0:34 | `11-bench-suite.png` | The three-task coding suite: 277 questions. |
 | 0:34–0:44 | `11b-bench-suite-long-context.png` | Comprehension and long-context coverage. |
 | 0:44–0:55 | `04-bench-tune-idle.png` | Task scope, quick/full preflight and measured pace. |
 | 0:55–1:05 | `04b-bench-tune-controls.png` | Quick pass, pause, guard and background controls. |

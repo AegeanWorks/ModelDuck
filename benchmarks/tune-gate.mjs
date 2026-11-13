@@ -10,7 +10,7 @@ import { answerDigest, answerFingerprint, cachedRowCount, gateCacheFile, generat
 import { currentGitInfo, recordRun } from "./history.mjs";
 import { CORE_MODEL_IDS } from "./matrix.mjs";
 import { BENCHMARK_MODELS } from "./suite.mjs";
-import { TASKS, tuneRungs } from "./tasks.mjs";
+import { TASKS, taskParaphrase, tuneRungs } from "./tasks.mjs";
 import { measurePresets } from "./tune.mjs";
 import { runPool } from "./model-pool.mjs";
 import { BASELINE_SCHEMA, TUNER_VERSION, baselineEntry, comparability, compareToBaseline, hardwareWarning, presetSettings, requireBaselineModels } from "./tune-baseline.mjs";
@@ -141,6 +141,7 @@ async function gate(options, home) {
   }
   requireBaselineModels(baseline);
   const current = {};
+  const paraphrase = {};
   let identity = null;
   const repoRoot = path.join(HERE, "..");
   // IDEA-1764: the reuse fingerprint covers the whole world identity plus the
@@ -172,6 +173,7 @@ async function gate(options, home) {
   for (const item of measured) {
     if (item.error) throw item.error;
     current[item.catalogId] = item.currentTasks.tasks;
+    if (item.currentTasks.paraphrase) paraphrase[item.catalogId] = item.currentTasks.paraphrase;
     if (identity === null) identity = item.currentTasks.identity;
   }
 
@@ -202,31 +204,48 @@ async function gate(options, home) {
     const rotation = cached?.runs ?? 0;
     const freshGroups = [];
     process.stdout.write(`Measuring ${catalogId} on its baseline settings…${reusedRows ? ` (${reusedRows} cached answers, window ${rotation + 1})` : ""}\n`);
-    const measuredPresets = await withEngine(target, (engine) => measurePresets({
-      evaluate: createEvaluator({ engine, modelId: target.entry.id }),
-      load: { ...tuneBase(), ...entry.load },
-      presets,
-      rungs: tuneRungs(Object.keys(presets)),
-      restore,
-      // IDEA-1765: the tripwire window for this run, rotating per gate.
-      tripwire: (task, allIds) => tripwireWindow(allIds, rotation),
-      escalate: (task, probeStats) =>
-        probeStats?.failed === true ||
-        probeDisagrees(entry.tasks[task]?.outcomes, probeStats?.outcomes),
-      // Transient errors are not measurements: a failed load must not be
-      // cached and replayed as a real answer (the tuner's G2 store skips them
-      // the same way).
-      onAnswers: (settings, seed, rows) => {
-        const kept = rows.filter((row) => row && !row.error);
-        if (kept.length) freshGroups.push({ settings, seed, rows: kept });
-      },
-    }));
-    const { reusedAnswers, freshAnswers, ...currentTasks } = measuredPresets;
-    process.stdout.write(`  answers: ${reusedAnswers} reused, ${freshAnswers} fresh${reusedRows || freshAnswers ? "" : " (cache cold)"}\n`);
-    await saveGateCache(cacheFile, { fingerprint, judgeDigest: codeDigest, groups: mergeAnswerGroups(restore, freshGroups), runs: cached?.runs ?? 0 }).catch((error) => {
-      process.stdout.write(`  note: the answer cache could not be saved (${error.message}); the next gate re-measures.\n`);
+    const onAnswers = (settings, seed, rows) => {
+      const kept = rows.filter((row) => row && !row.error);
+      if (kept.length) freshGroups.push({ settings, seed, rows: kept });
+    };
+    // ADR-100: the paraphrase probes ride the holdout side, so after the
+    // paired verdict the same settings also answer requests worded unlike
+    // anything the search tuned on. Informational only: they never enter
+    // the Holm family.
+    const { measured: measuredPresets, paraphrase } = await withEngine(target, async (engine) => {
+      const evaluate = createEvaluator({ engine, modelId: target.entry.id });
+      const measured = await measurePresets({
+        evaluate,
+        load: { ...tuneBase(), ...entry.load },
+        presets,
+        rungs: tuneRungs(Object.keys(presets)),
+        restore,
+        // IDEA-1765: the tripwire window for this run, rotating per gate.
+        tripwire: (task, allIds) => tripwireWindow(allIds, rotation),
+        escalate: (task, probeStats) =>
+          probeStats?.failed === true ||
+          probeDisagrees(entry.tasks[task]?.outcomes, probeStats?.outcomes),
+        // Transient errors are not measurements: a failed load must not be
+        // cached and replayed as a real answer (the tuner's G2 store skips them the same way).
+        onAnswers,
+      });
+      const paraRungs = Object.fromEntries(Object.keys(presets).map((task) => [task, [taskParaphrase(task)]]));
+      const probed = Object.values(paraRungs).every(([ids]) => !ids.length)
+        ? null
+        : await measurePresets({ evaluate, load: { ...tuneBase(), ...entry.load }, presets, rungs: paraRungs, restore, onAnswers });
+      const paraphrase = probed
+        ? Object.fromEntries(Object.entries(presets).filter(([task]) => paraRungs[task][0].length).map(([task]) => [task, { rate: probed[task].rate, items: probed[task].items }]))
+        : null;
+      return { measured, paraphrase };
     });
-    return { identity, tasks: currentTasks };
+    const { reusedAnswers, freshAnswers, ...currentTasks } = measuredPresets;
+    process.stdout.write(`  answers: ${reusedAnswers} reused, ${freshAnswers} fresh${reusedRows || freshAnswers ? "" : " (cache cold)"}
+`);
+    await saveGateCache(cacheFile, { fingerprint, judgeDigest: codeDigest, groups: mergeAnswerGroups(restore, freshGroups), runs: cached?.runs ?? 0 }).catch((error) => {
+      process.stdout.write(`  note: the answer cache could not be saved (${error.message}); the next gate re-measures.
+`);
+    });
+    return { identity, tasks: currentTasks, paraphrase };
   }
   const comparison = compareToBaseline(baseline, current);
   const warned = new Set();
@@ -245,8 +264,13 @@ async function gate(options, home) {
       if (warning) process.stdout.write(`  note: ${warning}\n`);
     }
   }
+  // ADR-100: the paraphrase probes report informationally after the verdict rows.
+  for (const [catalogId, lanes] of Object.entries(paraphrase)) {
+    process.stdout.write(`paraphrase ${catalogId}: ${Object.entries(lanes).map(([task, stats]) => `${task} ${stats.rate ?? "?"}% (${stats.items} probes)`).join(" · ")}
+`);
+  }
   const finishedAt = new Date().toISOString();
-  const result = { schema: 3, phase: "tune-gate", suiteVersion: identity.suiteVersion, testHash: identity.taskHash, runtime: { nodeLlamaCpp: identity.nodeLlamaCpp }, createdAt: finishedAt, finishedAt, tuneGate: { ...comparison, current } };
+  const result = { schema: 3, phase: "tune-gate", suiteVersion: identity.suiteVersion, testHash: identity.taskHash, runtime: { nodeLlamaCpp: identity.nodeLlamaCpp }, createdAt: finishedAt, finishedAt, tuneGate: { ...comparison, current, paraphrase } };
   await ensureDirectory(path.dirname(LATEST));
   await writeFile(LATEST, `${JSON.stringify(result, null, 2)}\n`);
   await recordRun({ dbPath: path.join(HERE, "history.sqlite"), historyPath: path.join(HERE, "history.jsonl"), result, git: currentGitInfo(HERE) });

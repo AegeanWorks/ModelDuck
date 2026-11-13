@@ -7,8 +7,9 @@ import { moreKnowledgePrompts, moreLongBugPrompts, moreLongCodePrompts, moreMath
 import { changeAndTracePrompts } from "./repo-items-v13.mjs";
 import { publicPrompts } from "./public-items.mjs";
 import { codeComprehensionPrompts } from "./comprehension-items.mjs";
+import { paraphrasePrompts } from "./paraphrase-items.mjs";
 
-export const SUITE_VERSION = 17;
+export const SUITE_VERSION = 18;
 
 export const SYSTEM_PROMPT =
   "You are a precise assistant. Follow the requested output format exactly. " +
@@ -346,6 +347,7 @@ const ALL_PROMPTS = [
   ...factPrompts(),
   ...publicPrompts(),
   ...codeComprehensionPrompts(),
+  ...paraphrasePrompts(),
 ];
 
 /**

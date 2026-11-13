@@ -103,7 +103,11 @@ function stratified(prompts) {
  * consults them separately.
  */
 function split(taskId, prompts) {
-  const items = taskPrompts(taskId, prompts).filter((prompt) => !prompt.longContext);
+  // Paraphrase probes (ADR-100) are held back wholly: they are never in the
+  // search, so the holdout check reads them as phrasing-unseen evidence.
+  const paraphrases = taskPrompts(taskId, prompts).filter((prompt) => prompt.paraphrase && !prompt.longContext);
+  const paraIds = paraphrases.map((prompt) => prompt.id);
+  const items = taskPrompts(taskId, prompts).filter((prompt) => !prompt.longContext && !prompt.paraphrase);
   const buckets = new Map();
   for (const prompt of items) {
     const key = bucketKey(prompt);
@@ -123,7 +127,7 @@ function split(taskId, prompts) {
     }));
   }
   const order = stratified(items);
-  return { tune: order.filter((id) => !held.has(id)), held: order.filter((id) => held.has(id)) };
+  return { tune: order.filter((id) => !held.has(id)), held: [...order.filter((id) => held.has(id)), ...paraIds] };
 }
 
 /** Long-context KV confirmation items (M6): searched never, used only to confirm a KV choice at the budgeted context. */
@@ -131,9 +135,14 @@ export function taskLongContext(taskId, prompts = PROMPTS) {
   return taskPrompts(taskId, prompts).filter((prompt) => prompt.longContext).map((prompt) => prompt.id);
 }
 
-/** The items a task holds back from tuning, across its categories. */
+/** The items a task holds back from tuning: the sampled shared holdout plus every paraphrase probe. */
 export function taskHoldout(taskId, prompts = PROMPTS) {
   return split(taskId, prompts).held;
+}
+
+/** Paraphrase probes (ADR-100): reworded mirrors of base items, searched never, so the gate reports them informationally. */
+export function taskParaphrase(taskId, prompts = PROMPTS) {
+  return taskPrompts(taskId, prompts).filter((prompt) => prompt.paraphrase).map((prompt) => prompt.id);
 }
 
 /** Nested item-id lists, one per rung, each a prefix of the next, from the items tuned on. */

@@ -13,8 +13,8 @@ const count = (category) => V9_ON.filter((prompt) => prompt.category === categor
 
 test("suite v9 adds our own coding and bug-fix questions, long ones included", () => {
   assert.ok(SUITE_VERSION >= 9);
-  assert.equal(V9_ON.filter((prompt) => (prompt.category.includes("code") || prompt.category.includes("bugfix")) && prompt.category !== "code-comprehension" && !prompt.category.endsWith("-repo")).length, 88);
-  assert.equal(count("code"), 30);
+  assert.equal(V9_ON.filter((prompt) => (prompt.category.includes("code") || prompt.category.includes("bugfix")) && prompt.category !== "code-comprehension" && !prompt.category.endsWith("-repo")).length, 94, "v18 adds six code paraphrase probes");
+  assert.equal(count("code"), 36, "30 own plus six paraphrase probes");
   assert.equal(count("code-long"), 6);
   assert.equal(count("bugfix"), 26);
   assert.equal(count("bugfix-long"), 6);

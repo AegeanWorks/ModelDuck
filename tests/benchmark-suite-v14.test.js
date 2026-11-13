@@ -19,17 +19,17 @@ const coding = [...moreLongCodePrompts(), ...moreLongBugPrompts()];
 const count = (category) => PROMPTS.filter((prompt) => prompt.category === category).length;
 
 test("suite v14 is code, code comprehension and long context only", () => {
-  assert.equal(SUITE_VERSION, 17, "v17: long-context KV confirmation items (G-003)");
-  assert.equal(PROMPTS.length, 265);
+  assert.equal(SUITE_VERSION, 18, "v18: paraphrase probes (G-003)");
+  assert.equal(PROMPTS.length, 277);
   assert.equal(new Set(PROMPTS.map((prompt) => prompt.id)).size, PROMPTS.length, "ids stay unique");
-  assert.equal(count("code"), 30);
+  assert.equal(count("code"), 36, "30 own plus six paraphrase probes");
   assert.equal(count("code-long"), 12);
   assert.equal(count("bugfix"), 26);
   assert.equal(count("bugfix-long"), 12);
   assert.equal(count("code-repo"), 24);
   assert.equal(count("bugfix-repo"), 12);
   assert.equal(count("public-code"), 20);
-  assert.equal(count("code-comprehension"), 64);
+  assert.equal(count("code-comprehension"), 70, "64 own plus six paraphrase probes");
   assert.equal(count("context"), 14);
   assert.equal(count("recall"), 51);
   for (const removed of ["instruction", "format", "comprehension", "knowledge", "facts", "reasoning", "public-math", "public-knowledge", "public-truthful"]) {
@@ -39,27 +39,31 @@ test("suite v14 is code, code comprehension and long context only", () => {
   for (const id of SMOKE_PROMPT_IDS) assert.ok(PROMPTS.some((prompt) => prompt.id === id), id);
 });
 
-test("the three tasks have full rungs and a held-back quarter", () => {
-  assert.equal(taskPrompts("code").length, 136);
-  assert.equal(taskPrompts("comprehension").length, 64);
+test("the three tasks have full rungs and a held-back quarter, paraphrase probes wholly held (v18)", () => {
+  assert.equal(taskPrompts("code").length, 142, "code adds six paraphrase probes");
+  assert.equal(taskPrompts("comprehension").length, 70, "comprehension adds six paraphrase probes");
   assert.equal(taskPrompts("recall").length, 65);
   assert.deepEqual(taskRungs("code").map((rung) => rung.length), [12, 24, 48]);
   assert.deepEqual(taskRungs("comprehension").map((rung) => rung.length), [12, 24, 48]);
   assert.deepEqual(taskRungs("recall").map((rung) => rung.length), [12, 24, 46]);
-  assert.equal(taskHoldout("comprehension").length, 16);
+  assert.equal(taskHoldout("comprehension").length, 22, "sixteen sampled plus six paraphrase probes");
   assert.equal(taskHoldout("recall").length, 16);
   const comprehension = taskPrompts("comprehension");
   const held = new Set(taskHoldout("comprehension"));
-  const groups = [...new Set(comprehension.map((item) => item.group))];
+  const base = comprehension.filter((item) => !item.paraphrase);
+  const paraphrase = comprehension.filter((item) => item.paraphrase);
+  const groups = [...new Set(base.map((item) => item.group))];
   assert.equal(groups.length, 32, "each comprehension function is its own family");
   for (const group of groups) {
-    const family = comprehension.filter((item) => item.group === group);
+    const family = base.filter((item) => item.group === group);
     assert.equal(family.length, 2, `${group} has two inputs`);
     const heldCount = family.filter((item) => held.has(item.id)).length;
     assert.ok(heldCount === 0 || heldCount === 2, `${group} is held back wholly or not at all`);
   }
-  const heldGroups = new Set(comprehension.filter((item) => held.has(item.id)).map((item) => item.group));
+  const heldGroups = new Set(base.filter((item) => held.has(item.id)).map((item) => item.group));
   assert.equal(heldGroups.size, 8, "eight whole functions stay unseen");
+  assert.equal(paraphrase.length, 6, "the paraphrase probes are their own family");
+  assert.ok(paraphrase.every((item) => held.has(item.id)), "every paraphrase probe stays unseen by the search");
 });
 
 test("long-context KV items are seeded needles excluded from search, speed and holdout (M6)", () => {
