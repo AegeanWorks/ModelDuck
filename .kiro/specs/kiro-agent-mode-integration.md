@@ -107,13 +107,22 @@ User describes feature
 
 ### Task 3 — .kiro/ added to git tracking
 
-- [ ] Confirm `.kiro/` is not in `.gitignore`
-- [ ] `git add .kiro/` and commit
+- [x] Confirm `.kiro/` is not in `.gitignore`
+- [x] `git add .kiro/` and commit (steering and this spec are tracked)
 
-### Task 4 — Optional: hook files for PostFileSave and PostTaskExec
+### Task 4 — Hook files for PostFileSave
 
-- [ ] Create `.kiro/hooks/test-on-save.json`
-- [ ] Create `.kiro/hooks/tune-gate-reminder.json`
+- [x] `modelduck-test-on-save`: PostFileSave on ModelDuck `.js`/`.mjs` →
+  `npm --prefix projects/modelduck test`
+- [x] `modelduck-tune-gate-reminder`: PostFileSave on generation-path files →
+  agent reminder for `npm run tune:gate` (G-001); never `--update-baseline`
+  without an explicit request
+
+Both are in the workspace root's `.kiro/hooks/` (the AIKit folder), not in this
+repository: Kiro loads hooks from the open workspace, and that is the AIKit
+folder. A PostFileSave matcher replaced the planned PostTaskExec reminder,
+because the reminder is due when a generation-path file changes, not when an
+unrelated task completes.
 
 ---
 

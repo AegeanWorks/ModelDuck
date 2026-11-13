@@ -18,6 +18,39 @@ A GPU is optional. CPU-only inference works out of the box.
 
 ---
 
+## The 5-minute path
+
+The point of ModelDuck is time to a good local setup. This path shows all three
+speeds: a measured preset in seconds, a time-boxed tune in minutes, and a
+multistep evaluation that says how well the model keeps state across steps.
+
+1. **Start it**: double-click `start.bat` (details below). It opens at
+   http://127.0.0.1:4141.
+2. **Get a small model**: Models → Discover → **Qwen2.5 0.5B Instruct Q4**
+   (469 MB) → Download → Install.
+3. **Seconds: apply a measured preset.** Bench & Tune → Tune → open
+   **Shipped presets** → **Apply** next to `qwen2.5-0.5b-instruct-q4`. The row says
+   how it fits your computer before you click. A preset measured on another
+   machine applies its sampling and prompt settings only; its GPU and thread
+   settings stay at your defaults. Nothing is applied unless you click.
+4. **Minutes: a time-boxed tune.** Set **Minutes per model** to `3` and click
+   **Quick pass**. The tuner stops when the time is up, keeps the best settings
+   it has verified, and marks them provisional. From a terminal the same is
+   `npm run tune -- --model qwen2.5-0.5b-instruct-q4 --quick --budget 3`, which ends
+   with a `Time …` line saying where the minutes went (generate, load, judge).
+5. **Multistep: does it keep state?**
+   ```powershell
+   npm run bench:multistep -- --model qwen2.5-0.5b-instruct-q4
+   ```
+   Five 3-step coding chains run as one conversation each; every step changes or
+   builds on the model's own earlier code and is checked by running it. The last
+   line gives the rate at each step depth. Measured on a Radeon RX 9060 XT
+   (Vulkan): Qwen2.5 0.5B scored 50% at step 1 and 16% at step 2, while Qwen2.5
+   Coder 1.5B held 82% → 84% → 72%. Each run took about 10 s on that GPU; on a CPU
+   expect a minute or two (not measured).
+
+---
+
 ## Installation (from the zip)
 
 1. Extract `ModelDuck-Windows-x64.zip` to any folder (e.g. `C:\ModelDuck`).
@@ -97,9 +130,9 @@ cd C:\ModelDuck
 npm test
 ```
 
-This runs about 690 hermetic unit and integration tests in 84 files. No model
-files required. Expected output: all tests pass. It takes about 12 seconds on a
-modern CPU; `npm run test:parallel` splits it into shards and takes under 10.
+This runs about 750 hermetic unit and integration tests in 88 files. No model
+files required. Expected output: all tests pass. It takes about 8 to 12 seconds
+on a modern CPU; `npm run test:parallel` splits it into shards.
 
 ---
 

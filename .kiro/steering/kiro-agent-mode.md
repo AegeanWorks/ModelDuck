@@ -75,11 +75,33 @@ A Spec session should produce: requirements → design → implementation tasks.
 
 ## Hooks available in this workspace
 
-The `.kiro/hooks/` directory (once populated) can automate:
+Two hooks live in the workspace's `.kiro/hooks/`, which is the AIKit folder that
+holds `projects/modelduck`. They match only ModelDuck paths:
 
-- **PostFileSave** on `src/**/*.js` — run `npm test` automatically.
-- **PostTaskExec** — remind Kiro to run `npm run tune:gate` after any
-  generation-affecting task completes.
+- **modelduck-test-on-save** (PostFileSave on `src`, `benchmarks`, `tests` or
+  `public` `.js`/`.mjs`): runs `npm --prefix projects/modelduck test`. The suite
+  is hermetic, takes about 10 s, and needs no model or network.
+- **modelduck-tune-gate-reminder** (PostFileSave on the generation path:
+  `engine`, `sampler-chain`, `checkpoint-policy`, `config`,
+  `generation-manifest`, `tune*`, `tasks`, `suite`): reminds Kiro that
+  `npm run tune:gate` is due before commit (G-001), and that `--update-baseline`
+  needs the user's explicit request.
+
+Neither hook starts the server or downloads a model.
+
+## Fast paths Kiro should know
+
+- `npm run tune -- --model <id> --quick --budget 5`: a time-boxed tune that
+  saves the best settings so far. It ends with a `Time …` line that splits the
+  wall time into generate, load and judge.
+- `--parallel <2-4|auto>`: opt-in wide answers. A probe first requires
+  byte-identical answers and at least 15% less wall time. It often refuses on a
+  CPU, and that is the intended result.
+- Bench & Tune → Shipped presets → **Apply**: one click, never automatic
+  (G-004).
+- `npm run bench:multistep -- --model <id>`: opt-in multistep chains. They are
+  outside `PROMPTS` and `TASKS`, so they change no gated hash. Keep it that way:
+  do not add them to `TASKS`.
 
 ---
 

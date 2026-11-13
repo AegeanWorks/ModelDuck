@@ -33,7 +33,7 @@ vanilla JS app served as static files.
 | `src/` | Server, engine, download, settings, benchmark runners |
 | `public/` | Vanilla JS/CSS control panel (no build step) |
 | `benchmarks/` | Seeded quality-and-speed benchmark suite (node:test) |
-| `tests/` | Unit and integration tests (node:test, 80+ test files) |
+| `tests/` | Unit and integration tests (node:test, 88 test files) |
 | `docs/` | Threat model, state-machine inventory |
 | `assets/` | Logo, social preview, screenshots, demo video script |
 | `scripts/` | Screenshot capture, parallel test runner, UI smoke check |
@@ -46,6 +46,8 @@ npm start            # starts on http://127.0.0.1:4141
 npm test             # full test suite
 npm run dev          # file-watch restart mode
 npm run ui:smoke     # headless control-panel sanity check (needs Node 22+)
+npm run tune -- --model <id> --quick --budget 5   # time-boxed tune, best-so-far saved
+npm run bench:multistep -- --model <id>           # opt-in multistep chains, not gated
 ```
 
 ## Regression gates
