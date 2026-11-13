@@ -165,6 +165,32 @@ test("SettingsStore isolates stop lists and ignores non-object patches", async (
   assert.deepEqual(store.value.customStopTriggers, []);
 });
 
+// IDEA-1097: version fence prevents silent downgrade on load.
+test("SettingsStore rejects a newer version file", async (t) => {
+  const { SettingsStore } = await import("../src/settings.js");
+  const file = path.join(os.tmpdir(), `duck-settings-version-${process.pid}-${Date.now()}.json`);
+  t.after(() => import("node:fs/promises").then((fs) => fs.rm(file, { force: true })));
+  // Write a settings file with a future version
+  const { writeJsonAtomic } = await import("../src/fs-atomic.js");
+  await writeJsonAtomic(file, { version: 999, settings: { temperature: 0.5 } });
+  const store = new SettingsStore({ file, logger: { warn() {}, error() {} } });
+  await assert.rejects(store.load(), /is newer than supported/);
+});
+
+// IDEA-1097: missing or older version is accepted.
+test("SettingsStore accepts missing or older version", async (t) => {
+  const { SettingsStore } = await import("../src/settings.js");
+  const file = path.join(os.tmpdir(), `duck-settings-version-ok-${process.pid}-${Date.now()}.json`);
+  t.after(() => import("node:fs/promises").then((fs) => fs.rm(file, { force: true })));
+  const { writeJsonAtomic } = await import("../src/fs-atomic.js");
+  // Test with missing version
+  await writeJsonAtomic(file, { settings: { temperature: 0.5 } });
+  const store1 = new SettingsStore({ file, logger: { warn() {}, error() {} } });
+  await store1.load(); // Should not throw
+  // Test with older version (0)
+  const store2 = new SettingsStore({ file, logger: { warn() {}, error() {} } });
+});
+
 test("boolean strings parse instead of Boolean() truthiness", () => {
   assert.equal(normalizeSettings({ checkpoints: "false" }).checkpoints, false);
   assert.equal(normalizeSettings({ checkpoints: "0" }).checkpoints, false);

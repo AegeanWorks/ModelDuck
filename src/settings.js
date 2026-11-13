@@ -33,6 +33,22 @@ export function mergeSettingsDeep(current, patch) {
   return next;
 }
 
+/**
+ * IDEA-1097: validate the settings version on load.
+ * A newer file must never be silently downgraded by an older build.
+ */
+function validateSettingsVersion(data) {
+  if (!data || typeof data !== "object") return;
+  const fileVersion = data.version;
+  if (typeof fileVersion !== "number") return;
+  if (fileVersion > SETTINGS_VERSION) {
+    throw new Error(
+      "Settings file version " + fileVersion + " is newer than supported version " + SETTINGS_VERSION + 
+      ". Please upgrade ModelDuck.",
+    );
+  }
+}
+
 export class SettingsStore {
   #value;
   #file;
@@ -50,6 +66,8 @@ export class SettingsStore {
 
   async load() {
     const data = await readJsonWithQuarantine(this.#file, null, { logger: this.#logger });
+    // IDEA-1097: validate version before processing
+    validateSettingsVersion(data);
     const raw = data && typeof data === "object" && data.settings ? data.settings : data;
     this.#value = normalizeSettings(fenceSettingsPatch(raw ?? {}));
     return this.value;
