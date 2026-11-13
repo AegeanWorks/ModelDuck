@@ -239,8 +239,22 @@ skill/tool publisher, benchmark publisher, runtime supplier).
 
 Rough numbers; the app reports real context and memory.
 
-Q4_K_M is lossy: expect small quality drift versus the Q8_0 ceiling in the
-same family. No catalog entry uses imatrix calibration. Memory math is fixed
+**For code, spend memory on model size, not precision.** Measured greedy on all
+142 code items (i5-14400F, Radeon RX 9060 XT; one machine):
+
+| Model file | Code | vs Coder 1.5B Q4 |
+|---|---:|---|
+| Qwen2.5 Coder 1.5B Q4_K_M (1.0 GB) | 60.6% | — |
+| Qwen2.5 Coder 1.5B F16 (2.9 GB) | 60.6% | 5 won, 5 lost |
+| Llama 3.2 3B Q4_K_M (1.9 GB) | 60.6% | 17 won, 17 lost |
+| Phi-3.5 Mini Q4_K_M (2.2 GB) | 50.0% | 9 won, 24 lost (p=0.007) |
+| Qwen2.5 Coder 0.5B F16 / Q8_0 | 41.5% / 40.8% | — |
+
+Q4_K_M lost nothing measurable against F16 for code. The 1.5B coder matched a 3B
+general model at about half the memory and time.
+
+Q4_K_M is lossy in principle: expect small quality drift versus the Q8_0 ceiling
+in the same family. No catalog entry uses imatrix calibration. Memory math is fixed
 bytes (weights + KV + runtime reserve); the Q5 entry costs ~30 MB more
 weights than its Q4 sibling.
 

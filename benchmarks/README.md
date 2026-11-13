@@ -92,6 +92,11 @@ setting in the search space, and the earlier "gains" were noise. Escalation cost
 384 extra answers (about 4 minutes) on the 1.5B model and turned "maybe" into a
 measured "no".
 
+So the remaining coding headroom is in the model file, not the settings. Greedy on
+all 142 code items: Coder 1.5B Q4_K_M 86 (60.6%), the same model at F16 86 (5 won,
+5 lost), Llama 3.2 3B Q4_K_M 86 (17 won, 17 lost, so it solves different items),
+Phi-3.5 Mini Q4_K_M 71 (50.0%, p=0.007 worse), Coder 0.5B F16 59 and Q8_0 58.
+
 Every tune also ends with a `Why code answers failed …` line, and every saved answer
 carries a `failure` class: `truncated`, `empty`, `unreadable`, `timeout`, `crash`,
 `threw`, `wrong` or `error`. The classes say which lever is left. For 600 failing
