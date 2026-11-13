@@ -625,6 +625,10 @@ test("tunes for one model or all installed models are scheduled, watched and can
   assert.equal(starts.at(-1).quick, true);
   assert.equal(starts.at(-1).guard, true);
   assert.equal(starts.at(-1).guardQueue, true);
+  assert.equal(starts.at(-1).budgetMinutes, null, "no budget unless one is sent");
+  const budgeted = await post("/api/tune/start", { models: [installed.id], tasks: ["code"], quick: true, budgetMinutes: 5 });
+  assert.equal(budgeted.status, 202);
+  assert.equal(starts.at(-1).budgetMinutes, 5, "a per-model time budget reaches the scheduler");
   assert.equal((await (await post("/api/tune/pause")).json()).job.paused, true);
   assert.equal((await (await post("/api/tune/resume")).json()).job.paused, false);
   assert.equal((await post("/api/tune/priority", { profileId: profileIdFor(installed.fileName), direction: "down" })).status, 200);

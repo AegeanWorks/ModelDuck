@@ -2630,6 +2630,16 @@ label.small-btn {
   border-top: 1px solid var(--line);
 }
 
+.tune-budget {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tune-budget input {
+  width: 7em;
+}
+
 .tune-actions .primary-btn {
   margin-inline-start: auto;
 }

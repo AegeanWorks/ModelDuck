@@ -508,7 +508,7 @@ export async function tune({
   const threadCap = hardware.logicalCores ? Math.max(1, Math.floor(hardware.logicalCores * 0.75)) : Infinity;
   const start = (base.threads ?? 0) > threadCap ? { ...base, threads: threadCap } : base;
   const state = resume ? { ...emptyProgress(), ...structuredClone(resume) } : emptyProgress();
-  const context = { options: settings, measurements: new Measurements(evaluate, settings.maxRuns, onAnswers, { quota: settings.quota ?? Infinity }), sweeps: state.sweeps, onEvent, stageBest: -Infinity, stageBestSolved: -Infinity, valid: isValidCombination, typeOf, groupOf, clusterOf };
+  const context = { options: settings, measurements: new Measurements(evaluate, settings.maxRuns, onAnswers, { quota: settings.quota ?? Infinity, deadline: settings.deadline ?? Infinity, ...(settings.clock && { clock: settings.clock }) }), sweeps: state.sweeps, onEvent, stageBest: -Infinity, stageBestSolved: -Infinity, valid: isValidCombination, typeOf, groupOf, clusterOf };
   // A continue or re-tune reuses exact settings/seed/item matches from earlier answers (G8).
   for (const saved of restore ?? []) {
     try {
@@ -712,8 +712,11 @@ export async function tune({
   // IDEA-1580: the fixed quota surfaces alongside the run budget, so a capped
   // tune says it stopped on quota rather than looking like a full tune.
   const quotaExhausted = context.measurements.quotaExceeded;
-  const result = resultFrom(state, { budgetExhausted: context.measurements.exhausted && !stopped, stopped, tunedOn, options: { ...settings, seeds: [...settings.seeds] } });
-  const withQuota = quotaExhausted ? { ...result, quotaExhausted: true, quota: settings.quota } : result;
+  // A time budget surfaces the same way: the tune says it stopped on time, and a resume continues it.
+  const timeExhausted = context.measurements.deadlinePassed;
+  const { clock: _clock, ...recorded } = settings;
+  const result = resultFrom(state, { budgetExhausted: context.measurements.exhausted && !stopped, stopped, tunedOn, options: { ...recorded, seeds: [...settings.seeds] } });
+  const withQuota = { ...result, ...(quotaExhausted && { quotaExhausted: true, quota: settings.quota }), ...(timeExhausted && { timeExhausted: true }) };
   return state.guard ? { ...withQuota, guard: state.guard } : withQuota;
 }
 

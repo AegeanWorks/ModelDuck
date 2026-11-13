@@ -115,6 +115,7 @@ const els = {
   tuneCancel: $("tune-cancel"),
   tuneGuard: $("tune-guard"),
   tuneGuardQueue: $("tune-guard-queue"),
+  tuneBudget: $("tune-budget"),
   tuneBackground: $("tune-background"),
   tunePreflight: $("tune-preflight"),
   tuneProgress: $("tune-progress"),
@@ -3019,6 +3020,12 @@ async function pollTune() {
   }
 }
 
+/** Minutes per model from the Tune form, or null when the field is empty or not a positive number. */
+function tuneBudget() {
+  const minutes = Number(els.tuneBudget?.value);
+  return els.tuneBudget?.value && Number.isFinite(minutes) && minutes > 0 ? minutes : null;
+}
+
 async function startTune(models, { force = false, forceStale = false, stage = null, tasks = null, only = null, continueRun = false, quick = false, useForm = true } = {}) {
   // A stage button (one stage) or the re-run button (several) runs just those, whatever the boxes above say.
   const settings = only ?? (useForm && !stage ? [...els.tuneOnly.querySelectorAll("input:checked")].map((input) => input.value) : []);
@@ -3039,7 +3046,7 @@ async function startTune(models, { force = false, forceStale = false, stage = nu
   // A task subset is a part run too: scratch on a subset would save a profile without the other tasks.
   const partRun = settings.length > 0 || stages.length < all.length || (taskList && taskList.length < TUNE_TASKS.length);
   try {
-    const { job } = await request("/api/tune/start", { method: "POST", body: { models, ...(taskList && { tasks: taskList }), ...(continueRun && { continue: true }), stages, settings: settings.length ? settings : null, force: !continueRun && (useForm ? ((force && !partRun) || (!stage && els.tuneForce.checked)) : force), forceStale, quick: Boolean(quick), guard: useForm ? Boolean(els.tuneGuard?.checked) : false, guardQueue: useForm ? Boolean(els.tuneGuardQueue?.checked) : false } });
+    const { job } = await request("/api/tune/start", { method: "POST", body: { models, ...(taskList && { tasks: taskList }), ...(continueRun && { continue: true }), stages, settings: settings.length ? settings : null, force: !continueRun && (useForm ? ((force && !partRun) || (!stage && els.tuneForce.checked)) : force), forceStale, quick: Boolean(quick), guard: useForm ? Boolean(els.tuneGuard?.checked) : false, guardQueue: useForm ? Boolean(els.tuneGuardQueue?.checked) : false, ...(useForm && tuneBudget() && { budgetMinutes: tuneBudget() }) } });
     state.tuneJob = job;
     // A started tune is followed on the Tune tab.
     showBenchTab("tune");

@@ -57,6 +57,14 @@ under load: Qwen2.5 0.5B matched 4 of 4 but was not faster (16.7 s wide vs 15.6 
 and SmolLM2 135M changed 1 of 4 answers at width 2. Answers are tagged with their
 width and a later run reuses only answers of its own width. The device must already
 be chosen, so run `--stages device` first.
+
+`npm run tune -- ... --budget <minutes>` stops asking new answers once the time is
+up (model load included) and saves the best settings found so far; `--continue`
+finishes the rest later. With a budget the tuner asks four items per call, so it
+stops a few answers past the limit rather than a whole rung: a 0.5-minute budget
+ended at 31 s. In the app, **Minutes per model** on the Tune tab does the same per
+model; a quick pass that uses up its time keeps its preset provisional and skips
+the full continue.
 Suite v18 has 277 items in ten categories: the 265 counted below plus 12 paraphrase
 probes (6 code, 6 comprehension) that only the held-back check and the gate ask,
 never the search. Of the 265, 262 are searched; 3 long-context needles are KV-confirmation only:

@@ -12,6 +12,8 @@ import { readSteps } from "./tune-steps.js";
 const SCRIPT = fileURLToPath(new URL("../benchmarks/tune-run.mjs", import.meta.url));
 const ALL_STAGES = Object.freeze(["device", "quality", "speed", "sampling", "prompt"]);
 const LOG_LINES = 12;
+// Matches the tuner's --budget limit (benchmarks/tune-budget.mjs).
+const MAX_BUDGET_MINUTES = 1440;
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
@@ -34,8 +36,12 @@ export class TuneScheduler {
   #job = null;
   #children = new Set();
   #listeners = new Set();
+  #clock;
+  // When each model's first process started, for its time budget (profileId -> ms).
+  #budgetStarts = new Map();
 
-  constructor({ homeDir, modelsDir, profilesDir = null, tuneStepsFile = null, queueFile = null, scriptPath = SCRIPT, spawnImpl = spawn, readLanes = null, readLane = null, logger = console }) {
+  constructor({ homeDir, modelsDir, profilesDir = null, tuneStepsFile = null, queueFile = null, scriptPath = SCRIPT, spawnImpl = spawn, readLanes = null, readLane = null, logger = console, clock = Date.now }) {
+    this.#clock = clock;
     this.#homeDir = homeDir;
     this.#modelsDir = modelsDir;
     this.#scriptPath = scriptPath;
@@ -68,7 +74,16 @@ export class TuneScheduler {
   }
 
   /** Start tuning `models` ([{ id, fileName, profileId, name }]); resolves immediately with the job. */
-  start({ models, tasks = null, stages = null, settings = null, force = false, continueRun = false, quick = false, guard = false, guardQueue = false }) {
+  start({ models, tasks = null, stages = null, settings = null, force = false, continueRun = false, quick = false, guard = false, guardQueue = false, budgetMinutes = null }) {
+    const budget = budgetMinutes == null ? null : Number(budgetMinutes);
+    if (budget !== null && !(Number.isFinite(budget) && budget > 0 && budget <= MAX_BUDGET_MINUTES)) {
+      throw new AppError("The time budget must be a number of minutes", {
+        code: "tune_budget_invalid",
+        status: 400,
+        why: `"${budgetMinutes}" is not a number of minutes above 0 and up to ${MAX_BUDGET_MINUTES}.`,
+        fix: "Enter minutes per model, such as 5, or leave the budget empty for no limit.",
+      });
+    }
     if (this.#job?.status === "running" || this.#job?.paused) {
       throw new AppError("A tune is already running", {
         code: "tune_in_progress",
@@ -92,6 +107,8 @@ export class TuneScheduler {
       quick: Boolean(quick),
       guard: Boolean(guard),
       guardQueue: Boolean(guardQueue),
+      // Minutes each model may tune for; its processes share them (null: no limit).
+      budgetMinutes: budget,
       order: models.map((model) => model.profileId),
       items: models.map((model) => ({
         id: model.id, profileId: model.profileId, name: model.name ?? model.profileId, fileName: model.fileName,
@@ -296,9 +313,14 @@ export class TuneScheduler {
           // A quick pass is saved immediately, then continued on the full rungs.
           if (job.quick && job.status === "running" && item.status !== "failed" && item.status !== "cancelled") {
             await this.#waitIfPaused(job);
-            if (job.status === "running") {
+            if (job.status === "running" && this.#minutesLeft(job, item) !== null && this.#minutesLeft(job, item) <= 0) {
+              // Out of time: the quick preset is saved and stays provisional until a later full tune.
+              pushLog(item, `The ${job.budgetMinutes}-minute budget for this model is used up; the quick preset is saved and stays provisional. Run the tune again to finish it.`);
+              this.#changed();
+            } else if (job.status === "running") {
               await this.#runChild(job, item, model, rest, "tune", false, false, { quick: false, continueRun: true });
-              item.provisional = false;
+              // A continue that ran out of budget did not finish; its preset stays provisional.
+              item.provisional = item.progress?.timeExhausted === true;
               this.#changed();
             }
           }
@@ -313,6 +335,13 @@ export class TuneScheduler {
     this.#finish(job, job.status === "running" ? "complete" : job.status);
   }
 
+  /** Minutes this model has left of the job's per-model budget; null without a budget. */
+  #minutesLeft(job, item) {
+    if (job.budgetMinutes == null) return null;
+    const started = this.#budgetStarts.get(item.profileId) ?? this.#clock();
+    return job.budgetMinutes - (this.#clock() - started) / 60_000;
+  }
+
   #runChild(job, item, model, stages, phase, force, more, { quick = false, continueRun = job.continueRun } = {}) {
     return new Promise((resolve) => {
       const args = [this.#scriptPath, "--events", "--model", model.fileName, "--stages", stages.join(","), "--home", this.#homeDir];
@@ -323,6 +352,11 @@ export class TuneScheduler {
       if (quick) args.push("--quick");
       if (continueRun) args.push("--continue");
       if (job.guard) args.push("--guard");
+      if (job.budgetMinutes != null) {
+        if (!this.#budgetStarts.has(item.profileId)) this.#budgetStarts.set(item.profileId, this.#clock());
+        // At least a few seconds, so a process started just before the end still saves what it has.
+        args.push("--budget", String(Math.max(0.1, Math.round(this.#minutesLeft(job, item) * 100) / 100)));
+      }
       Object.assign(item, { phase, status: "running", progress: { type: "starting", stage: stages[0] }, exitCode: null });
       this.#changed();
       let child;

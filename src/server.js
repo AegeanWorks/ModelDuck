@@ -551,6 +551,8 @@ export function createHttpServer({
           quick: body.quick === true,
           guard: body.guard === true,
           guardQueue: body.guardQueue === true,
+          // Minutes per model; the scheduler refuses anything but a sensible number.
+          budgetMinutes: body.budgetMinutes ?? null,
         }),
       });
       return;

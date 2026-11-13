@@ -76,6 +76,7 @@ npm run tune -- --model <id> --tasks code,comprehension --force   # re-tune chos
 npm run tune -- --model <id> --interactive   # choose every setting's steps first
 npm run tune -- --model <id> --stages quality,speed   # run some stages; the rest stay default
 npm run tune -- --model <id> --stages device   # about a minute: does it run faster on the GPU?
+npm run tune -- --model <id> --quick --budget 5   # stop after 5 minutes, keep the best so far
 npm run tune -- --model <id> --settings threads,batchSize   # re-tune only these settings
 npm run tune:gate            # re-measure the core models' baseline settings (G-001)
 ```
@@ -504,6 +505,7 @@ modelduck/
 │   ├── tune-evaluate.mjs
 │   ├── tune-timing.mjs
 │   ├── tune-parallel.mjs
+│   ├── tune-budget.mjs
 │   ├── tune-run.mjs
 │   ├── tune-job.mjs
 │   ├── tune-gate.mjs
@@ -562,6 +564,7 @@ modelduck/
 │   ├── benchmark-tune-evaluate.test.js
 │   ├── benchmark-tune-timing.test.js
 │   ├── benchmark-tune-parallel.test.js
+│   ├── tune-budget.test.js
 │   ├── benchmark-tune-baseline.test.js
 │   ├── benchmark-suite-paraphrase.test.js
 │   ├── benchmark-link.test.js

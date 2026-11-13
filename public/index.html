@@ -540,6 +540,7 @@
                 <label class="check"><input id="tune-guard" type="checkbox" /><span>Stop on a held-back regression</span></label>
                 <label class="check"><input id="tune-guard-queue" type="checkbox" /><span>Stop the whole queue on regression</span></label>
                 <label class="check"><input id="tune-background" type="checkbox" /><span>Run in background</span></label>
+                <label class="tune-budget" title="Stop each model after this many minutes and keep the best settings found so far; leave empty for no limit"><span>Minutes per model</span><input id="tune-budget" type="number" min="0.5" max="1440" step="0.5" inputmode="decimal" placeholder="No limit" /></label>
               </div>
             </div>
             <details class="tune-only-details">

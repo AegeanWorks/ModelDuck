@@ -239,13 +239,19 @@ export function createModelRegistry({
     }
   }
 
-  async function scan({ force = false } = {}) {
+  /**
+   * `only(file, { id, relativePath })` narrows the scan to the files it
+   * accepts: the rest are not stat'ed past their name, their metadata is never
+   * read, and they are not listed. A tune process needs one model, and reading
+   * every file's metadata cost seconds per start on a large library.
+   */
+  async function scan({ force = false, only = null } = {}) {
     await ensureDirectory(modelsDir);
     // /api/state polls this. Reuse a scan for one second when the directory
     // stamp has not moved; import/delete pass force, and the TTL still catches
-    // an in-place file change.
+    // an in-place file change. A narrowed scan is never reused.
     const stamp = await dirStamp();
-    if (!force && stamp === lastDirStamp && Date.now() - lastScanAt < 1000) {
+    if (!only && !force && stamp === lastDirStamp && Date.now() - lastScanAt < 1000) {
       scanHits += 1;
       return listPublic();
     }
@@ -255,6 +261,10 @@ export function createModelRegistry({
     const nextCache = new Map();
 
     for (const file of files) {
+      if (only) {
+        const relativePath = path.relative(modelsDir, file);
+        if (!only(file, { id: hashId(relativePath), relativePath })) continue;
+      }
       let stats;
       try {
         stats = await fs.promises.stat(file);
@@ -310,8 +320,9 @@ export function createModelRegistry({
     for (const id of [...samplingOverrides.keys()]) {
       if (!entries.has(id)) samplingOverrides.delete(id);
     }
-    lastScanAt = Date.now();
-    lastDirStamp = await dirStamp();
+    // A narrowed scan lists part of the library, so it must not be served as the full one.
+    lastScanAt = only ? 0 : Date.now();
+    lastDirStamp = only ? null : await dirStamp();
     return listPublic();
   }
 

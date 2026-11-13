@@ -436,3 +436,80 @@ test("a setting's candidate keeps only its latest round", async () => {
   child.finish(0);
   await settle();
 });
+
+// --- per-model time budget ------------------------------------------------------
+
+function budgetScheduler(spawn, clock) {
+  return new TuneScheduler({
+    homeDir: "home", modelsDir: "models", scriptPath: "tune-run.mjs", spawnImpl: spawn.spawnImpl,
+    readLanes: async () => ({ cpu: 1, gpu: 0 }), readLane: async () => "cpu", logger: { warn() {} }, clock,
+  });
+}
+
+test("a per-model budget passes each process the minutes its model has left", async () => {
+  let now = 0;
+  const spawn = spawner();
+  const runner = budgetScheduler(spawn, () => now);
+  runner.start({ models: [MODELS[0]], budgetMinutes: 5 });
+  await settle();
+  const probe = spawn.children[0];
+  assert.equal(value(probe.args, "--stages"), "device");
+  assert.equal(value(probe.args, "--budget"), "5", "the device probe gets the whole budget");
+  now += 60_000;
+  probe.finish(0);
+  await settle();
+  const tuneChild = spawn.children[1];
+  assert.equal(value(tuneChild.args, "--budget"), "4", "the rest gets what the probe left");
+  tuneChild.finish(0);
+  await settle();
+  assert.equal(runner.get().budgetMinutes, 5);
+  assert.equal(runner.get().status, "complete");
+});
+
+test("a quick pass that used up its model's budget keeps the provisional preset and skips the full continue", async () => {
+  let now = 0;
+  const spawn = spawner();
+  const runner = budgetScheduler(spawn, () => now);
+  runner.start({ models: [MODELS[0]], stages: ["quality", "sampling"], quick: true, budgetMinutes: 2 });
+  await settle();
+  const quickChild = spawn.children[0];
+  assert.ok(quickChild.args.includes("--quick"));
+  now += 2 * 60_000;
+  quickChild.finish(0, [{ type: "complete", phase: "tune", quick: true }]);
+  await settle();
+  assert.equal(spawn.children.length, 1, "no full continue is started");
+  const item = runner.get().items[0];
+  assert.equal(item.status, "done");
+  assert.equal(item.provisional, true, "the saved quick preset stays marked provisional");
+  assert.match(item.log.at(-1) ?? "", /budget/i);
+});
+
+test("a quick pass with budget left continues on the remaining minutes", async () => {
+  let now = 0;
+  const spawn = spawner();
+  const runner = budgetScheduler(spawn, () => now);
+  runner.start({ models: [MODELS[0]], stages: ["quality"], quick: true, budgetMinutes: 10 });
+  await settle();
+  now += 3 * 60_000;
+  spawn.children[0].finish(0, [{ type: "complete", phase: "tune", quick: true }]);
+  await settle();
+  const continueChild = spawn.children[1];
+  assert.ok(continueChild.args.includes("--continue"));
+  assert.equal(value(continueChild.args, "--budget"), "7");
+  continueChild.finish(0);
+  await settle();
+  assert.equal(runner.get().items[0].provisional, false);
+});
+
+test("without a budget no --budget flag is passed, and a bad budget is refused", async () => {
+  const spawn = spawner();
+  const runner = budgetScheduler(spawn, () => 0);
+  runner.start({ models: [MODELS[0]], stages: ["quality"] });
+  await settle();
+  assert.equal(spawn.children[0].args.includes("--budget"), false);
+  spawn.children[0].finish(0);
+  await settle();
+  for (const bad of [0, -1, 1441, "x"]) {
+    assert.throws(() => budgetScheduler(spawner(), () => 0).start({ models: [MODELS[0]], budgetMinutes: bad }), (error) => error.code === "tune_budget_invalid", `refuses ${bad}`);
+  }
+});

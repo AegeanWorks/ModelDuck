@@ -10,6 +10,7 @@ import { estimateTune, expectedAnswers, normalizeSteps, settingNames, timeLeft }
 import { openTarget, runTune, summary } from "./tune-job.mjs";
 import { STAGES } from "./tune.mjs";
 import { askSteps } from "./tune-prompt.mjs";
+import { parseBudget } from "./tune-budget.mjs";
 import { parseParallel } from "./tune-parallel.mjs";
 import { formatTiming } from "./tune-timing.mjs";
 
@@ -43,6 +44,8 @@ older test, runtime, CPU or model file is kept with a warning until --force.
                      checks that wide answers match one-at-a-time answers byte for byte, and falls
                      back to one at a time if they differ. Needs the device already chosen: run
                      --stages device first, then the other stages with --parallel.
+  --budget <minutes> stop asking new answers after this many minutes (decimals allowed); what
+                     was found is saved and --continue finishes the rest later
 `;
 
 function parseArgs(argv) {
@@ -63,6 +66,7 @@ function parseArgs(argv) {
     else if (arg === "--guard") options.guard = true;
     else if (arg === "--full-final") options.fullFinal = true;
     else if (arg === "--parallel") options.parallel = parseParallel(take(index++, arg));
+    else if (arg === "--budget") options.budget = parseBudget(take(index++, arg));
     else if (arg === "--force") options.force = true;
     else if (arg === "--interactive") options.interactive = true;
     else if (arg === "--grid") options.grid = take(index++, arg);
@@ -132,6 +136,7 @@ async function main() {
     guard: Boolean(options.guard),
     fullFinal: Boolean(options.fullFinal),
     parallel: options.parallel ?? 1,
+    budgetMinutes: options.budget ?? null,
     onNote: (message) => log(options, message),
     maxRuns: options.maxRuns,
     passes: options.passes,
@@ -164,7 +169,7 @@ async function main() {
   log(options, `Verifier cache: ${verifierCache.hits} hits / ${verifierCache.misses} checks run (${verifierCache.size} entries)`);
   if (outcome.timing) log(options, formatTiming(outcome.timing));
   log(options, `Saved ${path.join(target.paths.profiles, `${target.profileId}.json`)}`);
-    emit(options, { type: "complete", phase: "tune", model: target.profileId, tasks: Object.keys(outcome.profile.tasks), runs: outcome.result.runs, budgetExhausted: outcome.result.budgetExhausted, quick: Boolean(options.quick), guard: outcome.result.guard ?? null });
+    emit(options, { type: "complete", phase: "tune", model: target.profileId, tasks: Object.keys(outcome.profile.tasks), runs: outcome.result.runs, budgetExhausted: outcome.result.budgetExhausted, timeExhausted: Boolean(outcome.result.timeExhausted), quick: Boolean(options.quick), guard: outcome.result.guard ?? null });
 }
 
 // A CLI, not a library: importing this module must not start a tune

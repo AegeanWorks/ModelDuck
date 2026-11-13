@@ -158,3 +158,34 @@ test("per-model sampling overrides are pruned on delete and rescan", async (t) =
   await registry.scan();
   assert.equal(registry.getModelSampling(again.id), null, "a rescan prunes overrides for missing files");
 });
+
+// A tune process needs one model: reading every file's GGUF metadata cost 8.1 s
+// for a 16-model library on every start, three times per model in a quick pass.
+test("a narrowed scan reads metadata only for the files it keeps", async (t) => {
+  const read = [];
+  const { directory, registry } = await makeRegistry(t, { metadata: async (file) => { read.push(path.basename(file)); return INFO; } });
+  await writeFile(path.join(directory, "wanted.gguf"), Buffer.from("GGUF12345678"));
+  await writeFile(path.join(directory, "other-a.gguf"), Buffer.from("GGUF12345678"));
+  await writeFile(path.join(directory, "other-b.gguf"), Buffer.from("GGUF12345678"));
+
+  const models = await registry.scan({ only: (file) => path.basename(file) === "wanted.gguf" });
+  assert.deepEqual(models.map((model) => model.fileName), ["wanted.gguf"]);
+  assert.deepEqual(read, ["wanted.gguf"], "the other files' metadata is never read");
+  const [entry] = models;
+  assert.equal(registry.findById(entry.id).fileName, "wanted.gguf", "the kept model is usable by id");
+});
+
+test("a narrowed scan offers the id the full scan would give, and never stands in for a full listing", async (t) => {
+  const { directory, registry } = await makeRegistry(t);
+  await writeFile(path.join(directory, "wanted.gguf"), Buffer.from("GGUF12345678"));
+  await writeFile(path.join(directory, "other.gguf"), Buffer.from("GGUF12345678"));
+  const full = await registry.scan({ force: true });
+  const wantedId = full.find((model) => model.fileName === "wanted.gguf").id;
+
+  const seen = [];
+  const narrowed = await registry.scan({ only: (file, { id }) => { seen.push(id); return id === wantedId; } });
+  assert.deepEqual(narrowed.map((model) => model.id), [wantedId], "matching by id works");
+  assert.ok(seen.includes(wantedId));
+  const again = await registry.scan();
+  assert.equal(again.length, 2, "the next plain scan lists everything instead of reusing the narrowed one");
+});

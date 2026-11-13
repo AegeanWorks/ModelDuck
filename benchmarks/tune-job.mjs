@@ -15,6 +15,7 @@ import { codeGroupOf, taskIdOfCategory, tuneRungs, withDiscriminatingRungs } fro
 import { STAGES, resultFrom, tune } from "./tune.mjs";
 import { expectedAnswers, promptAxes, qualityAxes, quickRungs, samplingAxes, speedAxes } from "./tune-grid.mjs";
 import { createEvaluator } from "./tune-evaluate.mjs";
+import { budgetDeadline } from "./tune-budget.mjs";
 import { chooseParallel, probeItemIds, probeParallel } from "./tune-parallel.mjs";
 import { createPhaseTimer } from "./tune-timing.mjs";
 
@@ -22,8 +23,10 @@ import { createPhaseTimer } from "./tune-timing.mjs";
 export async function openTarget({ model, home, modelsDir }) {
   const paths = resolvePaths({ home, models: modelsDir });
   const registry = createModelRegistry({ modelsDir: paths.models });
-  await registry.scan();
   const fileName = (getCatalogModel(model)?.file ?? model).toLowerCase();
+  const wanted = (file, { id }) => id === model || path.basename(file).toLowerCase() === fileName;
+  // Read only the requested model's metadata: a full scan of a large library cost seconds per process.
+  await registry.scan({ only: wanted });
   const match = registry.listPublic().find((item) => item.id === model || path.basename(item.fileName).toLowerCase() === fileName);
   if (!match) {
     throw new AppError("That model is not installed", {
@@ -67,7 +70,7 @@ export function tuneBase() {
  * The profile is saved after every finished setting, so stopping keeps what
  * was found and a later run resumes. Resolves `{ skipped, warnings, profile, result }`.
  */
-export async function runTune(target, { tasks, stages = STAGES, only = null, steps = null, force = false, continueRun = false, quick = false, guard = false, fullFinal = false, maxRuns = 0, passes = 0, parallel: requestedParallel = 1, onEvent = () => {}, onStart = () => {}, onNote = () => {} }) {
+export async function runTune(target, { tasks, stages = STAGES, only = null, steps = null, force = false, continueRun = false, quick = false, guard = false, fullFinal = false, maxRuns = 0, passes = 0, parallel: requestedParallel = 1, budgetMinutes = null, onEvent = () => {}, onStart = () => {}, onNote = () => {} }) {
   const saved = force ? null : await loadProfile(target.paths.profiles, target.profileId, target.fingerprint);
   const plan = planTune(saved, tasks, stages, only, { continueRun });
   const warnings = saved?.warnings ?? [];
@@ -114,7 +117,7 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
   const run = await startRun(target.paths.tuneRuns, {
     profileId: target.profileId,
     model: target.entry.fileName,
-    request: { stages, tasks, only, force, continueRun, quick, guard, maxRuns, passes, parallel: requestedParallel, rerun: plan.rerun ?? [] },
+    request: { stages, tasks, only, force, continueRun, quick, guard, maxRuns, passes, parallel: requestedParallel, budgetMinutes, rerun: plan.rerun ?? [] },
     fingerprint: target.fingerprint,
     expectedAnswers: expectedAnswers(used, { logicalCores, tasks, stages, only, quick }),
   });
@@ -135,6 +138,8 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
     })));
   };
   let lastState = null;
+  // The time budget starts here, so the model load and any probe count against it.
+  const deadline = budgetDeadline(budgetMinutes);
   // Where this process spends its wall-clock time; stored with the run and printed at the end.
   const timer = createPhaseTimer();
   const result = await withEngine(target, async (engine) => {
@@ -200,7 +205,7 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
       speedAxes: speedAxes({ logicalCores }, used.load),
       samplingAxes: (task) => samplingAxes(task, used.sampling),
       promptAxes: (task) => promptAxes(used.prompt, task),
-      options: { ...(maxRuns > 0 && { maxRuns }), ...(passes > 0 && { passes }) },
+      options: { ...(maxRuns > 0 && { maxRuns }), ...(passes > 0 && { passes }), ...(Number.isFinite(deadline) && { deadline }) },
       onEvent,
       onAnswers,
       onProgress: async (state) => {
@@ -248,6 +253,10 @@ export function summary(profile, result = null) {
     lines.push(`${task.padEnd(6)} ${stats ? `${stats.rate}% [${stats.ci95.low}-${stats.ci95.high}] · ${stats.outputTokens ?? "?"} tokens/answer` : "in progress"}${delta}`);
     lines.push(`       ${line(preset.settings)}`);
   }
-  if (result) lines.push(`${result.runs} item answers${result.budgetExhausted ? " (run budget reached; resume to continue)" : ""}`);
+  if (result) {
+    const why = result.timeExhausted ? " (time budget reached; the best settings so far are saved, --continue finishes the rest)"
+      : result.budgetExhausted ? " (run budget reached; resume to continue)" : "";
+    lines.push(`${result.runs} item answers${why}`);
+  }
   return lines.join("\n");
 }

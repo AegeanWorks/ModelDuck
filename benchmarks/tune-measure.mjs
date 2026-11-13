@@ -30,11 +30,17 @@ export function isQuotaExceeded(runs, quota) {
   return Number(runs) >= Number(quota);
 }
 
+/** Items asked per call while a time budget runs, so the budget is checked between them. */
+export const DEADLINE_CHUNK = 4;
+
 /** Per-item result cache with a run budget; a rung only asks for the items it has not seen. */
 export class Measurements {
-  constructor(evaluate, maxRuns, onAnswers = () => {}, { quota = QUOTA_DEFAULT } = {}) {
+  constructor(evaluate, maxRuns, onAnswers = () => {}, { quota = QUOTA_DEFAULT, deadline = Infinity, clock = Date.now } = {}) {
     this.evaluate = evaluate;
     this.maxRuns = maxRuns;
+    // A time budget (tune-budget.mjs): no new answers are asked once `clock()` passes it.
+    this.deadline = deadline ?? Infinity;
+    this.clock = clock;
     // IDEA-1580: fixed-budget quota caps total measured answers for the whole
     // tune, independent of the per-rung maxRuns ceiling. Infinity disables it.
     this.quota = quota ?? QUOTA_DEFAULT;
@@ -52,8 +58,12 @@ export class Measurements {
     return isQuotaExceeded(this.runs, this.quota);
   }
 
+  get deadlinePassed() {
+    return Number.isFinite(this.deadline) && this.clock() >= this.deadline;
+  }
+
   get exhausted() {
-    return this.runs >= this.maxRuns || this.quotaExceeded || this.stopped !== null;
+    return this.runs >= this.maxRuns || this.quotaExceeded || this.deadlinePassed || this.stopped !== null;
   }
 
   /** Stop every further measurement; later stages see the budget as spent and end. */
@@ -84,14 +94,21 @@ export class Measurements {
     const missing = itemIds.filter((id) => !slot.items.has(id));
     if (missing.length) {
       if (this.exhausted) return null;
-      const out = await this.evaluate(settings, missing, seed);
-      this.runs += missing.length;
-      this.onAnswers(settings, seed, out.prompts);
-      for (const prompt of out.prompts) slot.items.set(prompt.id, prompt);
-      // CPU RAM and GPU VRAM are both memory; dropping VRAM here made a GPU
-      // preset look no larger than its small host slice.
-      slot.memoryBytes = out.memoryBytes ?? slot.memoryBytes;
-      slot.gpuVram = out.gpuVram ?? slot.gpuVram;
+      // With a time budget the items are asked a few at a time so the tune stops close to it,
+      // not a whole rung later. Answers are per item, so the split changes none of them.
+      const chunk = Number.isFinite(this.deadline) ? Math.max(DEADLINE_CHUNK, Number(this.evaluate.parallel) || 1) : missing.length;
+      for (let start = 0; start < missing.length; start += chunk) {
+        if (start > 0 && this.exhausted) return null;
+        const part = missing.slice(start, start + chunk);
+        const out = await this.evaluate(settings, part, seed);
+        this.runs += part.length;
+        this.onAnswers(settings, seed, out.prompts);
+        for (const prompt of out.prompts) slot.items.set(prompt.id, prompt);
+        // CPU RAM and GPU VRAM are both memory; dropping VRAM here made a GPU
+        // preset look no larger than its small host slice.
+        slot.memoryBytes = out.memoryBytes ?? slot.memoryBytes;
+        slot.gpuVram = out.gpuVram ?? slot.gpuVram;
+      }
     }
     this.reusedRows += itemIds.length - missing.length;
     return { prompts: itemIds.map((id) => slot.items.get(id)), memoryBytes: slot.memoryBytes, gpuVram: slot.gpuVram };
