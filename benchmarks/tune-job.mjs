@@ -15,6 +15,7 @@ import { codeGroupOf, taskIdOfCategory, tuneRungs, withDiscriminatingRungs } fro
 import { STAGES, resultFrom, tune } from "./tune.mjs";
 import { expectedAnswers, promptAxes, qualityAxes, quickRungs, samplingAxes, speedAxes } from "./tune-grid.mjs";
 import { createEvaluator } from "./tune-evaluate.mjs";
+import { createPhaseTimer } from "./tune-timing.mjs";
 
 /** One installed model, ready to tune or measure: where it is, its profile name and what it runs on. */
 export async function openTarget({ model, home, modelsDir }) {
@@ -128,6 +129,8 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
     })));
   };
   let lastState = null;
+  // Where this process spends its wall-clock time; stored with the run and printed at the end.
+  const timer = createPhaseTimer();
   const result = await withEngine(target, async (engine) => {
     if (!probes && startOn !== "cpu") {
       await engine.startBackend(startOn).catch((error) => {
@@ -138,7 +141,7 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
         });
       });
     }
-    const evaluate = createEvaluator({ engine, modelId: target.entry.id, beforeAnswer: () => lock.pauseIfNeeded() });
+    const evaluate = createEvaluator({ engine, modelId: target.entry.id, beforeAnswer: () => lock.pauseIfNeeded(), timer });
     return tune({
       evaluate,
       // Question types, so each task's result is broken down (ADR-056), and coding views for the balance rule (ADR-070).
@@ -178,13 +181,14 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
       },
     });
   }).catch(async (error) => {
-    await run.finish({ outcome: "failed", error: error.why ?? error.message, ...(lastState && snapshot(lastState)) });
+    await run.finish({ outcome: "failed", error: error.why ?? error.message, timing: timer.summary(), ...(lastState && snapshot(lastState)) });
     throw error;
   }).finally(() => {
     process.off("exit", cleanUp);
     return lock.unregister();
   });
-  await run.finish({ outcome: result.stopped ? "stopped" : "done", error: result.stopped ?? null, ...snapshot({ ...result.progress, sweeps: result.sweeps, runs: result.runs }) });
+  const timing = timer.summary();
+  await run.finish({ outcome: result.stopped ? "stopped" : "done", error: result.stopped ?? null, timing, ...snapshot({ ...result.progress, sweeps: result.sweeps, runs: result.runs }) });
   // A tune that could not load the model at all has nothing to save; what earlier axes found is already saved.
   if (result.stopped) {
     throw new AppError("The tune stopped: the model could not be loaded", {
@@ -193,7 +197,7 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
       fix: "Check the GPU driver and free memory (a restart often clears a stuck GPU), or pick the CPU backend, then run the tune again. Results saved before this point are kept.",
     });
   }
-  return { skipped: false, warnings, profile: await save(result), result };
+  return { skipped: false, warnings, profile: await save(result), result, timing };
 }
 
 const shown = (value) => (typeof value === "string" && value.length > 48 ? `"${value.slice(0, 45)}…"` : typeof value === "string" ? `"${value}"` : value);

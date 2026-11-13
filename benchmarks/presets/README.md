@@ -13,7 +13,10 @@ earlier host-only figure understated a Vulkan load by about 1.3 GB.
 ## qwen2.5-coder-1.5b-instruct-q4
 
 Measured 2026-11-08 on an Intel i5-14400F with an AMD Radeon RX 9060 XT
-(Vulkan, `gpuLayers=max`), suite v17, tuner v9.
+(Vulkan, `gpuLayers=max`), suite v17, tuner v9. The current suite is v18 and the
+tuner v10, so these recipes predate both: a profile imported from one loads with a
+"suite changed" and "tuner changed" warning until it is re-measured, and the
+figures below are history, not a current claim.
 
 Full code task, 136 items × 3 seeds, same load and context (4096):
 

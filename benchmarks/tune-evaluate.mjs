@@ -61,8 +61,10 @@ const THREAD_CAP = 64;
  * answered at once; `settings.parallelism: 1` (the timing stages) answers one
  * at a time.
  */
-export function createEvaluator({ engine, modelId, prompts = PROMPTS, systemPrompt = SYSTEM_PROMPT, timeoutMs = 120_000, parallel = 1, beforeAnswer = async () => {}, onItem = () => {} }) {
+export function createEvaluator({ engine, modelId, prompts = PROMPTS, systemPrompt = SYSTEM_PROMPT, timeoutMs = 120_000, parallel = 1, beforeAnswer = async () => {}, onItem = () => {}, timer = null }) {
   const byId = new Map(prompts.map((prompt) => [prompt.id, prompt]));
+  // Wall-clock accounting is optional (tune-timing.mjs): without a timer every step runs as before.
+  const timed = (phase, fn) => (timer ? timer.measure(phase, fn) : fn());
   let modelSignature = null;
   let contextSignature = null;
   let memoryBytes = null;
@@ -76,16 +78,20 @@ export function createEvaluator({ engine, modelId, prompts = PROMPTS, systemProm
     const reloadModel = modelSignature !== nextModel;
     modelSignature = null;
     contextSignature = null;
-    if (reloadModel) {
-      await engine.load({ modelId, ...load, maxThreads: THREAD_CAP });
-    } else {
-      await engine.reconfigure(load);
-    }
-    const memory = (await engine.status())?.memory ?? null;
-    memoryBytes = memory?.cpuRam ?? null;
-    // M9: the KV cache lives in VRAM on a GPU, so the tie-break needs both.
-    gpuVram = memory?.gpuVram ?? null;
-    await warmUp(load);
+    await timed("load", async () => {
+      if (reloadModel) {
+        await engine.load({ modelId, ...load, maxThreads: THREAD_CAP });
+        timer?.count("loads");
+      } else {
+        await engine.reconfigure(load);
+        timer?.count("reconfigures");
+      }
+      const memory = (await engine.status())?.memory ?? null;
+      memoryBytes = memory?.cpuRam ?? null;
+      // M9: the KV cache lives in VRAM on a GPU, so the tie-break needs both.
+      gpuVram = memory?.gpuVram ?? null;
+      await warmUp(load);
+    });
     modelSignature = nextModel;
     contextSignature = nextContext;
     return load;
@@ -113,10 +119,10 @@ export function createEvaluator({ engine, modelId, prompts = PROMPTS, systemProm
   async function answer(prompt, settings, load, seed) {
     const conversationId = `tune-${modelId}-${prompt.id}-${seed}`;
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const abortTimer = setTimeout(() => controller.abort(), timeoutMs);
     const started = Date.now();
     try {
-      const result = await engine.chat({
+      const result = await timed("generate", () => engine.chat({
         conversationId,
         messages: [{ role: "user", content: prompt.prompt }],
         systemPrompt: settings.systemPrompt ?? systemPrompt,
@@ -132,8 +138,9 @@ export function createEvaluator({ engine, modelId, prompts = PROMPTS, systemProm
         },
         signal: controller.signal,
         onToken: () => {},
-      });
-      const evaluation = await evaluateResponse(prompt, result.text);
+      }));
+      const evaluation = await timed("judge", () => evaluateResponse(prompt, result.text));
+      timer?.count("answers");
       return {
         passed: evaluation.passed,
         total: evaluation.total,
@@ -153,7 +160,7 @@ export function createEvaluator({ engine, modelId, prompts = PROMPTS, systemProm
     } catch (error) {
       return { passed: 0, total: checkCount(prompt), error: error.message, ms: Date.now() - started, tokensPerSecond: null, outputTokens: null, stopReason: null, promptTokens: null, firstTokenMs: null, digest: null };
     } finally {
-      clearTimeout(timer);
+      clearTimeout(abortTimer);
       engine.dropSession(conversationId);
     }
   }

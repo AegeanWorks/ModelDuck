@@ -29,9 +29,10 @@ The required gate runs SmolLM2 135M, Qwen2.5 0.5B and Qwen2.5 Coder 1.5B.
 variants; on a CPU that deeper review takes hours, so it is opt-in.
 The committed cross-model baselines predate suite v14. Run `npm run bench:update`
 once on the target machine before using the cross-model gate as a regression
-check. The tuned-profile gate has no committed `baseline-profiles.json` yet, so
-`npm run tune:gate` exits with `tune_baseline_missing` rather than comparing; run
-`npm run tune:gate -- --update-baseline` once to create it. To re-measure an
+check. The tuned-profile gate compares against the committed
+`baseline-profiles.json` (suite v18, tuner v10). If that file is missing,
+`npm run tune:gate` exits with `tune_baseline_missing` rather than comparing;
+`npm run tune:gate -- --update-baseline` replaces it deliberately. To re-measure an
 already tuned profile rather than retune from scratch, add
 `--from-profile <home>`: it reads `profiles/<model>.json` from that home, checks
 the suite/runtime/tuner identity, re-measures its task presets on the fixed
@@ -41,7 +42,13 @@ sum, so a Vulkan preset is not ranked by its small host slice alone.
 `npm run tune -- ... --full-final` scores each final preset on every task item
 (136 for code) instead of the 48-item search rung. It is slower and gives a
 higher-power final rate; without it the search rung is the reported score.
-Suite v17 has 265 items in ten categories (262 searched; 3 long-context needles are KV-confirmation only):
+Every tune ends with one `Time …` line that says where the wall-clock time went
+(generate, load, judge, other) and how many model loads and answers it took; the
+same figures are stored as `timing` on the run record in `tune-runs/`. Use it to
+see what a change really saved before trusting an estimate.
+Suite v18 has 277 items in ten categories: the 265 counted below plus 12 paraphrase
+probes (6 code, 6 comprehension) that only the held-back check and the gate ask,
+never the search. Of the 265, 262 are searched; 3 long-context needles are KV-confirmation only:
 
 | Category | Items | What is measured |
 |---|---:|---|

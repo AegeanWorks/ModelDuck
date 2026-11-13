@@ -86,7 +86,7 @@ The tuner finds optimal settings for a loaded model on your machine.
 
 The benchmark tab (**Bench**) shows the last stored quality and speed scores.
 Scores are split between private (ModelDuck-authored) and public benchmark
-items (GSM8K, HumanEval, MBPP — see `benchmarks/NOTICE-benchmarks.md`).
+items (HumanEval and MBPP, translated to JavaScript — see `benchmarks/NOTICE-benchmarks.md`).
 
 ---
 
@@ -97,8 +97,9 @@ cd C:\ModelDuck
 npm test
 ```
 
-This runs 80+ hermetic unit and integration tests. No model files required.
-Expected output: all tests pass. Takes ~30 seconds on a modern CPU.
+This runs about 690 hermetic unit and integration tests in 84 files. No model
+files required. Expected output: all tests pass. It takes about 12 seconds on a
+modern CPU; `npm run test:parallel` splits it into shards and takes under 10.
 
 ---
 

@@ -10,6 +10,7 @@ import { estimateTune, expectedAnswers, normalizeSteps, settingNames, timeLeft }
 import { openTarget, runTune, summary } from "./tune-job.mjs";
 import { STAGES } from "./tune.mjs";
 import { askSteps } from "./tune-prompt.mjs";
+import { formatTiming } from "./tune-timing.mjs";
 
 const USAGE = `Usage: npm run tune -- --model <catalogId|file.gguf> [options]
 
@@ -153,6 +154,7 @@ async function main() {
   log(options, summary(outcome.profile, outcome.result));
   const verifierCache = javascriptTestCacheStats();
   log(options, `Verifier cache: ${verifierCache.hits} hits / ${verifierCache.misses} checks run (${verifierCache.size} entries)`);
+  if (outcome.timing) log(options, formatTiming(outcome.timing));
   log(options, `Saved ${path.join(target.paths.profiles, `${target.profileId}.json`)}`);
     emit(options, { type: "complete", phase: "tune", model: target.profileId, tasks: Object.keys(outcome.profile.tasks), runs: outcome.result.runs, budgetExhausted: outcome.result.budgetExhausted, quick: Boolean(options.quick), guard: outcome.result.guard ?? null });
 }
