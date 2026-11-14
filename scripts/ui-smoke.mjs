@@ -416,9 +416,6 @@ async function main() {
       true,
       "the dashboard overflows horizontally at 390px",
     );
-    // On a phone the toasts stretch between 16px margins at 16px from the bottom (redesign.css).
-    const phone = JSON.parse(await evaluate('JSON.stringify((() => { const box = document.getElementById("toast-root").getBoundingClientRect(); const view = document.documentElement; return { left: Math.round(box.left), right: Math.round(view.clientWidth - box.right), bottom: Math.round(view.clientHeight - box.bottom) }; })())'));
-    assert.deepEqual(phone, { left: 16, right: 16, bottom: 16 }, `the phone toast layout is ${JSON.stringify(phone)}`);
     await evaluate('document.getElementById("open-models").click(), true');
     assert.ok(
       await waitFor(() => evaluate('document.getElementById("models-dialog").open'), 3_000),
@@ -452,6 +449,14 @@ async function main() {
       })()`);
       assert.ok(fit.scroll <= fit.client + 1, `the ${tab} Bench panel overflows at 390px (${fit.scroll} > ${fit.client})`);
     }
+    // On a phone the toasts stretch between 16px margins at 16px from the bottom (redesign.css).
+    // Measured with a toast showing: an empty, closed popover is only laid out by an author rule.
+    await evaluate("document.querySelector('[data-bench-tab=\"tune\"]').click(), true");
+    await evaluate('(() => { const field = document.getElementById("tune-budget"); field.value = "-3"; field.dispatchEvent(new Event("input", { bubbles: true })); document.getElementById("tune-all").click(); return true; })()');
+    assert.ok(await waitFor(() => evaluate('[...document.querySelectorAll(".toast.error")].some((toast) => /Minutes per model/.test(toast.textContent))'), 3_000), "no error toast to measure at 390px");
+    const phone = JSON.parse(await evaluate('JSON.stringify((() => { const box = document.getElementById("toast-root").getBoundingClientRect(); const view = document.documentElement; return { left: Math.round(box.left), right: Math.round(view.clientWidth - box.right), bottom: Math.round(view.clientHeight - box.bottom) }; })())'));
+    assert.deepEqual(phone, { left: 16, right: 16, bottom: 16 }, `the phone toast layout is ${JSON.stringify(phone)}`);
+    await evaluate('(() => { document.getElementById("tune-budget").value = ""; return true; })()');
     await evaluate('document.getElementById("benchmark-dialog").close(), true');
     for (const [button, dialog] of [["open-settings", "settings-dialog"], ["open-server", "server-dialog"]]) {
       await evaluate(`document.getElementById("${button}").click(), true`);
