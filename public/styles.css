@@ -768,6 +768,19 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
   width: min(380px, calc(100vw - 36px));
   pointer-events: none;
 }
+/* A manual popover, so toasts sit in the top layer above an open modal dialog. */
+.toast-root[popover] {
+  inset: auto 18px 18px auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  overflow: visible;
+}
+.toast-root[popover]:popover-open {
+  display: flex;
+}
 .toast {
   display: flex;
   align-items: flex-start;

@@ -762,5 +762,32 @@
     "final_snapshot_digest": "",
     "final_snapshot_entries": 0,
     "surface_digest": "48e6a8f1a8f4ac8e2035f5c30af82f1604e40356b9ecd0abc3f09bc4c761008d"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [
+      "public/app.js",
+      "public/index.html",
+      "public/styles.css"
+    ],
+    "no_visual_reason": "",
+    "baseline_commit": "70c143ebcdd924433baa3b35c1efb2c569b28d89",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1794648532.9452488,
+    "finished_at": 1794649055.4510355,
+    "strikes": 2,
+    "reviewer": "kiro:1 (agent review under G-007; headless Edge screenshots of the Tune tab with an invalid budget, before and after)",
+    "allowed_removals": [
+      {
+        "pattern": "scripts/ui-smoke.mjs",
+        "reason": "The headless smoke check proves the invalid-budget error this UI task adds"
+      }
+    ],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "531229f916dc81e12f88dba228162028845847def3812e90b26addaeda119985"
   }
 ]

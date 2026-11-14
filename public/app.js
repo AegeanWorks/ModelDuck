@@ -471,8 +471,33 @@ function showToast(title, { message = "", fix = "", kind = "info", timeout = 520
   toast.append(copy, close);
   els.toastRoot.prepend(toast);
   while (els.toastRoot.children.length > 4) els.toastRoot.lastElementChild.remove();
-  setTimeout(() => toast.remove(), timeout);
+  raiseToasts();
+  setTimeout(() => {
+    toast.remove();
+    if (!els.toastRoot.children.length && els.toastRoot.matches?.(":popover-open")) els.toastRoot.hidePopover();
+  }, timeout);
 }
+
+/**
+ * Show the toast popover last in the top layer, so a modal dialog opened
+ * earlier does not cover it. A modal makes everything outside it inert, so
+ * the toasts move into the topmost modal (their × stays clickable) and back
+ * to the page when it closes.
+ */
+function raiseToasts() {
+  const root = els.toastRoot;
+  if (!root.popover || typeof root.showPopover !== "function") return;
+  const modal = [...document.querySelectorAll("dialog[open]")].filter((dialog) => dialog.matches(":modal")).at(-1);
+  const host = modal ?? document.body;
+  if (root.parentElement !== host) host.append(root);
+  if (root.matches(":popover-open")) root.hidePopover();
+  root.showPopover();
+}
+
+// "close" does not bubble, so listen in the capture phase for any dialog.
+document.addEventListener("close", (event) => {
+  if (event.target instanceof HTMLDialogElement && event.target.contains(els.toastRoot) && els.toastRoot.children.length) raiseToasts();
+}, true);
 
 function showError(error) {
   const info = error?.info ?? {};
@@ -2714,7 +2739,7 @@ function renderTuneModels() {
     const step = item?.progress?.stage ? ` · ${item.progress.stage}${item.progress.axis ? `: ${item.progress.axis}` : ""}` : "";
     // The tune's own estimate from its measured pace (ADR-045).
     const eta = item?.progress?.eta ? ` · ${item.progress.eta}` : "";
-    const live = item && running ? ` — ${item.status}${item.lane ? ` in the ${item.lane.toUpperCase()} lane` : ""}${step}${eta}${item.provisional ? " · quick preset saved" : ""}` : "";
+    const live = item && running ? ` — ${item.status}${item.lane ? ` in the ${item.lane.toUpperCase()} lane` : ""}${step}${eta}${item.provisional ? (item.progress?.timeExhausted ? " · time up, best settings so far saved" : " · quick preset saved") : ""}` : "";
     const label = repeated.has(model.name) ? `${model.name} (${model.fileName})` : model.name;
     const nameCell = tuneCell(`${label}${live}`, model.fileName);
     // Say why a profile is out of date, not only that it is.
@@ -3139,10 +3164,18 @@ async function pollTune() {
   }
 }
 
-/** Minutes per model from the Tune form, or null when the field is empty or not a positive number. */
+/**
+ * Minutes per model from the Tune form: { minutes } (null when empty), or
+ * { invalid: true } for text, 0, a negative number or more than a day, so a
+ * mistyped budget is reported instead of running without a limit.
+ */
 function tuneBudget() {
-  const minutes = Number(els.tuneBudget?.value);
-  return els.tuneBudget?.value && Number.isFinite(minutes) && minutes > 0 ? minutes : null;
+  const field = els.tuneBudget;
+  if (!field) return { minutes: null };
+  const raw = field.value.trim();
+  if (!raw) return field.validity?.badInput ? { invalid: true } : { minutes: null };
+  const minutes = Number(raw);
+  return Number.isFinite(minutes) && minutes > 0 && minutes <= 1440 ? { minutes } : { invalid: true };
 }
 
 async function startTune(models, { force = false, forceStale = false, stage = null, tasks = null, only = null, continueRun = false, quick = false, useForm = true } = {}) {
@@ -3161,11 +3194,17 @@ async function startTune(models, { force = false, forceStale = false, stage = nu
     showToast("Choose at least one stage", { kind: "error" });
     return;
   }
+  const budget = useForm ? tuneBudget() : { minutes: null };
+  if (budget.invalid) {
+    showToast("Minutes per model is not a valid time", { message: "Enter minutes above 0 and up to 1440, such as 5, or leave the field empty for no limit.", kind: "error" });
+    els.tuneBudget.focus();
+    return;
+  }
   // A part run measures its parts again on top of the saved rest; only a whole tune starts a stale profile over (ADR-040).
   // A task subset is a part run too: scratch on a subset would save a profile without the other tasks.
   const partRun = settings.length > 0 || stages.length < all.length || (taskList && taskList.length < TUNE_TASKS.length);
   try {
-    const { job } = await request("/api/tune/start", { method: "POST", body: { models, ...(taskList && { tasks: taskList }), ...(continueRun && { continue: true }), stages, settings: settings.length ? settings : null, force: !continueRun && (useForm ? ((force && !partRun) || (!stage && els.tuneForce.checked)) : force), forceStale, quick: Boolean(quick), guard: useForm ? Boolean(els.tuneGuard?.checked) : false, guardQueue: useForm ? Boolean(els.tuneGuardQueue?.checked) : false, ...(useForm && tuneBudget() && { budgetMinutes: tuneBudget() }) } });
+    const { job } = await request("/api/tune/start", { method: "POST", body: { models, ...(taskList && { tasks: taskList }), ...(continueRun && { continue: true }), stages, settings: settings.length ? settings : null, force: !continueRun && (useForm ? ((force && !partRun) || (!stage && els.tuneForce.checked)) : force), forceStale, quick: Boolean(quick), guard: useForm ? Boolean(els.tuneGuard?.checked) : false, guardQueue: useForm ? Boolean(els.tuneGuardQueue?.checked) : false, ...(budget.minutes && { budgetMinutes: budget.minutes }) } });
     state.tuneJob = job;
     // A started tune is followed on the Tune tab.
     showBenchTab("tune");
