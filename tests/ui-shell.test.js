@@ -204,3 +204,10 @@ test("the Prompt stage is opt-in: under tuner v11 it never changed a setting (AD
   assert.doesNotMatch(stage("prompt"), /\bchecked\b/, "the Prompt stage is not ticked by default");
   assert.match(html, /value="prompt"[^]*?<small>[^<]*55% fewer answers/, "its note says what skipping it saves");
 });
+
+test("the Recommended table shows a catalog model's measured rate as another machine's (ADR-129)", () => {
+  const render = app.slice(app.indexOf("async function loadRecommendations"), app.indexOf("async function loadRecommendations") + 4000);
+  assert.match(render, /row\.measuredRate/, "the catalog rows read the measured rate");
+  assert.match(render, /elsewhere/, "the rate is labelled as measured elsewhere");
+  assert.match(render, /row\.why/, "the row explains where the figure came from");
+});

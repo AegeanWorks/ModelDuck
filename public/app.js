@@ -3114,7 +3114,7 @@ async function loadRecommendations() {
     const title = Object.assign(document.createElement("h3"), { textContent: "Recommended for this PC" });
     const note = Object.assign(document.createElement("p"), {
       className: "benchmark-progress",
-      textContent: `Free memory ${(data.memory.free / 1024 ** 3).toFixed(1)} GiB. Measured models are ranked by right answers on code, then speed; catalog entries are estimates until downloaded and tuned.`,
+      textContent: `Free memory ${(data.memory.free / 1024 ** 3).toFixed(1)} GiB. Measured models are ranked by right answers on code, then speed. A catalog rate marked "elsewhere" was measured on another machine with the shipped preset; tune the model to measure this PC.`,
     });
     const table = document.createElement("table");
     table.className = "benchmark-table";
@@ -3131,12 +3131,14 @@ async function loadRecommendations() {
       );
     }
     for (const row of data.catalog) {
+      // A shipped preset's rate was measured on another machine (ADR-129): shown, but marked so.
+      const measured = Number.isFinite(row.measuredRate);
       body.insertRow().append(
         tuneCell(`${row.name} (not installed)`, row.id),
-        tuneCell("–"),
+        tuneCell(measured ? `${row.measuredRate}% elsewhere` : "–", measured ? row.why : "not measured yet"),
         tuneCell("–"),
         tuneCell(`${(row.totalBytes / 1024 ** 3).toFixed(1)} GiB`, "weights and runtime; the KV cache adds more"),
-        tuneCell("fits (estimated)", `Download ${row.params ?? ""} ${row.quant ?? ""} and tune it to measure speed.`.trim()),
+        tuneCell("fits (estimated)", row.why ?? `Download ${row.params ?? ""} ${row.quant ?? ""} and tune it to measure speed.`.trim()),
       );
     }
     box.replaceChildren(title, note, table);

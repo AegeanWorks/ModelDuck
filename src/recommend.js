@@ -78,15 +78,29 @@ export function recommendModels({ models, profiles = {}, memory = {}, task = "co
   return usable.slice(0, limit);
 }
 
-/** Catalog models that are not installed and whose weights fit; marked recommended ones first. */
-export function recommendCatalog({ catalog = [], installed = [], memory = {}, limit = LIMIT }) {
+/**
+ * Catalog models that are not installed and whose weights fit. A model with a
+ * shipped preset (`measured`: catalogId -> { rate, items, measuredOn }) ranks
+ * first, by that measured rate (ADR-129): it is evidence from another machine,
+ * so the row says where it came from. The rest follow, marked recommended
+ * ones first, then smaller.
+ */
+export function recommendCatalog({ catalog = [], installed = [], memory = {}, measured = {}, limit = LIMIT }) {
   const have = new Set(installed);
   const available = Number(memory.free) || 0;
   return catalog
     .filter((model) => !have.has(model.id) && Number(model.size) > 0)
     .map((model) => {
       const totalBytes = totalBytesWithReserve({ sizeBytes: model.size });
+      const evidence = measured[model.id];
+      const measuredRate = Number.isFinite(evidence?.rate) ? evidence.rate : null;
       return {
+        measuredRate,
+        measuredItems: measuredRate === null ? null : evidence.items ?? null,
+        measuredOn: measuredRate === null ? null : evidence.measuredOn ?? null,
+        why: measuredRate === null
+          ? "Not measured yet; download and tune it to measure this PC."
+          : `${measuredRate}% on ${evidence.items ?? "?"} items, measured on ${evidence.measuredOn ?? "another machine"} with the shipped preset; tune it to measure this PC.`,
         id: model.id,
         name: model.name,
         params: model.params ?? null,
@@ -98,6 +112,9 @@ export function recommendCatalog({ catalog = [], installed = [], memory = {}, li
       };
     })
     .filter((model) => model.fit === "fits (weights and runtime only)")
-    .sort((left, right) => Number(right.recommended) - Number(left.recommended) || left.sizeBytes - right.sizeBytes || left.name.localeCompare(right.name))
+    .sort((left, right) =>
+      Number(right.measuredRate !== null) - Number(left.measuredRate !== null) ||
+      (right.measuredRate ?? -1) - (left.measuredRate ?? -1) ||
+      Number(right.recommended) - Number(left.recommended) || left.sizeBytes - right.sizeBytes || left.name.localeCompare(right.name))
     .slice(0, limit);
 }

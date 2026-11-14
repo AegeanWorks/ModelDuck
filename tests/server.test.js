@@ -975,3 +975,22 @@ test("the benchmark suite route describes every task's questions", async (t) => 
   assert.equal(suite.multistep.chains.length, 5);
   assert.match(suite.multistep.command, /bench:multistep/);
 });
+
+test("recommendations rank catalog models by their shipped preset's measured rate (ADR-129)", async (t) => {
+  const presetsDir = await mkdtemp(path.join(os.tmpdir(), "modelduck-presets-"));
+  t.after(() => rm(presetsDir, { recursive: true, force: true }));
+  const harness = await makeHarness(t, { presetsDir });
+  await writeFile(path.join(presetsDir, "qwen2.5-coder-1.5b-instruct-q4.modelduck-profile.json"), JSON.stringify({
+    schema: 1, kind: "modelduck-profile", catalogId: "qwen2.5-coder-1.5b-instruct-q4", createdAt: "2026-11-15T00:00:00.000Z",
+    fingerprint: { cpu: "Reference CPU" }, load: { settings: {}, stats: null }, speed: null,
+    tasks: { code: { settings: { temperature: 0 }, stats: { rate: 54.2, items: 48 } } },
+  }));
+  const data = await (await fetch(`${harness.base}/api/recommendations?task=code`)).json();
+  const coder = data.catalog.find((row) => row.id === "qwen2.5-coder-1.5b-instruct-q4");
+  assert.ok(coder, "the measured catalog model is listed");
+  assert.equal(data.catalog[0].id, coder.id, "it ranks first");
+  assert.equal(coder.measuredRate, 54.2);
+  assert.equal(coder.measuredOn, "Reference CPU");
+  const recall = await (await fetch(`${harness.base}/api/recommendations?task=recall`)).json();
+  assert.equal(recall.catalog.find((row) => row.id === coder.id)?.measuredRate ?? null, null, "a rate is only used for its own task");
+});

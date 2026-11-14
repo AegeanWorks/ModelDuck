@@ -131,6 +131,14 @@ export function createHttpServer({
   const lease = reloadLease ?? (engine ? new EngineRebuildLease({ engine, logger }) : null);
   const tunedInfo = (applied) => applied && { catalogId: applied.catalogId, task: applied.task, speedPreset: applied.speedPreset, stages: applied.stages, systemPrompt: applied.settings.systemPrompt ?? null, rate: applied.rate ?? null, typeWarnings: applied.typeWarnings ?? [], stale: applied.stale, warnings: applied.warnings };
 
+  // Each shipped preset's measured rate for one task, by catalog id (ADR-129). A
+  // missing or unreadable presets folder means no evidence, never an error.
+  async function shippedRates(task) {
+    const recipes = await readShippedPresets(presetsDir).catch(() => []);
+    return Object.fromEntries(recipes
+      .filter((recipe) => recipe?.catalogId && Number.isFinite(recipe.tasks?.[task]?.stats?.rate))
+      .map((recipe) => [recipe.catalogId, { rate: recipe.tasks[task].stats.rate, items: recipe.tasks[task].stats.items ?? null, measuredOn: recipe.fingerprint?.cpu ?? null }]));
+  }
   async function route(req, res) {
     applySecurityHeaders(res);
     const serverConfig = serverSettings?.value ?? {};
@@ -406,7 +414,7 @@ export function createHttpServer({
         task,
         memory,
         installed: recommendModels({ models, profiles, memory, task }),
-        catalog: recommendCatalog({ catalog: publicCatalog(), installed: models.map((model) => model.id), memory }),
+        catalog: recommendCatalog({ catalog: publicCatalog(), installed: models.map((model) => model.id), memory, measured: await shippedRates(task) }),
       });
       return;
     }

@@ -64,3 +64,24 @@ test("catalog estimates skip installed and too-large models, recommended first",
   assert.deepEqual(rows.map((row) => row.id), ["a", "b"], "recommended first, then smaller");
   assert.equal(rows[0].fit, "fits (weights and runtime only)");
 });
+
+test("a catalog model with a measured shipped preset ranks by that rate, labelled as another machine's (ADR-129)", () => {
+  const catalog = [
+    { id: "general", name: "General", size: 0.5e9, recommended: true },
+    { id: "coder", name: "Coder", size: 1.1e9, recommended: false },
+    { id: "tiny", name: "Tiny", size: 0.1e9, recommended: false },
+    { id: "unmeasured", name: "Unmeasured", size: 0.3e9, recommended: false },
+  ];
+  const measured = {
+    general: { rate: 35.4, items: 48, measuredOn: "CPU X" },
+    coder: { rate: 54.2, items: 48, measuredOn: "CPU X" },
+    tiny: { rate: 10.4, items: 48, measuredOn: "CPU X" },
+  };
+  const rows = recommendCatalog({ catalog, installed: [], memory, measured });
+  assert.deepEqual(rows.map((row) => row.id), ["coder", "general", "tiny", "unmeasured"], "measured first by rate, then the old order");
+  assert.equal(rows[0].measuredRate, 54.2);
+  assert.equal(rows[0].measuredItems, 48);
+  assert.match(rows[0].why, /54\.2% on 48 items, measured on CPU X with the shipped preset; tune it to measure this PC/);
+  assert.equal(rows[3].measuredRate, null);
+  assert.deepEqual(recommendCatalog({ catalog, installed: [], memory }).map((row) => row.id), ["general", "tiny", "unmeasured", "coder"], "without measurements nothing changes");
+});
