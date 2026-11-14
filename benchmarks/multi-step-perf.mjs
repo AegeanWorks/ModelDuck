@@ -10,12 +10,11 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
 
 import { SettingsStore } from "../src/settings.js";
 import { normalizeSettings, DEFAULT_SETTINGS } from "../src/config.js";
 import { writeJsonAtomic } from "../src/fs-atomic.js";
-import { formatValue, formatWithAutoUnit, runBenchmark } from "./stats-util.mjs";
+import { formatValue, formatWithAutoUnit, isMainModule, runBenchmark } from "./stats-util.mjs";
 
 const logger = { warn() {}, error() {} };
 
@@ -252,7 +251,7 @@ export async function main() {
 }
 
 // Run only when started as a script (npm run perf:multistep), never on import.
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMainModule(import.meta.url)) {
   main().catch((error) => {
     console.error("Error:", error);
     process.exitCode = 1;

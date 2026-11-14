@@ -12,12 +12,11 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
 
 import { SettingsStore, fenceSettingsPatch, mergeSettingsDeep, SETTINGS_VERSION } from "../src/settings.js";
 import { normalizeSettings, DEFAULT_SETTINGS } from "../src/config.js";
 import { writeJsonAtomic } from "../src/fs-atomic.js";
-import { runBenchmark } from "./stats-util.mjs";
+import { isMainModule, runBenchmark } from "./stats-util.mjs";
 
 const ITERATIONS = {
   cpu: 1000,  // CPU-bound tests
@@ -191,7 +190,7 @@ export async function main() {
 }
 
 // Run only when started as a script (npm run perf:settings), never on import.
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMainModule(import.meta.url)) {
   main().catch((error) => {
     console.error("Error:", error);
     process.exitCode = 1;

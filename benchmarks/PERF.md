@@ -28,7 +28,9 @@ The I/O workflows are dominated by the atomic write's `fsync`.
 `benchmarks/benchmark-advisor.mjs` exports `BenchmarkAdvisor`. It compares each
 result against fixed thresholds (variability above 50%, mean above 100 ms or 1 s,
 confidence interval wider than half the mean, outliers by the 1.5 × IQR rule,
-throughput under 10 ops/s) and attaches a canned explanation to each flag.
+throughput under 10 ops/s) and attaches a canned explanation to each flag. Slow
+results are listed as `bottlenecks`; the advisor does not guess whether they wait on
+disk or compute, because timing alone cannot say.
 `compareBenchmarks(before, after)` classifies a change by its percentage. No model
 is involved.
 

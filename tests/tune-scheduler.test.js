@@ -205,8 +205,9 @@ test("pause holds the queue until resume", async () => {
   assert.equal(runner.get().paused, false);
 });
 
-test("the pending queue can be reordered and survives a restart paused", async () => {
+test("the pending queue can be reordered and survives a restart paused", async (t) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "modelduck-queue-"));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 20 }));
   const queueFile = path.join(dir, "queue.json");
   const spawn = spawner();
   const make = () => new TuneScheduler({
@@ -232,7 +233,6 @@ test("the pending queue can be reordered and survives a restart paused", async (
   assert.deepEqual(restoredJob.order, [MODELS[1].profileId, MODELS[0].profileId]);
   runner.cancel();
   restored.cancel();
-  fs.rmSync(dir, { recursive: true, force: true });
 });
 
 test("a guard event can stop the whole queue", async () => {
@@ -256,8 +256,9 @@ test("only one scheduled run at a time", () => {
   assert.throws(() => runner.start({ models: MODELS.slice(0, 1) }), (error) => error.code === "tune_in_progress");
 });
 
-test("starting over a restored paused queue is refused", async () => {
+test("starting over a restored paused queue is refused", async (t) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "modelduck-queue-"));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 20 }));
   const queueFile = path.join(dir, "queue.json");
   const spawn = spawner();
   const make = () => new TuneScheduler({
@@ -285,11 +286,11 @@ test("starting over a restored paused queue is refused", async () => {
   const job = await restored.restore();
   assert.equal(job.status, "paused");
   assert.throws(() => restored.start({ models: MODELS.slice(0, 1) }), (error) => error.code === "tune_in_progress");
-  fs.rmSync(dir, { recursive: true, force: true });
 });
 
-test("a model missing from the saved order tunes last, not first", async () => {
+test("a model missing from the saved order tunes last, not first", async (t) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "modelduck-queue-"));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 20 }));
   const queueFile = path.join(dir, "queue.json");
   const item = (model) => ({ id: model.id, profileId: model.profileId, name: model.name, fileName: model.fileName, lane: null, phase: null, status: "queued", progress: null, exitCode: null, error: null, guard: null, provisional: false, log: [], live: null });
   fs.writeFileSync(queueFile, JSON.stringify({ schema: 1, job: { id: "j", status: "running", paused: false, startedAt: new Date().toISOString(), finishedAt: null, stages: ["quality"], tasks: null, settings: null, force: false, continueRun: false, quick: false, guard: false, guardQueue: false, order: ["qwen"], items: [item(MODELS[0]), item(MODELS[1])] } }));
@@ -300,17 +301,16 @@ test("a model missing from the saved order tunes last, not first", async () => {
   await settle();
   assert.ok(spawn.children.length >= 1);
   assert.equal(value(spawn.children[0].args, "--model"), "qwen.gguf", "the model without a saved order position waits its turn");
-  fs.rmSync(dir, { recursive: true, force: true });
 });
 
-test("a finished queue file is not resurrected", async () => {
+test("a finished queue file is not resurrected", async (t) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "modelduck-queue-"));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 20 }));
   const queueFile = path.join(dir, "queue.json");
   const item = (model) => ({ id: model.id, profileId: model.profileId, name: model.name, fileName: model.fileName, status: "done" });
   fs.writeFileSync(queueFile, JSON.stringify({ schema: 1, job: { id: "j", status: "complete", paused: false, finishedAt: new Date().toISOString(), stages: ["quality"], tasks: null, settings: null, force: false, continueRun: false, quick: false, guard: false, guardQueue: false, order: ["a"], items: [item(MODELS[0])] } }));
   const runner = new TuneScheduler({ homeDir: dir, modelsDir: "models", queueFile, scriptPath: "tune-run.mjs", spawnImpl: spawner().spawnImpl, readLanes: async () => ({ cpu: 1, gpu: 0 }), readLane: async () => "cpu", logger: { warn() {} } });
   assert.equal(await runner.restore(), null, "a terminal queue stays finished");
-  fs.rmSync(dir, { recursive: true, force: true });
 });
 
 test("reordering refuses a model that is no longer queued", async () => {
@@ -326,8 +326,9 @@ test("reordering refuses a model that is no longer queued", async () => {
   await assert.rejects(runner.move(MODELS[0].profileId, "down"), (error) => error.code === "tune_queue_model");
 });
 
-test("a resumed queue keeps per-model force", async () => {
+test("a resumed queue keeps per-model force", async (t) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "modelduck-queue-"));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 20 }));
   const queueFile = path.join(dir, "queue.json");
   const spawn = spawner();
   const make = (impl) => new TuneScheduler({ homeDir: dir, modelsDir: "models", queueFile, scriptPath: "tune-run.mjs", spawnImpl: impl, readLanes: async () => ({ cpu: 1, gpu: 0 }), readLane: async () => "cpu", logger: { warn() {} } });
@@ -357,7 +358,6 @@ test("a resumed queue keeps per-model force", async () => {
   // queue file on Windows until the cancel settles.
   runner.cancel();
   await settle();
-  fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 20 });
 });
 
 test("a run of only some settings passes them to every tune", async () => {
@@ -598,8 +598,9 @@ function savedQueue(dir, items, extra = {}) {
 }
 const savedItem = (model, extra = {}) => ({ id: model.id, profileId: model.profileId, name: model.name, fileName: model.fileName, lane: null, phase: null, status: "queued", progress: null, exitCode: null, error: null, guard: null, provisional: false, ...extra });
 
-test("a restart keeps a finished model's provisional label, and drops it from one that must run again", async () => {
+test("a restart keeps a finished model's provisional label, and drops it from one that must run again", async (t) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "modelduck-queue-"));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 20 }));
   const queueFile = savedQueue(dir, [
     savedItem(MODELS[0], { status: "done", provisional: true }),
     savedItem(MODELS[1], { status: "running", provisional: true }),
@@ -609,11 +610,11 @@ test("a restart keeps a finished model's provisional label, and drops it from on
   const byId = Object.fromEntries(job.items.map((item) => [item.profileId, item]));
   assert.equal(byId.smol.provisional, true, "its time-boxed preset is still unfinished after the restart");
   assert.equal(byId.qwen.provisional, false, "an interrupted model starts over and earns the label again");
-  fs.rmSync(dir, { recursive: true, force: true });
 });
 
-test("a restart keeps the minutes a model already spent", async () => {
+test("a restart keeps the minutes a model already spent", async (t) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "modelduck-queue-"));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 20 }));
   const queueFile = savedQueue(dir, [savedItem(MODELS[0], { budgetUsedMs: 3 * 60_000 })], { budgetMinutes: 5 });
   const spawn = spawner();
   const runner = new TuneScheduler({ homeDir: dir, modelsDir: "models", queueFile, scriptPath: "tune-run.mjs", spawnImpl: spawn.spawnImpl, readLanes: async () => ({ cpu: 1, gpu: 0 }), readLane: async () => "cpu", logger: { warn() {} }, clock: () => 0 });
@@ -623,5 +624,4 @@ test("a restart keeps the minutes a model already spent", async () => {
   assert.equal(value(spawn.children[0].args, "--budget"), "2", "5 minutes minus the 3 already used");
   spawn.children[0].finish(0);
   assert.ok(await waitFor(() => runner.get().status === "complete"));
-  fs.rmSync(dir, { recursive: true, force: true });
 });

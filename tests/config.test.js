@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -189,10 +190,17 @@ test("a long stop list keeps the first stops instead of dropping the fence", () 
   );
 });
 
+// A settings file in its own temp directory: writeJsonAtomic keeps a .bak beside it, so a bare file
+// in the shared temp folder left stray files behind on every run.
+async function settingsFile(t) {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "modelduck-settings-"));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  return path.join(dir, "settings.json");
+}
+
 test("SettingsStore isolates stop lists and ignores non-object patches", async (t) => {
   const { SettingsStore } = await import("../src/settings.js");
-  const file = path.join(os.tmpdir(), `duck-settings-${process.pid}-${Date.now()}.json`);
-  t.after(() => import("node:fs/promises").then((fs) => fs.rm(file, { force: true })));
+  const file = await settingsFile(t);
   const store = new SettingsStore({ file, logger: { warn() {}, error() {} } });
   const snapshot = store.value;
   snapshot.customStopTriggers.push("leak");
@@ -204,8 +212,7 @@ test("SettingsStore isolates stop lists and ignores non-object patches", async (
 // IDEA-1097: version fence prevents silent downgrade on load.
 test("SettingsStore rejects a newer version file", async (t) => {
   const { SettingsStore } = await import("../src/settings.js");
-  const file = path.join(os.tmpdir(), `duck-settings-version-${process.pid}-${Date.now()}.json`);
-  t.after(() => import("node:fs/promises").then((fs) => fs.rm(file, { force: true })));
+  const file = await settingsFile(t);
   // Write a settings file with a future version
   const { writeJsonAtomic } = await import("../src/fs-atomic.js");
   await writeJsonAtomic(file, { version: 999, settings: { temperature: 0.5 } });
@@ -218,8 +225,7 @@ test("SettingsStore refuses a version it cannot read, with Why and Fix, and leav
   const { SettingsStore } = await import("../src/settings.js");
   const { writeJsonAtomic } = await import("../src/fs-atomic.js");
   const fs = await import("node:fs/promises");
-  const file = path.join(os.tmpdir(), `duck-settings-version-bad-${process.pid}-${Date.now()}.json`);
-  t.after(() => fs.rm(file, { force: true }));
+  const file = await settingsFile(t);
   const store = new SettingsStore({ file, logger: { warn() {}, error() {} } });
   for (const version of ["2", 1.5, -1, "soon", true]) {
     await writeJsonAtomic(file, { version, settings: { temperature: 0.5 } });
@@ -234,8 +240,7 @@ test("SettingsStore refuses a version it cannot read, with Why and Fix, and leav
 // IDEA-1097: missing or older version is accepted.
 test("SettingsStore accepts missing or older version", async (t) => {
   const { SettingsStore } = await import("../src/settings.js");
-  const file = path.join(os.tmpdir(), `duck-settings-version-ok-${process.pid}-${Date.now()}.json`);
-  t.after(() => import("node:fs/promises").then((fs) => fs.rm(file, { force: true })));
+  const file = await settingsFile(t);
   const { writeJsonAtomic } = await import("../src/fs-atomic.js");
   // A file with no version loads, and its values are used.
   await writeJsonAtomic(file, { settings: { temperature: 0.5 } });

@@ -9,6 +9,10 @@
  * - Warmup handling
  */
 
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 /** Calculate arithmetic mean */
 export function mean(values) {
   if (values.length === 0) return 0;
@@ -221,6 +225,20 @@ export function formatWithAutoUnit(value) {
   return `${(value * 1000000).toFixed(3)} μs`;
 }
 
+/**
+ * Whether the module whose import.meta.url is metaUrl is the script node was started with.
+ * import.meta.url is the resolved real path, while process.argv[1] is as typed, so started
+ * through a symlink or junction the two differ unless both are resolved.
+ */
+export function isMainModule(metaUrl, argv1 = process.argv[1]) {
+  if (!argv1) return false;
+  try {
+    return fs.realpathSync(fileURLToPath(metaUrl)) === fs.realpathSync(path.resolve(argv1));
+  } catch {
+    return false;
+  }
+}
+
 /** Operations per second from the total time (seconds) of `iterations` operations. */
 export function calculateThroughput(totalTime, iterations) {
   return totalTime > 0 ? iterations / totalTime : 0;
@@ -232,6 +250,7 @@ export function calculateThroughput(totalTime, iterations) {
  * milliseconds like performance.now(). `log` prints the summary.
  */
 export async function runBenchmark(name, fn, { iterations = 10, warmup = 2, filterOutliers: filter = false, clock = () => performance.now(), log = console.log } = {}) {
+  if (!(iterations >= 1)) throw new RangeError(`runBenchmark needs iterations of at least 1, got ${iterations}`);
   for (let i = 0; i < warmup; i++) await fn();
   const times = [];
   for (let i = 0; i < iterations; i++) {

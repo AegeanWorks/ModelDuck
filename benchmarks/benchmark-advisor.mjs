@@ -20,7 +20,6 @@ export class BenchmarkAdvisor {
       extremeLatency: 1.0,      // > 1s = extreme latency
       regression: 1.5,           // > 50% slower = regression
       improvement: 0.8,         // > 20% faster = improvement
-      iobound: 0.05,            // > 50ms = likely I/O bound
     };
     Object.assign(this.thresholds, options.thresholds);
   }
@@ -45,18 +44,13 @@ export class BenchmarkAdvisor {
 
     // Analyze latency
     if (stats.mean > this.thresholds.extremeLatency) {
-      findings.push(`Extreme latency (${this.formatTime(stats.mean)}) - likely I/O bound`);
-      recommendations.push(`Consider async operations or batching to reduce I/O overhead`);
-      tags.push("extreme-latency", "io-bound");
+      findings.push(`Extreme latency (${this.formatTime(stats.mean)})`);
+      recommendations.push(`Find where the time goes first; if it waits on disk or network, batching or async work may help`);
+      tags.push("extreme-latency");
     } else if (stats.mean > this.thresholds.highLatency) {
       findings.push(`High latency (${this.formatTime(stats.mean)})`);
       recommendations.push(`Profile to identify hotspots`);
       tags.push("high-latency");
-    }
-
-    // Analyze I/O bound
-    if (stats.mean > this.thresholds.iobound) {
-      tags.push("io-bound");
     }
 
     // Check confidence interval
@@ -129,11 +123,6 @@ export class BenchmarkAdvisor {
       .filter(a => a.tags.includes("high-variability"))
       .map(a => a.name);
     
-    // Identify I/O bound operations
-    const ioBound = analyses
-      .filter(a => a.tags.includes("io-bound"))
-      .map(a => a.name);
-    
     // Summary statistics
     const totalOperations = analyses.length;
     const operationsWithIssues = analyses.filter(a => a.findings.length > 0).length;
@@ -148,7 +137,6 @@ export class BenchmarkAdvisor {
       },
       bottlenecks,
       highVariability,
-      ioBound,
       allFindings,
       allRecommendations,
       analyses,
