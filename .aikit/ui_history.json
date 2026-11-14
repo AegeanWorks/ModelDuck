@@ -825,5 +825,25 @@
     "final_snapshot_digest": "",
     "final_snapshot_entries": 0,
     "surface_digest": "9ad122314d5ae170799143c4e9cdec068c9e236fc763ad512a50b03f50163485"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [
+      "public/styles.css"
+    ],
+    "no_visual_reason": "",
+    "baseline_commit": "d879043335a2c6bb90cb963c784f5d46eb88b7fd",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1794654079.8812995,
+    "finished_at": 1794654245.3479962,
+    "strikes": 0,
+    "reviewer": "kiro:1 (agent review under G-007: headless Edge screenshot of the toast above the open Bench dialog at 24px from the corner, and measured desktop and 390px placement in ui:smoke)",
+    "allowed_removals": [],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "19f18124bc0d1ce72e001949e311112cbdc832bbf665956255173e86be8795b7"
   }
 ]

@@ -768,9 +768,12 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
   width: min(380px, calc(100vw - 36px));
   pointer-events: none;
 }
-/* A manual popover, so toasts sit in the top layer above an open modal dialog. */
-.toast-root[popover] {
-  inset: auto 18px 18px auto;
+/* A manual popover, so toasts sit in the top layer above an open modal dialog.
+   :where() gives these resets no specificity: they only undo the browser's popover
+   defaults (centered, inset 0), and every placement rule, here and in redesign.css,
+   still wins. */
+:where(.toast-root[popover]) {
+  inset: auto;
   margin: 0;
   padding: 0;
   border: 0;
