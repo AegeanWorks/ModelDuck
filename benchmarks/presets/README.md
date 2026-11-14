@@ -16,13 +16,28 @@ profile** or `POST /api/profiles/import`.
 Memory is reported as host RAM plus GPU VRAM. The tuner records both; the
 earlier host-only figure understated a Vulkan load by about 1.3 GB.
 
-## qwen2.5-coder-1.5b-instruct-q4
+## Current recipes (suite v18, tuner v11)
 
-Measured 2026-11-08 on an Intel i5-14400F with an AMD Radeon RX 9060 XT
-(Vulkan, `gpuLayers=max`), suite v17, tuner v9. The current suite is v18 and the
-tuner v11, so these recipes predate both: a profile imported from one loads with a
-"suite changed" and "tuner changed" warning until it is re-measured, and the
-figures below are history, not a current claim.
+Re-tuned 2026-11-15 on an Intel i5-14400F with an AMD Radeon RX 9060 XT. Every
+load is Vulkan with all layers on the GPU and an f16 KV cache. Rates are the
+share of a task's tuning items answered right (seed-averaged), and "held back"
+is the same preset on items the search never saw. Each recipe file holds the
+per-item answers, settings and memory figures.
+
+| Model | Code | Comprehension | Recall (long context) |
+|---|---:|---:|---:|
+| smollm2-135m-instruct-q4 | 10.4% of 48 (held back 14.6%) | 0% of 48 (0%) | 19.6% of 46 (8.3%) |
+| qwen2.5-0.5b-instruct-q4 | 35.4% of 48 (39.0%) | 46.5% of 48 (48.5%) | 35.5% of 46 (20.8%) |
+| qwen2.5-coder-1.5b-instruct-q4 | 54.2% of 48 (63.4%) | 79.2% of 48 (63.6%) | 50.0% of 46 (43.8%) |
+
+Every code preset is greedy with no repeat penalty; the prompt stage kept the
+default system prompt everywhere (ADR-127). These rates are from suite v18 and
+are not comparable with the history below, which used suite v17.
+
+## History: qwen2.5-coder-1.5b-instruct-q4 (suite v17, tuner v9)
+
+Measured 2026-11-08 on the same machine. These figures predate suite v18 and
+the recipe above replaced them; they are kept for the context analysis.
 
 Full code task, 136 items × 3 seeds, same load and context (4096):
 
