@@ -1,63 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "answer-reuse",
+    "task_id": "answer-reuse-readme",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794685456.700328,
+    "updated_at": 1794685562.2583294,
     "owner": "kiro:1",
     "started_by": "kiro:1",
     "continuations": [],
-    "completed_at": 1794685526.0839283
+    "completed_at": 1794685562.5326488
   },
   "checkpoints": [
-    {
-      "task_id": "branch-cleanup-f",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "Docs only; strict gates pass",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794669306.9359968,
-      "timestamp_str": "2026-11-14 18:15:06",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "branch-cleanup-f",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'branch-cleanup-f' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794669307.2477016,
-      "timestamp_str": "2026-11-14 18:15:07",
-      "agent": "kiro:1",
-      "delivery": {
-        "roots": [
-          "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck"
-        ],
-        "forced": false
-      }
-    },
-    {
-      "task_id": "report-status-f",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/1] Docs: record which tuning report findings master already fixes",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794670723.2452662,
-      "timestamp_str": "2026-11-14 18:38:43",
-      "agent": "kiro:1",
-      "impact_assessment": {
-        "why": "The imported report is a snapshot; readers need its current status",
-        "benefits": "no duplicate work on fixed findings",
-        "risks": "contract: none; dependency: none; concurrency: none; state: docs and ledger only",
-        "mitigation": "docs only; repro script run"
-      },
-      "plan_digest": "835d12209f097721d5a36ef814c5ea927b90cc4c603f3417ec49fd51dfab8c08"
-    },
     {
       "task_id": "report-status-f",
       "phase": "in_progress",
@@ -308,6 +262,52 @@
       "status": "completed",
       "timestamp": 1794685526.083931,
       "timestamp_str": "2026-11-14 22:45:26",
+      "agent": "kiro:1",
+      "delivery": {
+        "roots": [
+          "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck"
+        ],
+        "forced": false
+      }
+    },
+    {
+      "task_id": "answer-reuse-readme",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/1] README tree lists tests/answer-reuse.test.js",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794685561.839542,
+      "timestamp_str": "2026-11-14 22:46:01",
+      "agent": "kiro:1",
+      "impact_assessment": {
+        "why": "README drift check (PRINCIPLE-005 R5) failed after answer-reuse",
+        "benefits": "strict check passes",
+        "risks": "contract: none; dependency: none; concurrency: none; state: docs and ledger only",
+        "mitigation": "docs only"
+      },
+      "plan_digest": "1fdcae723839b5dcbf0e5a8bd114706e3ef34f3e74ce33f9af52e72ffc90306b"
+    },
+    {
+      "task_id": "answer-reuse-readme",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "Docs only",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794685562.2583294,
+      "timestamp_str": "2026-11-14 22:46:02",
+      "agent": "kiro:1",
+      "checklists": "passed"
+    },
+    {
+      "task_id": "answer-reuse-readme",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'answer-reuse-readme' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794685562.5326505,
+      "timestamp_str": "2026-11-14 22:46:02",
       "agent": "kiro:1",
       "delivery": {
         "roots": [
