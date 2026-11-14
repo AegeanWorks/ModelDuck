@@ -1,53 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "merge-publish-f",
+    "task_id": "branch-cleanup-f",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794669206.420234,
+    "updated_at": 1794669306.9359968,
     "owner": "kiro:1",
     "started_by": "kiro:1",
     "continuations": [],
-    "completed_at": 1794669206.6907067
+    "completed_at": 1794669307.2476997
   },
   "checkpoints": [
-    {
-      "task_id": "reforge-fixes-f",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/6] M2 escalated label per key and final value; 3 of 6 new tests failed first; 836 pass.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794666202.833472,
-      "timestamp_str": "2026-11-14 17:23:22",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "reforge-fixes-f",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/6] M3 perf scripts and hygiene: runBenchmark rejects iterations<1, isMainModule resolves real paths (junction check end to end), advisor drops io-bound and ioBound, settings tests use mkdtemp, queue tests clean up in t.after. 3 new tests failed first; temp counts unchanged by the run; 839 pass.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794666353.3308382,
-      "timestamp_str": "2026-11-14 17:25:53",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "reforge-fixes-f",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[5/6] M5 probe: early exit on a mismatching pass, expired() budget check, tautological test replaced; 3 new tests failed first; tune:gate 9/9 b=0 c=0; first real-model probe in a temp home (Qwen 0.5B Vulkan: identical, 15.7 vs 15.8 s, refused, probe cost 31 s); 841 pass.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794667072.5838737,
-      "timestamp_str": "2026-11-14 17:37:52",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
     {
       "task_id": "reforge-fixes-f",
       "phase": "in_progress",
@@ -286,6 +250,52 @@
       "status": "completed",
       "timestamp": 1794669206.6907089,
       "timestamp_str": "2026-11-14 18:13:26",
+      "agent": "kiro:1",
+      "delivery": {
+        "roots": [
+          "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck"
+        ],
+        "forced": false
+      }
+    },
+    {
+      "task_id": "branch-cleanup-f",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/1] Ledger-only: branch audit, tuning report import, README tree",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794669306.659933,
+      "timestamp_str": "2026-11-14 18:15:06",
+      "agent": "kiro:1",
+      "impact_assessment": {
+        "why": "Clear the stale-ledger gate after the report import",
+        "benefits": "strict check passes",
+        "risks": "contract: none; dependency: none; concurrency: none; state: ledger files only",
+        "mitigation": "docs and ledger only"
+      },
+      "plan_digest": "6c545bb0e0fcd16c20a70b91ec3d5184765539c219076e6fce80c531fbf5af9d"
+    },
+    {
+      "task_id": "branch-cleanup-f",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "Docs only; strict gates pass",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794669306.9359968,
+      "timestamp_str": "2026-11-14 18:15:06",
+      "agent": "kiro:1",
+      "checklists": "passed"
+    },
+    {
+      "task_id": "branch-cleanup-f",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'branch-cleanup-f' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794669307.2477016,
+      "timestamp_str": "2026-11-14 18:15:07",
       "agent": "kiro:1",
       "delivery": {
         "roots": [
