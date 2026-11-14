@@ -206,6 +206,59 @@ That is the gap the chains are for. One seed is a demo, not a claim: pass
 `TASKS`, so the test hash, the task-subset hash, profiles, baselines and the gate are
 unchanged. They are versioned on their own (`MULTISTEP_VERSION`, `multistepHash`).
 
+## Repair and retry with tests (opt-in)
+
+```bash
+npm run bench:repair -- --model <id> --mode retry --repair-temperature 0.7 --rounds 4
+npm run bench:repair -- --model <id> --mode fresh --repair-temperature 0.7   # with feedback
+```
+
+Once settings are exhausted, the coding lever left is running the tests. The model
+answers every eligible code item (134 of 142), the item's tests run, and a failed
+item gets another try. The first passing answer counts. Each round is scored on all
+cases, so an answer that hardcodes a shown case still fails (one did:
+`if (seconds === 0) return "0:00:00"`). Modes:
+
+- `chat`: the failing call (expected and actual output) is fed back in the same
+  conversation.
+- `fresh`: a new conversation with the task, the failed code quoted and the failing
+  call.
+- `retry`: the control. The same question again with a new seed and no feedback.
+
+Qwen2.5 Coder 1.5B Q4_K_M, greedy first answer 81/134 (60.4%), 2 extra tries unless noted:
+
+| Mode | Repairs at | Solved | Repairs that resent the same code |
+|---|---|---:|---:|
+| chat | greedy | 83 (61.9%) | — |
+| chat | T=0.7 | 84 (62.7%) | 75 of 105 |
+| chat, 3 calls shown | greedy | 84 (62.7%) | 84 of 104 |
+| fresh | greedy | 84 (62.7%) | 46 of 103 |
+| fresh | T=0.7 | 90 (67.2%) | 33 of 100 |
+| retry | T=0.7 | 90 (67.2%) | 9 of 100 |
+| retry, seed 100 | T=0.7 | 92 (68.7%) | 6 of 98 |
+| retry, 4 tries | T=0.7 | 98 (73.1%) | 14 of 183 |
+
+Qwen2.5 0.5B Q4_K_M, first answer 46/134 (34.3%): fresh T=0.7 reached 48 and retry
+T=0.7 reached 52.
+
+The feedback text adds nothing over sampling again:
+
+- In a conversation the model sends its own answer back word for word in most
+  repairs, even at T=0.7.
+- `fresh` and `retry` tie for the 1.5B coder.
+- `retry` wins for the 0.5B model.
+- Fresh and retry rescued different items (2 shared, 7 each), but two retry runs
+  with different seeds did the same (3 shared, 6 and 8 each). The difference is the
+  random draw, not the strategy.
+
+What helps is the number of test-checked tries: 60.4%, then 64.9%, 67.2%, 70.9% and
+73.1% after 1 to 4 retries, largest on repo bug fixes (1 → 7 of 12). The cost was 183
+extra answers on top of 134 (318 s against about 100 s for one pass).
+
+The suite's tests both pick and score the answer, so this is the gain when tests
+define the task. With weaker tests in real use it is an upper bound. Not in `PROMPTS`
+or `TASKS`: hashes, profiles, baselines and the gate are unchanged.
+
 ## Statistics and the gate
 
 Check percentages stay in the report, but the gate works on **items**: an item

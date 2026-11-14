@@ -79,6 +79,7 @@ npm run tune -- --model <id> --stages device   # about a minute: does it run fas
 npm run tune -- --model <id> --quick --budget 5   # stop after 5 minutes, keep the best so far
 npm run tune -- --model <id> --tasks code --escalate   # retest unproven leaders on fresh items
 npm run bench:multistep -- --model <id>   # multistep chains: one conversation, scored per step
+npm run bench:repair -- --model <id> --mode retry --repair-temperature 0.7   # tests pick among retries
 npm run tune -- --model <id> --settings threads,batchSize   # re-tune only these settings
 npm run tune:gate            # re-measure the core models' baseline settings (G-001)
 ```
@@ -534,6 +535,8 @@ modelduck/
 │   ├── multistep-items.mjs   <- opt-in multistep chains (not tuned or gated)
 │   ├── multistep-evaluate.mjs
 │   ├── multistep-run.mjs
+│   ├── repair-evaluate.mjs   <- opt-in repair with test feedback (not tuned or gated)
+│   ├── repair-run.mjs
 │   ├── ai-benchmark-advisor.mjs
 │   ├── AI-BENCHMARK-README.md
 │   ├── CHANGELOG.md
@@ -578,6 +581,7 @@ modelduck/
 │   ├── tune-escalate.test.js
 │   ├── tune-failures.test.js
 │   ├── benchmark-multistep.test.js
+│   ├── benchmark-repair.test.js
 │   ├── benchmark-tune-baseline.test.js
 │   ├── benchmark-suite-paraphrase.test.js
 │   ├── benchmark-link.test.js
