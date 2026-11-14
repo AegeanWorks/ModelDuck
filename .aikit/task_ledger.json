@@ -3,36 +3,15 @@
   "active_task": {
     "task_id": "review-fixes-a",
     "last_phase": "in_progress",
-    "active_phase": 4,
-    "status": "in_progress",
-    "updated_at": 1794648487.343258,
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1794649098.1264455,
     "owner": "kiro:1",
     "started_by": "kiro:1",
-    "continuations": []
+    "continuations": [],
+    "completed_at": 1794649098.3149655
   },
   "checkpoints": [
-    {
-      "task_id": "kiroween-fast-tune",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[6/6] T6 done: JUDGES 5-minute path, steering fast paths + hooks, spec tasks checked; hooks created at workspace .kiro/hooks (modelduck-test-on-save, modelduck-tune-gate-reminder). Gates: npm test 751/750 pass, tune:gate passed 9/9 rows b=0 c=0, ui:smoke ok, check 4/4. Pending user: ADR texts (drafted, not appended per steering), history.jsonl gate append left uncommitted, push not done, preset refresh and threads default decision. checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794606342.5437975,
-      "timestamp_str": "2026-11-14 00:45:42",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "kiroween-fast-tune",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'kiroween-fast-tune' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794607085.057259,
-      "timestamp_str": "2026-11-14 00:58:05",
-      "agent": "kiro:1"
-    },
     {
       "task_id": "coding-quality-tune",
       "phase": "in_progress",
@@ -270,6 +249,28 @@
       "timestamp_str": "2026-11-14 12:28:07",
       "agent": "kiro:1",
       "checklists": "passed"
+    },
+    {
+      "task_id": "review-fixes-a",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] M4 UI: invalid budget error, toasts as top-layer popover inside the topmost modal, timeExhausted label; UI task finished (G-007 agent review); smoke checks + ADR-110. 802 pass, ui:smoke OK.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794649098.1264455,
+      "timestamp_str": "2026-11-14 12:38:18",
+      "agent": "kiro:1",
+      "checklists": "passed"
+    },
+    {
+      "task_id": "review-fixes-a",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'review-fixes-a' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794649098.3149667,
+      "timestamp_str": "2026-11-14 12:38:18",
+      "agent": "kiro:1"
     }
   ]
 }
