@@ -54,8 +54,10 @@ probe answers a few greedy items wide and one at a time. The tune runs wide only
 when every answer is byte-identical and the wide pass takes at least 15% less wall
 time; otherwise it says why and answers one at a time. Measured on an i5-14400F
 under load: Qwen2.5 0.5B matched 4 of 4 but was not faster (16.7 s wide vs 15.6 s),
-and SmolLM2 135M changed 1 of 4 answers at width 2. Answers are tagged with their
-width and a later run reuses only answers of its own width. The device must already
+and SmolLM2 135M changed 1 of 4 answers at width 2. Each answer is tagged with the
+width its call ran at and the width of its tune. A serial tune reuses every serial
+answer, including a wide tune's speed stage and narrowed calls; a wide tune reuses
+only answers from tunes of its own width. The device must already
 be chosen, so run `--stages device` first.
 
 `npm run tune -- ... --budget <minutes>` stops asking new answers once the time is

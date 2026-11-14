@@ -7,6 +7,7 @@ import test from "node:test";
 import { PROMPTS } from "../benchmarks/suite.mjs";
 import { createEvaluator } from "../benchmarks/tune-evaluate.mjs";
 import { MAX_PARALLEL, chooseParallel, itemNeed, parseParallel, probeItemIds, probeParallel, slotWidth } from "../benchmarks/tune-parallel.mjs";
+import { answerRow } from "../benchmarks/tune-job.mjs";
 import { cachedAnswers, startRun } from "../src/tune-runs.js";
 
 // --- how wide may one call be -------------------------------------------------
@@ -65,10 +66,10 @@ function probeEvaluator({ digestFor = (id) => `d-${id}`, fail = null, msFor = (w
   const calls = [];
   const loads = [];
   const evaluate = async (settings, ids, seed) => {
-    calls.push({ width: evaluate.parallel, ids: [...ids], seed });
+    calls.push({ width: evaluate.parallel, ids: [...ids], seed, temperature: settings.temperature });
     if (fail && evaluate.parallel > 1) throw new Error(fail);
-    now += msFor(evaluate.parallel);
-    return { prompts: ids.map((id) => ({ id, passed: 1, total: 1, error: null, digest: digestFor(id, evaluate.parallel) })) };
+    now += msFor(evaluate.parallel, settings);
+    return { prompts: ids.map((id) => ({ id, passed: 1, total: 1, error: null, digest: digestFor(id, evaluate.parallel, settings) })) };
   };
   evaluate.parallel = 1;
   evaluate.setParallel = (n) => { evaluate.parallel = n; };
@@ -229,4 +230,42 @@ test("saved answers are reused only by a tune of the same width; untagged ones c
   assert.deepEqual(await ids(1), ["serial-1"]);
   assert.deepEqual(await ids(3), ["wide-1", "wide-2"]);
   assert.deepEqual(await ids(undefined), ["serial-1"], "the default is serial");
+});
+
+test("each answer carries the width its call really ran at", async () => {
+  const engine = sequenceEngine();
+  const evaluate = createEvaluator({ engine, modelId: "m1", parallel: 3 });
+  const wide = await evaluate(SETTINGS, SHORT, 42);
+  assert.deepEqual(wide.prompts.map((item) => item.width), [3, 3, 3]);
+  const timed = await evaluate({ ...SETTINGS, parallelism: 1, timed: true }, SHORT, 42);
+  assert.deepEqual(timed.prompts.map((item) => item.width), [1, 1, 1], "the speed stage answers one at a time");
+});
+
+test("a row is tagged with its call's width and its tune's width", () => {
+  const settings = { temperature: 0 };
+  const answer = (width) => ({ id: "x", passed: 1, total: 1, width });
+  assert.deepEqual([answerRow(settings, 42, answer(3), 3).parallel, answerRow(settings, 42, answer(3), 3).tuneParallel], [3, 3]);
+  const serialInWide = answerRow(settings, 42, answer(1), 3);
+  assert.equal(serialInWide.parallel, undefined, "a serial call is untagged, as serial rows always were");
+  assert.equal(serialInWide.tuneParallel, 3);
+  const serial = answerRow(settings, 42, answer(1), 1);
+  assert.equal("parallel" in serial || "tuneParallel" in serial, false, "a serial tune writes rows as before");
+});
+
+test("a serial tune reuses the serial answers of a wide tune; a wide tune keeps its own world", async (t) => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "modelduck-parallel-"));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const fingerprint = { suiteVersion: 18, taskHash: "h", nodeLlamaCpp: "3.22.2", tunerVersion: 10 };
+  const run = await startRun(dir, { profileId: "p", model: "p.gguf", request: {}, fingerprint, now: new Date("2026-11-13T10:00:00Z") });
+  const settings = { temperature: 0 };
+  await run.answers([
+    { settings, seed: 42, item: "speed-in-wide", passed: 1, total: 1, tuneParallel: 3 },
+    { settings, seed: 42, item: "wide", passed: 1, total: 1, parallel: 3, tuneParallel: 3 },
+    { settings, seed: 42, item: "narrowed", passed: 1, total: 1, parallel: 2, tuneParallel: 3 },
+    { settings, seed: 42, item: "serial", passed: 1, total: 1 },
+  ]);
+  await run.finish({ outcome: "done", now: new Date("2026-11-13T10:01:00Z") });
+  const ids = async (parallel) => (await cachedAnswers(dir, { profileId: "p", fingerprint, parallel })).flatMap((group) => group.rows.map((row) => row.item)).sort();
+  assert.deepEqual(await ids(1), ["serial", "speed-in-wide"], "every serially answered row, whichever tune made it");
+  assert.deepEqual(await ids(3), ["narrowed", "speed-in-wide", "wide"], "a width-3 tune reuses what width-3 tunes answered, as before");
 });

@@ -263,9 +263,14 @@ export async function cachedAnswers(dir, { profileId, fingerprint = null, limitR
           continue;
         }
         if (!row || !row.item || row.error) continue;
-        // Answers made at another width are another world: batching can change the numerics,
-        // so a tune reuses only rows of its own width. A row with no tag was answered serially.
-        if ((row.parallel ?? 1) !== (parallel ?? 1)) continue;
+        // Answers made at another width are another world: batching can change the numerics.
+        // `parallel` is the width the call ran at (no tag: serial) and `tuneParallel` the tune's
+        // (older rows have only `parallel`, set to the tune's width). A serial tune reuses every
+        // serially answered row, whichever tune made it; a wide tune reuses its own width's rows.
+        const want = parallel ?? 1;
+        const callWidth = row.parallel ?? 1;
+        const tuneWidth = row.tuneParallel ?? callWidth;
+        if (want === 1 ? callWidth !== 1 : tuneWidth !== want) continue;
         if (rows >= limitRows) break;
         rows += 1;
         const key = `${JSON.stringify(row.settings ?? null)}|${row.seed}`;

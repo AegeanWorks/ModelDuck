@@ -67,6 +67,26 @@ export function tuneBase() {
 /** A provisional pass: the first rung of each task and stage, with no held-back check yet. */
 
 /**
+ * One answer as the run record stores it. `parallel` is the width the call
+ * really ran at (absent when serial, as serial rows always were), and
+ * `tuneParallel` the width the tune asked for (absent for a serial tune), so
+ * cachedAnswers can give a serial tune every serial answer, including the
+ * speed stage and narrowed calls of a wide tune.
+ */
+export function answerRow(settings, seed, answer, tuneWidth = 1) {
+  const callWidth = answer.width ?? tuneWidth;
+  return {
+    settings, seed, item: answer.id, passed: answer.passed, total: answer.total, ms: answer.ms ?? null,
+    outputTokens: answer.outputTokens ?? null, tokensPerSecond: answer.tokensPerSecond ?? null, digest: answer.digest ?? null, error: answer.error ?? null,
+    unreadable: Boolean(answer.unreadable), text: answer.text ?? null,
+    stopReason: answer.stopReason ?? null, promptTokens: answer.promptTokens ?? null, firstTokenMs: answer.firstTokenMs ?? null,
+    ...(callWidth > 1 && { parallel: callWidth }),
+    ...(tuneWidth > 1 && { tuneParallel: tuneWidth }),
+    failure: answer.failure ?? null,
+  };
+}
+
+/**
  * Tune a target in stages, reusing its saved profile (ADR-028, ADR-030).
  * The profile is saved after every finished setting, so stopping keeps what
  * was found and a later run resumes. Resolves `{ skipped, warnings, profile, result }`.
@@ -129,15 +149,7 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
     return { answers: state.runs - earlierAnswers, sweeps: state.sweeps.slice(earlierSweeps), result: { load: result.load, speed: result.speed, device: result.device, tasks: result.tasks, stages: result.stages } };
   };
   const onAnswers = (settings, seed, answers) => {
-    void run.answers(answers.map((answer) => ({
-      settings, seed, item: answer.id, passed: answer.passed, total: answer.total, ms: answer.ms ?? null,
-      outputTokens: answer.outputTokens ?? null, tokensPerSecond: answer.tokensPerSecond ?? null, digest: answer.digest ?? null, error: answer.error ?? null,
-      unreadable: Boolean(answer.unreadable), text: answer.text ?? null,
-      stopReason: answer.stopReason ?? null, promptTokens: answer.promptTokens ?? null, firstTokenMs: answer.firstTokenMs ?? null,
-      // The width this tune ran at; rows with no tag were answered serially (cachedAnswers).
-      ...(width > 1 && { parallel: width }),
-      failure: answer.failure ?? null,
-    })));
+    void run.answers(answers.map((answer) => answerRow(settings, seed, answer, width)));
     for (const answer of answers) fresh.push({ task: TASK_OF.get(answer.id) ?? null, failure: answer.failure });
   };
   // Answers measured by this process (not restored), for the failure report.

@@ -208,7 +208,8 @@ export function createEvaluator({ engine, modelId, prompts = PROMPTS, systemProm
         next += 1;
         // Untimed answers wait here while another tune times something (ADR-033).
         if (!settings.timed) await beforeAnswer();
-        results[index] = { id: items[index].id, ...(await answer(items[index], settings, load, seed)) };
+        // The width this call really ran at, which can be narrower than the tune's (tune-job.mjs answerRow).
+        results[index] = { id: items[index].id, width, ...(await answer(items[index], settings, load, seed)) };
         onItem(results[index]);
       }
     };
