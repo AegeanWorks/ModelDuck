@@ -570,7 +570,9 @@ test("no process starts once a model's budget is spent", async () => {
   await settle();
   assert.equal(spawn.children.length, 1, "the tune is not started on borrowed time");
   const item = runner.get().items[0];
-  assert.equal(item.status, "done");
+  // "done" would say the model was tuned; a stage the budget cancelled is skipped.
+  assert.equal(item.status, "skipped");
+  assert.equal(item.skippedFor, "budget");
   assert.match(item.log.at(-1) ?? "", /budget/i);
   assert.equal(runner.get().status, "complete");
 });
@@ -585,4 +587,41 @@ test("a full tune that ran out of time is marked provisional", async () => {
   spawn.children[0].finish(0, [{ type: "complete", phase: "tune", quick: false, timeExhausted: true }]);
   await settle();
   assert.equal(runner.get().items[0].provisional, true, "the best settings so far are saved but the search did not finish");
+});
+
+// --- restart keeps what the budget and the provisional label recorded -----------------------
+
+function savedQueue(dir, items, extra = {}) {
+  const queueFile = path.join(dir, "queue.json");
+  fs.writeFileSync(queueFile, JSON.stringify({ schema: 1, job: { id: "j", status: "running", paused: false, startedAt: new Date().toISOString(), finishedAt: null, stages: ["quality"], tasks: null, settings: null, force: false, continueRun: false, quick: false, guard: false, guardQueue: false, order: items.map((item) => item.profileId), items, ...extra } }));
+  return queueFile;
+}
+const savedItem = (model, extra = {}) => ({ id: model.id, profileId: model.profileId, name: model.name, fileName: model.fileName, lane: null, phase: null, status: "queued", progress: null, exitCode: null, error: null, guard: null, provisional: false, ...extra });
+
+test("a restart keeps a finished model's provisional label, and drops it from one that must run again", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "modelduck-queue-"));
+  const queueFile = savedQueue(dir, [
+    savedItem(MODELS[0], { status: "done", provisional: true }),
+    savedItem(MODELS[1], { status: "running", provisional: true }),
+  ]);
+  const runner = new TuneScheduler({ homeDir: dir, modelsDir: "models", queueFile, scriptPath: "tune-run.mjs", spawnImpl: spawner().spawnImpl, readLanes: async () => ({ cpu: 1, gpu: 0 }), readLane: async () => "cpu", logger: { warn() {} } });
+  const job = await runner.restore();
+  const byId = Object.fromEntries(job.items.map((item) => [item.profileId, item]));
+  assert.equal(byId.smol.provisional, true, "its time-boxed preset is still unfinished after the restart");
+  assert.equal(byId.qwen.provisional, false, "an interrupted model starts over and earns the label again");
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test("a restart keeps the minutes a model already spent", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "modelduck-queue-"));
+  const queueFile = savedQueue(dir, [savedItem(MODELS[0], { budgetUsedMs: 3 * 60_000 })], { budgetMinutes: 5 });
+  const spawn = spawner();
+  const runner = new TuneScheduler({ homeDir: dir, modelsDir: "models", queueFile, scriptPath: "tune-run.mjs", spawnImpl: spawn.spawnImpl, readLanes: async () => ({ cpu: 1, gpu: 0 }), readLane: async () => "cpu", logger: { warn() {} }, clock: () => 0 });
+  await runner.restore();
+  runner.resume();
+  assert.ok(await waitFor(() => spawn.children.length >= 1), "the resumed model starts");
+  assert.equal(value(spawn.children[0].args, "--budget"), "2", "5 minutes minus the 3 already used");
+  spawn.children[0].finish(0);
+  assert.ok(await waitFor(() => runner.get().status === "complete"));
+  fs.rmSync(dir, { recursive: true, force: true });
 });

@@ -187,7 +187,9 @@ export class TuneScheduler {
         ...item,
         status: item.status === "running" || item.status === "queued" ? "queued" : item.status,
         progress: null,
-        provisional: false,
+        // A finished model's time-boxed preset is still unfinished after a restart; one that must
+        // run again earns the label again from its own events.
+        provisional: item.status === "done" && item.provisional === true,
         log: [],
         live: emptyLive(),
       })),
@@ -349,7 +351,8 @@ export class TuneScheduler {
     const left = this.#minutesLeft(job, item);
     if (left !== null && left <= 0) {
       pushLog(item, `The ${job.budgetMinutes}-minute budget for this model is used up before the ${phase === "device" ? "device probe" : "tune"}; what it saved so far stays. Run the tune again to finish it.`);
-      Object.assign(item, { phase, status: "done" });
+      // Skipped, not done: "done" would say this stage was tuned. `skippedFor` tells why.
+      Object.assign(item, { phase, status: "skipped", skippedFor: "budget" });
       this.#changed();
       return Promise.resolve(false);
     }
