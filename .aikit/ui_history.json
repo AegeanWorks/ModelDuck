@@ -956,5 +956,27 @@
     "final_snapshot_digest": "",
     "final_snapshot_entries": 0,
     "surface_digest": "75cbea8ea64ae83d63c1a0604e17681fad1294920d7b5a789d816c2ef4b4587d"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [
+      "public/app.js",
+      "src/recommend.js",
+      "src/server.js"
+    ],
+    "no_visual_reason": "",
+    "baseline_commit": "bb42efb7e3d3abb9963363c5845cfb7bc4211c2d",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1794697912.1828063,
+    "finished_at": 1794698338.7017655,
+    "strikes": 0,
+    "reviewer": "kiro:1 (agent review under G-007: headless Edge screenshot of the live Recommended for this PC table on a fresh home - Coder 1.5B 54.2%, Qwen 0.5B 35.4%, SmolLM2 10.4% marked elsewhere, then unmeasured models with a dash; note explains elsewhere; ui:smoke OK incl. 390px reflow; npm test 875/876 pass, 1 skipped)",
+    "allowed_removals": [],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "d7f4cc32dce79766d441a1e77068f68997d3f3d804d2c4ce8097f836b2ba5a16"
   }
 ]
