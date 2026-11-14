@@ -1,63 +1,18 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "answer-reuse-readme",
+    "task_id": "restore-merge",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794685562.2583294,
+    "updated_at": 1794687898.2788603,
     "owner": "kiro:1",
     "started_by": "kiro:1",
     "continuations": [],
-    "completed_at": 1794685562.5326488
+    "completed_at": 1794687898.7906637,
+    "completed_head": "bcf5637c3c4e02d2b4072416d33ff6798440b65e"
   },
   "checkpoints": [
-    {
-      "task_id": "report-status-f",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "Docs only; repro script runs; strict gates pass",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794670723.4578457,
-      "timestamp_str": "2026-11-14 18:38:43",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "report-status-f",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'report-status-f' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794670723.6996388,
-      "timestamp_str": "2026-11-14 18:38:43",
-      "agent": "kiro:1",
-      "delivery": {
-        "roots": [
-          "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck"
-        ],
-        "forced": false
-      }
-    },
-    {
-      "task_id": "report-status-g",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/1] Docs: more report status; temp cleanup done outside the repo",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794670829.6545262,
-      "timestamp_str": "2026-11-14 18:40:29",
-      "agent": "kiro:1",
-      "impact_assessment": {
-        "why": "Keep the imported report's status current",
-        "benefits": "no duplicate work",
-        "risks": "contract: none; dependency: none; concurrency: none; state: docs and ledger only",
-        "mitigation": "docs only"
-      },
-      "plan_digest": "df418724eea49401c0beb7abfd108373f0fd317a6b66dbafc11c378355003ad4"
-    },
     {
       "task_id": "report-status-g",
       "phase": "in_progress",
@@ -308,6 +263,52 @@
       "status": "completed",
       "timestamp": 1794685562.5326505,
       "timestamp_str": "2026-11-14 22:46:02",
+      "agent": "kiro:1",
+      "delivery": {
+        "roots": [
+          "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck"
+        ],
+        "forced": false
+      }
+    },
+    {
+      "task_id": "restore-merge",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/1] Fix: Measurements.restore was first-wins per slot; with threads out of the key (ADR-123) a v11 group at 8 threads blocked the v10 group at 12, so 528 saved SmolLM2 answers were re-asked live",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794687897.2784657,
+      "timestamp_str": "2026-11-14 23:24:57",
+      "agent": "kiro:1",
+      "impact_assessment": {
+        "why": "The v11 re-baseline re-asked answers it should replay",
+        "benefits": "every saved group adds the items its slot lacks; a re-baseline replays them",
+        "risks": "contract: restore returns true when it added any item; dependency: none; concurrency: none; state: a saved item never replaces one already in the slot, fresh or restored",
+        "mitigation": "failing-first test; full suite; tune:gate 9/9 unchanged"
+      },
+      "plan_digest": "6761b57799927a6c94396c18d3f5e902f508ce84b4696f35c4e8ab4d650bc7ee"
+    },
+    {
+      "task_id": "restore-merge",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "854/855 pass, 1 skipped; tune:gate 9/9 b=0 c=0",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794687898.2788603,
+      "timestamp_str": "2026-11-14 23:24:58",
+      "agent": "kiro:1",
+      "checklists": "passed"
+    },
+    {
+      "task_id": "restore-merge",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'restore-merge' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794687898.8672614,
+      "timestamp_str": "2026-11-14 23:24:58",
       "agent": "kiro:1",
       "delivery": {
         "roots": [
