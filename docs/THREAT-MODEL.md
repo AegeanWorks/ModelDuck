@@ -45,6 +45,11 @@ network requests are model downloads you start. No telemetry.
    identifier, and the free-form `harness` field is refused. Besides the 5 s
    per test run, each try may generate for up to 120 s, and the whole request
    stops after 5 minutes or when the client disconnects.
+   `npm run mcp` (`src/mcp-server.js`) adds no new code-running surface: it
+   forwards an agent's `verified_code` call to this route on 127.0.0.1, and
+   every check above still applies. Risk: an MCP client that runs the server
+   is a caller that can make this computer run code. Add the server only to
+   agents you would let run tests here.
    Residual risk: "this computer only" means a loopback socket and a loopback
    `Host` header. A same-machine reverse proxy, SSH port forward or container
    port mapping that sends `Host: 127.0.0.1` makes remote callers look local,

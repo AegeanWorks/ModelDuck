@@ -24,6 +24,7 @@
     "bench:update:full": "node benchmarks/run.mjs --phase model --update-baseline --full-matrix",
     "tune": "node benchmarks/tune-run.mjs",
     "tune:gate": "node benchmarks/tune-gate.mjs",
+    "mcp": "node src/mcp-server.js",
     "bench:report": "node benchmarks/report.mjs",
     "bench:link": "node benchmarks/link.mjs",
     "bench:model": "node benchmarks/run.mjs --phase model",

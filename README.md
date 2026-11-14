@@ -304,6 +304,18 @@ In an OpenAI SDK, set `baseURL: "http://127.0.0.1:4141/v1"` and any API key
 (ModelDuck ignores it). `stream: true` returns standard `data:` chunks ending
 with `data: [DONE]`.
 
+## MCP: verified code for coding agents
+
+`npm run mcp` is a stdio MCP server with one tool, `verified_code`: give a
+prompt and tests (`{ entry, cases }`), get code that passed them. It calls
+`/api/code/verify` on 127.0.0.1, so start ModelDuck and load a model first.
+In Kiro, add to `.kiro/settings/mcp.json` (`--port` if not 4141):
+
+```json
+{ "mcpServers": { "modelduck": { "command": "node",
+  "args": ["<ModelDuck folder>/src/mcp-server.js"] } } }
+```
+
 ## API server settings
 
 The **Server** panel controls the local API surface:
@@ -448,6 +460,7 @@ modelduck/
 │   ├── model-profiles.js
 │   ├── preset-match.js
 │   ├── verified-code.js
+│   ├── mcp-server.js
 │   ├── tuned-settings.js
 │   ├── tune-steps.js
 │   ├── tune-scheduler.js
@@ -623,6 +636,7 @@ modelduck/
 │   ├── preset-recipes.test.js
 │   ├── preset-match.test.js
 │   ├── verified-code.test.js
+│   ├── mcp-server.test.js
 │   ├── benchmark-history.test.js
 │   ├── benchmark-report.test.js
 │   ├── benchmark-runner.test.js
