@@ -1,4 +1,5 @@
 import { DEFAULT_SETTINGS, normalizeSettings } from "./config.js";
+import { AppError } from "./errors.js";
 import { readJsonWithQuarantine, writeJsonAtomic } from "./fs-atomic.js";
 
 export const SETTINGS_VERSION = 1;
@@ -35,16 +36,28 @@ export function mergeSettingsDeep(current, patch) {
 
 /**
  * IDEA-1097: validate the settings version on load.
- * A newer file must never be silently downgraded by an older build.
+ * A newer file must never be silently downgraded by an older build. No
+ * version means a file from before the fence and loads; a whole number (or
+ * one written as a numeric string) up to SETTINGS_VERSION loads; anything
+ * else is refused before the file is read further, so it is left untouched.
  */
-function validateSettingsVersion(data) {
-  if (!data || typeof data !== "object") return;
-  const fileVersion = data.version;
-  if (typeof fileVersion !== "number") return;
-  if (fileVersion > SETTINGS_VERSION) {
-    throw new Error(
-      "Settings file version " + fileVersion + " is newer than supported version " + SETTINGS_VERSION + 
-      ". Please upgrade ModelDuck.",
+function validateSettingsVersion(data, file) {
+  if (!data || typeof data !== "object" || data.version === undefined || data.version === null) return;
+  const raw = data.version;
+  const version = typeof raw === "string" && /^\s*\d+\s*$/.test(raw) ? Number(raw) : raw;
+  const refuse = (message, why, fix) => new AppError(message, { code: "settings_version_unsupported", why, fix });
+  if (typeof version !== "number" || !Number.isInteger(version) || version < 0) {
+    throw refuse(
+      "The settings file has an unreadable version",
+      `${file ?? "settings.json"} says version ${JSON.stringify(raw)}; a version is a whole number, and this ModelDuck reads up to ${SETTINGS_VERSION}.`,
+      "Fix the version in the file, or move the file away to start from default settings.",
+    );
+  }
+  if (version > SETTINGS_VERSION) {
+    throw refuse(
+      `Settings file version ${version} is newer than supported version ${SETTINGS_VERSION}`,
+      `${file ?? "settings.json"} was written by a newer ModelDuck (settings version ${version}); this one reads up to ${SETTINGS_VERSION}, and loading it could drop settings it does not know.`,
+      "Run the newer ModelDuck, or move the file away to start this one from default settings.",
     );
   }
 }
@@ -67,7 +80,7 @@ export class SettingsStore {
   async load() {
     const data = await readJsonWithQuarantine(this.#file, null, { logger: this.#logger });
     // IDEA-1097: validate version before processing
-    validateSettingsVersion(data);
+    validateSettingsVersion(data, this.#file);
     const raw = data && typeof data === "object" && data.settings ? data.settings : data;
     this.#value = normalizeSettings(fenceSettingsPatch(raw ?? {}));
     return this.value;

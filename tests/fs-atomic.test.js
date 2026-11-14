@@ -23,6 +23,20 @@ test("writeJsonAtomic replaces a file without leaving temp files", async (t) => 
   assert.match(entries, /\n$/);
 });
 
+// Windows PowerShell 5 and older Notepad save UTF-8 with a byte-order mark; a
+// hand-edited settings file must not be quarantined and replaced by defaults.
+test("a file that starts with a UTF-8 byte-order mark is read, not quarantined", async (t) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "modelduck-bom-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const file = path.join(directory, "settings.json");
+  await writeFile(file, `\uFEFF${JSON.stringify({ version: 1, settings: { temperature: 0.5 } })}`, "utf8");
+  const warned = [];
+  const parsed = await readJsonWithQuarantine(file, null, { logger: { warn: (line) => warned.push(line) } });
+  assert.equal(parsed?.settings?.temperature, 0.5);
+  assert.deepEqual(warned, [], "nothing was moved aside");
+  assert.match(await readFile(file, "utf8"), /temperature/, "the file is still in place");
+});
+
 test("a damaged JSON file is quarantined and the previous backup is restored", async (t) => {
   const directory = await mkdtemp(path.join(os.tmpdir(), "modelduck-corrupt-"));
   t.after(() => rm(directory, { recursive: true, force: true }));

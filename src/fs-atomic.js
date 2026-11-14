@@ -124,9 +124,13 @@ export async function writeJsonAtomic(file, value) {
   }
 }
 
+/** A leading UTF-8 byte-order mark, as Windows PowerShell 5 and older Notepad write, is not JSON. */
+const withoutBom = (text) => (text.charCodeAt(0) === 0xfeff ? text.slice(1) : text);
+
 /**
  * Read JSON without letting a damaged file stop the app. A broken file is
  * moved aside so it can be inspected, never silently overwritten in place.
+ * A hand-edited file saved with a byte-order mark is read normally.
  */
 export async function readJsonWithQuarantine(file, fallback, { logger = console } = {}) {
   let text;
@@ -138,14 +142,14 @@ export async function readJsonWithQuarantine(file, fallback, { logger = console 
   }
 
   try {
-    return JSON.parse(text);
+    return JSON.parse(withoutBom(text));
   } catch {
     const quarantine = `${file}.corrupt-${new Date().toISOString().replace(/[:.]/g, "-")}`;
     await fs.promises.rename(file, quarantine).catch(() => {});
     logger.warn?.(`[modelduck] Ignored a damaged state file; moved it to ${quarantine}`);
     try {
       const backup = await fs.promises.readFile(`${file}.bak`, "utf8");
-      const parsed = JSON.parse(backup);
+      const parsed = JSON.parse(withoutBom(backup));
       logger.warn?.(`[modelduck] Restored state from ${file}.bak`);
       return parsed;
     } catch {

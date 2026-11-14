@@ -213,6 +213,24 @@ test("SettingsStore rejects a newer version file", async (t) => {
   await assert.rejects(store.load(), /is newer than supported/);
 });
 
+// The fence used to skip any version that was not a number, so "2" or 1.5 loaded as if current.
+test("SettingsStore refuses a version it cannot read, with Why and Fix, and leaves the file alone", async (t) => {
+  const { SettingsStore } = await import("../src/settings.js");
+  const { writeJsonAtomic } = await import("../src/fs-atomic.js");
+  const fs = await import("node:fs/promises");
+  const file = path.join(os.tmpdir(), `duck-settings-version-bad-${process.pid}-${Date.now()}.json`);
+  t.after(() => fs.rm(file, { force: true }));
+  const store = new SettingsStore({ file, logger: { warn() {}, error() {} } });
+  for (const version of ["2", 1.5, -1, "soon", true]) {
+    await writeJsonAtomic(file, { version, settings: { temperature: 0.5 } });
+    const before = await fs.readFile(file, "utf8");
+    await assert.rejects(store.load(), (error) => error.code === "settings_version_unsupported" && /version/i.test(error.why) && Boolean(error.fix), `refuses ${JSON.stringify(version)}`);
+    assert.equal(await fs.readFile(file, "utf8"), before, "the file is not rewritten");
+  }
+  await writeJsonAtomic(file, { version: "1", settings: { temperature: 0.5 } });
+  assert.equal((await store.load()).temperature, 0.5, "a version written as a numeric string still loads");
+});
+
 // IDEA-1097: missing or older version is accepted.
 test("SettingsStore accepts missing or older version", async (t) => {
   const { SettingsStore } = await import("../src/settings.js");
