@@ -1,64 +1,18 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "restore-merge",
+    "task_id": "reuse-run-limit",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794687898.2788603,
+    "updated_at": 1794688691.940459,
     "owner": "kiro:1",
     "started_by": "kiro:1",
     "continuations": [],
-    "completed_at": 1794687898.7906637,
-    "completed_head": "bcf5637c3c4e02d2b4072416d33ff6798440b65e"
+    "completed_at": 1794688692.44278,
+    "completed_head": "863a1dec8c16165edeef2b4d137e761f8359f047"
   },
   "checkpoints": [
-    {
-      "task_id": "report-status-g",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "Docs only; strict gates pass",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794670829.8586268,
-      "timestamp_str": "2026-11-14 18:40:29",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "report-status-g",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'report-status-g' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794670830.1152353,
-      "timestamp_str": "2026-11-14 18:40:30",
-      "agent": "kiro:1",
-      "delivery": {
-        "roots": [
-          "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck"
-        ],
-        "forced": false
-      }
-    },
-    {
-      "task_id": "report-status-h",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/1] Docs: measured S1/S2/S4/S6/M6/M9 status, ADR-122",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794673397.8195643,
-      "timestamp_str": "2026-11-14 19:23:17",
-      "agent": "kiro:1",
-      "impact_assessment": {
-        "why": "Record what re-running the report's simulations on master shows",
-        "benefits": "the deferred S3/S4 work is documented with its reason",
-        "risks": "contract: none; dependency: none; concurrency: none; state: docs and ledger only",
-        "mitigation": "no code changed"
-      },
-      "plan_digest": "2f0c18ea165a92880221a5a4b8eae64a827394fbfbbda5d1892796585662fae8"
-    },
     {
       "task_id": "report-status-h",
       "phase": "in_progress",
@@ -313,6 +267,52 @@
       "delivery": {
         "roots": [
           "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck"
+        ],
+        "forced": false
+      }
+    },
+    {
+      "task_id": "reuse-run-limit",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/1] Fix: cachedAnswers read the 3 newest runs and the starting tune's empty run took one slot, so a v10 run with 14,115 answers dropped out of a re-baseline; empty runs no longer count, and an explicit --reuse-from reads every matching run (row cap unchanged)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794688691.0964565,
+      "timestamp_str": "2026-11-14 23:38:11",
+      "agent": "kiro:1",
+      "impact_assessment": {
+        "why": "The v11 re-baseline found 1,467 saved answers instead of about 15,000",
+        "benefits": "a re-baseline replays the long earlier run",
+        "risks": "contract: cachedAnswers skips runs whose record has answers 0; runTune passes limitRuns Infinity with reuseFrom; dependency: none; concurrency: none; state: more saved rows may be read, still capped at 20,000",
+        "mitigation": "failing-first test; full suite; tune:gate 9/9 unchanged"
+      },
+      "plan_digest": "77266c99c28a8ca176a5f41e8465ceb9a39cd9786c112cc521138f9155487e24"
+    },
+    {
+      "task_id": "reuse-run-limit",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "855/856 pass, 1 skipped; tune:gate 9/9 b=0 c=0",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794688691.940459,
+      "timestamp_str": "2026-11-14 23:38:11",
+      "agent": "kiro:1",
+      "checklists": "passed"
+    },
+    {
+      "task_id": "reuse-run-limit",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'reuse-run-limit' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794688692.52956,
+      "timestamp_str": "2026-11-14 23:38:12",
+      "agent": "kiro:1",
+      "delivery": {
+        "roots": [
+          "."
         ],
         "forced": false
       }
