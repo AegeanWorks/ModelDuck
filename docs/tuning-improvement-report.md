@@ -1,5 +1,7 @@
 # Improving ModelDuck's tuner
 
+> **Status note:** this report is a snapshot of commit `6ece836` (2026-11-01). Later work changed the code it describes (see ADR-101 to ADR-121 in `.aikit/decisions.md`). Re-check a finding against current `master` before acting on it.
+
 A review of the settings tuner (**Bench & Tune → Tune**, `npm run tune`, `npm run tune:gate`) with measured
 evidence and a prioritized plan.
 
