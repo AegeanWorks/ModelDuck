@@ -845,5 +845,23 @@
     "final_snapshot_digest": "",
     "final_snapshot_entries": 0,
     "surface_digest": "19f18124bc0d1ce72e001949e311112cbdc832bbf665956255173e86be8795b7"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [],
+    "no_visual_reason": "",
+    "baseline_commit": "d3efc6164beef1aa7607d594145aa0401879522f",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1794667592.2605164,
+    "finished_at": 1794667610.7659903,
+    "strikes": 0,
+    "reviewer": "kiro:1 (agent review under G-007: only backend src files changed since the last review, config.js and model-profiles.js; no public/ file; ui:smoke passed on this tree, including the new phone toast check)",
+    "allowed_removals": [],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "0ac4201798b5c0351a8ad506357fbd7e699ebeb04e0059862d2681ed17b558a1"
   }
 ]
