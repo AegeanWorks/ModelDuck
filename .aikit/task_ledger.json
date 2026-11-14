@@ -3,25 +3,15 @@
   "active_task": {
     "task_id": "reforge-verify-f",
     "last_phase": "in_progress",
-    "active_phase": 4,
-    "status": "in_progress",
+    "active_phase": 5,
+    "status": "completed",
     "updated_at": 1794667831.7912862,
     "owner": "kiro:1",
     "started_by": "kiro:1",
-    "continuations": []
+    "continuations": [],
+    "completed_at": 1794667832.3222294
   },
   "checkpoints": [
-    {
-      "task_id": "reforge:run-1",
-      "phase": "reforge stage 6",
-      "phase_num": 3,
-      "description": "Reforge stage 6: stage 6 host review reviewed; run active; coverage 21/21",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794658581.2970512,
-      "timestamp_str": "2026-11-14 15:16:21",
-      "agent": "unidentified"
-    },
     {
       "task_id": "reforge:run-1",
       "phase": "reforge stage 7",
@@ -269,6 +259,22 @@
       "timestamp_str": "2026-11-14 17:50:31",
       "agent": "kiro:1",
       "checklists": "passed"
+    },
+    {
+      "task_id": "reforge-verify-f",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'reforge-verify-f' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794667832.3222318,
+      "timestamp_str": "2026-11-14 17:50:32",
+      "agent": "kiro:1",
+      "delivery": {
+        "roots": [
+          "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck"
+        ],
+        "forced": false
+      }
     }
   ]
 }
