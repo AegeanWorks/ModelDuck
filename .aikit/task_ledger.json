@@ -1,61 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "reforge-fixes-f",
+    "task_id": "reforge-verify-f",
     "last_phase": "in_progress",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1794667525.1960573,
+    "active_phase": 4,
+    "status": "in_progress",
+    "updated_at": 1794667831.7912862,
     "owner": "kiro:1",
     "started_by": "kiro:1",
-    "continuations": [],
-    "completed_at": 1794667556.491542
+    "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "reforge:run-1",
-      "phase": "reforge stage 4",
-      "phase_num": 3,
-      "description": "Reforge stage 4: stage 4 host review reviewed; run active; coverage 29/29",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794658481.6747406,
-      "timestamp_str": "2026-11-14 15:14:41",
-      "agent": "unidentified"
-    },
-    {
-      "task_id": "reforge:run-1",
-      "phase": "reforge stage 5",
-      "phase_num": 3,
-      "description": "Reforge stage 5: window 15, 3 commit(s), 3 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794658496.339574,
-      "timestamp_str": "2026-11-14 15:14:56",
-      "agent": "unidentified"
-    },
-    {
-      "task_id": "reforge:run-1",
-      "phase": "reforge stage 5",
-      "phase_num": 3,
-      "description": "Reforge stage 5: stage 5 host review reviewed; run active; coverage 4/4",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794658511.057282,
-      "timestamp_str": "2026-11-14 15:15:11",
-      "agent": "unidentified"
-    },
-    {
-      "task_id": "reforge:run-1",
-      "phase": "reforge stage 6",
-      "phase_num": 3,
-      "description": "Reforge stage 6: window 18, 3 commit(s), 11 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794658515.6981218,
-      "timestamp_str": "2026-11-14 15:15:15",
-      "agent": "unidentified"
-    },
     {
       "task_id": "reforge:run-1",
       "phase": "reforge stage 6",
@@ -262,6 +217,58 @@
         ],
         "forced": false
       }
+    },
+    {
+      "task_id": "reforge-verify-f",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/1] Reforge run-1 stage 9: attest the new commits (the six reforge-fixes milestones and their bookkeeping) hunk by hunk and record findings.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794667647.6801786,
+      "timestamp_str": "2026-11-14 17:47:27",
+      "agent": "kiro:1",
+      "impact_assessment": {
+        "why": "The plan's last step: the fixes should themselves be reviewed, not only made",
+        "benefits": "Every hunk of the fixes is attested and any new finding is on record",
+        "risks": "contract: none, no source changes unless a finding is applied later; dependency: none; concurrency: none; state: .aikit/reforge.json gains stage 9",
+        "mitigation": "findings are reported, not auto-applied"
+      },
+      "plan_digest": "758fb1ac00280ba4cacccb68d88c67d2e4395050ef2ca4a778c987cac53e451d"
+    },
+    {
+      "task_id": "reforge:run-1",
+      "phase": "reforge stage 9",
+      "phase_num": 3,
+      "description": "Reforge stage 9: window 27, 11 commit(s), 25 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794667656.3509052,
+      "timestamp_str": "2026-11-14 17:47:36",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "reforge:run-1",
+      "phase": "reforge stage 9",
+      "phase_num": 3,
+      "description": "Reforge stage 9: stage 9 host review reviewed; run active; coverage 62/62",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794667820.1080885,
+      "timestamp_str": "2026-11-14 17:50:20",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "reforge-verify-f",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[1/1] reforge run-1 stage 9: 62 of 62 hunks attested, 1 finding (single writeSync of a large result, possible on POSIX, not reproduced).",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794667831.7912862,
+      "timestamp_str": "2026-11-14 17:50:31",
+      "agent": "kiro:1",
+      "checklists": "passed"
     }
   ]
 }
