@@ -1,51 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "followups-c",
+    "task_id": "followups-d",
     "last_phase": "in_progress",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1794651838.5048256,
+    "active_phase": 4,
+    "status": "in_progress",
+    "updated_at": 1794652324.2018278,
     "owner": "kiro:1",
     "started_by": "kiro:1",
-    "continuations": [],
-    "completed_at": 1794651865.0918775
+    "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "wrap-up-decisions",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/4] done: fd516fe thread default (gate 9/9 unchanged), dcc8ee6 ADR-101..107, bf428b0 + 02961ee history and bench:link to 6307a88/574695e/fd516fe, 45bf73c ledger archive. [4/4] push blocked only by AIKit UI contract: UI changes need a recorded human review (ui begin/finish --reviewed); not gamed. Waiting on user review.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794642510.1617959,
-      "timestamp_str": "2026-11-14 10:48:30",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "wrap-up-decisions",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/4] UI reviewed by agent under G-007 (user delegated): 8 findings fixed (38e3eff) incl. duplicate-rows race with a smoke regression check (c28d861, mutation-verified); ui task finished; check --strict passed 4/4. Push to new branch kiroween-fast-tune blocked by the Kiro host safety layer (publishing to a remote); not worked around; user to push. checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794643699.0945094,
-      "timestamp_str": "2026-11-14 11:08:19",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "wrap-up-decisions",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'wrap-up-decisions' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794646055.546075,
-      "timestamp_str": "2026-11-14 11:47:35",
-      "agent": "kiro:1"
-    },
     {
       "task_id": "review-fixes-a",
       "phase": "in_progress",
@@ -273,6 +238,48 @@
         ],
         "forced": false
       }
+    },
+    {
+      "task_id": "followups-d",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/2] Plan: M1 settings version fence: a string or non-integer version is no longer skipped (numeric strings read as numbers, others refused), refusals are AppErrors with why/fix. M2 test clarity: tune-budget test stops assigning measurements internals, the verified-code 'no try passes' runner no longer reads the engine's request count.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794652057.2162502,
+      "timestamp_str": "2026-11-14 13:27:37",
+      "agent": "kiro:1",
+      "impact_assessment": {
+        "why": "Review pre-session findings: the downgrade fence skips string/non-integer versions and prints a bare message; two tests are coupled to internals or hard to follow",
+        "benefits": "A newer or damaged settings file is refused with a Why/Fix instead of being half-read; tests that survive refactors",
+        "risks": "contract: a settings file with a malformed version is now refused at startup instead of loaded; dependency: none; concurrency: none; state: settings file untouched on refusal",
+        "mitigation": "failing-first tests; numeric strings still load; the refusal names the file and the fix"
+      },
+      "plan_digest": "9ae78b15362145d406b54dfdada4601307b055102449afee08870cde776aa75b"
+    },
+    {
+      "task_id": "followups-d",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[2/3] M1 settings fence refuses unreadable/newer versions with why/fix (end-to-end startup checked), BOM state files read. 2 failing-first tests pass, 818 pass.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794652242.898326,
+      "timestamp_str": "2026-11-14 13:30:42",
+      "agent": "kiro:1",
+      "checklists": "passed"
+    },
+    {
+      "task_id": "followups-d",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/3] M2 tests: tune-budget resumes through onAnswers + restore() instead of sharing slots; verified-code no-pass test uses a distinct half-right answer. 818 pass.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794652324.2018278,
+      "timestamp_str": "2026-11-14 13:32:04",
+      "agent": "kiro:1",
+      "checklists": "passed"
     }
   ]
 }
