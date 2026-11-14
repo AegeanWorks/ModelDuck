@@ -97,3 +97,40 @@ test("without enough unused pool items there is nothing to escalate on", async (
   assert.equal(done.tasks.math.settings.level, "base");
   assert.equal(sweep.escalation, undefined);
 });
+
+// --- the label describes the final value (reforge run-1, stage 6) --------------------------
+
+const labelFor = (sweeps, settings) => profileFromTune(
+  { load: { settings: {} }, tasks: { math: { settings, stats: null } }, sweeps, runs: 0, budgetExhausted: false },
+  { catalogId: "m", fingerprint: {} },
+).tasks.math.escalated ?? null;
+const win = (axis, winner, pass, escalated = false) => ({ task: "math", stage: "sampling", axis, pass, changed: true, winner, ...(escalated && { escalation: { confirmed: true } }) });
+
+test("an escalated win is labelled while it is the setting's final value", () => {
+  assert.deepEqual(labelFor([win("level", { level: "good" }, 1, true)], { level: "good" }), ["level"]);
+});
+
+test("a later plain change to the same setting removes the label", () => {
+  const sweeps = [win("level", { level: "good" }, 1, true), win("level", { level: "final" }, 2)];
+  assert.equal(labelFor(sweeps, { level: "final" }), null, "the final value did not come from escalation");
+});
+
+test("another axis that overwrites the same setting removes the label too", () => {
+  const sweeps = [win("level", { level: "good" }, 1, true), win("preset", { level: "preset-value" }, 2)];
+  assert.equal(labelFor(sweeps, { level: "preset-value" }), null);
+});
+
+test("a pair axis keeps the label for the setting it still owns", () => {
+  const sweeps = [win("pair:a+b", { a: 1, b: 2 }, 1, true), win("b", { b: 3 }, 2)];
+  assert.deepEqual(labelFor(sweeps, { a: 1, b: 3 }), ["pair:a+b"], "the pair still decided a, though not b");
+});
+
+test("a value that was changed back outside the sweeps is not labelled", () => {
+  // A shared-stage revert can put a setting back after the sweep that chose it.
+  assert.equal(labelFor([win("level", { level: "good" }, 1, true)], { level: "base" }), null);
+});
+
+test("an axis is listed once, however many keys it owns or sweeps it won", () => {
+  const sweeps = [win("pair:a+b", { a: 1, b: 2 }, 1, true), win("pair:a+b", { a: 1, b: 2 }, 2, true)];
+  assert.deepEqual(labelFor(sweeps, { a: 1, b: 2 }), ["pair:a+b"]);
+});

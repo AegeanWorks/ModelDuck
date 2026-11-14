@@ -66,10 +66,27 @@ export function profileIdFor(fileName) {
 
 const pick = (settings, keys) => Object.fromEntries(keys.filter((key) => key in settings).map((key) => [key, settings[key]]));
 
-/** The axes of `task` whose change stood through escalation and survived the confirmation after it. */
-function escalatedAxes(sweeps, task) {
-  const axes = (sweeps ?? []).filter((sweep) => sweep?.task === task && sweep.changed && sweep.escalation?.confirmed).map((sweep) => sweep.axis);
-  return [...new Set(axes)];
+const sameValue = (left, right) => JSON.stringify(left) === JSON.stringify(right);
+
+/**
+ * The axes of `task` that own a setting through an escalated win. A sweep's
+ * winner is a patch of one or more setting keys, and later sweeps (another
+ * pass, another axis, a shared-stage revert) can write the same key again, so
+ * the label follows each key: the last changed sweep to write it owns it, and
+ * counts only if it was escalation-confirmed and its value is still the
+ * task's final setting.
+ */
+function escalatedAxes(sweeps, task, settings) {
+  const owner = new Map();
+  for (const sweep of sweeps ?? []) {
+    if (sweep?.task !== task || !sweep.changed || !sweep.winner) continue;
+    for (const key of Object.keys(sweep.winner)) owner.set(key, sweep);
+  }
+  const axes = new Set();
+  for (const [key, sweep] of owner) {
+    if (sweep.escalation?.confirmed && sameValue(settings?.[key], sweep.winner[key])) axes.add(sweep.axis);
+  }
+  return [...axes];
 }
 
 /** Turn a `tune()` result into a storable profile. */
@@ -88,7 +105,7 @@ export function profileFromTune(result, { catalogId, fingerprint, measuredUnder 
     speed: result.speed ?? null,
     tasks: Object.fromEntries(Object.entries(result.tasks).map(([task, preset]) => {
       // Axes whose change stood only through --escalate (fresh items, not the rung gate).
-      const escalated = escalatedAxes(result.sweeps, task);
+      const escalated = escalatedAxes(result.sweeps, task, preset.settings);
       return [task, { settings: { ...preset.settings }, stats: preset.stats ?? null, ...(preset.holdout && { holdout: preset.holdout }), ...(escalated.length && { escalated }) }];
     })),
     // How far the tune got; anything not done keeps its default when applied (ADR-030).
