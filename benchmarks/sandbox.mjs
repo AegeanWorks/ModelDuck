@@ -73,3 +73,28 @@ export const SANDBOX_PRELUDE = [
   '__os.userInfo = () => ({ uid: -1, gid: -1, username: "sandbox", homedir: "sandbox", shell: null });',
   '__os.hostname = () => "sandbox";',
 ].join("\n");
+
+/**
+ * Source of a factory, `(write, Buffer, wait) => (fd, text) => void`, that the
+ * judge script runs before any answer. It writes every byte of `text`: on a
+ * pipe a single writeSync can write part of the data, and in non-blocking mode
+ * it throws EAGAIN when the pipe is full, so it loops over the bytes written,
+ * waits briefly on EAGAIN and rethrows every other error. The text is turned
+ * into bytes once, so a write that stops inside a multi-byte character is
+ * continued, not cut. Its collaborators are passed in, captured by the script
+ * before the answer can replace them.
+ */
+export const SANDBOX_WRITE_ALL = `function (write, Bytes, wait) {
+  return function (fd, text) {
+    const bytes = Bytes.from(text);
+    let done = 0;
+    while (done < bytes.length) {
+      try {
+        done += write(fd, bytes, done, bytes.length - done);
+      } catch (error) {
+        if (!error || error.code !== "EAGAIN") throw error;
+        wait();
+      }
+    }
+  };
+}`;

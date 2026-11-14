@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { networkDenied, sandboxEnv, sandboxFlag } from "../benchmarks/sandbox.mjs";
+import { SANDBOX_WRITE_ALL, networkDenied, sandboxEnv, sandboxFlag } from "../benchmarks/sandbox.mjs";
 import { resetJavaScriptTestCache, runJavaScriptTests } from "../benchmarks/suite.mjs";
 
 const CHECK = { type: "jsTests", entry: "double", cases: [{ args: [1], expect: 2 }, { args: [5], expect: 10 }] };
@@ -177,4 +177,49 @@ test("a result that is a string, object or array is compared by its JSON text, a
   resetJavaScriptTestCache();
   const results = await runJavaScriptTests(fence('function shape() { return shape.calls = (shape.calls ?? 0) + 1, shape.calls === 1 ? { a: [1, "x"], b: null } : "text"; }'), check);
   assert.deepEqual(results.map((result) => result.passed), [true, true]);
+});
+
+// --- reforge stage 9: a result is written in full, however the pipe takes it ------------------
+// The child writes its whole result (up to several MB). On a POSIX pipe a single writeSync can
+// write only part of it or throw EAGAIN, which would cut off the end marker. The helper is built
+// from a fake write here, since the tests run where pipes never behave that way.
+
+const makeWriteAll = (write, wait = () => {}) => new Function(`return (${SANDBOX_WRITE_ALL})`)()(write, Buffer, wait);
+const sink = ({ perCall = Infinity, eagainEvery = 0, fail = null } = {}) => {
+  const chunks = [];
+  let calls = 0;
+  const write = (fd, bytes, offset, length) => {
+    calls += 1;
+    if (fail) throw Object.assign(new Error(fail), { code: fail });
+    if (eagainEvery && calls % eagainEvery === 0) throw Object.assign(new Error("would block"), { code: "EAGAIN" });
+    const n = Math.min(perCall, length);
+    chunks.push(Buffer.from(bytes.subarray(offset, offset + n)));
+    return n;
+  };
+  return { write, text: () => Buffer.concat(chunks).toString("utf8"), calls: () => calls };
+};
+
+test("a result is written in full when the pipe takes only a few bytes per call", () => {
+  const out = sink({ perCall: 3 });
+  makeWriteAll(out.write)(1, "hello, result line");
+  assert.equal(out.text(), "hello, result line");
+  assert.ok(out.calls() > 1, "it kept writing after a short write");
+});
+
+test("EAGAIN is waited out and retried, not thrown", () => {
+  const out = sink({ perCall: 4, eagainEvery: 2 });
+  let waits = 0;
+  makeWriteAll(out.write, () => { waits += 1; })(1, "a long result that the pipe cannot take at once");
+  assert.equal(out.text(), "a long result that the pipe cannot take at once");
+  assert.ok(waits > 0, "it waited before retrying");
+});
+
+test("multi-byte characters are written whole when a write stops mid-character", () => {
+  const out = sink({ perCall: 2 });
+  makeWriteAll(out.write)(1, "ü€𝄞 end");
+  assert.equal(out.text(), "ü€𝄞 end");
+});
+
+test("any other write error still reaches the caller", () => {
+  assert.throws(() => makeWriteAll(sink({ fail: "EPIPE" }).write)(1, "x"), (error) => error.code === "EPIPE");
 });

@@ -8,7 +8,7 @@ import { changeAndTracePrompts } from "./repo-items-v13.mjs";
 import { publicPrompts } from "./public-items.mjs";
 import { codeComprehensionPrompts } from "./comprehension-items.mjs";
 import { paraphrasePrompts } from "./paraphrase-items.mjs";
-import { SANDBOX_HEAP_MB, SANDBOX_PRELUDE, sandboxCwd, sandboxEnv, sandboxFlag } from "./sandbox.mjs";
+import { SANDBOX_HEAP_MB, SANDBOX_PRELUDE, SANDBOX_WRITE_ALL, sandboxCwd, sandboxEnv, sandboxFlag } from "./sandbox.mjs";
 
 export const SUITE_VERSION = 18;
 
@@ -834,7 +834,8 @@ const escapeRegExp = (text) => String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&
 function judgeScript({ id, setup, code, scenario, entry, args }) {
   const v = (name) => `__${name}_${id}`;
   return [
-    `const ${v("w")} = require("fs").writeSync;`,
+    // The result can be megabytes: it is written by a helper that finishes short writes and retries EAGAIN.
+    `const ${v("emit")} = (${SANDBOX_WRITE_ALL})(require("fs").writeSync, Buffer, (function (wait, Int32, Shared) { return function () { wait(new Int32(new Shared(4)), 0, 0, 1); }; })(Atomics.wait, Int32Array, SharedArrayBuffer));`,
     `const ${v("s")} = JSON.stringify;`,
     `const ${v("a")} = JSON.parse(${JSON.stringify(JSON.stringify(args))});`,
     `const ${v("call")} = (function () { "use strict"; return function (fn, list) { return fn(...list); }; })();`,
@@ -866,7 +867,7 @@ function judgeScript({ id, setup, code, scenario, entry, args }) {
     `    out += (i ? "," : "") + "[" + ${v("s")}(kind) + "," + ${v("s")}(text) + "]";`,
     "  }",
     // The marker opens and closes the result, so anything printed after it (an exit handler's log) is ignored.
-    `  ${v("w")}(1, "\\n__MODELDUCK_${id}__" + out + "]" + "__MODELDUCK_${id}__");`,
+    `  ${v("emit")}(1, "\\n__MODELDUCK_${id}__" + out + "]" + "__MODELDUCK_${id}__");`,
     "})();",
   ].join("\n");
 }
