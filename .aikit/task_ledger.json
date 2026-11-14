@@ -1,64 +1,18 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "presets-v11",
+    "task_id": "recommend-measured",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794697824.2419324,
+    "updated_at": 1794698351.6841505,
     "owner": "kiro:1",
     "started_by": "kiro:1",
     "continuations": [],
-    "completed_at": 1794697824.578131,
-    "completed_head": "30acde7fbcbe82a4f4b02ba24e621094f155e2db"
+    "completed_at": 1794698352.0418983,
+    "completed_head": "45ec8f083ca48aa3382aa9eb486d3ad9403a4b80"
   },
   "checkpoints": [
-    {
-      "task_id": "reuse-run-limit",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "855/856 pass, 1 skipped; tune:gate 9/9 b=0 c=0",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794688691.940459,
-      "timestamp_str": "2026-11-14 23:38:11",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "reuse-run-limit",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'reuse-run-limit' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794688692.52956,
-      "timestamp_str": "2026-11-14 23:38:12",
-      "agent": "kiro:1",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
-    {
-      "task_id": "baseline-resume",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/1] tune:gate --update-baseline tunes in <home>/gate-baseline-work, which survives a kill; a restart moves the killed attempt's runs to saved/ and replays them (ADR-124)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794690884.475646,
-      "timestamp_str": "2026-11-15 00:14:44",
-      "agent": "kiro:1",
-      "impact_assessment": {
-        "why": "The v11 re-baseline was killed twice and its finished SmolLM2 tune was recovered only by copying run files by hand",
-        "benefits": "re-running a stopped update continues from its answers",
-        "risks": "contract: --update-baseline (re-tuning) no longer uses a temp home; dependency: none; concurrency: a pid file refuses a second live update, not a lock; state: saved runs accumulate until an update finishes",
-        "mitigation": "failing-first tests in a temp dir; normal gate and --from-profile unchanged; ADR-124 and docs"
-      },
-      "plan_digest": "c0087aa72127b328c96dac3e539fc278302271c9ef0c5e83c798037f1e333a80"
-    },
     {
       "task_id": "baseline-resume",
       "phase": "in_progress",
@@ -295,6 +249,52 @@
       "status": "completed",
       "timestamp": 1794697824.6133022,
       "timestamp_str": "2026-11-15 02:10:24",
+      "agent": "kiro:1",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
+    },
+    {
+      "task_id": "recommend-measured",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/1] Plan (item 3): recommendCatalog ranks catalog models that are not installed by the shipped presets' measured rate for the task (then the recommended flag, then size) and returns the rate, items and machine; /api/recommendations passes them from benchmarks/presets; the Recommended table shows it as measured on another machine. Failing-first tests, UI task with a screenshot review, ADR-129.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794697902.775206,
+      "timestamp_str": "2026-11-15 02:11:42",
+      "agent": "kiro:1",
+      "impact_assessment": {
+        "why": "The catalog ranked by a hand-set flag and size only; Coder 1.5B, the best measured code model, is not flagged, so a new user is pointed at general models for code",
+        "benefits": "Download suggestions rest on measured evidence where it exists",
+        "risks": "contract: recommendCatalog gains optional measured and task inputs and row fields; dependency: none; concurrency: none; state: none",
+        "mitigation": "rates are labelled as another machine's; models without a recipe keep the old order; failing-first tests; UI review"
+      },
+      "plan_digest": "8acdb43c6f6fedcce3275002ea98ec610246f1ce75ff8f17fce6d909fcc5834e"
+    },
+    {
+      "task_id": "recommend-measured",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "875/876 pass, 1 skipped; failing-first unit, route (checked without the change) and UI tests; ui:smoke OK; screenshot reviewed; README and ADR-129",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794698351.6841505,
+      "timestamp_str": "2026-11-15 02:19:11",
+      "agent": "kiro:1",
+      "checklists": "passed"
+    },
+    {
+      "task_id": "recommend-measured",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'recommend-measured' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794698352.0777297,
+      "timestamp_str": "2026-11-15 02:19:12",
       "agent": "kiro:1",
       "delivery": {
         "roots": [
