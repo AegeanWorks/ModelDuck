@@ -16,6 +16,7 @@ import { runPool } from "./model-pool.mjs";
 import { BASELINE_SCHEMA, TUNER_VERSION, baselineEntry, comparability, compareToBaseline, hardwareWarning, presetSettings, requireBaselineModels } from "./tune-baseline.mjs";
 import { createEvaluator } from "./tune-evaluate.mjs";
 import { openTarget, runTune, tuneBase, withEngine } from "./tune-job.mjs";
+import { finishBaselineWork, prepareBaselineWork } from "./baseline-work.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const BASELINE = path.join(HERE, "baseline-profiles.json");
@@ -33,7 +34,10 @@ measured profiles/<model>.json from that home instead of tuning; a missing profi
 is measured as the app defaults. --reuse-from <home> re-tunes but replays answers
 saved in <home>/tune-runs for the same model, items, runtime and machine (any
 tuner version; timed answers only from the same one), after re-asking a few
-live; one difference turns reuse off. The gate checks the models the baseline has.
+live; one difference turns reuse off. A re-tuning update works in
+<ModelDuck home>/gate-baseline-work, which survives a killed process: running
+the update again replays what the stopped attempt answered. The folder is
+removed when the update finishes. The gate checks the models the baseline has.
 Cached answers: identical settings/seed/item rows from the last gate are reused
 when the answer world is unchanged (suite, tasks, tuner, model, runtime, hardware
 and the answer-side file contents: the engine closure and prompt/settings
@@ -67,7 +71,7 @@ function parseArgs(argv) {
 const fileOf = (catalogId) => BENCHMARK_MODELS.find((model) => model.catalogId === catalogId)?.fileName ?? catalogId;
 const identityOf = (fingerprint) => ({ suiteVersion: fingerprint.suiteVersion, taskHash: fingerprint.taskHash, nodeLlamaCpp: fingerprint.nodeLlamaCpp, tunerVersion: fingerprint.tunerVersion });
 
-async function updateBaseline(options, home) {
+async function updateBaseline(options, home, { savedRuns = null } = {}) {
   const models = {};
   let identity = null;
   const chosen = options.models?.length ? options.models : CORE_MODEL_IDS;
@@ -127,7 +131,7 @@ async function updateBaseline(options, home) {
     };
     // --reuse-from replays answers saved in another home's tune runs (ADR-123); the
     // temp home starts empty, so without it every answer is asked again.
-    const reuseFrom = options.reuseFrom ? [path.join(options.reuseFrom, "tune-runs")] : [];
+    const reuseFrom = [...(savedRuns ? [savedRuns] : []), ...(options.reuseFrom ? [path.join(options.reuseFrom, "tune-runs")] : [])];
     const onNote = (note) => process.stdout.write(`  ${note}\n`);
     const { profile } = await runTune(target, { tasks: TASK_IDS, force: true, maxRuns: options.maxRuns, passes: options.passes, reuseFrom, onEvent, onNote });
     models[catalogId] = baselineEntry(profile, { hardware: { cpu: target.system.cpu, threads: target.system.parallelism } });
@@ -306,6 +310,15 @@ async function main() {
   // --models-dir is absent, and an empty temp models dir makes every model
   // look uninstalled. An explicit --models-dir still wins.
   if (!options.modelsDir) options.modelsDir = resolvePaths({}).models;
+  // A re-tuning update can take hours, so it tunes in a folder that survives a
+  // killed process; a restart replays what the killed attempt answered (ADR-124).
+  // It is removed only when the update finishes; after an error it stays for the retry.
+  if (options.updateBaseline && !options.fromProfile) {
+    const work = await prepareBaselineWork(path.join(resolvePaths({}).home, "gate-baseline-work"));
+    await updateBaseline(options, work.home, { savedRuns: work.savedRuns });
+    await finishBaselineWork(work);
+    return;
+  }
   const home = await mkdtemp(path.join(os.tmpdir(), "modelduck-tune-gate-"));
   try {
     if (options.updateBaseline) await updateBaseline(options, home);

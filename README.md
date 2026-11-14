@@ -529,6 +529,7 @@ modelduck/
 │   ├── sandbox.mjs
 │   ├── tune-run.mjs
 │   ├── tune-job.mjs
+│   ├── baseline-work.mjs
 │   ├── tune-gate.mjs
 │   ├── model-pool.mjs
 │   ├── gate-cache.mjs
@@ -613,6 +614,7 @@ modelduck/
 │   ├── tune-runs.test.js
 │   ├── gate-cache.test.js
 │   ├── answer-reuse.test.js
+│   ├── baseline-work.test.js
 │   ├── tune-scheduler.test.js
 │   ├── tune-steps.test.js
 │   ├── tune-steps-store.test.js

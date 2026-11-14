@@ -42,6 +42,11 @@ To re-tune after a tuner change without re-asking every answer, add
 `<home>/tune-runs` for the same model, items, runtime and machine, from any
 tuner version (timed answers only from the same one). It first re-asks 8 of
 them live, and any difference turns reuse off for that run (ADR-123).
+A re-tuning update works in `~/.modelduck/gate-baseline-work` instead of a
+random temp folder. If its process is stopped, run the same command again:
+it replays the answers the stopped attempt already made and continues. The
+folder is removed when an update finishes; a second update started while one
+is running is refused (ADR-124).
 Every measurement records host RAM and GPU VRAM; a memory tie-break uses their
 sum, so a Vulkan preset is not ranked by its small host slice alone.
 `npm run tune -- ... --full-final` scores each final preset on every task item
