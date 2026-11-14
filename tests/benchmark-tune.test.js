@@ -670,6 +670,32 @@ test("a quality change that breaks one function cluster does not revert the task
   assert.equal(clustered.load.settings.kvCache, "q8_0", "the faster setting stands");
 });
 
+test("a sampling gain that comes from one function cluster is not proven by the sweep gate (S4)", async () => {
+  // Eight inputs of one function (cluster "f") flip to pass with x=1; four other items, each its own
+  // cluster, do not move. Item-level that is an 8-0 win (p = 0.008); cluster-level it is one cluster.
+  const items = [...ids("f", 8), ...ids("o", 4)];
+  const evaluate = async (settings, itemIds) => ({
+    prompts: itemIds.map((id) => ({
+      id, passed: id.startsWith("f-") && settings.x !== 1 ? 0 : 1, total: 1, ms: 100, tokensPerSecond: 10, outputTokens: 10, digest: id,
+    })),
+  });
+  const sampling = (clusterOf) => tune({
+    evaluate,
+    base: { temperature: 0, x: 0 },
+    tasks: ["t"],
+    stages: ["sampling"],
+    rungs: { t: [items], load: [[]], speed: [[]], holdout: {} },
+    samplingAxes: () => [{ name: "x", patches: [0, 1].map((x) => ({ x })) }],
+    promptAxes: [], qualityAxes: [], speedAxes: [],
+    ...(clusterOf && { clusterOf }),
+    options: { seeds: [42], passes: 1, changeAlpha: 0.05, stopAlpha: Infinity },
+  });
+  const plain = await sampling(null);
+  assert.equal(plain.tasks.t.settings.x, 1, "item-level: eight wins and no loss are significant");
+  const clustered = await sampling((id) => (id.startsWith("f-") ? "f" : id));
+  assert.equal(clustered.tasks.t.settings.x, 0, "cluster-level: one cluster moving is not enough to change the setting");
+});
+
 test("a task without rungs leaves its stages pending instead of crashing", async () => {
   const result = await tune({
     evaluate: async (settings, itemIds) => ({

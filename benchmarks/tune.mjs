@@ -24,7 +24,7 @@ import { speedStage } from "./tune-speed.mjs";
  * profiles go stale automatically instead of relying on a note. Part of
  * every fingerprint and gate identity.
  */
-export const TUNER_VERSION = 10;
+export const TUNER_VERSION = 11;
 
 export const DEFAULT_TUNE_OPTIONS = Object.freeze({
   seeds: Object.freeze([42, 7, 1234]),
@@ -202,6 +202,8 @@ async function sweep(context, { stage, task, axis, current, rungs, forced, cost,
   const looks = levels.map((itemIds) => lookPoints(itemIds.length, options.looks));
   // Every look spends an equal share of one error budget over the axis (ADR-063). A non-finite
   // stop alpha turns the screen off, which the mechanics tests need.
+  // The change gate counts a function's inputs as one witness, not many (S4); the early stop below stays item-level.
+  const sweepPaired = (before, after) => (context.clusterOf ? pairedClustered(before, after, context.clusterOf) : paired(before, after));
   const stopAlpha = options.stopAlpha ?? options.changeAlpha;
   const lookBudget = Math.max(1, looks.reduce((sum, points) => sum + points.length, 0));
   const alphaPerLook = Number.isFinite(stopAlpha) && stopAlpha > 0 ? stopAlpha / lookBudget : null;
@@ -295,9 +297,9 @@ async function sweep(context, { stage, task, axis, current, rungs, forced, cost,
   // The best of many noisy rates is optimistic, so a quality-only gain must be real to move the setting.
   // Holm covers the challengers that survived the screens, not every value first tried (ADR-042, ADR-063).
   const challengers = survivors.filter((entry) => entry !== incumbent);
-  const adjusted = holm(challengers.map((entry) => paired(incumbent.stats, entry.stats).pValue));
+  const adjusted = holm(challengers.map((entry) => sweepPaired(incumbent.stats, entry.stats).pValue));
   const chosenP = chosen === incumbent ? 1 : adjusted[challengers.indexOf(chosen)] ?? 1;
-  const evidence = paired(incumbent.stats, chosen.stats);
+  const evidence = sweepPaired(incumbent.stats, chosen.stats);
   const unproven = chosen !== incumbent && !incumbent.stats.failed && chosen.stats.rate > incumbent.stats.rate &&
     !(evidence.c > evidence.b && chosenP <= options.changeAlpha);
   let winner = unproven ? incumbent : chosen;
@@ -389,7 +391,7 @@ async function sweep(context, { stage, task, axis, current, rungs, forced, cost,
     previous: incumbent.patch,
     winner: winner.patch,
     changed: winner !== incumbent,
-    ...paired(incumbent.stats, winner.stats),
+    ...sweepPaired(incumbent.stats, winner.stats),
     speed: { cost, ...costDelta(incumbent.stats, winner.stats, options.speedTie, COST[cost].item) },
   };
 }
