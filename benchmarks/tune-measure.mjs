@@ -132,13 +132,19 @@ export class Measurements {
    */
   restore(settings, seed, rows) {
     const slotKey = slotKeyOf(settings, seed);
-    if (this.slots.has(slotKey)) return false;
-    this.slots.set(slotKey, {
-      items: new Map(rows.map((row) => [row.item ?? row.id, { ...row, id: row.item ?? row.id }])),
-      memoryBytes: undefined,
-      gpuVram: undefined,
-    });
-    return true;
+    // Several saved groups can share one slot (runs at different thread counts on
+    // full GPU offload, ADR-123), so each adds only the items the slot lacks: an
+    // item already there, fresh or restored first, is never replaced.
+    if (!this.slots.has(slotKey)) this.slots.set(slotKey, { items: new Map(), memoryBytes: undefined, gpuVram: undefined });
+    const { items } = this.slots.get(slotKey);
+    let added = false;
+    for (const row of rows) {
+      const id = row.item ?? row.id;
+      if (items.has(id)) continue;
+      items.set(id, { ...row, id });
+      added = true;
+    }
+    return added;
   }
 
   async measure(settings, itemIds, seed) {

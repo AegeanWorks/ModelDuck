@@ -60,6 +60,25 @@ test("on full GPU offload an untimed answer is reused whatever the thread count;
   assert.equal(calls, 2, "on the CPU the thread count can change the text");
 });
 
+test("saved groups that share a slot are merged, not first-wins, and fresh answers still win", async () => {
+  // A v11 run at 8 threads asked only a few items; the v10 run at 12 threads holds the rest.
+  // On full GPU offload both are one slot, so the second restore must add its items.
+  let calls = 0;
+  const evaluate = async (_settings, ids) => { calls += ids.length; return { prompts: ids.map((id) => ({ id, passed: 0, total: 1, text: "fresh" })) }; };
+  const measurements = new Measurements(evaluate, 100);
+  assert.equal(measurements.restore({ ...GPU, threads: 8 }, 42, [{ item: "refill", passed: 1, total: 1, text: "v11" }]), true);
+  assert.equal(measurements.restore({ ...GPU, threads: 12 }, 42, [
+    { item: "a", passed: 1, total: 1, text: "v10 a" },
+    { item: "refill", passed: 0, total: 1, text: "older" },
+  ]), true, "the second group adds the items the first lacks");
+  const out = await measurements.measure({ ...GPU, threads: 8 }, ["a", "refill"], 42);
+  assert.equal(calls, 0, "both items replay");
+  assert.deepEqual(out.prompts.map((prompt) => prompt.text), ["v10 a", "v11"], "the first restore keeps the items it has");
+  await measurements.measure({ ...GPU, threads: 8 }, ["b"], 42);
+  assert.equal(measurements.restore(GPU, 42, [{ item: "b", passed: 1, total: 1, text: "saved b" }]), false, "a fresh answer is never replaced");
+  assert.equal((await measurements.measure(GPU, ["b"], 42)).prompts[0].text, "fresh");
+});
+
 test("a spot-check re-asks a few stored answers live and refuses reuse on any difference", async () => {
   const groups = [
     { settings: GPU, seed: 42, rows: ["a", "b", "c", "d"].map((item) => ({ item, passed: 1, total: 1, text: `text ${item}` })) },
