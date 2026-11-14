@@ -917,5 +917,23 @@
     "final_snapshot_digest": "",
     "final_snapshot_entries": 0,
     "surface_digest": "070579e6d85a0e9119e0eed7fe40c8cba458d2c1f22b922bb7c4324d848c0d1d"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [],
+    "no_visual_reason": "",
+    "baseline_commit": "48ff7d723ffbf52c20f4c372f5ce7ead4ec87557",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1794695225.255268,
+    "finished_at": 1794695246.8473475,
+    "strikes": 0,
+    "reviewer": "kiro:1 (agent review under G-007: new src/mcp-server.js is a stdio CLI; no route, page, style or client script changed; npm test 871/872 pass)",
+    "allowed_removals": [],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "96847a7905698fe2824df7a1393c9c49273682b2756efe761bf97ce96922b986"
   }
 ]
