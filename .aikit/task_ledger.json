@@ -1,63 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "report-status-h",
+    "task_id": "gate-hardware-note",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794673398.1112924,
+    "updated_at": 1794681872.1817818,
     "owner": "kiro:1",
     "started_by": "kiro:1",
     "continuations": [],
-    "completed_at": 1794673398.5031245
+    "completed_at": 1794681872.465942
   },
   "checkpoints": [
-    {
-      "task_id": "housekeeping-g",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[1/1] ledger entries only; check 4/4 passed before and after.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794667878.016911,
-      "timestamp_str": "2026-11-14 17:51:18",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "housekeeping-g",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'housekeeping-g' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794667878.258882,
-      "timestamp_str": "2026-11-14 17:51:18",
-      "agent": "kiro:1",
-      "delivery": {
-        "roots": [
-          "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck"
-        ],
-        "forced": false
-      }
-    },
-    {
-      "task_id": "reforge-fix-h",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/1] Fix reforge stage 9 finding: the judge child writes its whole result with one fs.writeSync, which on a POSIX pipe can write part of it or throw EAGAIN. Write all bytes in a loop (retry EAGAIN with a 1 ms wait, rethrow other errors), built from functions captured before the answer runs; test it with a fake write that is partial and throws EAGAIN; re-judge saved answers old vs new; tune:gate.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794668021.55727,
-      "timestamp_str": "2026-11-14 17:53:41",
-      "agent": "kiro:1",
-      "impact_assessment": {
-        "why": "Reforge run-1 stage 9 recorded the finding; results grew from a few bytes to MBs with ADR-115/117, so a short write now loses the end marker",
-        "benefits": "Large correct results survive a non-blocking or small pipe on macOS and Linux",
-        "risks": "contract: how the child emits its result changes, so scores could change if the loop were wrong; dependency: none; concurrency: none; state: gate cache digest changes with suite.mjs",
-        "mitigation": "failing-first tests with a fake write; all saved answers re-judged old vs new in one run; tune:gate; Windows end-to-end tests unchanged"
-      },
-      "plan_digest": "725c871368329fd6f0ec64fe19c4e9a236fc7e4c7c08b94d8fddc70174d70a6b"
-    },
     {
       "task_id": "reforge-fix-h",
       "phase": "in_progress",
@@ -308,6 +262,52 @@
       "status": "completed",
       "timestamp": 1794673398.5031283,
       "timestamp_str": "2026-11-14 19:23:18",
+      "agent": "kiro:1",
+      "delivery": {
+        "roots": [
+          "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck"
+        ],
+        "forced": false
+      }
+    },
+    {
+      "task_id": "gate-hardware-note",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/1] Fix: tune:gate's regression note always blamed a hardware change (it passed null hardware); compare per model with the measured CPU and threads",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794681871.6620183,
+      "timestamp_str": "2026-11-14 21:44:31",
+      "agent": "kiro:1",
+      "impact_assessment": {
+        "why": "A real regression was reported as 'baseline hardware differs from this machine' on the same machine",
+        "benefits": "the note appears only when a known hardware value differs",
+        "risks": "contract: hardwareWarning gains an optional model argument; dependency: none; concurrency: none; state: none (reporting only)",
+        "mitigation": "failing-first test; full suite"
+      },
+      "plan_digest": "684218e14b9c5e93547a2a07ac271b1b0a7f4b652581f7cfa3dea6662184f9da"
+    },
+    {
+      "task_id": "gate-hardware-note",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "848/849 pass, 1 skipped; reporting-only change",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794681872.1817818,
+      "timestamp_str": "2026-11-14 21:44:32",
+      "agent": "kiro:1",
+      "checklists": "passed"
+    },
+    {
+      "task_id": "gate-hardware-note",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'gate-hardware-note' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794681872.4659443,
+      "timestamp_str": "2026-11-14 21:44:32",
       "agent": "kiro:1",
       "delivery": {
         "roots": [
