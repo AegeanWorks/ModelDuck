@@ -598,6 +598,16 @@ test("verified code retries until an answer passes the caller's tests, in the sa
   assert.equal((await idle.json()).error.code, "model_not_loaded");
 });
 
+test("verified code refuses on a Node whose sandbox cannot deny the network", async (t) => {
+  const harness = await makeHarness(t, { nodeVersion: "24.11.0" });
+  const response = await fetch(`${harness.base}/api/code/verify`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ prompt: "x", tests: { entry: "f", cases: [{ args: [], expect: 1 }] } }) });
+  assert.equal(response.status, 503);
+  const { error } = await response.json();
+  assert.equal(error.code, "verify_sandbox_weak");
+  assert.match(error.why, /24\.11\.0/);
+  assert.match(error.fix, /25/);
+});
+
 test("loading applies the model's tuned profile for the chosen task", async (t) => {
   const harness = await makeHarness(t);
   const [installed] = harness.registry.listPublic();

@@ -8,6 +8,7 @@ import { changeAndTracePrompts } from "./repo-items-v13.mjs";
 import { publicPrompts } from "./public-items.mjs";
 import { codeComprehensionPrompts } from "./comprehension-items.mjs";
 import { paraphrasePrompts } from "./paraphrase-items.mjs";
+import { SANDBOX_HEAP_MB, sandboxEnv, sandboxFlag } from "./sandbox.mjs";
 
 export const SUITE_VERSION = 18;
 
@@ -811,13 +812,70 @@ export function allCode(text) {
 
 const DEFINES_ANY = /\bfunction\s+\w+|\b(?:const|let|var)\s+\w+\s*=/;
 
-const RESULT_MARKER = "__MODELDUCK_TEST_RESULTS__";
+const escapeRegExp = (text) => String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /**
- * Runs generated JavaScript against test cases in a child process started with
- * `node --permission` and no allow flags: file, child-process, worker and
- * network access are all denied, and a timeout kills runaway code. Returns one
- * check per case so a partly correct function earns partial credit.
+ * The child-side script. The answer runs in the same process as the judge, so
+ * the judge must not depend on anything the answer can reach. What makes that
+ * possible: the answer's text is fixed before the run, so it cannot contain a
+ * secret drawn per run. `id` is that secret. It names the judge's bindings and
+ * the result marker, and the script arrives on stdin, so it is in no argument
+ * the answer could read. Before the answer runs, the judge captures the write
+ * and stringify functions and serializes every expected value, so neither
+ * patched output nor polluted toJSON can make a wrong result look right. The
+ * answer is called from strict code, so `fn.caller` cannot expose the judge.
+ * Results leave as a string built with loops and `+` only: no array method
+ * or toJSON of the judge's own data is ever consulted. Comparison is the
+ * same JSON string equality as before, so honest answers score the same.
+ */
+function judgeScript({ id, setup, code, scenario, entry, cases }) {
+  const v = (name) => `__${name}_${id}`;
+  const expected = cases.map((testCase) => JSON.stringify(testCase.expect));
+  const args = cases.map((testCase) => testCase.args);
+  return [
+    `const ${v("w")} = require("fs").writeSync;`,
+    `const ${v("s")} = JSON.stringify;`,
+    `const ${v("e")} = ${JSON.stringify(expected)};`,
+    `const ${v("a")} = JSON.parse(${JSON.stringify(JSON.stringify(args))});`,
+    `const ${v("call")} = (function () { "use strict"; return function (fn, list) { return fn(...list); }; })();`,
+    // The rest of a codebase item's files; the answer comes after, so its functions replace theirs.
+    setup,
+    ";",
+    code,
+    ";",
+    scenario,
+    ";",
+    "(function () {",
+    '  "use strict";',
+    `  const fn = typeof ${entry} === "function" ? ${entry} : null;`,
+    "  let out = \"[\";",
+    `  for (let i = 0; i < ${v("e")}.length; i += 1) {`,
+    "    let ok = false;",
+    "    let detail;",
+    "    if (!fn) detail = \"function not found\";",
+    "    else {",
+    "      try {",
+    `        const got = ${v("s")}(${v("call")}(fn, ${v("a")}[i]));`,
+    `        ok = got === ${v("e")}[i];`,
+    "        detail = ok ? \"ok\" : \"got \" + got;",
+    "      } catch (error) {",
+    "        detail = \"threw \" + String(error && error.message);",
+    "      }",
+    "    }",
+    `    out += (i ? "," : "") + "[" + (ok ? 1 : 0) + "," + ${v("s")}(String(detail)) + "]";`,
+    "  }",
+    `  ${v("w")}(1, "\\n__MODELDUCK_${id}__" + out + "]");`,
+    "})();",
+  ].join("\n");
+}
+
+/**
+ * Runs generated JavaScript against test cases in a child process under the
+ * Node permission model with no allow flags (`benchmarks/sandbox.mjs`): file,
+ * child-process and worker access are denied on every supported Node, network
+ * access from Node 25. The child gets no environment and a capped heap, and a
+ * timeout kills runaway code. Returns one check per case so a partly correct
+ * function earns partial credit.
  */
 // Exact answers repeat across load variants (quantization/KV/threads) and seeds.
 // Verification is pure for a given text + check + timeout, so a bounded cache
@@ -851,44 +909,38 @@ export async function runJavaScriptTests(text, check, { timeoutMs = 5000 } = {})
     return cached.map((item) => ({ ...item }));
   }
   const { execFile } = await import("node:child_process");
+  const { randomBytes } = await import("node:crypto");
   const cases = check.cases ?? [];
   // A change that may touch several functions keeps every code block and runs through a hidden scenario (ADR-061).
   const code = check.harness ? allCode(text) : extractCode(text, check.entry);
-  const named = check.harness ? DEFINES_ANY.test(code) : new RegExp(`\\b${check.entry}\\b`).test(code);
-  const harness = [
-    // The rest of a codebase item's files; the answer comes after, so its functions replace theirs.
-    check.setup ?? "",
-    ";",
-    // `-e` runs CommonJS, so ESM export keywords would be a syntax error.
-    code.replace(/^\s*export\s+(default\s+)?/gm, ""),
-    ";",
-    check.harness ?? "",
-    ";",
-    `const __cases = ${JSON.stringify(cases)};`,
-    `const __fn = typeof ${check.entry} === "function" ? ${check.entry} : null;`,
-    "const __results = __cases.map((c) => {",
-    "  if (!__fn) return { ok: false, detail: 'function not found' };",
-    "  try {",
-    "    const out = __fn(...c.args);",
-    "    const ok = JSON.stringify(out) === JSON.stringify(c.expect);",
-    "    return { ok, detail: ok ? 'ok' : 'got ' + JSON.stringify(out) };",
-    "  } catch (error) { return { ok: false, detail: 'threw ' + String(error && error.message) }; }",
-    "});",
-    `process.stdout.write("\\n${RESULT_MARKER}" + JSON.stringify(__results));`,
-  ].join("\n");
+  const named = check.harness ? DEFINES_ANY.test(code) : new RegExp(`(?<![\\w$])${escapeRegExp(check.entry)}(?![\\w$])`).test(code);
+  const id = randomBytes(12).toString("hex");
+  const script = judgeScript({
+    id,
+    setup: check.setup ?? "",
+    // The script runs as CommonJS, so ESM export keywords would be a syntax error.
+    code: code.replace(/^\s*export\s+(default\s+)?/gm, ""),
+    scenario: check.harness ?? "",
+    entry: check.entry,
+    cases,
+  });
   const outcome = await new Promise((resolve) => {
-    execFile(
+    const child = execFile(
       process.execPath,
-      ["--permission", "-e", harness],
-      { timeout: timeoutMs, windowsHide: true, maxBuffer: 1024 * 1024 },
+      // `-` reads the script from stdin, so it appears in no argument the answer could read.
+      [sandboxFlag(), `--max-old-space-size=${SANDBOX_HEAP_MB}`, "-"],
+      { timeout: timeoutMs, windowsHide: true, maxBuffer: 1024 * 1024, env: sandboxEnv() },
       (error, stdout) => resolve({ error, stdout: String(stdout ?? "") }),
     );
+    child.stdin.on("error", () => {});
+    child.stdin.end(script);
   });
-  const marker = outcome.stdout.lastIndexOf(RESULT_MARKER);
+  const marker = `__MODELDUCK_${id}__`;
+  const at = outcome.stdout.lastIndexOf(marker);
   let results = null;
-  if (marker >= 0) {
+  if (at >= 0) {
     try {
-      results = JSON.parse(outcome.stdout.slice(marker + RESULT_MARKER.length));
+      results = JSON.parse(outcome.stdout.slice(at + marker.length));
     } catch {
       results = null;
     }
@@ -896,10 +948,10 @@ export async function runJavaScriptTests(text, check, { timeoutMs = 5000 } = {})
   const failure = outcome.error?.killed ? "timed out" : outcome.error ? "did not run (syntax or runtime error)" : "no results";
   const checked = cases.map((testCase, index) => ({
     type: "jsTests",
-    passed: Boolean(results?.[index]?.ok),
+    passed: results?.[index]?.[0] === 1,
     // No function of that name in the reply: a format problem, not a wrong function (ADR-052).
     unreadable: !named,
-    detail: `${check.entry}(${JSON.stringify(testCase.args).slice(1, -1)}): ${results?.[index]?.detail ?? failure}`,
+    detail: `${check.entry}(${JSON.stringify(testCase.args).slice(1, -1)}): ${typeof results?.[index]?.[1] === "string" ? results[index][1] : failure}`,
   }));
   jsTestMisses += 1;
   if (JS_TEST_CACHE.size >= JS_TEST_CACHE_LIMIT) JS_TEST_CACHE.delete(JS_TEST_CACHE.keys().next().value);

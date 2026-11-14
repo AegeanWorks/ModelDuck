@@ -26,6 +26,7 @@ import { publicCatalog } from "./model-catalog.js";
 import { currentFingerprint, importRecipe, isPartRun, launchRecipe, listProfiles, loadProfile, profileIdFor, profileRecipe, saveProfile, typeWarnings } from "./model-profiles.js";
 import { SHIPPED_PRESETS_DIR, matchPreset, presetProfile, readShippedPresets } from "./preset-match.js";
 import { parseVerifyRequest, runVerified } from "./verified-code.js";
+import { networkDenied } from "../benchmarks/sandbox.mjs";
 import { answersFile, answerPaceByProfile, listRuns, loadRun, summarizeAnswers } from "./tune-runs.js";
 import { TunedSettings, diffSettings } from "./tuned-settings.js";
 import { EngineRebuildLease, reloadFingerprint } from "./settings-reload.js";
@@ -115,6 +116,8 @@ export function createHttpServer({
   benchmarkDir = BENCHMARK_DIR,
   profilesDir = null,
   presetsDir = SHIPPED_PRESETS_DIR,
+  // The Node the test sandbox runs on; tests pass another to check version policy.
+  nodeVersion = process.versions.node,
   tuneRunsDir = null,
   profileFingerprint = currentFingerprint,
   tuneStepsFile = null,
@@ -709,6 +712,15 @@ export function createHttpServer({
         fix: "Call it from the computer running ModelDuck (127.0.0.1).",
       });
       if (!engine) throw new AppError("Inference engine unavailable", { status: 503 });
+      // The code it runs comes from a caller and a model; before Node 25 the sandbox cannot deny the network.
+      if (!networkDenied(nodeVersion)) {
+        throw new AppError("Verified code needs a newer Node", {
+          code: "verify_sandbox_weak",
+          status: 503,
+          why: `On Node ${nodeVersion} the permission model blocks files, processes and workers but not the network, and this route runs code it is sent.`,
+          fix: "Run ModelDuck on Node 25 or newer to use /api/code/verify. Tuning and benchmarks still work on this Node.",
+        });
+      }
       const request = parseVerifyRequest(await readJsonBody(req, { limitBytes: 256 * 1024 }));
       const modelId = engine.loadedId;
       if (!modelId) {

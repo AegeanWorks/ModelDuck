@@ -518,6 +518,7 @@ modelduck/
 │   ├── tune-parallel.mjs
 │   ├── tune-budget.mjs
 │   ├── tune-failures.mjs
+│   ├── sandbox.mjs
 │   ├── tune-run.mjs
 │   ├── tune-job.mjs
 │   ├── tune-gate.mjs
@@ -584,6 +585,7 @@ modelduck/
 │   ├── tune-budget.test.js
 │   ├── tune-escalate.test.js
 │   ├── tune-failures.test.js
+│   ├── sandbox-hardening.test.js
 │   ├── benchmark-multistep.test.js
 │   ├── benchmark-repair.test.js
 │   ├── benchmark-tune-baseline.test.js
