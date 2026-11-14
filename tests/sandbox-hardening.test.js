@@ -87,3 +87,70 @@ test("a function name with $ is found and its result counts", async () => {
   assert.equal(result.passed, true);
   assert.equal(result.unreadable, false);
 });
+
+// --- review of the first hardening: the judge shares a process with the answer -----------
+// An answer runs in the same process as the code that judged it, so it can read the
+// script (process._eval) and the per-run id in it. These attacks all worked.
+
+test("reading the judge's own script and writing a result line on exit does not pass", async () => {
+  const forged = [
+    "function double() { return 0; }",
+    "const id = /__MODELDUCK_([0-9a-f]{24})__/.exec(String(process._eval))?.[1] ?? /__[a-z]+_([0-9a-f]{24})/.exec(String(process._eval))?.[1];",
+    'process.on("exit", () => { require("fs").writeSync(1, "\\n__MODELDUCK_" + id + \'__[[1,"ok"],[1,"ok"]]\'); });',
+  ].join("\n");
+  assert.equal(await passedOf(forged), 0, "a forged line must not outrank the real result");
+});
+
+test("the expected values never reach the child, so no answer can read them", async () => {
+  const check = { type: "jsTests", entry: "secret", cases: [{ args: [], expect: "ZEBRA-4417-EXPECTED" }] };
+  // Built at run time: the answer's own text must not contain the whole value, or it would find itself.
+  const code = 'function secret() { return String(process._eval).includes("ZEBRA-" + "4417-EXPECTED") ? "leaked" : "clean"; }';
+  resetJavaScriptTestCache();
+  const [result] = await runJavaScriptTests(fence(code), check);
+  assert.equal(result.passed, false);
+  assert.match(result.detail, /clean/, "the child's script holds no expected value");
+});
+
+test("a hardcoded answer to a known test is the only way to pass it, and still needs the right value", async () => {
+  // Overfitting to visible cases is not forgery; the judge compares what the function returns.
+  assert.equal(await passedOf("function double(n) { return n === 1 ? 2 : n === 5 ? 10 : 0; }"), 2);
+  assert.equal(await passedOf("function double(n) { return n === 1 ? 2 : 0; }"), 1);
+});
+
+test("an answer cannot signal another process", async () => {
+  const check = { type: "jsTests", entry: "signal", cases: [{ args: [], expect: "blocked" }] };
+  const code = [
+    "function signal() {",
+    "  const kill = process.kill ?? process._kill;",
+    '  if (typeof kill !== "function") return "blocked";',
+    '  try { kill(process.ppid, 0); return "reached"; } catch { return "blocked"; }',
+    "}",
+  ].join("\n");
+  assert.equal(await passedOf(code, check), 1, "the parent is out of reach");
+});
+
+test("the child does not report the real user, host or working directory", async () => {
+  const os = await import("node:os");
+  const real = [os.userInfo().username, os.hostname(), process.cwd()].filter((value) => value && value.length > 3);
+  const check = { type: "jsTests", entry: "who", cases: [{ args: [], expect: false }] };
+  const code = `function who() { const os = require("os"); const seen = [os.userInfo().username, os.hostname(), process.cwd()].join("|"); return ${JSON.stringify(real)}.some((value) => seen.includes(value)); }`;
+  assert.equal(await passedOf(code, check), 1);
+});
+
+test("a function that returns undefined, throws, or cannot be serialized fails with a reason, as before", async () => {
+  resetJavaScriptTestCache();
+  const check = { type: "jsTests", entry: "f", cases: [{ args: [0], expect: 1 }, { args: [1], expect: 1 }, { args: [2], expect: 1 }] };
+  const code = "function f(n) { if (n === 0) return undefined; if (n === 1) throw new Error('boom'); const loop = {}; loop.self = loop; return loop; }";
+  const results = await runJavaScriptTests(fence(code), check);
+  assert.deepEqual(results.map((result) => result.passed), [false, false, false]);
+  assert.match(results[0].detail, /got undefined/);
+  assert.match(results[1].detail, /threw boom/);
+  assert.match(results[2].detail, /threw/);
+});
+
+test("a result that is a string, object or array is compared by its JSON text, as before", async () => {
+  const check = { type: "jsTests", entry: "shape", cases: [{ args: [], expect: { a: [1, "x"], b: null } }, { args: [], expect: "text" }] };
+  resetJavaScriptTestCache();
+  const results = await runJavaScriptTests(fence('function shape() { return shape.calls = (shape.calls ?? 0) + 1, shape.calls === 1 ? { a: [1, "x"], b: null } : "text"; }'), check);
+  assert.deepEqual(results.map((result) => result.passed), [true, true]);
+});

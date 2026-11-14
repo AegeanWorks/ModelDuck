@@ -8,7 +8,7 @@ import { changeAndTracePrompts } from "./repo-items-v13.mjs";
 import { publicPrompts } from "./public-items.mjs";
 import { codeComprehensionPrompts } from "./comprehension-items.mjs";
 import { paraphrasePrompts } from "./paraphrase-items.mjs";
-import { SANDBOX_HEAP_MB, sandboxEnv, sandboxFlag } from "./sandbox.mjs";
+import { SANDBOX_HEAP_MB, SANDBOX_PRELUDE, sandboxCwd, sandboxEnv, sandboxFlag } from "./sandbox.mjs";
 
 export const SUITE_VERSION = 18;
 
@@ -815,29 +815,30 @@ const DEFINES_ANY = /\bfunction\s+\w+|\b(?:const|let|var)\s+\w+\s*=/;
 const escapeRegExp = (text) => String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /**
- * The child-side script. The answer runs in the same process as the judge, so
- * the judge must not depend on anything the answer can reach. What makes that
- * possible: the answer's text is fixed before the run, so it cannot contain a
- * secret drawn per run. `id` is that secret. It names the judge's bindings and
- * the result marker, and the script arrives on stdin, so it is in no argument
- * the answer could read. Before the answer runs, the judge captures the write
- * and stringify functions and serializes every expected value, so neither
- * patched output nor polluted toJSON can make a wrong result look right. The
- * answer is called from strict code, so `fn.caller` cannot expose the judge.
- * Results leave as a string built with loops and `+` only: no array method
- * or toJSON of the judge's own data is ever consulted. Comparison is the
- * same JSON string equality as before, so honest answers score the same.
+ * The child-side script: it calls the entry function on each case's arguments
+ * and prints the raw results; it never sees the expected values. The answer
+ * runs in the same process, so anything the script holds, including `id`,
+ * can be read by the answer (process._eval). That is why the comparison is
+ * the parent's: an answer that forges the result line or patches the child's
+ * output can only choose what the function "returned", and without the
+ * expected value it cannot know what would pass. What remains is solving the
+ * task, or hardcoding the visible cases, which is overfitting, not forgery.
+ *
+ * Each case prints [kind, text]: "v" the value's JSON text, "u" undefined (no
+ * JSON form), "t" an error's message (thrown by the function or by
+ * serializing its result), "n" no function of that name. The write and
+ * stringify functions are captured before the answer runs, results are built
+ * with loops and `+` only, and the answer is called from strict code so
+ * `fn.caller` cannot expose the judge.
  */
-function judgeScript({ id, setup, code, scenario, entry, cases }) {
+function judgeScript({ id, setup, code, scenario, entry, args }) {
   const v = (name) => `__${name}_${id}`;
-  const expected = cases.map((testCase) => JSON.stringify(testCase.expect));
-  const args = cases.map((testCase) => testCase.args);
   return [
     `const ${v("w")} = require("fs").writeSync;`,
     `const ${v("s")} = JSON.stringify;`,
-    `const ${v("e")} = ${JSON.stringify(expected)};`,
     `const ${v("a")} = JSON.parse(${JSON.stringify(JSON.stringify(args))});`,
     `const ${v("call")} = (function () { "use strict"; return function (fn, list) { return fn(...list); }; })();`,
+    SANDBOX_PRELUDE,
     // The rest of a codebase item's files; the answer comes after, so its functions replace theirs.
     setup,
     ";",
@@ -849,26 +850,39 @@ function judgeScript({ id, setup, code, scenario, entry, cases }) {
     '  "use strict";',
     `  const fn = typeof ${entry} === "function" ? ${entry} : null;`,
     "  let out = \"[\";",
-    `  for (let i = 0; i < ${v("e")}.length; i += 1) {`,
-    "    let ok = false;",
-    "    let detail;",
-    "    if (!fn) detail = \"function not found\";",
-    "    else {",
+    `  for (let i = 0; i < ${v("a")}.length; i += 1) {`,
+    "    let kind = \"n\";",
+    "    let text = \"\";",
+    "    if (fn) {",
     "      try {",
     `        const got = ${v("s")}(${v("call")}(fn, ${v("a")}[i]));`,
-    `        ok = got === ${v("e")}[i];`,
-    "        detail = ok ? \"ok\" : \"got \" + got;",
+    "        if (got === undefined) kind = \"u\";",
+    "        else { kind = \"v\"; text = got; }",
     "      } catch (error) {",
-    "        detail = \"threw \" + String(error && error.message);",
+    "        kind = \"t\";",
+    "        text = String(error && error.message);",
     "      }",
     "    }",
-    `    out += (i ? "," : "") + "[" + (ok ? 1 : 0) + "," + ${v("s")}(String(detail)) + "]";`,
+    `    out += (i ? "," : "") + "[" + ${v("s")}(kind) + "," + ${v("s")}(text) + "]";`,
     "  }",
     `  ${v("w")}(1, "\\n__MODELDUCK_${id}__" + out + "]");`,
     "})();",
   ].join("\n");
 }
 
+/** One case's verdict from the child's [kind, text] and the parent's expected value. */
+function judgeCase(reported, expect) {
+  if (!Array.isArray(reported) || typeof reported[0] !== "string" || typeof reported[1] !== "string") return null;
+  const [kind, text] = reported;
+  if (kind === "n") return { passed: false, detail: "function not found" };
+  if (kind === "u") return { passed: false, detail: "got undefined" };
+  if (kind === "t") return { passed: false, detail: `threw ${text}` };
+  if (kind !== "v") return null;
+  // An expected value with no JSON form (undefined) can never equal a serialized result.
+  const wanted = JSON.stringify(expect);
+  const passed = wanted !== undefined && text === wanted;
+  return { passed, detail: passed ? "ok" : `got ${text}` };
+}
 /**
  * Runs generated JavaScript against test cases in a child process under the
  * Node permission model with no allow flags (`benchmarks/sandbox.mjs`): file,
@@ -922,14 +936,16 @@ export async function runJavaScriptTests(text, check, { timeoutMs = 5000 } = {})
     code: code.replace(/^\s*export\s+(default\s+)?/gm, ""),
     scenario: check.harness ?? "",
     entry: check.entry,
-    cases,
+    // Arguments only: the expected values stay in this process.
+    args: cases.map((testCase) => testCase.args),
   });
   const outcome = await new Promise((resolve) => {
     const child = execFile(
       process.execPath,
       // `-` reads the script from stdin, so it appears in no argument the answer could read.
       [sandboxFlag(), `--max-old-space-size=${SANDBOX_HEAP_MB}`, "-"],
-      { timeout: timeoutMs, windowsHide: true, maxBuffer: 1024 * 1024, env: sandboxEnv() },
+      // SIGKILL because a handler for the default signal would keep a runaway loop alive on POSIX.
+      { timeout: timeoutMs, killSignal: "SIGKILL", windowsHide: true, maxBuffer: 1024 * 1024, env: sandboxEnv(), cwd: sandboxCwd() },
       (error, stdout) => resolve({ error, stdout: String(stdout ?? "") }),
     );
     child.stdin.on("error", () => {});
@@ -946,13 +962,16 @@ export async function runJavaScriptTests(text, check, { timeoutMs = 5000 } = {})
     }
   }
   const failure = outcome.error?.killed ? "timed out" : outcome.error ? "did not run (syntax or runtime error)" : "no results";
-  const checked = cases.map((testCase, index) => ({
-    type: "jsTests",
-    passed: results?.[index]?.[0] === 1,
-    // No function of that name in the reply: a format problem, not a wrong function (ADR-052).
-    unreadable: !named,
-    detail: `${check.entry}(${JSON.stringify(testCase.args).slice(1, -1)}): ${typeof results?.[index]?.[1] === "string" ? results[index][1] : failure}`,
-  }));
+  const checked = cases.map((testCase, index) => {
+    const verdict = judgeCase(results?.[index], testCase.expect);
+    return {
+      type: "jsTests",
+      passed: Boolean(verdict?.passed),
+      // No function of that name in the reply: a format problem, not a wrong function (ADR-052).
+      unreadable: !named,
+      detail: `${check.entry}(${JSON.stringify(testCase.args).slice(1, -1)}): ${verdict ? verdict.detail : failure}`,
+    };
+  });
   jsTestMisses += 1;
   if (JS_TEST_CACHE.size >= JS_TEST_CACHE_LIMIT) JS_TEST_CACHE.delete(JS_TEST_CACHE.keys().next().value);
   JS_TEST_CACHE.set(cacheKey, checked.map((item) => ({ ...item })));

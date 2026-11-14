@@ -10,6 +10,9 @@
  *   that, sandboxed code can open sockets.
  */
 
+import os from "node:os";
+import path from "node:path";
+
 const parse = (version) => String(version ?? "").replace(/^v/, "").split(".").map((part) => Number.parseInt(part, 10) || 0);
 
 /** The permission flag this Node version understands. */
@@ -42,5 +45,31 @@ export function sandboxEnv(env = process.env, platform = process.platform) {
   return { ...neutral, SystemRoot: root, WINDIR: root, SYSTEMDRIVE: root.slice(0, 2), TEMP: `${root}\\Temp` };
 }
 
-/** Heap cap for the child, in MB: generous for test functions, small enough to protect the host. */
+/**
+ * Heap cap for the child, in MB. It bounds the JavaScript heap only: Buffers and
+ * other external memory are outside it (a 600 MB Buffer.alloc still succeeds), so
+ * it keeps a runaway object graph from growing, not a hostile allocation.
+ */
 export const SANDBOX_HEAP_MB = 256;
+
+/**
+ * Where the child starts: the root of the temp drive, so `process.cwd()` shows
+ * no user name or project path. File access is denied there like everywhere.
+ */
+export function sandboxCwd() {
+  return path.parse(os.tmpdir()).root;
+}
+
+/**
+ * The child-side lines that run before any answer. They are an information
+ * scrub and a speed bump, not a boundary, because the answer shares this
+ * process: signalling functions are removed and the user name and host name
+ * are replaced. What actually protects the host is the permission flag, the
+ * empty environment, the heap cap and the timeout; see the threat model.
+ */
+export const SANDBOX_PRELUDE = [
+  'delete process.kill; delete process._kill;',
+  'const __os = require("os");',
+  '__os.userInfo = () => ({ uid: -1, gid: -1, username: "sandbox", homedir: "sandbox", shell: null });',
+  '__os.hostname = () => "sandbox";',
+].join("\n");

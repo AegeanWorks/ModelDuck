@@ -24,10 +24,18 @@ network requests are model downloads you start. No telemetry.
    TruthfulQA, HumanEval, MBPP). Risk: public items may be in training data.
    Mitigation: own vs public rates split, test-hash gates, and a sandbox:
    Node's permission model with no allow flags, an empty environment, a
-   256 MB heap, a 5 s timeout, and a per-run result marker the answer cannot
-   forge. It denies file, child-process and worker access on every supported
+   5 s timeout killed with SIGKILL, and a judge that compares in the parent: the
+   child never holds the expected values, so an answer that reads its script or
+   forges its output cannot learn what would pass. It denies file, child-process
+   and worker access on every supported
    Node, but network access only from Node 25 (`benchmarks/sandbox.mjs`). On
    older Node, a model's code in a tune or benchmark can open sockets.
+   What the permission model does not cover: the answer shares one process with
+   the code that calls it, so a 256 MB heap cap bounds JavaScript objects but
+   not Buffers (a 600 MB allocation succeeds), and signalling another process
+   is only removed from the child (`process.kill`), not denied by the OS.
+   Treat the sandbox as a guard against honest mistakes and score forgery, not
+   as containment for code you would not run yourself.
    The same sandbox runs the tests a caller sends to `POST /api/code/verify`,
    and the model's code against them. Risk: hostile test or model code.
    Mitigation: the route refuses (503 `verify_sandbox_weak`) on Node below 25.

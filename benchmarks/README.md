@@ -156,10 +156,19 @@ Executable checks run the generated JavaScript in a child process under Node's
 permission model with no allow flags (`--permission`, or `--experimental-permission`
 before Node 22.13 and 23.5; `benchmarks/sandbox.mjs`). File, child-process and worker
 access are denied on every supported Node; network access only from Node 25, so on
-older Node the code can open sockets. The child gets an empty environment and a
-256 MB heap, the script arrives on stdin with a per-run result marker the answer
-cannot forge, and a 5-second timeout kills runaway loops. Each test case is one
-check, so a partly correct function earns partial credit.
+older Node the code can open sockets. The child gets an empty environment (on
+Windows, neutral values for the variables libuv refills), starts in the root of the
+temp drive, and a 5-second timeout kills runaway loops (with SIGKILL, so a signal
+handler cannot keep one alive on POSIX). The answer and the script that calls it
+share one process, so the child never holds the expected values: it prints what the
+function returned and this process does the comparing. An answer that reads the
+child's script or forges its output line can only choose what the function
+"returned", and cannot know what would pass. It can still hardcode the visible
+cases, which is overfitting rather than forgery. Not stopped: the 256 MB heap
+bounds JavaScript objects only (a 600 MB `Buffer.alloc` succeeds), and `process.kill`
+and the user and host names are removed or replaced in the child as a best-effort
+scrub, not a boundary. Each test case is one check, so a partly correct function
+earns partial credit.
 
 Speed-only variants (threads, batch, pool, sequences, context size, mmap,
 checkpoint interval/max, GPU layers) run a 16-item cross-family smoke subset

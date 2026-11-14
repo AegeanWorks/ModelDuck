@@ -193,8 +193,10 @@ percentage, runtime, suite/test hash and the linked commit; four recommendation
 cards (best quality, overall, coding, fastest within 5 points) only fill the
 settings form. Run both phases for every generation change. A quality
 drop exits 1; a speed drop over 20% only warns. Generated code runs in a
-Node permission-model sandbox (5-second timeout, 256 MB heap, empty environment):
-no file, child-process or worker access, and no network from Node 25 on.
+Node permission-model sandbox (5-second timeout, empty environment, results compared
+by the parent so an answer cannot forge a pass): no file, child-process or worker
+access, and no network from Node 25 on. It is not OS-level containment; see
+`docs/THREAT-MODEL.md`.
 
 
 ## Screenshots
