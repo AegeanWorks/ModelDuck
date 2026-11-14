@@ -9,7 +9,7 @@ Thank you for evaluating ModelDuck for Kiroween 2026.
 | Requirement | Minimum version | Notes |
 |---|---|---|
 | Windows | 10 or 11 (64-bit) | Tested on Windows 11 |
-| Node.js | 20.0.0 | Download from https://nodejs.org (LTS recommended) |
+| Node.js | 20.0.0 | Download from https://nodejs.org (LTS recommended). Verified code (below) needs 25+ |
 | RAM | 8 GB | 2 GB free at runtime for the smallest model |
 | Browser | Edge 115+ or Chrome 115+ | App window opens automatically |
 | Internet | Broadband | Only needed for the first model download |
@@ -48,6 +48,17 @@ multistep evaluation that says how well the model keeps state across steps.
    (Vulkan): Qwen2.5 0.5B scored 50% at step 1 and 16% at step 2, while Qwen2.5
    Coder 1.5B held 82% → 84% → 72%. Each run took about 10 s on that GPU; on a CPU
    expect a minute or two (not measured).
+6. **Verified code: retry until the tests pass** (Node 25+, a model loaded). Send a
+   prompt and test cases; ModelDuck runs the tests on each answer in the sandbox
+   and asks again, in a new conversation, until one passes:
+   ```powershell
+   $body = '{"prompt":"Write a JavaScript function double(n) that returns n times 2.","tests":{"entry":"double","cases":[{"args":[2],"expect":4},{"args":[-3],"expect":-6}]}}'
+   Invoke-RestMethod -Uri "http://127.0.0.1:4141/api/code/verify" -Method Post -ContentType "application/json" -Body $body
+   ```
+   The reply says whether it passed, on which try, and the code. On the 134 code
+   items of the repair bench (`npm run bench:repair`), Qwen2.5 Coder 1.5B solved
+   60.4% with one answer and 70.9% with the default 4 tries. Telling the model why
+   it failed measured no better than asking again.
 
 ---
 
@@ -130,7 +141,7 @@ cd C:\ModelDuck
 npm test
 ```
 
-This runs about 750 hermetic unit and integration tests in 88 files. No model
+This runs about 800 hermetic unit and integration tests in 93 files. No model
 files required. Expected output: all tests pass. It takes about 8 to 12 seconds
 on a modern CPU; `npm run test:parallel` splits it into shards.
 

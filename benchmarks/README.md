@@ -47,7 +47,7 @@ Every tune ends with one `Time …` line that says where the wall-clock time wen
 same figures are stored as `timing` on the run record in `tune-runs/`. Use it to
 see what a change really saved before trusting an estimate.
 
-`npm run tune -- ... --parallel <2-4|auto>` answers several items at once in the
+`npm run tune -- ... --parallel <1-4|auto>` (1, the default, is off) answers several items at once in the
 untimed stages (quality, sampling, prompt); device and speed still time one answer
 at a time. It is opt-in because it is not always safe or faster. Before the tune, a
 probe answers a few greedy items wide and one at a time. The tune runs wide only
@@ -76,8 +76,11 @@ nine candidates leads by 5 to 20 points by chance alone, and the Holm-corrected 
 rightly rejects it. With `--escalate`, a leader that misses the gate is tested once
 more, alone, against the current setting on the pool items the search never used.
 It counts as a change only if it wins there (one-sided paired test, p ≤ 0.2). It was
-picked on other items, so the fresh items carry no selection bias. The flag is
-opt-in and leaves the default search and `TUNER_VERSION` unchanged.
+picked on other items, so the fresh items carry no selection bias. Each retest is
+one pre-chosen comparison, but nothing corrects across sweeps: a tune that escalates
+in many sweeps at p ≤ 0.2 can keep a chance winner. The confirmation that follows
+the search can still reject it, and a later gate run is the check that counts. The
+flag is opt-in and leaves the default search and `TUNER_VERSION` unchanged.
 
 Measured on the code task, sampling and prompt stages (i5-14400F, Radeon RX 9060 XT,
 cached answers reused), escalation retested every unproven leader:
@@ -143,9 +146,13 @@ quarter of its items for the unseen check (ADR-054, ADR-072):
 `code`. The API's `GET /api/benchmarks/suite` returns the same task, type and
 hold-out description the Bench page renders.
 
-Executable checks run the generated JavaScript in a child process started with
-`node --permission` and no allow flags, so file, child-process, worker and network
-access are denied, and a 5-second timeout kills runaway loops. Each test case is one
+Executable checks run the generated JavaScript in a child process under Node's
+permission model with no allow flags (`--permission`, or `--experimental-permission`
+before Node 22.13 and 23.5; `benchmarks/sandbox.mjs`). File, child-process and worker
+access are denied on every supported Node; network access only from Node 25, so on
+older Node the code can open sockets. The child gets an empty environment and a
+256 MB heap, the script arrives on stdin with a per-run result marker the answer
+cannot forge, and a 5-second timeout kills runaway loops. Each test case is one
 check, so a partly correct function earns partial credit.
 
 Speed-only variants (threads, batch, pool, sequences, context size, mmap,
@@ -403,8 +410,9 @@ baseline files and this JSONL history to show the same per-test percentages,
 runtime and linked commit without a terminal.
 
 Results are also written to `benchmarks/results/latest.json` (ignored).
-Generated code is executed only inside the `node --permission` sandbox (no file,
-child-process, worker or network access, 5-second timeout); syntax-only checks
+Generated code is executed only inside the permission-model sandbox described
+under the suite (no file, child-process or worker access, no network from Node 25,
+5-second timeout); syntax-only checks
 use a temp file with `node --check`.
 
 ## Manifest verification
