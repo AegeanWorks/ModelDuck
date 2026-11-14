@@ -397,6 +397,9 @@ async function main() {
     // Toasts sit above an open modal dialog, and their dismiss button is not made inert by it.
     const toastHit = '(() => { const close = document.querySelector(".toast.error .toast-close"); const rect = close.getBoundingClientRect(); return document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2) === close; })()';
     assert.equal(await evaluate(toastHit), true, "the error toast is covered by, or inert under, the open dialog");
+    // The popover rules must not override the redesign's placement: 24px from the bottom-right corner.
+    const placed = JSON.parse(await evaluate('JSON.stringify((() => { const box = document.getElementById("toast-root").getBoundingClientRect(); const view = document.documentElement; return { right: Math.round(view.clientWidth - box.right), bottom: Math.round(view.clientHeight - box.bottom) }; })())'));
+    assert.deepEqual(placed, { right: 24, bottom: 24 }, `the toasts sit at ${JSON.stringify(placed)} instead of the redesign's 24px corner`);
     const otherErrors = await evaluate('[...document.querySelectorAll(".toast.error")].map((toast) => toast.querySelector("strong").textContent).filter((title) => !/Minutes per model/.test(title))');
     assert.deepEqual(otherErrors, [], "the app raised errors while the Bench dialog was open");
     assert.equal(await evaluate("window.__uiSmokeRequests.length"), requestsBefore, "an invalid budget still started a tune");
@@ -413,6 +416,9 @@ async function main() {
       true,
       "the dashboard overflows horizontally at 390px",
     );
+    // On a phone the toasts stretch between 16px margins at 16px from the bottom (redesign.css).
+    const phone = JSON.parse(await evaluate('JSON.stringify((() => { const box = document.getElementById("toast-root").getBoundingClientRect(); const view = document.documentElement; return { left: Math.round(box.left), right: Math.round(view.clientWidth - box.right), bottom: Math.round(view.clientHeight - box.bottom) }; })())'));
+    assert.deepEqual(phone, { left: 16, right: 16, bottom: 16 }, `the phone toast layout is ${JSON.stringify(phone)}`);
     await evaluate('document.getElementById("open-models").click(), true');
     assert.ok(
       await waitFor(() => evaluate('document.getElementById("models-dialog").open'), 3_000),
