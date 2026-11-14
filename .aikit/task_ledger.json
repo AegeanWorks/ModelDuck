@@ -1,57 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "branch-cleanup-f",
+    "task_id": "report-status-f",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794669306.9359968,
+    "updated_at": 1794670723.4578457,
     "owner": "kiro:1",
     "started_by": "kiro:1",
     "continuations": [],
-    "completed_at": 1794669307.2476997
+    "completed_at": 1794670723.699637
   },
   "checkpoints": [
-    {
-      "task_id": "reforge-fixes-f",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[6/7] M4 SMT on macOS from the CPU model (Rosetta, unverified on a Mac): 1 new test failed first, tune:gate 9/9 b=0 c=0, 843 pass.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794667333.8318913,
-      "timestamp_str": "2026-11-14 17:42:13",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "reforge-fixes-f",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[7/7] M6 smoke phone check measures with a toast showing (old check failed with a misleading layout when the earlier toast had expired); JUDGES test count no longer exact. ui:smoke OK, 843 pass.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794667525.1960573,
-      "timestamp_str": "2026-11-14 17:45:25",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "reforge-fixes-f",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'reforge-fixes-f' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794667556.4915442,
-      "timestamp_str": "2026-11-14 17:45:56",
-      "agent": "kiro:1",
-      "delivery": {
-        "roots": [
-          "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck"
-        ],
-        "forced": false
-      }
-    },
     {
       "task_id": "reforge-verify-f",
       "phase": "in_progress",
@@ -296,6 +256,52 @@
       "status": "completed",
       "timestamp": 1794669307.2477016,
       "timestamp_str": "2026-11-14 18:15:07",
+      "agent": "kiro:1",
+      "delivery": {
+        "roots": [
+          "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck"
+        ],
+        "forced": false
+      }
+    },
+    {
+      "task_id": "report-status-f",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/1] Docs: record which tuning report findings master already fixes",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794670723.2452662,
+      "timestamp_str": "2026-11-14 18:38:43",
+      "agent": "kiro:1",
+      "impact_assessment": {
+        "why": "The imported report is a snapshot; readers need its current status",
+        "benefits": "no duplicate work on fixed findings",
+        "risks": "contract: none; dependency: none; concurrency: none; state: docs and ledger only",
+        "mitigation": "docs only; repro script run"
+      },
+      "plan_digest": "835d12209f097721d5a36ef814c5ea927b90cc4c603f3417ec49fd51dfab8c08"
+    },
+    {
+      "task_id": "report-status-f",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "Docs only; repro script runs; strict gates pass",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794670723.4578457,
+      "timestamp_str": "2026-11-14 18:38:43",
+      "agent": "kiro:1",
+      "checklists": "passed"
+    },
+    {
+      "task_id": "report-status-f",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'report-status-f' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794670723.6996388,
+      "timestamp_str": "2026-11-14 18:38:43",
       "agent": "kiro:1",
       "delivery": {
         "roots": [
