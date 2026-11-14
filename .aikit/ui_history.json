@@ -881,5 +881,23 @@
     "final_snapshot_digest": "",
     "final_snapshot_entries": 0,
     "surface_digest": "15b321114241115402fc8df1f883faddb874779e9abccb7cbb6f767b5702bb65"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [],
+    "no_visual_reason": "",
+    "baseline_commit": "7b5c5bb7bb2bd8caeb001c5797de11c650d82834",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1794685496.4465752,
+    "finished_at": 1794685516.8409836,
+    "strikes": 0,
+    "reviewer": "kiro:1 (agent review under G-007: src/tune-runs.js changed server-side only - cachedAnswers reuse filter and multi-folder input; no route, page, style or client script changed; npm test 853/854 pass)",
+    "allowed_removals": [],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "e1101d9d5f24bb96465254e4eac6550cd6056e967831d62deaa2f47c9b26f6ce"
   }
 ]
