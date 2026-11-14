@@ -7,80 +7,30 @@
  * Note: I/O-bound tests include fsync for atomic writes.
  */
 
-import { performance } from "node:perf_hooks";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 import { SettingsStore } from "../src/settings.js";
 import { normalizeSettings, DEFAULT_SETTINGS } from "../src/config.js";
 import { writeJsonAtomic } from "../src/fs-atomic.js";
-import { 
-  mean, 
-  stdDev, 
-  median, 
-  percentiles,
-  confidenceInterval,
-  filterOutliers,
-  coefficientOfVariation,
-  relativeStdDevPercent,
-  summarizeStats,
-  formatWithAutoUnit,
-  formatValue
-} from "./stats-util.mjs";
+import { formatValue, formatWithAutoUnit, runBenchmark } from "./stats-util.mjs";
 
 const logger = { warn() {}, error() {} };
 
 const DEFAULT_WARMUP = 2;
 const DEFAULT_ITERATIONS = 5;
 
-/** Run a benchmark with proper statistical analysis */
-async function benchmark(name, fn, iterations = DEFAULT_ITERATIONS, warmup = DEFAULT_WARMUP, filterOutliersFlag = false) {
-  // Warmup runs
-  for (let i = 0; i < warmup; i++) {
-    await fn();
-  }
-  
-  // Collect timing data
-  const times = [];
-  for (let i = 0; i < iterations; i++) {
-    const start = performance.now();
-    await fn();
-    const end = performance.now();
-    times.push(end - start);
-  }
-  
-  // Filter outliers if requested
-  const dataToUse = filterOutliersFlag ? filterOutliers(times).filtered : times;
-  
-  // Calculate statistics
-  const stats = summarizeStats(dataToUse, name);
-  
-  // Format output
-  console.log(`${name}:`);
-  console.log(`  Iterations: ${stats.count}`);
-  console.log(`  Mean: ${formatWithAutoUnit(stats.mean)}`);
-  console.log(`  Median: ${formatWithAutoUnit(stats.median)}`);
-  console.log(`  Std Dev: ${formatWithAutoUnit(stats.stdDev)} (CV: ${stats.rSD.toFixed(1)}%)`);
-  console.log(`  95% CI: [${formatWithAutoUnit(stats.confidenceInterval.lower)}, ${formatWithAutoUnit(stats.confidenceInterval.upper)}]`);
-  console.log(`  Min: ${formatWithAutoUnit(stats.min)} | Max: ${formatWithAutoUnit(stats.max)}`);
-  console.log(`  Percentiles: p5=${formatWithAutoUnit(stats.percentiles.p5)}, p50=${formatWithAutoUnit(stats.percentiles.p50)}, p95=${formatWithAutoUnit(stats.percentiles.p95)}, p99=${formatWithAutoUnit(stats.percentiles.p99)}`);
-  console.log(`  Throughput: ${formatValue(stats.throughput, "ops/sec")}`);
-  
-  if (filterOutliersFlag && times.length !== dataToUse.length) {
-    const removed = times.length - dataToUse.length;
-    console.log(`  Note: ${removed} outliers filtered (1.5*IQR rule)`);
-  }
-  console.log();
-  
-  return { name, stats, rawTimes: times, filteredTimes: dataToUse };
+/** Time one workflow: `warmup` untimed runs, then `iterations` timed ones, in seconds. */
+function benchmark(name, fn, iterations = DEFAULT_ITERATIONS, warmup = DEFAULT_WARMUP, filterOutliersFlag = false) {
+  return runBenchmark(name, fn, { iterations, warmup, filterOutliers: filterOutliersFlag });
 }
-
 /**
  * Multi-step workflow 1: Settings lifecycle
  * Load → Update → Update → Reload
  */
-async function benchmarkSettingsLifecycle(tmpDir) {
+export async function benchmarkSettingsLifecycle(tmpDir) {
   const file = path.join(tmpDir, "settings-lifecycle.json");
   
   // Setup: create the file once
@@ -103,7 +53,7 @@ async function benchmarkSettingsLifecycle(tmpDir) {
  * Multi-step workflow 2: Normalization pipeline (CPU-bound, no I/O)
  * Raw input → fence → normalize → merge
  */
-async function benchmarkNormalizationPipeline() {
+export async function benchmarkNormalizationPipeline() {
   const { fenceSettingsPatch, mergeSettingsDeep } = await import("../src/settings.js");
   
   // Setup: create test data
@@ -131,7 +81,7 @@ async function benchmarkNormalizationPipeline() {
  * Multi-step workflow 3: Version validation
  * Tests the version fence with various file versions
  */
-async function benchmarkVersionValidation(tmpDir) {
+export async function benchmarkVersionValidation(tmpDir) {
   const files = [];
   
   // Setup: create files with different versions
@@ -161,7 +111,7 @@ async function benchmarkVersionValidation(tmpDir) {
  * Multi-step workflow 4: Batch update test
  * Multiple updates to the same store
  */
-async function benchmarkBatchUpdates(tmpDir) {
+export async function benchmarkBatchUpdates(tmpDir) {
   const file = path.join(tmpDir, "batch-update.json");
   
   // Setup
@@ -188,7 +138,7 @@ async function benchmarkBatchUpdates(tmpDir) {
  * Multi-step workflow 5: Parallel file operations
  * Load from multiple files simultaneously
  */
-async function benchmarkParallelLoads(tmpDir) {
+export async function benchmarkParallelLoads(tmpDir) {
   const files = [];
   
   // Setup: create 3 files
@@ -212,7 +162,7 @@ async function benchmarkParallelLoads(tmpDir) {
 /**
  * Multi-step workflow 6: CPU-bound deep merge test
  */
-async function benchmarkDeepMerge() {
+export async function benchmarkDeepMerge() {
   const { mergeSettingsDeep } = await import("../src/settings.js");
   
   // Create deeply nested structures
@@ -257,7 +207,7 @@ function generateResultsTable(results) {
   return md;
 }
 
-async function main() {
+export async function main() {
   console.log("=".repeat(70));
   console.log("ModelDuck Multi-Step Performance Tests - Proper Statistical Analysis");
   console.log("=".repeat(70));
@@ -301,7 +251,10 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error("Error:", error);
-  process.exit(1);
-});
+// Run only when started as a script (npm run perf:multistep), never on import.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((error) => {
+    console.error("Error:", error);
+    process.exitCode = 1;
+  });
+}

@@ -9,20 +9,15 @@
  * Uses proper statistical analysis from stats-util.mjs
  */
 
-import { performance } from "node:perf_hooks";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 import { SettingsStore, fenceSettingsPatch, mergeSettingsDeep, SETTINGS_VERSION } from "../src/settings.js";
 import { normalizeSettings, DEFAULT_SETTINGS } from "../src/config.js";
 import { writeJsonAtomic } from "../src/fs-atomic.js";
-import { 
-  summarizeStats, 
-  formatWithAutoUnit, 
-  formatValue,
-  filterOutliers
-} from "./stats-util.mjs";
+import { runBenchmark } from "./stats-util.mjs";
 
 const ITERATIONS = {
   cpu: 1000,  // CPU-bound tests
@@ -31,42 +26,12 @@ const ITERATIONS = {
 
 const logger = { warn() {}, error() {} };
 
-/** Run benchmark with proper statistics */
-async function benchmark(name, fn, iterations, filterOutliersFlag = false) {
-  // Warmup
-  await fn();
-  await fn();
-  
-  const times = [];
-  for (let i = 0; i < iterations; i++) {
-    const start = performance.now();
-    await fn();
-    const end = performance.now();
-    times.push(end - start);
-  }
-  
-  const dataToUse = filterOutliersFlag ? filterOutliers(times).filtered : times;
-  const stats = summarizeStats(dataToUse, name);
-  
-  console.log(`${name}:`);
-  console.log(`  Iterations: ${stats.count}`);
-  console.log(`  Mean: ${formatWithAutoUnit(stats.mean)}`);
-  console.log(`  Median: ${formatWithAutoUnit(stats.median)}`);
-  console.log(`  Std Dev: ${formatWithAutoUnit(stats.stdDev)} (CV: ${stats.rSD.toFixed(1)}%)`);
-  console.log(`  95% CI: [${formatWithAutoUnit(stats.confidenceInterval.lower)}, ${formatWithAutoUnit(stats.confidenceInterval.upper)}]`);
-  console.log(`  Min: ${formatWithAutoUnit(stats.min)} | Max: ${formatWithAutoUnit(stats.max)}`);
-  console.log(`  p50: ${formatWithAutoUnit(stats.percentiles.p50)} | p95: ${formatWithAutoUnit(stats.percentiles.p95)} | p99: ${formatWithAutoUnit(stats.percentiles.p99)}`);
-  console.log(`  Throughput: ${formatValue(stats.throughput, "ops/sec")}`);
-  
-  if (filterOutliersFlag && times.length !== dataToUse.length) {
-    console.log(`  Note: ${times.length - dataToUse.length} outliers filtered`);
-  }
-  console.log();
-  
-  return { name, stats, rawTimes: times, filteredTimes: dataToUse };
+/** Time one function: two warmup calls, then `iterations` timed ones, in seconds. */
+function benchmark(name, fn, iterations, filterOutliersFlag = false) {
+  return runBenchmark(name, fn, { iterations, warmup: 2, filterOutliers: filterOutliersFlag });
 }
 
-async function main() {
+export async function main() {
   console.log("=".repeat(70));
   console.log("ModelDuck SettingsStore Performance Evaluation (IDEA-1097)");
   console.log("=".repeat(70));
@@ -225,7 +190,10 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error("Error:", error);
-  process.exit(1);
-});
+// Run only when started as a script (npm run perf:settings), never on import.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((error) => {
+    console.error("Error:", error);
+    process.exitCode = 1;
+  });
+}

@@ -538,15 +538,15 @@ modelduck/
 │   ├── link.mjs
 │   ├── context-curve.mjs
 │   ├── stats-util.mjs
-│   ├── settings-perf.mjs
+│   ├── settings-perf.mjs     <- settings code timings (npm run perf:settings; PERF.md)
 │   ├── multi-step-perf.mjs
 │   ├── multistep-items.mjs   <- opt-in multistep chains (not tuned or gated)
 │   ├── multistep-evaluate.mjs
 │   ├── multistep-run.mjs
 │   ├── repair-evaluate.mjs   <- opt-in repair with test feedback (not tuned or gated)
 │   ├── repair-run.mjs
-│   ├── ai-benchmark-advisor.mjs
-│   ├── AI-BENCHMARK-README.md
+│   ├── benchmark-advisor.mjs
+│   ├── PERF.md
 │   ├── CHANGELOG.md
 │   ├── history.jsonl
 │   ├── curves/
@@ -589,6 +589,7 @@ modelduck/
 │   ├── tune-escalate.test.js
 │   ├── tune-failures.test.js
 │   ├── sandbox-hardening.test.js
+│   ├── perf-scripts.test.js
 │   ├── benchmark-multistep.test.js
 │   ├── benchmark-repair.test.js
 │   ├── benchmark-tune-baseline.test.js

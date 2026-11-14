@@ -221,9 +221,30 @@ export function formatWithAutoUnit(value) {
   return `${(value * 1000000).toFixed(3)} μs`;
 }
 
-/** Calculate throughput (operations per second) */
+/** Operations per second from the total time (seconds) of `iterations` operations. */
 export function calculateThroughput(totalTime, iterations) {
-  return iterations / totalTime;
+  return totalTime > 0 ? iterations / totalTime : 0;
+}
+
+/**
+ * Time `fn` after `warmup` untimed calls and summarize it. Times are stored
+ * in seconds, the unit every formatter here expects; `clock` returns
+ * milliseconds like performance.now(). `log` prints the summary.
+ */
+export async function runBenchmark(name, fn, { iterations = 10, warmup = 2, filterOutliers: filter = false, clock = () => performance.now(), log = console.log } = {}) {
+  for (let i = 0; i < warmup; i++) await fn();
+  const times = [];
+  for (let i = 0; i < iterations; i++) {
+    const start = clock();
+    await fn();
+    times.push((clock() - start) / 1000);
+  }
+  const data = filter ? filterOutliers(times).filtered : times;
+  const stats = summarizeStats(data, name);
+  log(formatStatsSummary(stats));
+  if (filter && times.length !== data.length) log(`  Note: ${times.length - data.length} outliers filtered (1.5 * IQR rule)`);
+  log("");
+  return { name, stats, rawTimes: times, filteredTimes: data };
 }
 
 /** Summarize a list of timing values with full statistics */
@@ -244,7 +265,7 @@ export function summarizeStats(values, name = "", unit = "s") {
   }
   
   const sorted = [...values].sort((a, b) => a - b);
-  const totalTime = mean(values);
+  const totalTime = values.reduce((sum, value) => sum + value, 0);
   
   return {
     name,

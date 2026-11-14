@@ -1,24 +1,18 @@
-/** AI-Powered Multi-Step Task Benchmarking Advisor for ModelDuck.
+/** Rule-based advice on the results of settings-perf.mjs and multi-step-perf.mjs.
  *
- * This module provides AI-driven analysis and recommendations for benchmarking:
- * - Anomaly detection in performance data
- * - Optimization suggestions based on patterns
- * - Multi-step task generation for comprehensive coverage
- * - Statistical trend analysis
- * - Bottleneck identification
+ * Fixed thresholds (below) flag variability, latency, wide confidence
+ * intervals, outliers and low throughput, and compare two runs; canned text
+ * explains each flag. No model is involved. Times are in seconds, the unit
+ * stats-util.mjs records.
  *
  * Usage:
- *   import { AIBenchmarkAdvisor } from "./ai-benchmark-advisor.mjs";
- *   const advisor = new AIBenchmarkAdvisor();
- *   const report = advisor.analyze(results);
+ *   import { BenchmarkAdvisor } from "./benchmark-advisor.mjs";
+ *   const advisor = new BenchmarkAdvisor();
+ *   const report = advisor.analyzeAll(results);
  */
 
-import { mean, stdDev, median, coefficientOfVariation, percentiles, confidenceInterval } from "./stats-util.mjs";
-
-/**
- * AI Benchmark Advisor - Analyzes benchmark results and provides intelligent recommendations
- */
-export class AIBenchmarkAdvisor {
+/** Flags benchmark results against fixed thresholds and says what each flag usually means. */
+export class BenchmarkAdvisor {
   constructor(options = {}) {
     this.thresholds = {
       highVariability: 0.5,      // CV > 50% = high variability
@@ -231,7 +225,7 @@ export class AIBenchmarkAdvisor {
   }
 
   /**
-   * Generate AI-powered multi-step task recommendations
+   * A fixed catalogue of multi-step workflows worth timing, filtered by component
    * @param {Object} context - Project context
    * @returns {Array} Recommended multi-step tasks
    */
@@ -625,54 +619,3 @@ export class AIBenchmarkAdvisor {
     return `${opsPerSec.toFixed(2)} ops/s`;
   }
 }
-
-/**
- * Helper to analyze benchmark results from our existing tests
- */
-export async function analyzeBenchmarkResults() {
-  const advisor = new AIBenchmarkAdvisor();
-  
-  // Import and run benchmarks
-  const { benchmarkSettingsLifecycle, benchmarkNormalizationPipeline, 
-          benchmarkVersionValidation, benchmarkBatchUpdates, 
-          benchmarkParallelLoads, benchmarkDeepMerge } = 
-    await import("./multi-step-perf.mjs");
-  
-  // Note: These functions need tmpDir, so we'll just demonstrate the analysis
-  // In practice, you would run the benchmarks and pass results to advisor
-  
-  return {
-    advisor,
-    exampleUsage: `
-      // Example usage:
-      const advisor = new AIBenchmarkAdvisor();
-      
-      // After running benchmarks:
-      const results = [
-        { name: "SettingsStore.load()", stats: { mean: 0.527, stdDev: 0.1, cv: 0.19, rSD: 19.0, throughput: 19 } },
-        { name: "fenceSettingsPatch()", stats: { mean: 0.0018, stdDev: 0.0005, cv: 0.29, rSD: 29.0, throughput: 499643 } },
-      ];
-      
-      const analysis = advisor.analyzeAll(results);
-      console.log(analysis);
-    `
-  };
-}
-
-// Export the class
-/**
- * AI Benchmark Advisor for ModelDuck
- * 
- * Features:
- * - Automated analysis of benchmark results
- * - Anomaly detection
- * - Performance comparison (before/after)
- * - Multi-step task generation
- * - Prioritized recommendations
- * 
- * @example
- * const { AIBenchmarkAdvisor } = await import("./ai-benchmark-advisor.mjs");
- * const advisor = new AIBenchmarkAdvisor();
- * const analysis = advisor.analyzeAll(results);
- */
-export { AIBenchmarkAdvisor };

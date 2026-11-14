@@ -32,6 +32,8 @@
     "bench:curve": "node benchmarks/context-curve.mjs",
     "bench:multistep": "node benchmarks/multistep-run.mjs",
     "bench:repair": "node benchmarks/repair-run.mjs",
+    "perf:settings": "node benchmarks/settings-perf.mjs",
+    "perf:multistep": "node benchmarks/multi-step-perf.mjs",
     "verify:manifest": "node benchmarks/verify-manifest.mjs"
   },
   "dependencies": {
