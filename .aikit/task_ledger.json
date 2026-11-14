@@ -1,57 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "report-status-f",
+    "task_id": "report-status-g",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794670723.4578457,
+    "updated_at": 1794670829.8586268,
     "owner": "kiro:1",
     "started_by": "kiro:1",
     "continuations": [],
-    "completed_at": 1794670723.699637
+    "completed_at": 1794670830.1152332
   },
   "checkpoints": [
-    {
-      "task_id": "reforge-verify-f",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/1] Reforge run-1 stage 9: attest the new commits (the six reforge-fixes milestones and their bookkeeping) hunk by hunk and record findings.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794667647.6801786,
-      "timestamp_str": "2026-11-14 17:47:27",
-      "agent": "kiro:1",
-      "impact_assessment": {
-        "why": "The plan's last step: the fixes should themselves be reviewed, not only made",
-        "benefits": "Every hunk of the fixes is attested and any new finding is on record",
-        "risks": "contract: none, no source changes unless a finding is applied later; dependency: none; concurrency: none; state: .aikit/reforge.json gains stage 9",
-        "mitigation": "findings are reported, not auto-applied"
-      },
-      "plan_digest": "758fb1ac00280ba4cacccb68d88c67d2e4395050ef2ca4a778c987cac53e451d"
-    },
-    {
-      "task_id": "reforge:run-1",
-      "phase": "reforge stage 9",
-      "phase_num": 3,
-      "description": "Reforge stage 9: window 27, 11 commit(s), 25 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794667656.3509052,
-      "timestamp_str": "2026-11-14 17:47:36",
-      "agent": "unidentified"
-    },
-    {
-      "task_id": "reforge:run-1",
-      "phase": "reforge stage 9",
-      "phase_num": 3,
-      "description": "Reforge stage 9: stage 9 host review reviewed; run active; coverage 62/62",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794667820.1080885,
-      "timestamp_str": "2026-11-14 17:50:20",
-      "agent": "unidentified"
-    },
     {
       "task_id": "reforge-verify-f",
       "phase": "in_progress",
@@ -302,6 +262,52 @@
       "status": "completed",
       "timestamp": 1794670723.6996388,
       "timestamp_str": "2026-11-14 18:38:43",
+      "agent": "kiro:1",
+      "delivery": {
+        "roots": [
+          "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck"
+        ],
+        "forced": false
+      }
+    },
+    {
+      "task_id": "report-status-g",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/1] Docs: more report status; temp cleanup done outside the repo",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794670829.6545262,
+      "timestamp_str": "2026-11-14 18:40:29",
+      "agent": "kiro:1",
+      "impact_assessment": {
+        "why": "Keep the imported report's status current",
+        "benefits": "no duplicate work",
+        "risks": "contract: none; dependency: none; concurrency: none; state: docs and ledger only",
+        "mitigation": "docs only"
+      },
+      "plan_digest": "df418724eea49401c0beb7abfd108373f0fd317a6b66dbafc11c378355003ad4"
+    },
+    {
+      "task_id": "report-status-g",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "Docs only; strict gates pass",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794670829.8586268,
+      "timestamp_str": "2026-11-14 18:40:29",
+      "agent": "kiro:1",
+      "checklists": "passed"
+    },
+    {
+      "task_id": "report-status-g",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'report-status-g' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794670830.1152353,
+      "timestamp_str": "2026-11-14 18:40:30",
       "agent": "kiro:1",
       "delivery": {
         "roots": [
