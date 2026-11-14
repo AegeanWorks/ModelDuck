@@ -935,5 +935,26 @@
     "final_snapshot_digest": "",
     "final_snapshot_entries": 0,
     "surface_digest": "96847a7905698fe2824df7a1393c9c49273682b2756efe761bf97ce96922b986"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [
+      "public/app.js",
+      "public/index.html"
+    ],
+    "no_visual_reason": "",
+    "baseline_commit": "c3b22ca8bc81a679b4d7197d21680ed0e0f4db47",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1794695398.7519686,
+    "finished_at": 1794697672.2861793,
+    "strikes": 4,
+    "reviewer": "kiro:1 (agent review under G-007: headless Edge screenshot of the live Tune panel - Device, Quality, Speed and Sampling ticked, Prompt unticked with its note readable in the row; preflight shows Full 8412 answers/model; ui:smoke OK incl. 390px reflow; npm test 872/873 pass, 1 skipped)",
+    "allowed_removals": [],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "75cbea8ea64ae83d63c1a0604e17681fad1294920d7b5a789d816c2ef4b4587d"
   }
 ]
