@@ -8,10 +8,27 @@ import {
   DEFAULT_SETTINGS,
   SETTING_PRESETS,
   applyPreset,
+  defaultGenerationThreads,
+  defaultThreads,
   normalizeSettings,
   parseArgs,
   resolvePaths,
 } from "../src/config.js";
+
+// Measured on an i5-14400F (10 cores, 16 logical), CPU only: Qwen2.5 Coder 1.5B ran
+// 3.9 tok/s at 15 threads and 28.8 at 8; Qwen2.5 0.5B 47.7 and 83.7. Threads on
+// every logical core contend; half of them is the default.
+test("generation uses half the logical cores by default; the thread pool keeps all but one", () => {
+  assert.equal(defaultGenerationThreads(16), 8);
+  assert.equal(defaultGenerationThreads(8), 4);
+  assert.equal(defaultGenerationThreads(4), 2);
+  assert.equal(defaultGenerationThreads(3), 1);
+  assert.equal(defaultGenerationThreads(1), 1);
+  assert.equal(defaultGenerationThreads(200), 64, "never above the engine's cap");
+  assert.equal(DEFAULT_SETTINGS.threads, defaultGenerationThreads());
+  assert.equal(DEFAULT_SETTINGS.maxThreads, defaultThreads(), "the pool cap is unchanged");
+  assert.ok(DEFAULT_SETTINGS.threads <= DEFAULT_SETTINGS.maxThreads);
+});
 
 test("parseArgs uses loopback defaults", () => {
   const options = parseArgs([], {});

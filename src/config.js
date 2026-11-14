@@ -11,10 +11,23 @@ export const DEFAULT_SYSTEM_PROMPT =
   "You are ModelDuck, a helpful local AI assistant. Be clear, accurate, and concise. " +
   "If you are unsure, say so instead of inventing an answer.";
 
+const logicalCores = () =>
+  typeof os.availableParallelism === "function" ? os.availableParallelism() : os.cpus().length;
+
+/** The thread-pool cap (and the benchmark tools' thread count): all logical cores but one. */
 export function defaultThreads() {
-  const cores =
-    typeof os.availableParallelism === "function" ? os.availableParallelism() : os.cpus().length;
-  return Math.max(1, cores - 1);
+  return Math.max(1, logicalCores() - 1);
+}
+
+/**
+ * Threads one generation uses when nothing was tuned: half the logical cores.
+ * Running on every logical core makes the threads contend for the physical
+ * ones. Measured on an i5-14400F (10 cores, 16 logical), CPU only: Qwen2.5
+ * Coder 1.5B ran 3.9 tok/s at 15 threads and 28.8 at 8; Qwen2.5 0.5B ran
+ * 47.7 and 83.7. A tune's Speed stage still picks the best count per machine.
+ */
+export function defaultGenerationThreads(cores = logicalCores()) {
+  return Math.max(1, Math.min(64, Math.floor(Number(cores) / 2) || 1));
 }
 
 export const DEFAULT_SETTINGS = Object.freeze({
@@ -38,7 +51,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
   reasoning: "off",
   structuredOutput: "none",
   jsonSchema: "",
-  threads: defaultThreads(),
+  threads: defaultGenerationThreads(),
   maxThreads: defaultThreads(),
   batchSize: 512,
   sequences: 1,
