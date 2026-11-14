@@ -313,12 +313,16 @@ export function createModelRegistry({
     }
 
     entries = nextEntries;
-    cache.clear();
+    // A narrowed scan saw only part of the folder: models it left out still exist,
+    // so their cached headers and overrides stay until a full scan finds them gone.
+    if (!only) cache.clear();
     for (const [key, value] of nextCache) cache.set(key, value);
     // Overrides keyed by a model that no longer exists would attach to a
-    // future model reusing the folder: prune them on every scan.
-    for (const id of [...samplingOverrides.keys()]) {
-      if (!entries.has(id)) samplingOverrides.delete(id);
+    // future model reusing the folder: prune them on every full scan.
+    if (!only) {
+      for (const id of [...samplingOverrides.keys()]) {
+        if (!entries.has(id)) samplingOverrides.delete(id);
+      }
     }
     // A narrowed scan lists part of the library, so it must not be served as the full one.
     lastScanAt = only ? 0 : Date.now();

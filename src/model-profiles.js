@@ -66,6 +66,12 @@ export function profileIdFor(fileName) {
 
 const pick = (settings, keys) => Object.fromEntries(keys.filter((key) => key in settings).map((key) => [key, settings[key]]));
 
+/** The axes of `task` whose change stood through escalation and survived the confirmation after it. */
+function escalatedAxes(sweeps, task) {
+  const axes = (sweeps ?? []).filter((sweep) => sweep?.task === task && sweep.changed && sweep.escalation?.confirmed).map((sweep) => sweep.axis);
+  return [...new Set(axes)];
+}
+
 /** Turn a `tune()` result into a storable profile. */
 export function profileFromTune(result, { catalogId, fingerprint, measuredUnder = null, measuredOn = null, createdAt = new Date().toISOString() }) {
   return {
@@ -80,7 +86,11 @@ export function profileFromTune(result, { catalogId, fingerprint, measuredUnder 
     load: { settings: pick(result.load.settings, LOAD_KEYS), stats: result.load.stats ?? null, ...(result.load.perTask && { perTask: result.load.perTask, reverted: result.load.reverted ?? null }) },
     device: result.device ?? null,
     speed: result.speed ?? null,
-    tasks: Object.fromEntries(Object.entries(result.tasks).map(([task, preset]) => [task, { settings: { ...preset.settings }, stats: preset.stats ?? null, ...(preset.holdout && { holdout: preset.holdout }) }])),
+    tasks: Object.fromEntries(Object.entries(result.tasks).map(([task, preset]) => {
+      // Axes whose change stood only through --escalate (fresh items, not the rung gate).
+      const escalated = escalatedAxes(result.sweeps, task);
+      return [task, { settings: { ...preset.settings }, stats: preset.stats ?? null, ...(preset.holdout && { holdout: preset.holdout }), ...(escalated.length && { escalated }) }];
+    })),
     // How far the tune got; anything not done keeps its default when applied (ADR-030).
     stages: result.stages ?? null,
     progress: result.progress ?? null,

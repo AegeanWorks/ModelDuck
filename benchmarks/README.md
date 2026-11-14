@@ -83,8 +83,10 @@ It counts as a change only if it wins there (one-sided paired test, p ≤ 0.2). 
 picked on other items, so the fresh items carry no selection bias. Each retest is
 one pre-chosen comparison, but nothing corrects across sweeps: a tune that escalates
 in many sweeps at p ≤ 0.2 can keep a chance winner. The confirmation that follows
-the search can still reject it, and a later gate run is the check that counts. The
-flag is opt-in and leaves the default search and `TUNER_VERSION` unchanged.
+the search can still reject it, and a later gate run is the check that counts. A
+saved profile lists such settings per task (`tasks.<task>.escalated`, the axes
+that stood only through escalation), and `search.options.escalate` says the flag
+was on. The flag is opt-in and leaves the default search and `TUNER_VERSION` unchanged.
 
 Measured on the code task, sampling and prompt stages (i5-14400F, Radeon RX 9060 XT,
 cached answers reused), escalation retested every unproven leader:

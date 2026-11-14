@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { DEFAULT_TUNE_OPTIONS, tune } from "../benchmarks/tune.mjs";
+import { profileFromTune } from "../src/model-profiles.js";
 
 const ids = (prefix, count) => Array.from({ length: count }, (_value, index) => `${prefix}-${index}`);
 const BASE = { contextSize: 4096, kvCache: "f16", threads: 8, temperature: 0, maxTokens: 256, level: "base" };
@@ -62,6 +63,16 @@ test("with escalation an unproven leader that clearly wins on fresh items stands
   assert.deepEqual({ b: sweep.escalation.b, c: sweep.escalation.c }, { b: 0, c: 8 }, "decided on the fresh items alone");
   assert.ok(sweep.escalation.pValue <= 0.2);
   assert.equal(sweep.kept, undefined, "nothing was kept back");
+});
+
+test("a saved profile names the settings that won only through escalation", async () => {
+  const { run } = scenario({ freshGain: 8 });
+  const escalated = profileFromTune(await run({ escalate: true }), { catalogId: "m", fingerprint: {} });
+  assert.deepEqual(escalated.tasks.math.escalated, ["level"], "a later reader can tell this setting passed on fresh items, not the rung gate");
+  const plain = profileFromTune(await scenario({ freshGain: 8 }).run(), { catalogId: "m", fingerprint: {} });
+  assert.equal("escalated" in plain.tasks.math, false, "a default tune's profile is unchanged");
+  const refused = profileFromTune(await scenario({ freshGain: 0 }).run({ escalate: true }), { catalogId: "m", fingerprint: {} });
+  assert.equal("escalated" in refused.tasks.math, false, "an escalation that did not stand marks nothing");
 });
 
 test("an escalated leader that does not win on fresh items is kept out, and says why", async () => {

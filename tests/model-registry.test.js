@@ -189,3 +189,20 @@ test("a narrowed scan offers the id the full scan would give, and never stands i
   const again = await registry.scan();
   assert.equal(again.length, 2, "the next plain scan lists everything instead of reusing the narrowed one");
 });
+
+test("a narrowed scan leaves the other models' sampling overrides and metadata cache alone", async (t) => {
+  const read = [];
+  const { directory, registry } = await makeRegistry(t, { metadata: async (file) => { read.push(path.basename(file)); return INFO; } });
+  await writeFile(path.join(directory, "wanted.gguf"), Buffer.from("GGUF12345678"));
+  await writeFile(path.join(directory, "other.gguf"), Buffer.from("GGUF12345678"));
+  const full = await registry.scan({ force: true });
+  const otherId = full.find((model) => model.fileName === "other.gguf").id;
+  registry.setModelSampling(otherId, { temperature: 0.3 });
+  assert.equal(registry.getModelSampling(otherId)?.temperature, 0.3);
+
+  await registry.scan({ only: (file) => path.basename(file) === "wanted.gguf" });
+  assert.equal(registry.getModelSampling(otherId)?.temperature, 0.3, "a model left out of the narrowed list still exists on disk");
+  read.length = 0;
+  await registry.scan({ force: true });
+  assert.deepEqual(read, [], "the full scan after it reuses every cached header");
+});

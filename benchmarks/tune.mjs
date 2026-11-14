@@ -326,6 +326,8 @@ async function sweep(context, { stage, task, axis, current, rungs, forced, cost,
     // as `before` it is small when the challenger wins (b: its wins, c: its losses).
     const gain = groupEvidence(fresh.challenger, fresh.incumbent, confirmItems, context.clusterOf);
     const confirmed = gain.b > gain.c && gain.pValue <= options.changeAlpha && !fresh.challenger.failed;
+    // Stored in the gate's incumbent → challenger convention, as everywhere else:
+    // b counts the challenger's losses (regressions) and c its wins.
     escalation = {
       items: confirmItems.length,
       b: gain.c,
