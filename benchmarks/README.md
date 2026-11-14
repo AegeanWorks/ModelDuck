@@ -54,7 +54,11 @@ probe answers up to 8 first-rung items wide and one at a time, once greedy and o
 sampled at temperature 0.7, since the later stages sample. Wide goes first in one pass
 and second in the other, so cold caches favour neither side. The tune runs wide only
 when every answer is byte-identical and the wide passes take at least 15% less wall
-time; otherwise it says why and answers one at a time. Measured on an i5-14400F
+time; otherwise it says why and answers one at a time. The probe stops at the first
+pass that mismatches and when the `--budget` is spent. Measured on the 8-item probe
+(Qwen2.5 0.5B on Vulkan, width 2): identical answers, 15.7 s wide against 15.8 s
+serial, so it was refused; the probe itself cost about 31 s, which is large against a
+short `--quick --budget 3` stage (71 s in all) and small against a full tune. Measured on an i5-14400F
 under load: Qwen2.5 0.5B matched 4 of 4 but was not faster (16.7 s wide vs 15.6 s),
 and SmolLM2 135M changed 1 of 4 answers at width 2. Each answer is tagged with the
 width its call ran at and the width of its tune. A serial tune reuses every serial

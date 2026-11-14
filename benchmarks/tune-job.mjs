@@ -180,7 +180,7 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
         const settings = { ...base, gpuBackend: startOn, temperature: 0, repeatPenalty: 1, maxTokens: 96 };
         const ids = probeItemIds({ ids: tasks.flatMap((task) => activeRungs[task]?.[0] ?? []), width: decision.n, limit: PROBE_ITEMS, settings });
         // Greedy and sampled: the sampling and prompt stages answer above temperature 0.
-        parallelInfo.probe = await probeParallel({ evaluate, width: decision.n, items: ids, settings, sampled: { temperature: 0.7 }, seed: 42 });
+        parallelInfo.probe = await probeParallel({ evaluate, width: decision.n, items: ids, settings, sampled: { temperature: 0.7 }, seed: 42, expired: () => Date.now() >= deadline });
         if (parallelInfo.probe.ok) {
           width = decision.n;
           parallelInfo.used = width;

@@ -6,7 +6,7 @@ import test from "node:test";
 
 import { PROMPTS } from "../benchmarks/suite.mjs";
 import { createEvaluator } from "../benchmarks/tune-evaluate.mjs";
-import { MAX_PARALLEL, PROBE_ITEMS, chooseParallel, itemNeed, parseParallel, probeItemIds, probeParallel, slotWidth } from "../benchmarks/tune-parallel.mjs";
+import { MAX_PARALLEL, chooseParallel, itemNeed, parseParallel, probeItemIds, probeParallel, slotWidth } from "../benchmarks/tune-parallel.mjs";
 import { answerRow } from "../benchmarks/tune-job.mjs";
 import { cachedAnswers, startRun } from "../src/tune-runs.js";
 
@@ -166,8 +166,33 @@ test("an answer that differs only when sampled refuses the width", async () => {
   assert.equal(evaluate.parallel, 1);
 });
 
-test("a tune probes up to eight items", () => {
-  assert.equal(PROBE_ITEMS, 8);
+test("a greedy mismatch refuses at once: the sampled pass is not paid for", async () => {
+  const evaluate = probeEvaluator({ digestFor: (id, width, settings) => (id === "c" && width > 1 ? "other" : `d-${id}`) });
+  const out = await probeParallel({ evaluate, width: 2, ...PROBE, sampled: SAMPLED, clock: evaluate.clock });
+  assert.equal(out.ok, false);
+  assert.deepEqual(out.mismatches, ["c"]);
+  assert.equal(evaluate.calls.length, 2, "one wide and one serial greedy call, nothing sampled");
+  assert.equal(out.total, 4, "only the four items actually compared are counted");
+  assert.match(out.reason, /1 of 4/);
+  assert.equal(evaluate.parallel, 1);
+});
+
+test("a spent time budget stops the probe between passes, with a reason naming the budget", async () => {
+  const evaluate = probeEvaluator();
+  // The budget runs out once the greedy pass (a wide and a serial call) has been answered.
+  const out = await probeParallel({ evaluate, width: 2, ...PROBE, sampled: SAMPLED, clock: evaluate.clock, expired: () => evaluate.calls.length >= 2 });
+  assert.equal(out.ok, false);
+  assert.match(out.reason, /time budget/);
+  assert.equal(evaluate.calls.length, 2, "the sampled pass was not started");
+  assert.equal(evaluate.parallel, 1, "the evaluator is left serial");
+});
+
+test("a probe that starts with the budget already spent asks nothing", async () => {
+  const evaluate = probeEvaluator();
+  const out = await probeParallel({ evaluate, width: 2, ...PROBE, sampled: SAMPLED, clock: evaluate.clock, expired: () => true });
+  assert.equal(out.ok, false);
+  assert.match(out.reason, /time budget/);
+  assert.equal(evaluate.calls.length, 0);
 });
 
 test("a probe with fewer than two items cannot prove anything and is refused", async () => {

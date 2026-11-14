@@ -101,10 +101,12 @@ const seconds = (ms) => `${(ms / 1000).toFixed(1)} s`;
  * checks the same items sampled, since the later stages sample. The passes
  * alternate which side runs first, and each side's time is the sum over both.
  * Each side is loaded at its own width before it is timed, so a context
- * rebuild never counts against either. Never throws: any failure refuses with
- * a reason. On success the evaluator is left at `width`, otherwise at 1.
+ * rebuild never counts against either. The probe stops paying as soon as the verdict is
+ * known: a pass with a mismatch refuses without running the next one, and `expired()`
+ * (the tune's time budget) is asked before every pass. Never throws: any failure
+ * refuses with a reason. On success the evaluator is left at `width`, otherwise at 1.
  */
-export async function probeParallel({ evaluate, width, items, settings, seed, sampled = null, clock = () => performance.now(), minGain = MIN_PARALLEL_GAIN }) {
+export async function probeParallel({ evaluate, width, items, settings, seed, sampled = null, expired = () => false, clock = () => performance.now(), minGain = MIN_PARALLEL_GAIN }) {
   // A greedy pass, and with `sampled` a second pass at those sampling settings:
   // the later stages sample, and greedy agreement alone does not show that.
   const passes = [{ settings, label: "" }, ...(sampled ? [{ settings: { ...settings, ...sampled }, label: " (sampled)" }] : [])];
@@ -125,7 +127,9 @@ export async function probeParallel({ evaluate, width, items, settings, seed, sa
     let wideMs = 0;
     let serialMs = 0;
     const mismatches = [];
+    let compared = 0;
     for (const [index, pass] of passes.entries()) {
+      if (expired()) return refuse(index === 0 ? "the time budget was already spent" : "the time budget ran out during the probe");
       // Wide first on even passes and second on odd ones, so a cold first pass favours neither side.
       const order = index % 2 === 0 ? [width, 1] : [1, width];
       const [first, second] = [await timedPass(order[0], pass.settings), await timedPass(order[1], pass.settings)];
@@ -136,17 +140,20 @@ export async function probeParallel({ evaluate, width, items, settings, seed, sa
       mismatches.push(...wide.out.prompts.filter((row) => serialDigest.get(row.id) !== row.digest).map((row) => `${row.id}${pass.label}`));
       wideMs += wide.ms;
       serialMs += serial.ms;
+      compared += items.length;
+      // A mismatch already decides the verdict: the next pass would only cost time.
+      if (mismatches.length) break;
     }
-    const matched = total - mismatches.length;
+    const matched = compared - mismatches.length;
     const timing = { serialMs: Math.round(serialMs), wideMs: Math.round(wideMs), speedup: wideMs > 0 ? Math.round((serialMs / wideMs) * 100) / 100 : null };
     const wide = { ms: wideMs };
     const serial = { ms: serialMs };
-    if (mismatches.length) return refuse(`${mismatches.length} of ${total} answers differed when run ${width} at a time (${mismatches.join(", ")})`, { matched, mismatches, ...timing });
+    if (mismatches.length) return refuse(`${mismatches.length} of ${compared} answers differed when run ${width} at a time (${mismatches.join(", ")})`, { matched, total: compared, mismatches, ...timing });
     if (!(wide.ms <= serial.ms * (1 - minGain))) {
       return refuse(`answering ${width} at a time was not faster: ${seconds(wide.ms)} against ${seconds(serial.ms)} one at a time (needs ${Math.round(minGain * 100)}% less)`, { matched, ...timing });
     }
     evaluate.setParallel(width);
-    return { ok: true, matched, total, mismatches: [], ...timing, reason: null };
+    return { ok: true, matched, total: compared, mismatches: [], ...timing, reason: null };
   } catch (error) {
     return refuse(`the probe could not run ${width} at a time: ${error?.message ?? error}`);
   }
