@@ -863,5 +863,23 @@
     "final_snapshot_digest": "",
     "final_snapshot_entries": 0,
     "surface_digest": "0ac4201798b5c0351a8ad506357fbd7e699ebeb04e0059862d2681ed17b558a1"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [],
+    "no_visual_reason": "",
+    "baseline_commit": "f870ca9f8f4dbe3e8863bc5452fa0dd9d51bc7f4",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1794668849.7643535,
+    "finished_at": 1794668868.081611,
+    "strikes": 0,
+    "reviewer": "kiro:1 (agent review under G-007: re-recorded after fast-forwarding master to the reviewed branch; src/ and public/ are content-identical to the branch's last reviewed state, only the checkout's bytes changed; ui:smoke and 847 tests pass on master)",
+    "allowed_removals": [],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "15b321114241115402fc8df1f883faddb874779e9abccb7cbb6f767b5702bb65"
   }
 ]
