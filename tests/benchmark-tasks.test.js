@@ -131,6 +131,21 @@ test("saturated items leave the search rungs but stay in the final set", () => {
   assert.deepEqual(search.loadByTask.comprehension, search.comprehension[1]);
 });
 
+test("saturated items are replaced from the unused tuning pool, so the rungs keep their size (S3)", () => {
+  const rungs = tuneRungs(["code"]);
+  const full = rungs.code.at(-1);
+  const pool = rungs.pool.code;
+  assert.ok(pool.length > full.length + 20, `the code pool (${pool.length}) has spare items beyond the ${full.length}-item rung`);
+  const saturated = new Set(full.slice(0, 20));
+  const { rungs: search, tunedOn } = withDiscriminatingRungs(rungs, saturated, ["code"], { salt: "test", readmitFraction: 0 });
+  assert.deepEqual(search.code.map((rung) => rung.length), rungs.code.map((rung) => rung.length), "every rung keeps its size");
+  assert.ok(search.code.every((rung) => rung.every((id) => !saturated.has(id) && pool.includes(id))), "refills come from the pool, never a saturated item");
+  assert.deepEqual(search.final.code, full, "the final check is unchanged");
+  assert.deepEqual(tunedOn.code.excluded, full.slice(0, 20));
+  assert.equal(tunedOn.code.refilled.length, 20);
+  assert.ok(tunedOn.code.refilled.every((id) => !full.includes(id)));
+});
+
 test("a rotating tenth of saturated items is re-admitted to catch drift (S6)", () => {
   const rungs = tuneRungs(["comprehension"]);
   const full = rungs.comprehension.at(-1);

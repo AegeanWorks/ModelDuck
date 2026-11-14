@@ -201,14 +201,22 @@ export function withDiscriminatingRungs(rungs, saturated = null, taskIds = TASKS
     search.full[taskId] = TASKS.some((task) => task.id === taskId)
       ? taskPrompts(taskId).filter((prompt) => !prompt.longContext).map((prompt) => prompt.id)
       : full;
-    const keep = saturated ? full.filter((id) => !saturated.has(id) || readmit(id)) : full;
+    const usable = (id) => !saturated || !saturated.has(id) || readmit(id);
+    const keep = full.filter(usable);
     if (keep.length < Math.min(TASK_RUNGS[0], full.length)) {
-      tunedOn[taskId] = { items: full.length, ids: full, excluded: [], fellBack: true };
+      tunedOn[taskId] = { items: full.length, ids: full, excluded: [], refilled: [], fellBack: true };
       continue;
     }
-    const sizes = [...new Set(rungs[taskId].map((rung) => Math.min(rung.length, keep.length)))];
-    search[taskId] = sizes.map((size) => keep.slice(0, size));
-    tunedOn[taskId] = { items: full.length, ids: keep, excluded: full.filter((id) => !keep.includes(id)), fellBack: false };
+    // Refill (S3): a saturated item's slot goes to the next usable item of the
+    // whole tuning pool, so the rungs keep their size instead of shrinking.
+    // The pool's order is stratified like the rungs, so refills keep the mix.
+    const inFull = new Set(full);
+    const spare = (rungs.pool?.[taskId] ?? []).filter((id) => !inFull.has(id) && usable(id));
+    const order = [...keep, ...spare];
+    const sizes = [...new Set(rungs[taskId].map((rung) => Math.min(rung.length, order.length)))];
+    search[taskId] = sizes.map((size) => order.slice(0, size));
+    const searched = search[taskId].at(-1);
+    tunedOn[taskId] = { items: full.length, ids: searched, excluded: full.filter((id) => !keep.includes(id)), refilled: searched.filter((id) => !inFull.has(id)), fellBack: false };
   }
   search.load = [0, 1].map((index) => taskIds.flatMap((taskId) => search[taskId][index] ?? search[taskId].at(-1)));
   search.loadByTask = Object.fromEntries(taskIds.map((taskId) => [taskId, search[taskId][1] ?? search[taskId].at(-1)]));
