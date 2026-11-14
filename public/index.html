@@ -516,7 +516,7 @@
               <label class="check tune-stage"><input type="checkbox" value="quality" checked /><span><strong>Quality</strong><small>KV cache: the most correct answers; context is fixed at 16K.</small></span></label>
               <label class="check tune-stage"><input type="checkbox" value="speed" checked /><span><strong>Speed</strong><small>Flash attention, memory map, batch and threads: fastest with identical answers. Saves the Fastest and Light presets.</small></span></label>
               <label class="check tune-stage"><input type="checkbox" value="sampling" checked /><span><strong>Sampling</strong><small>Temperature, answer length, repeat penalty, min-p, top-p and top-k, per task.</small></span></label>
-              <label class="check tune-stage"><input type="checkbox" value="prompt" checked /><span><strong>Prompt</strong><small>System prompt, reasoning off or on, and prompt repetition, per task.</small></span></label>
+              <label class="check tune-stage"><input type="checkbox" value="prompt" /><span><strong>Prompt</strong><small>System prompt, reasoning off or on, and prompt repetition, per task. Off by default: the default prompt won every measured case, and a tune without it asks 55% fewer answers.</small></span></label>
               <div class="tune-scope" id="tune-tasks" role="group" aria-label="Tasks to tune">
                 <p class="eyebrow">Tasks</p>
                 <label class="check"><input id="tune-task-code" type="checkbox" value="code" checked /><span>Code</span></label>

@@ -205,7 +205,7 @@ const STAGE_HELP = {
   quality: "Chooses the KV cache; context is fixed at the 16K floor before speed is measured on that load shape.",
   speed: "Tunes threads, batch, attention, memory mapping and checkpoints for identical answers.",
   sampling: "Tunes sampling separately for each task after the load settings are fixed.",
-  prompt: "Tunes the system prompt, reasoning mode and prompt repetition per task.",
+  prompt: "Tunes the system prompt, reasoning mode and prompt repetition per task. Off by default: on the three core models the default prompt won all nine task cases, and this stage is over half of a full tune's answers.",
 };
 
 const TUNE_STEP_HELP = {

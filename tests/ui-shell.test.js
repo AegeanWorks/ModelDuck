@@ -196,3 +196,11 @@ test("a task subset counts as a part run so scratch never drops the other tasks"
   assert.match(start, /taskList/, "the form builds an explicit task list");
   assert.match(start, /taskList\.length < TUNE_TASKS\.length/, "a task subset marks the run a part run");
 });
+
+test("the Prompt stage is opt-in: under tuner v11 it never changed a setting (ADR-127)", () => {
+  const stage = (value) => html.match(new RegExp(`<input type="checkbox" value="${value}"([^>]*)/>`))?.[1] ?? null;
+  for (const value of ["device", "quality", "speed", "sampling"]) assert.match(stage(value) ?? "", /\bchecked\b/, `${value} is ticked by default`);
+  assert.notEqual(stage("prompt"), null, "the Prompt stage is still offered");
+  assert.doesNotMatch(stage("prompt"), /\bchecked\b/, "the Prompt stage is not ticked by default");
+  assert.match(html, /value="prompt"[^]*?<small>[^<]*55% fewer answers/, "its note says what skipping it saves");
+});
