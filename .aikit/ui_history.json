@@ -789,5 +789,23 @@
     "final_snapshot_digest": "",
     "final_snapshot_entries": 0,
     "surface_digest": "531229f916dc81e12f88dba228162028845847def3812e90b26addaeda119985"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [],
+    "no_visual_reason": "",
+    "baseline_commit": "7b79feed4c143afb433d1226b8ca1ac7c713c1bd",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1794651094.941814,
+    "finished_at": 1794651173.0602362,
+    "strikes": 0,
+    "reviewer": "kiro:1 (agent review under G-007: Task B touched only backend src files; ui:smoke passed on the current tree, including the budget error and toast checks)",
+    "allowed_removals": [],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "12898abce87d3b0e38337de80793d1a2ace1187badffe28663983d7aae3aef16"
   }
 ]
