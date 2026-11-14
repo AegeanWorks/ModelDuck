@@ -79,6 +79,9 @@ export function probeItemIds({ ids, width, limit = 4, settings = {}, prompts = P
   return ids.filter(fits).slice(0, limit);
 }
 
+/** How many items a tune's probe asks: two calls' worth at the widest width, for more evidence than one batch. */
+export const PROBE_ITEMS = 8;
+
 /** Wide must beat one-at-a-time by this share of wall time to be kept; less is within run-to-run noise. */
 export const MIN_PARALLEL_GAIN = 0.15;
 
@@ -94,33 +97,50 @@ const seconds = (ms) => `${(ms / 1000).toFixed(1)} s`;
  *   On a CPU a small model is compute-bound, and answering together can be no
  *   faster than one at a time (measured: 16.7 s wide vs 15.6 s serial).
  *
+ * With `sampled` (sampling settings merged over `settings`), a second pass
+ * checks the same items sampled, since the later stages sample. The passes
+ * alternate which side runs first, and each side's time is the sum over both.
  * Each side is loaded at its own width before it is timed, so a context
  * rebuild never counts against either. Never throws: any failure refuses with
  * a reason. On success the evaluator is left at `width`, otherwise at 1.
  */
-export async function probeParallel({ evaluate, width, items, settings, seed, clock = () => performance.now(), minGain = MIN_PARALLEL_GAIN }) {
-  const total = Array.isArray(items) ? items.length : 0;
+export async function probeParallel({ evaluate, width, items, settings, seed, sampled = null, clock = () => performance.now(), minGain = MIN_PARALLEL_GAIN }) {
+  // A greedy pass, and with `sampled` a second pass at those sampling settings:
+  // the later stages sample, and greedy agreement alone does not show that.
+  const passes = [{ settings, label: "" }, ...(sampled ? [{ settings: { ...settings, ...sampled }, label: " (sampled)" }] : [])];
+  const total = Array.isArray(items) ? items.length * passes.length : 0;
   const refuse = (reason, extra = {}) => {
     evaluate.setParallel(1);
     return { ok: false, matched: 0, total, mismatches: [], serialMs: null, wideMs: null, speedup: null, reason, ...extra };
   };
   if (!Array.isArray(items) || items.length < 2) return refuse("the probe needs at least two items to share a context");
-  const timedPass = async (at) => {
+  const timedPass = async (at, passSettings) => {
     evaluate.setParallel(at);
-    await evaluate.ensureLoaded(settings);
+    await evaluate.ensureLoaded(passSettings);
     const started = clock();
-    const out = await evaluate(settings, items, seed);
+    const out = await evaluate(passSettings, items, seed);
     return { out, ms: clock() - started };
   };
   try {
-    const wide = await timedPass(width);
-    const serial = await timedPass(1);
-    const failed = [...serial.out.prompts, ...wide.out.prompts].find((row) => row.error);
-    if (failed) return refuse(`an answer failed during the probe: ${failed.error}`);
-    const serialDigest = new Map(serial.out.prompts.map((row) => [row.id, row.digest]));
-    const mismatches = wide.out.prompts.filter((row) => serialDigest.get(row.id) !== row.digest).map((row) => row.id);
+    let wideMs = 0;
+    let serialMs = 0;
+    const mismatches = [];
+    for (const [index, pass] of passes.entries()) {
+      // Wide first on even passes and second on odd ones, so a cold first pass favours neither side.
+      const order = index % 2 === 0 ? [width, 1] : [1, width];
+      const [first, second] = [await timedPass(order[0], pass.settings), await timedPass(order[1], pass.settings)];
+      const [wide, serial] = order[0] === width ? [first, second] : [second, first];
+      const failed = [...serial.out.prompts, ...wide.out.prompts].find((row) => row.error);
+      if (failed) return refuse(`an answer failed during the probe: ${failed.error}`);
+      const serialDigest = new Map(serial.out.prompts.map((row) => [row.id, row.digest]));
+      mismatches.push(...wide.out.prompts.filter((row) => serialDigest.get(row.id) !== row.digest).map((row) => `${row.id}${pass.label}`));
+      wideMs += wide.ms;
+      serialMs += serial.ms;
+    }
     const matched = total - mismatches.length;
-    const timing = { serialMs: Math.round(serial.ms), wideMs: Math.round(wide.ms), speedup: wide.ms > 0 ? Math.round((serial.ms / wide.ms) * 100) / 100 : null };
+    const timing = { serialMs: Math.round(serialMs), wideMs: Math.round(wideMs), speedup: wideMs > 0 ? Math.round((serialMs / wideMs) * 100) / 100 : null };
+    const wide = { ms: wideMs };
+    const serial = { ms: serialMs };
     if (mismatches.length) return refuse(`${mismatches.length} of ${total} answers differed when run ${width} at a time (${mismatches.join(", ")})`, { matched, mismatches, ...timing });
     if (!(wide.ms <= serial.ms * (1 - minGain))) {
       return refuse(`answering ${width} at a time was not faster: ${seconds(wide.ms)} against ${seconds(serial.ms)} one at a time (needs ${Math.round(minGain * 100)}% less)`, { matched, ...timing });

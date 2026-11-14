@@ -17,7 +17,7 @@ import { expectedAnswers, promptAxes, qualityAxes, quickRungs, samplingAxes, spe
 import { createEvaluator } from "./tune-evaluate.mjs";
 import { budgetDeadline } from "./tune-budget.mjs";
 import { summarizeFailures } from "./tune-failures.mjs";
-import { chooseParallel, probeItemIds, probeParallel } from "./tune-parallel.mjs";
+import { PROBE_ITEMS, chooseParallel, probeItemIds, probeParallel } from "./tune-parallel.mjs";
 import { createPhaseTimer } from "./tune-timing.mjs";
 
 /** One installed model, ready to tune or measure: where it is, its profile name and what it runs on. */
@@ -178,8 +178,9 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
         parallelInfo.reason = "the device stage runs in this process, so the backend is not chosen yet; run --stages device first, then the other stages with --parallel";
       } else if (decision.n > 1) {
         const settings = { ...base, gpuBackend: startOn, temperature: 0, repeatPenalty: 1, maxTokens: 96 };
-        const ids = probeItemIds({ ids: tasks.flatMap((task) => activeRungs[task]?.[0] ?? []), width: decision.n, limit: 4, settings });
-        parallelInfo.probe = await probeParallel({ evaluate, width: decision.n, items: ids, settings, seed: 42 });
+        const ids = probeItemIds({ ids: tasks.flatMap((task) => activeRungs[task]?.[0] ?? []), width: decision.n, limit: PROBE_ITEMS, settings });
+        // Greedy and sampled: the sampling and prompt stages answer above temperature 0.
+        parallelInfo.probe = await probeParallel({ evaluate, width: decision.n, items: ids, settings, sampled: { temperature: 0.7 }, seed: 42 });
         if (parallelInfo.probe.ok) {
           width = decision.n;
           parallelInfo.used = width;

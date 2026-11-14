@@ -6,7 +6,7 @@ import test from "node:test";
 
 import { PROMPTS } from "../benchmarks/suite.mjs";
 import { createEvaluator } from "../benchmarks/tune-evaluate.mjs";
-import { MAX_PARALLEL, chooseParallel, itemNeed, parseParallel, probeItemIds, probeParallel, slotWidth } from "../benchmarks/tune-parallel.mjs";
+import { MAX_PARALLEL, PROBE_ITEMS, chooseParallel, itemNeed, parseParallel, probeItemIds, probeParallel, slotWidth } from "../benchmarks/tune-parallel.mjs";
 import { answerRow } from "../benchmarks/tune-job.mjs";
 import { cachedAnswers, startRun } from "../src/tune-runs.js";
 
@@ -142,6 +142,32 @@ test("a failed answer or a load error refuses parallel instead of throwing", asy
   const second = await probeParallel({ evaluate: wrapped, width: 2, ...PROBE });
   assert.equal(second.ok, false);
   assert.match(second.reason, /boom/);
+});
+
+// The later stages sample (temperature above 0), so greedy agreement alone proves too little.
+const SAMPLED = { temperature: 0.7, topP: 0.9 };
+
+test("with a sampled pass the probe checks both, in alternating order", async () => {
+  const evaluate = probeEvaluator();
+  const out = await probeParallel({ evaluate, width: 3, ...PROBE, sampled: SAMPLED, clock: evaluate.clock });
+  assert.equal(out.ok, true);
+  assert.deepEqual(evaluate.calls.map((call) => `${call.width}@${call.temperature}`), ["3@0", "1@0", "1@0.7", "3@0.7"], "wide goes first once and second once, so a cold first pass favours neither side");
+  assert.equal(out.total, 8, "every item is compared greedy and sampled");
+  assert.equal(out.matched, 8);
+  assert.deepEqual([out.wideMs, out.serialMs], [1200, 2000], "each side's time covers both passes");
+});
+
+test("an answer that differs only when sampled refuses the width", async () => {
+  const evaluate = probeEvaluator({ digestFor: (id, width, settings) => (id === "b" && width > 1 && settings.temperature > 0 ? "other" : `d-${id}`) });
+  const out = await probeParallel({ evaluate, width: 2, ...PROBE, sampled: SAMPLED, clock: evaluate.clock });
+  assert.equal(out.ok, false);
+  assert.deepEqual(out.mismatches, ["b (sampled)"]);
+  assert.match(out.reason, /1 of 8/);
+  assert.equal(evaluate.parallel, 1);
+});
+
+test("a tune probes up to eight items", () => {
+  assert.equal(PROBE_ITEMS, 8);
 });
 
 test("a probe with fewer than two items cannot prove anything and is refused", async () => {

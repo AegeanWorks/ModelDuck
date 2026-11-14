@@ -50,8 +50,10 @@ see what a change really saved before trusting an estimate.
 `npm run tune -- ... --parallel <1-4|auto>` (1, the default, is off) answers several items at once in the
 untimed stages (quality, sampling, prompt); device and speed still time one answer
 at a time. It is opt-in because it is not always safe or faster. Before the tune, a
-probe answers a few greedy items wide and one at a time. The tune runs wide only
-when every answer is byte-identical and the wide pass takes at least 15% less wall
+probe answers up to 8 first-rung items wide and one at a time, once greedy and once
+sampled at temperature 0.7, since the later stages sample. Wide goes first in one pass
+and second in the other, so cold caches favour neither side. The tune runs wide only
+when every answer is byte-identical and the wide passes take at least 15% less wall
 time; otherwise it says why and answers one at a time. Measured on an i5-14400F
 under load: Qwen2.5 0.5B matched 4 of 4 but was not faster (16.7 s wide vs 15.6 s),
 and SmolLM2 135M changed 1 of 4 answers at width 2. Each answer is tagged with the
