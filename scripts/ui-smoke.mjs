@@ -119,6 +119,9 @@ async function main() {
         stale: [],
         staleParts: [],
         deviceParts: [],
+        // The server always sends both, as empty lists when nothing is out of date.
+        warnings: [],
+        typeWarnings: {},
       }],
     };
     const fixtureScript = `(() => {
@@ -383,7 +386,25 @@ async function main() {
       /Increasing rungs/,
       "the tuning help does not explain the rungs",
     );
+    // A mistyped budget is reported; it must not start a tune without a limit.
+    assert.ok(await waitFor(() => evaluate('!document.getElementById("tune-all").disabled'), 5_000), "Tune all stayed disabled");
+    const requestsBefore = await evaluate("window.__uiSmokeRequests.length");
+    await evaluate('(() => { const field = document.getElementById("tune-budget"); field.value = "-3"; field.dispatchEvent(new Event("input", { bubbles: true })); document.getElementById("tune-all").click(); return true; })()');
+    assert.ok(
+      await waitFor(() => evaluate('[...document.querySelectorAll(".toast.error")].some((toast) => /Minutes per model/.test(toast.textContent))'), 3_000),
+      "an invalid budget did not show an error",
+    );
+    // Toasts sit above an open modal dialog, and their dismiss button is not made inert by it.
+    const toastHit = '(() => { const close = document.querySelector(".toast.error .toast-close"); const rect = close.getBoundingClientRect(); return document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2) === close; })()';
+    assert.equal(await evaluate(toastHit), true, "the error toast is covered by, or inert under, the open dialog");
+    const otherErrors = await evaluate('[...document.querySelectorAll(".toast.error")].map((toast) => toast.querySelector("strong").textContent).filter((title) => !/Minutes per model/.test(title))');
+    assert.deepEqual(otherErrors, [], "the app raised errors while the Bench dialog was open");
+    assert.equal(await evaluate("window.__uiSmokeRequests.length"), requestsBefore, "an invalid budget still started a tune");
+    assert.equal(await evaluate("document.activeElement?.id"), "tune-budget", "the invalid budget field is not focused");
+    await evaluate('(() => { document.getElementById("tune-budget").value = ""; return true; })()');
     await evaluate('document.getElementById("benchmark-dialog").close(), true');
+    assert.ok(await waitFor(() => evaluate('document.getElementById("toast-root").parentElement === document.body'), 2_000), "the toasts stayed inside the closed dialog");
+    assert.equal(await evaluate(toastHit), true, "the error toast disappeared when the dialog closed");
 
     await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
     await delay(400);
