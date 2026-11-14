@@ -49,16 +49,18 @@ test("a large rung stops a few answers past the deadline, not a whole rung past 
   const { evaluate, clock } = timedEvaluator(1000);
   const calls = [];
   const counting = async (settings, itemIds, seed) => { calls.push(itemIds.length); return evaluate(settings, itemIds, seed); };
-  const measurements = new Measurements(counting, 100000, () => {}, { deadline: 2500, clock });
+  // Every answer is handed on for the run record, as tune-job.mjs saves it.
+  const saved = [];
+  const measurements = new Measurements(counting, 100000, (settings, seed, rows) => saved.push({ settings, seed, rows }), { deadline: 2500, clock });
   const out = await measurements.measure({ kind: "a" }, ids("x", 48), 42);
   assert.equal(out, null, "an unfinished rung is not scored");
   assert.equal(measurements.runs, 4, "one chunk of four, then the deadline stops it");
   assert.deepEqual(calls, [4]);
-  // What was answered stays cached, so a later continue does not ask it again.
+  // A later continue gets those answers back through restore() and does not ask them again.
   const resumed = new Measurements(counting, 100000, () => {}, {});
-  resumed.slots = measurements.slots;
+  for (const group of saved) resumed.restore(group.settings, group.seed, group.rows);
   await resumed.measure({ kind: "a" }, ids("x", 48), 42);
-  assert.equal(resumed.runs, 44);
+  assert.equal(resumed.runs, 44, "only the 44 unanswered items are asked");
 });
 
 test("without a deadline a rung is asked in one call, as before", async () => {

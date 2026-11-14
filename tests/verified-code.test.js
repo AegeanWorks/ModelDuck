@@ -90,12 +90,15 @@ test("the first answer is greedy; retries sample anew; the first passing answer 
 });
 
 test("when no try passes, the best try comes back marked as failing", async () => {
-  const { engine } = harness([WRONG, WRONG]);
-  const partial = async (text, check) => check.cases.map((testCase, index) => ({ passed: text.includes("+ 2") && index === 0 && engine.requests.length === 2, unreadable: false, detail: "x" }));
+  // The second answer gets the first case right and the second wrong; the first gets neither.
+  const HALF = fence("function double(n) { return n === 1 ? 2 : 0; }");
+  const { engine } = harness([WRONG, HALF]);
+  const partial = async (text, check) => check.cases.map((testCase, index) => ({ passed: text === HALF && index === 0, unreadable: false, detail: "x" }));
   const request = parseVerifyRequest({ prompt: "x", tests: TESTS, attempts: 2 });
   const out = await runVerified({ engine, request, settings: SETTINGS, runTests: partial });
   assert.equal(out.passed, false);
   assert.equal(out.attempt, 2, "the try that passed the most tests");
+  assert.equal(out.text, HALF);
   assert.equal(out.tests.filter((result) => result.passed).length, 1);
 });
 
