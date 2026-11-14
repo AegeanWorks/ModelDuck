@@ -1,64 +1,18 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "baseline-resume",
+    "task_id": "tuner-v11-clustered-gate",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794691360.687848,
+    "updated_at": 1794691745.7498693,
     "owner": "kiro:1",
     "started_by": "kiro:1",
     "continuations": [],
-    "completed_at": 1794691361.0907667,
-    "completed_head": "fe10ff5724c20c7e546103603140de97bd44f8bf"
+    "completed_at": 1794691745.992754,
+    "completed_head": "8a81f90b399ff58d35e9edf88faa6db24f88bc2c"
   },
   "checkpoints": [
-    {
-      "task_id": "gate-hardware-note",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'gate-hardware-note' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794681872.4659443,
-      "timestamp_str": "2026-11-14 21:44:32",
-      "agent": "kiro:1",
-      "delivery": {
-        "roots": [
-          "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck"
-        ],
-        "forced": false
-      }
-    },
-    {
-      "task_id": "report-status-i",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/1] Docs: G and V findings checked; S4 branch noted",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794681902.9699087,
-      "timestamp_str": "2026-11-14 21:45:02",
-      "agent": "kiro:1",
-      "impact_assessment": {
-        "why": "The report's note still listed G and V as unchecked",
-        "benefits": "status matches master",
-        "risks": "contract: none; dependency: none; concurrency: none; state: docs and ledger only",
-        "mitigation": "docs only"
-      },
-      "plan_digest": "982bbe172ab5e38ca340d5e41b01efc060e72aa92a2ba9dcd346de8378b7266f"
-    },
-    {
-      "task_id": "report-status-i",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "Docs only",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794681903.395145,
-      "timestamp_str": "2026-11-14 21:45:03",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
     {
       "task_id": "report-status-i",
       "phase": "completed",
@@ -309,6 +263,51 @@
       "status": "completed",
       "timestamp": 1794691361.1466076,
       "timestamp_str": "2026-11-15 00:22:41",
+      "agent": "kiro:1",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
+    },
+    {
+      "task_id": "tuner-v11-clustered-gate",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[4/4] Resumed after rebase on master 9171a36 (earlier checkpoints were in a stash): S4 clustered sweep gate, S3 rung refill, v11 baseline regenerated with reuse, ADR-125",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794691745.381129,
+      "timestamp_str": "2026-11-15 00:29:05",
+      "agent": "kiro:1",
+      "impact_assessment": {
+        "why": "ADR-122 deferred S3 and S4 to one tuner bump; the user approved the bump",
+        "benefits": "a setting changes only on evidence from independent functions; searches keep full rungs",
+        "risks": "contract: TUNER_VERSION 11 makes saved profiles stale; dependency: none; concurrency: none; state: baseline-profiles.json replaced",
+        "mitigation": "failing-first tests; per-task comparison on shared outcomes, all within tolerance; live gate 9/9 b=0 c=0"
+      }
+    },
+    {
+      "task_id": "tuner-v11-clustered-gate",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "861/862 pass, 1 skipped; baseline within tolerance on every task; tune:gate 9/9 b=0 c=0",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794691745.7498693,
+      "timestamp_str": "2026-11-15 00:29:05",
+      "agent": "kiro:1",
+      "checklists": "passed"
+    },
+    {
+      "task_id": "tuner-v11-clustered-gate",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'tuner-v11-clustered-gate' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794691746.0224214,
+      "timestamp_str": "2026-11-15 00:29:06",
       "agent": "kiro:1",
       "delivery": {
         "roots": [
