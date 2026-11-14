@@ -483,6 +483,8 @@ modelduck/
 │   ├── state-machines.json <- machine inventory checked by tests
 │   ├── state-machine-proposals.md <- judged proposals
 │   ├── state-machine-proposals.json <- proposal evidence links
+│   ├── tuning-improvement-report.md <- tuner review (snapshot of 6ece836)
+│   ├── tuning-repro/ <- scripts that reproduce the report's numbers
 │   └── kiroween/ <- Kiroween submission docs
 ├── public/
 │   ├── index.html <- the control panel
