@@ -1,6 +1,8 @@
 # Improving ModelDuck's tuner
 
 > **Status note:** this report is a snapshot of commit `6ece836` (2026-11-01). Later work changed the code it describes (see ADR-101 to ADR-121 in `.aikit/decisions.md`). Re-check a finding against current `master` before acting on it.
+>
+> **Checked on `master` 2026-11-14:** D1 fixed (the continuation measures 102 candidates and finishes every stage). D2 fixed (Light and Quiet threads come from measured steps). D3 fixed (`estimateTune` for the device stage alone gives 46 s, not the full-tune time). D5 fixed (the three `benchmarks/baseline-*.json` files exist). D4 fixed in code (fractional solved counts in `tune-measure.mjs`; the arithmetic at the end of `presets-and-tolerance.mjs` shows the old rule only). M1 partly done (`stopReason` is recorded and classed `truncated`). `penalizeNewLine` joined the search in suite v15. M2 present (`tune-speed.mjs` times candidates 3 times, interleaved, with an A/A tie band). M3 and M4 present in part (`changedItems`, `flippedItems`, `prefillTps` and `decodeTps` are measured and reported). M7 present in part (`vramFitsModel` in `engine.js`). I read these as present from the code only, not by re-running the report's numbers. Not checked yet: M5, M6, M8, M9, and the S, G and V findings.
 
 A review of the settings tuner (**Bench & Tune → Tune**, `npm run tune`, `npm run tune:gate`) with measured
 evidence and a prioritized plan.

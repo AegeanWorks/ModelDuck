@@ -1,6 +1,6 @@
 // Findings D2 and D6: Light/Quiet when lower thread counts change an answer digest, and how the
 // one-item tolerance behaves once rates are rounded to one decimal.
-//   node docs/tuning-repro/presets-and-tolerance.mjs
+//   node docs/tuning-repro/presets-and-tolerance.mjs   (no model needed, runs in seconds)
 import { tune } from "../../benchmarks/tune.mjs";
 
 const ids = (prefix, count) => Array.from({ length: count }, (_v, i) => `${prefix}-${i}`);
@@ -31,6 +31,9 @@ console.log(await trial({ size: 12, temperature: 0, lostSeeds: [42] }));
 console.log(await trial({ size: 24, temperature: 0, lostSeeds: [42] }));
 console.log(await trial({ size: 48, temperature: 0, lostSeeds: [42] }));
 console.log(await trial({ size: 48, temperature: 0.7, lostSeeds: [42, 7] }));
+// Arithmetic only. It shows why comparing a rounded rate to the floor was wrong (D4). The tuner no longer does
+// that: it counts fractional solved items, and the trials above show the one-item tolerance holding at every size.
+console.log("Rounded-rate arithmetic (the old rule, not the tuner):");
 for (const n of [12, 24, 46, 48]) {
   const rate = Number((((n - 1) / n) * 100).toFixed(1));
   const floor = 100 - 100 / n;
