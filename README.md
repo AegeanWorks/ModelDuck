@@ -612,6 +612,7 @@ modelduck/
 │   ├── tune-lock.test.js
 │   ├── tune-runs.test.js
 │   ├── gate-cache.test.js
+│   ├── answer-reuse.test.js
 │   ├── tune-scheduler.test.js
 │   ├── tune-steps.test.js
 │   ├── tune-steps-store.test.js
