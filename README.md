@@ -256,8 +256,9 @@ Rough numbers; the app reports real context and memory.
 | Qwen2.5 Coder 0.5B F16 / Q8_0 | 41.5% / 40.8% | — |
 
 Untuned, generation uses half the logical cores on CPUs with SMT: on that CPU,
-Coder 1.5B ran 3.9 tok/s on 15 threads and 28.8 on 8. ARM chips and Linux CPUs
-without SMT keep all logical cores but one. A saved `threads` value still wins.
+Coder 1.5B ran 3.9 tok/s on 15 threads and 28.8 on 8. ARM chips (Apple Silicon
+too, also when Node runs x64 under Rosetta, which is not yet verified on a Mac) and
+Linux CPUs without SMT keep all logical cores but one. A saved `threads` value still wins.
 Q4_K_M lost nothing measurable against F16 for code. The 1.5B coder matched a 3B
 general model at about half the memory and time.
 

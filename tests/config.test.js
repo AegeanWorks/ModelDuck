@@ -50,6 +50,21 @@ test("SMT is detected from the architecture and, on Linux, from /proc/cpuinfo", 
   assert.equal(hasSmt({ platform: "win32", arch: "x64" }), true, "no cheap source on Windows: keep the measured default");
 });
 
+// x64 Node under Rosetta 2 on an Apple Silicon Mac reports arch x64, so the architecture check alone
+// would halve an 8-core M-series chip. The CPU model names it. (Believed, not verified on a Mac: the
+// Rosetta model string is expected to contain "Apple", for example "VirtualApple @ 2.50GHz".)
+test("an Apple Silicon CPU seen through Rosetta is not assumed to have SMT", () => {
+  assert.equal(hasSmt({ platform: "darwin", arch: "x64", model: "VirtualApple @ 2.50GHz" }), false);
+  assert.equal(hasSmt({ platform: "darwin", arch: "x64", model: "Apple M2 Pro" }), false);
+  assert.equal(hasSmt({ platform: "darwin", arch: "x64", model: "Intel(R) Core(TM) i9-9880H CPU @ 2.30GHz" }), true, "an Intel Mac has Hyper-Threading");
+  assert.equal(hasSmt({ platform: "darwin", arch: "x64", model: "" }), true, "no name: keep the measured default");
+  assert.equal(hasSmt({ platform: "win32", arch: "x64", model: "Apple" }), true, "the model is only read on macOS");
+});
+
+test("a missing CPU list does not break the default on macOS", () => {
+  assert.equal(typeof hasSmt({ platform: "darwin", arch: "x64", model: undefined }), "boolean");
+});
+
 test("parseArgs uses loopback defaults", () => {
   const options = parseArgs([], {});
   assert.equal(options.port, DEFAULT_PORT);

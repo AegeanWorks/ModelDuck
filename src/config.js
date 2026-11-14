@@ -31,12 +31,19 @@ function readCpuinfo() {
 /**
  * Whether two logical cores share a physical one. ARM cores (Apple Silicon
  * included) have no SMT. On Linux x86, /proc/cpuinfo gives `siblings`
- * (logical per package) and `cpu cores` (physical per package). Elsewhere
- * there is no cheap source without a subprocess, so SMT is assumed: that is
- * the measured case and keeps its default.
+ * (logical per package) and `cpu cores` (physical per package). On macOS an
+ * x64 Node can run under Rosetta 2 on an Apple Silicon chip, so the CPU model
+ * decides: a name containing "Apple" (expected to be "VirtualApple" under
+ * Rosetta; not verified on a Mac) has no SMT. Elsewhere, Windows included, there
+ * is no cheap source without a subprocess, so SMT is assumed: that is the
+ * measured case and keeps its default. `model` is injectable for tests.
  */
-export function hasSmt({ platform = process.platform, arch = process.arch, cpuinfo } = {}) {
+export function hasSmt({ platform = process.platform, arch = process.arch, cpuinfo, model } = {}) {
   if (arch === "arm" || arch === "arm64") return false;
+  if (platform === "darwin") {
+    const name = model === undefined ? os.cpus()[0]?.model : model;
+    return !/apple/i.test(String(name ?? ""));
+  }
   if (platform !== "linux") return true;
   const text = cpuinfo === undefined ? readCpuinfo() : cpuinfo;
   const field = (name) => Number(new RegExp(`^${name}\\s*:\\s*(\\d+)`, "m").exec(text ?? "")?.[1]);
