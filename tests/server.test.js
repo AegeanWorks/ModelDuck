@@ -598,6 +598,45 @@ test("verified code retries until an answer passes the caller's tests, in the sa
   assert.equal((await idle.json()).error.code, "model_not_loaded");
 });
 
+test("verified code stops generating when the client disconnects", async (t) => {
+  let started;
+  const running = new Promise((resolve) => { started = resolve; });
+  let stopped;
+  const aborted = new Promise((resolve) => { stopped = resolve; });
+  class HangingEngine extends FakeEngine {
+    constructor() {
+      super();
+      this.calls = 0;
+    }
+
+    async chat(request) {
+      this.calls += 1;
+      started();
+      await new Promise((resolve) => request.signal.addEventListener("abort", resolve, { once: true }));
+      stopped();
+      return { text: "", aborted: true, stats: { outputTokens: 0, ms: 1, stopReason: "abort" }, manifest: this.manifest };
+    }
+  }
+  const engine = new HangingEngine();
+  const harness = await makeHarness(t, { engine });
+  const client = new AbortController();
+  const response = fetch(`${harness.base}/api/code/verify`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ prompt: "x", tests: { entry: "f", cases: [{ args: [], expect: 1 }] }, attempts: 4 }),
+    signal: client.signal,
+  }).catch((error) => error);
+  await running;
+  client.abort();
+  let timer;
+  const never = new Promise((resolve) => { timer = setTimeout(() => resolve("timeout"), 900); });
+  const outcome = await Promise.race([aborted.then(() => "aborted"), never]);
+  clearTimeout(timer);
+  assert.equal(outcome, "aborted", "the disconnect reaches the running answer");
+  assert.equal((await response).name, "AbortError");
+  assert.equal(engine.calls, 1, "no new try starts once the client is gone");
+});
+
 test("verified code refuses on a Node whose sandbox cannot deny the network", async (t) => {
   const harness = await makeHarness(t, { nodeVersion: "24.11.0" });
   const response = await fetch(`${harness.base}/api/code/verify`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ prompt: "x", tests: { entry: "f", cases: [{ args: [], expect: 1 }] } }) });

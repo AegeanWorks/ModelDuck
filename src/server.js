@@ -733,7 +733,17 @@ export function createHttpServer({
       }
       // The tuned code preset decides how the model answers; the request still decides the budget.
       const applied = await tuned.resolve(modelId, "code").catch(() => null);
-      const result = await runVerified({ engine, request, settings: { ...settings.value, ...(applied?.settings ?? {}) } });
+      // A client that disconnects stops the loop and the answer being written.
+      const clientGone = new AbortController();
+      let finished = false;
+      res.on("close", () => { if (!finished) clientGone.abort(); });
+      let result;
+      try {
+        result = await runVerified({ engine, request, settings: { ...settings.value, ...(applied?.settings ?? {}) }, signal: clientGone.signal });
+      } finally {
+        finished = true;
+      }
+      if (result.stopped === "client_closed") return;
       sendJson(res, 200, { model: modelId, ...result });
       return;
     }

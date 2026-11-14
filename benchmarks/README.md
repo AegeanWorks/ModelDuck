@@ -236,7 +236,7 @@ Qwen2.5 Coder 1.5B Q4_K_M, greedy first answer 81/134 (60.4%), 2 extra tries unl
 | fresh | T=0.7 | 90 (67.2%) | 33 of 100 |
 | retry | T=0.7 | 90 (67.2%) | 9 of 100 |
 | retry, seed 100 | T=0.7 | 92 (68.7%) | 6 of 98 |
-| retry, 4 tries | T=0.7 | 98 (73.1%) | 14 of 183 |
+| retry, 4 extra tries | T=0.7 | 98 (73.1%) | 14 of 183 |
 
 Qwen2.5 0.5B Q4_K_M, first answer 46/134 (34.3%): fresh T=0.7 reached 48 and retry
 T=0.7 reached 52.
@@ -252,7 +252,7 @@ The feedback text adds nothing over sampling again:
   random draw, not the strategy.
 
 What helps is the number of test-checked tries: 60.4%, then 64.9%, 67.2%, 70.9% and
-73.1% after 1 to 4 retries, largest on repo bug fixes (1 → 7 of 12). The cost was 183
+73.1% after 1 to 4 retries (2 to 5 answers), largest on repo bug fixes (1 → 7 of 12). The cost was 183
 extra answers on top of 134 (318 s against about 100 s for one pass).
 
 The suite's tests both pick and score the answer, so this is the gain when tests
@@ -264,7 +264,12 @@ only. Send a prompt (or chat messages) and your tests. ModelDuck answers with th
 loaded model's tuned code preset and runs the tests in the sandbox. A failed answer
 gets up to `attempts` tries in all (default 4, at most 8): a new conversation each
 time, `retry_temperature` 0.7 and a new seed. It returns the first answer that
-passes, or the try that passed the most cases with `"passed": false`.
+passes, or the try that passed the most cases with `"passed": false`. On the repair
+bench above, 4 answers solved 70.9% and 5 solved 73.1%; `retry_temperature` must be
+above 0, since at 0 every retry repeats the first answer. The whole request has a
+5-minute limit. When the limit is reached, the client disconnects, or another reply
+takes the model after the first try, the answer carries `"stopped"` (`deadline`,
+`client_closed` or `engine_busy`) with the best try so far.
 
 ```bash
 curl -s http://127.0.0.1:4141/api/code/verify -H "content-type: application/json" -d '{

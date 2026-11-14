@@ -47,6 +47,8 @@ test("from another machine with a key, state-changing routes are refused while r
     ["DELETE", "/api/downloads/missing", undefined],
     // Runs caller-supplied code in the sandbox: this computer only, even with a key.
     ["POST", "/api/code/verify", { prompt: "x", tests: { entry: "f", cases: [{ args: [], expect: 1 }] } }],
+    // Changes this computer's settings from a shipped preset.
+    ["POST", "/api/presets/apply", { catalogId: "anything" }],
   ];
   for (const [method, route, body] of mutations) {
     const response = await call(method, route, body);

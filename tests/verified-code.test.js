@@ -113,3 +113,57 @@ test("the caller's own system prompt and token budget win over the defaults", as
   assert.equal(engine.requests[0].systemPrompt, "mine");
   assert.equal(engine.requests[0].settings.maxTokens, 99);
 });
+
+// --- robustness (review findings 9-14) ----------------------------------------------------
+
+test("a null or non-object body is a 400, not a crash", () => {
+  for (const body of [null, "text", 5, []]) {
+    assert.throws(() => parseVerifyRequest(body), (error) => error.code === "verify_invalid" && error.status === 400, `refuses ${JSON.stringify(body)}`);
+  }
+});
+
+test("retries at temperature 0 would repeat the first answer, so 0 is refused", () => {
+  refused({ prompt: "x", tests: TESTS, retry_temperature: 0 }, /retry_temperature/);
+  assert.equal(parseVerifyRequest({ prompt: "x", tests: TESTS, retry_temperature: 0.05 }).retryTemperature, 0.05);
+});
+
+test("a client that goes away stops the loop: the running answer is aborted and nothing more is asked", async () => {
+  const controller = new AbortController();
+  const engine = { requests: [], dropped: [] };
+  engine.chat = async (request) => {
+    engine.requests.push(request.conversationId);
+    controller.abort();
+    assert.equal(request.signal.aborted, true, "the client's abort reaches the running answer");
+    return { text: WRONG, aborted: true, stats: { outputTokens: 3, ms: 5, stopReason: "abort" } };
+  };
+  engine.dropSession = (id) => engine.dropped.push(id);
+  const { runTests } = harness([]);
+  const request = parseVerifyRequest({ prompt: "x", tests: TESTS, attempts: 4 });
+  const out = await runVerified({ engine, request, settings: SETTINGS, runTests, signal: controller.signal });
+  assert.equal(engine.requests.length, 1);
+  assert.equal(out.stopped, "client_closed");
+  assert.equal(out.attempts[0].aborted, true, "a cut-off answer is flagged");
+  assert.equal(engine.dropped.length, 1);
+});
+
+test("the whole request has a deadline; no new try starts after it", async () => {
+  let now = 0;
+  const { engine, runTests } = harness([WRONG, WRONG, WRONG, RIGHT]);
+  const chat = engine.chat;
+  engine.chat = async (request) => { now += 40_000; return chat(request); };
+  const request = parseVerifyRequest({ prompt: "x", tests: TESTS, attempts: 4 });
+  const out = await runVerified({ engine, request, settings: SETTINGS, runTests, clock: () => now, deadlineMs: 100_000 });
+  assert.equal(engine.requests.length, 3, "the fourth try would start after 100 s");
+  assert.equal(out.stopped, "deadline");
+  assert.equal(out.passed, false);
+});
+
+test("an engine taken by another reply mid-run returns the best try so far, marked partial", async () => {
+  const busy = Object.assign(new Error("The duck is already answering"), { code: "generation_in_progress", status: 409 });
+  const { engine, runTests } = harness([WRONG, busy]);
+  const request = parseVerifyRequest({ prompt: "x", tests: TESTS, attempts: 4 });
+  const out = await runVerified({ engine, request, settings: SETTINGS, runTests });
+  assert.equal(out.stopped, "engine_busy");
+  assert.equal(out.attempts.length, 1);
+  assert.equal(out.text, WRONG, "the earlier try is kept");
+});
