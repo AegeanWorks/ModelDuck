@@ -1,45 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "report-status-i",
+    "task_id": "answer-reuse",
     "last_phase": "in_progress",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1794681903.395145,
+    "active_phase": 4,
+    "status": "in_progress",
+    "updated_at": 1794685456.700328,
     "owner": "kiro:1",
     "started_by": "kiro:1",
-    "continuations": [],
-    "completed_at": 1794681903.687163
+    "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "merge-publish-f",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "Tests 847/848 pass, UI smoke OK, strict gates pass; ledger-only",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794669206.420234,
-      "timestamp_str": "2026-11-14 18:13:26",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "merge-publish-f",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'merge-publish-f' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794669206.6907089,
-      "timestamp_str": "2026-11-14 18:13:26",
-      "agent": "kiro:1",
-      "delivery": {
-        "roots": [
-          "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck"
-        ],
-        "forced": false
-      }
-    },
     {
       "task_id": "branch-cleanup-f",
       "phase": "in_progress",
@@ -315,6 +286,36 @@
         ],
         "forced": false
       }
+    },
+    {
+      "task_id": "answer-reuse",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/3] Plan: reuse saved answers across tuner versions. M1 cachedAnswers: drop tunerVersion from the reuse filter, require same modelFile/modelSize/cpu/platform/arch, never replay timed rows from another tuner version, read several run dirs; Measurements slot key ignores threads on untimed full-GPU calls. M2 verifyRestore spot-check (re-ask a few stored answers live, half with another thread count; any text mismatch disables reuse) wired into runTune with a reuseFrom option and tune:gate --update-baseline --reuse-from <home>. M3 docs (benchmarks README, ADR-123), tune:gate, commit, push.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794683474.655991,
+      "timestamp_str": "2026-11-14 22:11:14",
+      "agent": "kiro:1",
+      "impact_assessment": {
+        "why": "Measured: all 2,125 answers of the stopped v11 SmolLM2 run already existed in the Nov 13 v10 runs once threads are ignored; 2,124 identical text, 2,125 same pass/fail. A decision-rule change re-asks hours of identical answers.",
+        "benefits": "A tuner-version re-baseline replays stored answers and only asks new requests; the 2.9 h re-tune drops to the new requests only",
+        "risks": "contract: cachedAnswers gains a multi-dir input and new identity keys; dependency: none; concurrency: none; state: a wrong replay would put stale answers into a profile or baseline, and timed rows replayed across versions would bias speed choices",
+        "mitigation": "live spot-check of stored answers before any restore (any mismatch disables reuse); timed rows never cross tuner versions; thread-insensitive keys only for untimed full-GPU-offload calls; failing-first tests; tune:gate before commit"
+      },
+      "plan_digest": "54b74b17acf17606221e2c899c24a00184aa8309719d872297e3caee8ff9d671"
+    },
+    {
+      "task_id": "answer-reuse",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/3] Done: 853/854 pass (1 skipped), 5 new failing-first tests; end-to-end SmolLM2 reuse probe 1.6 min / 168 live answers vs ~30 min live, same choices; tune:gate 9/9 rows b=0 c=0; ADR-123 and benchmarks README",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794685456.700328,
+      "timestamp_str": "2026-11-14 22:44:16",
+      "agent": "kiro:1",
+      "checklists": "passed"
     }
   ]
 }
