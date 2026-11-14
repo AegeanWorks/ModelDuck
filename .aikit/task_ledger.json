@@ -3,24 +3,15 @@
   "active_task": {
     "task_id": "review-fixes-b",
     "last_phase": "in_progress",
-    "active_phase": 4,
-    "status": "in_progress",
+    "active_phase": 5,
+    "status": "completed",
     "updated_at": 1794650971.888765,
     "owner": "kiro:1",
     "started_by": "kiro:1",
-    "continuations": []
+    "continuations": [],
+    "completed_at": 1794651018.1219842
   },
   "checkpoints": [
-    {
-      "task_id": "test-feedback-repair",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'test-feedback-repair' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794641394.2285142,
-      "timestamp_str": "2026-11-14 10:29:54",
-      "agent": "kiro:1"
-    },
     {
       "task_id": "verified-code-endpoint",
       "phase": "in_progress",
@@ -266,6 +257,22 @@
       "timestamp_str": "2026-11-14 13:09:31",
       "agent": "kiro:1",
       "checklists": "passed"
+    },
+    {
+      "task_id": "review-fixes-b",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'review-fixes-b' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794651018.1219869,
+      "timestamp_str": "2026-11-14 13:10:18",
+      "agent": "kiro:1",
+      "delivery": {
+        "roots": [
+          "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck"
+        ],
+        "forced": false
+      }
     }
   ]
 }
