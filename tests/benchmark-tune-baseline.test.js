@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { AppError } from "../src/errors.js";
-import { BASELINE_SCHEMA, TUNER_VERSION, baselineEntry, comparability, compareToBaseline, presetSettings, requireBaselineModels } from "../benchmarks/tune-baseline.mjs";
+import { BASELINE_SCHEMA, TUNER_VERSION, baselineEntry, comparability, compareToBaseline, hardwareWarning, presetSettings, requireBaselineModels } from "../benchmarks/tune-baseline.mjs";
 
 const IDENTITY = { suiteVersion: 8, taskHash: "abc", nodeLlamaCpp: "3.22.2", tunerVersion: TUNER_VERSION };
 const PROFILE = {
@@ -120,4 +120,14 @@ test("requireBaselineModels rejects a baseline that lists no models", () => {
   // A real baseline passes through and returns its models, so the gate keeps today's shape.
   const baseline = { schema: BASELINE_SCHEMA, models: { m: { tasks: {} } } };
   assert.equal(requireBaselineModels(baseline), baseline.models);
+});
+
+test("the hardware note blames hardware only when a known value differs, per model", () => {
+  const baseline = { models: {
+    a: { hardware: { cpu: "Intel i5", threads: 16 } },
+    b: { hardware: { cpu: "AMD Ryzen", threads: 12 } },
+  } };
+  assert.equal(hardwareWarning(baseline, { cpu: "Intel i5", threads: 16 }, "a"), null, "same machine: no note");
+  assert.equal(hardwareWarning(baseline, { cpu: null, threads: null }, "a"), null, "an unknown value is not a difference");
+  assert.match(hardwareWarning(baseline, { cpu: "Intel i5", threads: 16 }, "b"), /cpu=AMD Ryzen, threads=12/, "model b's own baseline hardware is compared");
 });

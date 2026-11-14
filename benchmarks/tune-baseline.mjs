@@ -84,11 +84,14 @@ export function comparability(baseline, identity) {
 }
 
 /** Hardware warning: the same settings answer differently on another CPU/GPU (D5/M3). */
-export function hardwareWarning(baseline, hardware) {
+export function hardwareWarning(baseline, hardware, model = null) {
   if (!baseline || !hardware) return null;
-  const saved = baseline.hardware ?? baseline.models?.[Object.keys(baseline.models ?? {})[0]]?.hardware;
+  // Each model's entry records the machine it was measured on; prefer it.
+  const saved = (model && baseline.models?.[model]?.hardware) ?? baseline.hardware ?? baseline.models?.[Object.keys(baseline.models ?? {})[0]]?.hardware;
   if (!saved) return "the baseline records no hardware; treat small deltas as noise";
-  const changed = ["cpu", "gpu", "threads"].filter((key) => saved[key] !== undefined && hardware[key] !== undefined && saved[key] !== hardware[key]);
+  // An unknown value (null or missing) on either side is not evidence of a change.
+  const known = (value) => value !== undefined && value !== null;
+  const changed = ["cpu", "gpu", "threads"].filter((key) => known(saved[key]) && known(hardware[key]) && saved[key] !== hardware[key]);
   return changed.length ? `baseline hardware (${changed.map((key) => `${key}=${saved[key]}`).join(", ")}) differs from this machine` : null;
 }
 

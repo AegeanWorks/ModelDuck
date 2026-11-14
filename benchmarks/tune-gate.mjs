@@ -142,6 +142,7 @@ async function gate(options, home) {
   requireBaselineModels(baseline);
   const current = {};
   const paraphrase = {};
+  const hardwareNow = {};
   let identity = null;
   const repoRoot = path.join(HERE, "..");
   // IDEA-1764: the reuse fingerprint covers the whole world identity plus the
@@ -174,6 +175,7 @@ async function gate(options, home) {
     if (item.error) throw item.error;
     current[item.catalogId] = item.currentTasks.tasks;
     if (item.currentTasks.paraphrase) paraphrase[item.catalogId] = item.currentTasks.paraphrase;
+    hardwareNow[item.catalogId] = item.currentTasks.hardware;
     if (identity === null) identity = item.currentTasks.identity;
   }
 
@@ -245,7 +247,7 @@ async function gate(options, home) {
       process.stdout.write(`  note: the answer cache could not be saved (${error.message}); the next gate re-measures.
 `);
     });
-    return { identity, tasks: currentTasks, paraphrase };
+    return { identity, tasks: currentTasks, paraphrase, hardware: { cpu: target.system.cpu, threads: target.system.parallelism } };
   }
   const comparison = compareToBaseline(baseline, current);
   const warned = new Set();
@@ -260,7 +262,7 @@ async function gate(options, home) {
     process.stdout.write(`${verdict.padEnd(7)} ${row.model} ${row.task}: ${row.missing ? "not measured" : `${row.baselineRate}% → ${row.rate}% (${row.delta >= 0 ? "+" : ""}${row.delta}, tolerance ${row.tolerance})${tripwireNote}${paired}${items}${latency}`}\n`);
     if (row.regression && !warned.has(row.model)) {
       warned.add(row.model);
-      const warning = hardwareWarning(baseline, { cpu: null, threads: null });
+      const warning = hardwareWarning(baseline, hardwareNow[row.model] ?? null, row.model);
       if (warning) process.stdout.write(`  note: ${warning}\n`);
     }
   }
