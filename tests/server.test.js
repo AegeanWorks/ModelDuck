@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { makeHarness } from "./helpers.js";
+import { FakeEngine, makeHarness } from "./helpers.js";
 import { AppError } from "../src/errors.js";
 import { currentFingerprint, profileFromTune, profileIdFor, saveProfile } from "../src/model-profiles.js";
 import { startRun } from "../src/tune-runs.js";
@@ -558,6 +558,44 @@ test("a shipped preset never replaces a profile tuned on this computer unless as
   const forced = await post({ catalogId: id, force: true });
   assert.equal(forced.status, 201);
   assert.equal((await forced.json()).status, "exact", "same model and machine");
+});
+
+test("verified code retries until an answer passes the caller's tests, in the sandbox", async (t) => {
+  class CodeEngine extends FakeEngine {
+    constructor() {
+      super();
+      this.calls = [];
+    }
+
+    async chat(request) {
+      this.calls.push(request.settings);
+      const good = this.calls.length >= 2;
+      return { text: `\`\`\`js\nfunction double(n) { return n ${good ? "*" : "+"} 2; }\n\`\`\``, stats: { outputTokens: 10, ms: 3 }, manifest: this.manifest };
+    }
+  }
+  const engine = new CodeEngine();
+  const harness = await makeHarness(t, { engine });
+  const post = (body) => fetch(`${harness.base}/api/code/verify`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  const tests = { entry: "double", cases: [{ args: [1], expect: 2 }, { args: [5], expect: 10 }] };
+
+  const response = await post({ prompt: "Write double(n).", tests, attempts: 3 });
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.passed, true);
+  assert.equal(body.attempt, 2, "the first answer failed the real tests, the second passed");
+  assert.equal(body.code, "function double(n) { return n * 2; }");
+  assert.deepEqual(body.attempts.map((attempt) => `${attempt.passed}/${attempt.total}`), ["0/2", "2/2"]);
+  assert.equal(body.model, "fake-model");
+  assert.equal(engine.calls[1].temperature, 0.7, "the retry samples");
+
+  const bad = await post({ prompt: "x", tests: { ...tests, entry: "process.exit" } });
+  assert.equal(bad.status, 400);
+  assert.equal((await bad.json()).error.code, "verify_invalid");
+
+  await engine.unload();
+  const idle = await post({ prompt: "x", tests });
+  assert.equal(idle.status, 409);
+  assert.equal((await idle.json()).error.code, "model_not_loaded");
 });
 
 test("loading applies the model's tuned profile for the chosen task", async (t) => {

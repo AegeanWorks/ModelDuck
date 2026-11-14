@@ -259,6 +259,25 @@ The suite's tests both pick and score the answer, so this is the gain when tests
 define the task. With weaker tests in real use it is an upper bound. Not in `PROMPTS`
 or `TASKS`: hashes, profiles, baselines and the gate are unchanged.
 
+The serving form of this is `POST /api/code/verify`, which answers on this computer
+only. Send a prompt (or chat messages) and your tests. ModelDuck answers with the
+loaded model's tuned code preset and runs the tests in the sandbox. A failed answer
+gets up to `attempts` tries in all (default 4, at most 8): a new conversation each
+time, `retry_temperature` 0.7 and a new seed. It returns the first answer that
+passes, or the try that passed the most cases with `"passed": false`.
+
+```bash
+curl -s http://127.0.0.1:4141/api/code/verify -H "content-type: application/json" -d '{
+  "prompt": "Write a JavaScript function percentOf(part, whole) ...",
+  "tests": { "entry": "percentOf", "cases": [{ "args": [1, 4], "expect": 25 }] },
+  "attempts": 4 }'
+# -> { "passed": true, "attempt": 2, "code": "function percentOf…", "tests": [...], "attempts": [...] }
+```
+
+Checked against the real model (Coder 1.5B, Vulkan) on five items whose first answer
+failed: three passed on try 2 or 3 in under a second each (`bug-percent-of`,
+`bug-flatten-one`, `pub-mbpp-59`), and two returned their best try as failing.
+
 ## Statistics and the gate
 
 Check percentages stay in the report, but the gate works on **items**: an item

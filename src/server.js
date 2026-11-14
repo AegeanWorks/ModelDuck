@@ -25,6 +25,7 @@ import {
 import { publicCatalog } from "./model-catalog.js";
 import { currentFingerprint, importRecipe, isPartRun, launchRecipe, listProfiles, loadProfile, profileIdFor, profileRecipe, saveProfile, typeWarnings } from "./model-profiles.js";
 import { SHIPPED_PRESETS_DIR, matchPreset, presetProfile, readShippedPresets } from "./preset-match.js";
+import { parseVerifyRequest, runVerified } from "./verified-code.js";
 import { answersFile, answerPaceByProfile, listRuns, loadRun, summarizeAnswers } from "./tune-runs.js";
 import { TunedSettings, diffSettings } from "./tuned-settings.js";
 import { EngineRebuildLease, reloadFingerprint } from "./settings-reload.js";
@@ -694,6 +695,34 @@ export function createHttpServer({
       await saveProfile(profilesDir, imported);
       const loaded = await loadProfile(profilesDir, imported.catalogId, await profileFingerprint(entry));
       sendJson(res, 201, { catalogId: imported.catalogId, imported: true, stale: loaded?.stale ?? [], warnings: loaded?.warnings ?? [] });
+      return;
+    }
+
+    // Verified code (src/verified-code.js): answers are checked against the caller's
+    // tests in the node --permission sandbox. It runs caller-supplied code, so it is
+    // this computer only, whatever the LAN setting, and every input is capped.
+    if (pathname === "/api/code/verify" && method === "POST") {
+      requireLocalAction(req, {
+        code: "verify_local_only",
+        message: "Verified code runs only on this computer",
+        why: "It runs the tests you send as code on this computer.",
+        fix: "Call it from the computer running ModelDuck (127.0.0.1).",
+      });
+      if (!engine) throw new AppError("Inference engine unavailable", { status: 503 });
+      const request = parseVerifyRequest(await readJsonBody(req, { limitBytes: 256 * 1024 }));
+      const modelId = engine.loadedId;
+      if (!modelId) {
+        throw new AppError("No model is loaded", {
+          code: "model_not_loaded",
+          status: 409,
+          why: "Verified code needs a loaded model to answer.",
+          fix: "Open Models, load an installed model, then send the request again.",
+        });
+      }
+      // The tuned code preset decides how the model answers; the request still decides the budget.
+      const applied = await tuned.resolve(modelId, "code").catch(() => null);
+      const result = await runVerified({ engine, request, settings: { ...settings.value, ...(applied?.settings ?? {}) } });
+      sendJson(res, 200, { model: modelId, ...result });
       return;
     }
 

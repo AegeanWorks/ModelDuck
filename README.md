@@ -328,6 +328,7 @@ GET     /api/profiles  /:id  /:id/export
 POST    /api/profiles/import
 GET     /api/presets          shipped presets and how each fits here
 POST    /api/presets/apply    apply one on request; never over a tune made here
+POST    /api/code/verify      retry until code passes your tests (local only)
 GET     /api/tune/overview  /status  /estimate  /stream
 POST    /api/tune/start  /pause  /resume  /priority  /cancel
 GET|PUT /api/tune/steps
@@ -438,6 +439,7 @@ modelduck/
 │   ├── memory-fit.js
 │   ├── model-profiles.js
 │   ├── preset-match.js
+│   ├── verified-code.js
 │   ├── tuned-settings.js
 │   ├── tune-steps.js
 │   ├── tune-scheduler.js
@@ -604,6 +606,7 @@ modelduck/
 │   ├── fifteen-push-fixes.test.js
 │   ├── preset-recipes.test.js
 │   ├── preset-match.test.js
+│   ├── verified-code.test.js
 │   ├── benchmark-history.test.js
 │   ├── benchmark-report.test.js
 │   ├── benchmark-runner.test.js

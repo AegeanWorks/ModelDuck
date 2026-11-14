@@ -24,6 +24,13 @@ network requests are model downloads you start. No telemetry.
    TruthfulQA, HumanEval, MBPP). Risk: public items may be in training data.
    Mitigation: own vs public rates split, test-hash gates, sandbox with
    `node --permission` and 5 s timeout.
+   The same sandbox runs the tests a caller sends to `POST /api/code/verify`,
+   and the model's code against them. Risk: hostile test or model code.
+   Mitigation: the route answers this computer only, even when LAN serving is
+   on with keys. Cross-site and rebound requests are refused. The sandbox has
+   no file, network, child-process or worker access, and a 5 s timeout. The
+   body is capped at 256 KB, with at most 50 cases, 8 tries and 64 KB of setup.
+   `entry` must be one identifier, and the free-form `harness` field is refused.
 7. **Runtime supplier** — `node-llama-cpp` prebuilt binaries. Risk: download
    or compile on demand. Mitigation: `build: never`, CPU fallback, GPU start
    is explicit, version attested in manifests.
