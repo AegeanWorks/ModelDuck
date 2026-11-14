@@ -30,7 +30,7 @@ variants; on a CPU that deeper review takes hours, so it is opt-in.
 The committed cross-model baselines predate suite v14. Run `npm run bench:update`
 once on the target machine before using the cross-model gate as a regression
 check. The tuned-profile gate compares against the committed
-`baseline-profiles.json` (suite v18, tuner v10). If that file is missing,
+`baseline-profiles.json` (suite v18, tuner v11). If that file is missing,
 `npm run tune:gate` exits with `tune_baseline_missing` rather than comparing;
 `npm run tune:gate -- --update-baseline` replaces it deliberately. To re-measure an
 already tuned profile rather than retune from scratch, add

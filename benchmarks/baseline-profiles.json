@@ -1,11 +1,11 @@
 {
   "schema": 2,
-  "tunerVersion": 10,
+  "tunerVersion": 11,
   "suiteVersion": 18,
   "taskHash": "605fa46013e915d5",
   "nodeLlamaCpp": "3.22.2",
-  "createdAt": "2026-11-13T10:26:48.893Z",
-  "note": "Deliberate baseline update: tuned task presets were re-measured from C:/Users/Yunus-Emre/.modelduck; missing profiles were measured as defaults. Do not replace this to make a change pass.",
+  "createdAt": "2026-11-14T21:18:19.211Z",
+  "note": "Deliberate baseline update: each core model was re-tuned by tune:gate --update-baseline. Do not replace this to make a change pass.",
   "models": {
     "smollm2-135m-instruct-q4": {
       "load": {
@@ -13,7 +13,7 @@
         "flashAttention": "auto",
         "useMmap": "auto",
         "batchSize": 512,
-        "threads": 12,
+        "threads": 8,
         "gpuLayers": "max",
         "gpuBackend": "vulkan"
       },
@@ -34,7 +34,7 @@
           },
           "rate": 10.4,
           "items": 48,
-          "latencyMs": 1072,
+          "latencyMs": 549.5,
           "outcomes": {
             "javascript": 0,
             "bug-sum-to": 0,
@@ -101,7 +101,7 @@
           },
           "rate": 0,
           "items": 48,
-          "latencyMs": 496,
+          "latencyMs": 275,
           "outcomes": {
             "read-sumTo-1": 0,
             "read-clamp-1": 0,
@@ -168,7 +168,7 @@
           },
           "rate": 19.6,
           "items": 46,
-          "latencyMs": 295,
+          "latencyMs": 155.5,
           "outcomes": {
             "needle": 1,
             "recall-locker-first": 0,
@@ -230,7 +230,7 @@
         "flashAttention": "auto",
         "useMmap": "auto",
         "batchSize": 512,
-        "threads": 12,
+        "threads": 8,
         "gpuLayers": "max",
         "gpuBackend": "vulkan"
       },
@@ -251,7 +251,7 @@
           },
           "rate": 35.4,
           "items": 48,
-          "latencyMs": 361.5,
+          "latencyMs": 264,
           "outcomes": {
             "javascript": 1,
             "bug-sum-to": 1,
@@ -318,7 +318,7 @@
           },
           "rate": 46.5,
           "items": 48,
-          "latencyMs": 97,
+          "latencyMs": 52,
           "outcomes": {
             "read-sumTo-1": 1,
             "read-clamp-1": 1,
@@ -385,7 +385,7 @@
           },
           "rate": 35.5,
           "items": 46,
-          "latencyMs": 144.5,
+          "latencyMs": 96,
           "outcomes": {
             "needle": 1,
             "recall-locker-first": 1,
@@ -447,7 +447,7 @@
         "flashAttention": "auto",
         "useMmap": "auto",
         "batchSize": 512,
-        "threads": 12,
+        "threads": 8,
         "gpuLayers": "max",
         "gpuBackend": "vulkan"
       },
@@ -468,7 +468,7 @@
           },
           "rate": 54.2,
           "items": 48,
-          "latencyMs": 577,
+          "latencyMs": 529.5,
           "outcomes": {
             "javascript": 1,
             "bug-sum-to": 1,
@@ -522,20 +522,20 @@
         },
         "comprehension": {
           "settings": {
-            "temperature": 0.7,
+            "temperature": 0,
             "minP": 0.05,
             "topP": 0.9,
             "maxTokens": 512,
             "repeatPenalty": 1.1,
             "penalizeNewLine": true,
             "topK": 40,
-            "systemPrompt": "Follow the requested output format exactly.",
+            "systemPrompt": "You are a precise assistant. Follow the requested output format exactly. Do not explain unless the user asks for an explanation.",
             "reasoning": "off",
             "promptRepeat": 1
           },
           "rate": 79.2,
           "items": 48,
-          "latencyMs": 123,
+          "latencyMs": 78,
           "outcomes": {
             "read-sumTo-1": 1,
             "read-clamp-1": 1,
@@ -550,11 +550,11 @@
             "read-fib-1": 1,
             "read-isPrime-1": 1,
             "read-reverseDigits-1": 1,
-            "read-countWords-1": 0,
+            "read-countWords-1": 1,
             "read-longestWord-1": 1,
             "read-initials-1": 1,
             "read-power-1": 1,
-            "read-posMod-1": 1,
+            "read-posMod-1": 0,
             "read-absDiff-1": 1,
             "read-rangeLen-1": 1,
             "read-trimEdges-1": 1,
@@ -573,9 +573,9 @@
             "read-lcm-2": 0,
             "read-fib-2": 0,
             "read-isPrime-2": 1,
-            "read-reverseDigits-2": 0,
+            "read-reverseDigits-2": 1,
             "read-countWords-2": 0,
-            "read-longestWord-2": 1,
+            "read-longestWord-2": 0,
             "read-initials-2": 1,
             "read-power-2": 1,
             "read-posMod-2": 0,
@@ -589,7 +589,7 @@
         },
         "recall": {
           "settings": {
-            "temperature": 0.7,
+            "temperature": 0,
             "minP": 0.05,
             "topP": 0.9,
             "maxTokens": 512,
@@ -598,11 +598,11 @@
             "topK": 40,
             "systemPrompt": "You are a precise assistant. Follow the requested output format exactly. Do not explain unless the user asks for an explanation.",
             "reasoning": "off",
-            "promptRepeat": 2
+            "promptRepeat": 1
           },
-          "rate": 55.8,
+          "rate": 50,
           "items": 46,
-          "latencyMs": 360.5,
+          "latencyMs": 169,
           "outcomes": {
             "needle": 1,
             "recall-locker-first": 1,
@@ -624,10 +624,10 @@
             "recall-v10-pin-20-10": 1,
             "recall-v10-pin-50-0": 1,
             "context-v12-cross-ref-3": 1,
-            "recall-v10-pin-50-3": 1,
-            "recall-v10-pin-50-10": 1,
+            "recall-v10-pin-50-3": 0,
+            "recall-v10-pin-50-10": 0,
             "recall-v10-pin-80-0": 1,
-            "recall-v10-pin-80-3": 1,
+            "recall-v10-pin-80-3": 0,
             "recall-v10-pin-80-10": 0,
             "recall-v10-holder-30-10": 1,
             "recall-v10-holder-30-40": 1,
@@ -638,7 +638,7 @@
             "recall-v10-status-0": 0,
             "recall-v10-status-1": 0,
             "recall-v10-status-3": 0,
-            "recall-v10-status-4": 0,
+            "recall-v10-status-4": 1,
             "recall-v10-status-5": 0,
             "recall-v10-status-7": 0,
             "recall-v10-sum-24": 0,
@@ -646,7 +646,7 @@
             "recall-v10-sum-60": 0,
             "recall-v10-sum-72": 0,
             "recall-v10-sum-84": 0,
-            "recall-v10-count-16": 0,
+            "recall-v10-count-16": 1,
             "recall-v10-count-20": 0,
             "recall-v10-count-24": 0,
             "recall-v10-count-32": 0
