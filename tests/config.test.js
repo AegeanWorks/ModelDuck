@@ -10,6 +10,7 @@ import {
   applyPreset,
   defaultGenerationThreads,
   defaultThreads,
+  hasSmt,
   normalizeSettings,
   parseArgs,
   resolvePaths,
@@ -19,15 +20,33 @@ import {
 // 3.9 tok/s at 15 threads and 28.8 at 8; Qwen2.5 0.5B 47.7 and 83.7. Threads on
 // every logical core contend; half of them is the default.
 test("generation uses half the logical cores by default; the thread pool keeps all but one", () => {
-  assert.equal(defaultGenerationThreads(16), 8);
-  assert.equal(defaultGenerationThreads(8), 4);
-  assert.equal(defaultGenerationThreads(4), 2);
-  assert.equal(defaultGenerationThreads(3), 1);
-  assert.equal(defaultGenerationThreads(1), 1);
-  assert.equal(defaultGenerationThreads(200), 64, "never above the engine's cap");
+  assert.equal(defaultGenerationThreads(16, true), 8);
+  assert.equal(defaultGenerationThreads(8, true), 4);
+  assert.equal(defaultGenerationThreads(4, true), 2);
+  assert.equal(defaultGenerationThreads(3, true), 1);
+  assert.equal(defaultGenerationThreads(1, true), 1);
+  assert.equal(defaultGenerationThreads(200, true), 64, "never above the engine's cap");
   assert.equal(DEFAULT_SETTINGS.threads, defaultGenerationThreads());
   assert.equal(DEFAULT_SETTINGS.maxThreads, defaultThreads(), "the pool cap is unchanged");
   assert.ok(DEFAULT_SETTINGS.threads <= DEFAULT_SETTINGS.maxThreads);
+});
+
+// Halving helps only when two logical cores share one physical core. Without SMT,
+// half the logical cores is half the machine, so those CPUs keep all cores but one.
+test("without SMT the default keeps all logical cores but one", () => {
+  assert.equal(defaultGenerationThreads(8, false), 7, "an 8-core Apple or ARM chip is not halved to 4");
+  assert.equal(defaultGenerationThreads(1, false), 1);
+  assert.equal(defaultGenerationThreads(200, false), 64);
+});
+
+test("SMT is detected from the architecture and, on Linux, from /proc/cpuinfo", () => {
+  const block = (siblings, cores) => `processor\t: 0\nvendor_id\t: GenuineIntel\nsiblings\t: ${siblings}\ncpu cores\t: ${cores}\n\nprocessor\t: 1\n`;
+  assert.equal(hasSmt({ platform: "darwin", arch: "arm64" }), false, "Apple Silicon has no SMT");
+  assert.equal(hasSmt({ platform: "linux", arch: "arm64", cpuinfo: "" }), false, "ARM cores have no SMT");
+  assert.equal(hasSmt({ platform: "linux", arch: "x64", cpuinfo: block(16, 10) }), true, "16 threads on 10 cores");
+  assert.equal(hasSmt({ platform: "linux", arch: "x64", cpuinfo: block(6, 6) }), false, "6 threads on 6 cores");
+  assert.equal(hasSmt({ platform: "linux", arch: "x64", cpuinfo: null }), true, "unreadable: keep the measured default");
+  assert.equal(hasSmt({ platform: "win32", arch: "x64" }), true, "no cheap source on Windows: keep the measured default");
 });
 
 test("parseArgs uses loopback defaults", () => {

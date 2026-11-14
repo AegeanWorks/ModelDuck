@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
@@ -19,15 +20,44 @@ export function defaultThreads() {
   return Math.max(1, logicalCores() - 1);
 }
 
+function readCpuinfo() {
+  try {
+    return fs.readFileSync("/proc/cpuinfo", "utf8");
+  } catch {
+    return null;
+  }
+}
+
 /**
- * Threads one generation uses when nothing was tuned: half the logical cores.
- * Running on every logical core makes the threads contend for the physical
- * ones. Measured on an i5-14400F (10 cores, 16 logical), CPU only: Qwen2.5
- * Coder 1.5B ran 3.9 tok/s at 15 threads and 28.8 at 8; Qwen2.5 0.5B ran
- * 47.7 and 83.7. A tune's Speed stage still picks the best count per machine.
+ * Whether two logical cores share a physical one. ARM cores (Apple Silicon
+ * included) have no SMT. On Linux x86, /proc/cpuinfo gives `siblings`
+ * (logical per package) and `cpu cores` (physical per package). Elsewhere
+ * there is no cheap source without a subprocess, so SMT is assumed: that is
+ * the measured case and keeps its default.
  */
-export function defaultGenerationThreads(cores = logicalCores()) {
-  return Math.max(1, Math.min(64, Math.floor(Number(cores) / 2) || 1));
+export function hasSmt({ platform = process.platform, arch = process.arch, cpuinfo } = {}) {
+  if (arch === "arm" || arch === "arm64") return false;
+  if (platform !== "linux") return true;
+  const text = cpuinfo === undefined ? readCpuinfo() : cpuinfo;
+  const field = (name) => Number(new RegExp(`^${name}\\s*:\\s*(\\d+)`, "m").exec(text ?? "")?.[1]);
+  const siblings = field("siblings");
+  const cores = field("cpu cores");
+  return siblings > 0 && cores > 0 ? siblings > cores : true;
+}
+
+/**
+ * Threads one generation uses when nothing was tuned. With SMT, half the
+ * logical cores: running on every logical core makes the threads contend for
+ * the physical ones. Measured on an i5-14400F (10 cores, 16 logical), CPU
+ * only: Qwen2.5 Coder 1.5B ran 3.9 tok/s at 15 threads and 28.8 at 8;
+ * Qwen2.5 0.5B ran 47.7 and 83.7. Without SMT, halving would idle half the
+ * machine, so those CPUs keep the earlier all-but-one (unmeasured either way).
+ * A tune's Speed stage still picks the best count per machine.
+ */
+export function defaultGenerationThreads(cores = logicalCores(), smt = hasSmt()) {
+  const count = Number(cores);
+  const threads = smt ? Math.floor(count / 2) : count - 1;
+  return Math.max(1, Math.min(64, threads || 1));
 }
 
 export const DEFAULT_SETTINGS = Object.freeze({
