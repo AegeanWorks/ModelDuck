@@ -1,64 +1,18 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "mcp-verified",
+    "task_id": "prompt-opt-in",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794695248.98425,
+    "updated_at": 1794697560.1622324,
     "owner": "kiro:1",
     "started_by": "kiro:1",
     "continuations": [],
-    "completed_at": 1794695249.4175284,
-    "completed_head": "0b48662daaf05a5df0bdd6ea2b8332a12ff61f42"
+    "completed_at": 1794697560.4334166,
+    "completed_head": "ea62192b29d8068e34a24a38ba744811ae55fe3b"
   },
   "checkpoints": [
-    {
-      "task_id": "answer-reuse-readme",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "Docs only",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794685562.2583294,
-      "timestamp_str": "2026-11-14 22:46:02",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "answer-reuse-readme",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'answer-reuse-readme' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794685562.5326505,
-      "timestamp_str": "2026-11-14 22:46:02",
-      "agent": "kiro:1",
-      "delivery": {
-        "roots": [
-          "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck"
-        ],
-        "forced": false
-      }
-    },
-    {
-      "task_id": "restore-merge",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/1] Fix: Measurements.restore was first-wins per slot; with threads out of the key (ADR-123) a v11 group at 8 threads blocked the v10 group at 12, so 528 saved SmolLM2 answers were re-asked live",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794687897.2784657,
-      "timestamp_str": "2026-11-14 23:24:57",
-      "agent": "kiro:1",
-      "impact_assessment": {
-        "why": "The v11 re-baseline re-asked answers it should replay",
-        "benefits": "every saved group adds the items its slot lacks; a re-baseline replays them",
-        "risks": "contract: restore returns true when it added any item; dependency: none; concurrency: none; state: a saved item never replaces one already in the slot, fresh or restored",
-        "mitigation": "failing-first test; full suite; tune:gate 9/9 unchanged"
-      },
-      "plan_digest": "6761b57799927a6c94396c18d3f5e902f508ce84b4696f35c4e8ab4d650bc7ee"
-    },
     {
       "task_id": "restore-merge",
       "phase": "in_progress",
@@ -302,6 +256,52 @@
       "status": "completed",
       "timestamp": 1794695249.4513001,
       "timestamp_str": "2026-11-15 01:27:29",
+      "agent": "kiro:1",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
+    },
+    {
+      "task_id": "prompt-opt-in",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/1] Plan (item 2): the Tune panel's Prompt stage is opt-in (unticked by default) with a note; failing-first ui-shell test; UI task begin/verify/finish with a screenshot review; ADR-127",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794695381.236906,
+      "timestamp_str": "2026-11-15 01:29:41",
+      "agent": "kiro:1",
+      "impact_assessment": {
+        "why": "Under tuner v11 the prompt stage chose the defaults in all 9 core model-task cases, and it is 55% of a full tune's answers (18,714 to 8,412)",
+        "benefits": "A default tune takes about half the answers and keeps every measured gain (device, KV, speed, greedy code sampling)",
+        "risks": "contract: the Tune form's default stage set changes; API and CLI defaults unchanged; dependency: none; concurrency: none; state: none",
+        "mitigation": "the stage stays one click away; the note says what it costs and what it found; failing-first test; UI review"
+      },
+      "plan_digest": "dc9e071ef44555ad09338957c9fa9c17e3e74531dcf04bd3e21db136a5baaf1c"
+    },
+    {
+      "task_id": "prompt-opt-in",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "872/873 pass, 1 skipped; failing-first ui-shell test; ui:smoke OK; screenshot reviewed; README and ADR-127",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794697560.1622324,
+      "timestamp_str": "2026-11-15 02:06:00",
+      "agent": "kiro:1",
+      "checklists": "passed"
+    },
+    {
+      "task_id": "prompt-opt-in",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'prompt-opt-in' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794697560.4637685,
+      "timestamp_str": "2026-11-15 02:06:00",
       "agent": "kiro:1",
       "delivery": {
         "roots": [
