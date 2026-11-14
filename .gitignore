@@ -42,3 +42,6 @@ secrets.*
 .aws/
 .gcloud/
 .azure/
+
+# Reforge review packets: bulky diffs of every audited commit; the run state (.aikit/reforge.json) is what stays
+.aikit/reforge.reviews/

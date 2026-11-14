@@ -13,200 +13,6 @@
   },
   "checkpoints": [
     {
-      "task_id": "review-fixes-b",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/6] Plan (review reports/modelduck-review-unpushed.md, Task B): M1 docs truth: network denial only on Node 25+, Node 20+ still runs tuning, verify needs 25+, threat model adds generation time, request limit and same-host proxy caveat, JUDGES gains verified code, test counts, escalate has no correction across sweeps, --parallel needs a separate device run. M2 threads: halve only on SMT CPUs (ARM and Linux without siblings>cores keep logical-1). M3 answer rows tagged with the call's real width. M4 parallel probe: more items, one sampled, alternating order. M5 escalate recorded in profile identity, escalation b/c fields unswapped, narrowed registry scan keeps other models' overrides. M6 tests: config dead assertions load the older store, settings-reload polls instead of fixed sleeps.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794649640.0928237,
-      "timestamp_str": "2026-11-14 12:47:20",
-      "agent": "kiro:1",
-      "impact_assessment": {
-        "why": "Verified review findings 7,8,15,17-22,24 remain after Task A",
-        "benefits": "Docs match behaviour; no thread regression on non-SMT CPUs; serial tunes reuse serial answers; parallel verdicts on more evidence; escalated winners identifiable; fewer flaky tests",
-        "risks": "contract: tune answer cache keys (width tag) and profile search identity change, so cached rows or saved profiles may re-measure; dependency: none; concurrency: parallel probe order; state: profile fingerprint and answer rows",
-        "mitigation": "failing-first tests per finding, tune:gate before committing generation-path changes (M2-M4), identity changes documented in CHANGELOG and ADRs"
-      },
-      "plan_digest": "ebe24f819bc0f869a0849273f9053d523df0150bb48a31f19abec8a7d9e1ab75"
-    },
-    {
-      "task_id": "review-fixes-b",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/6] M1 docs: network denial only Node 25+, verify needs 25+, threat model limits and same-host proxy caveat, JUDGES verified code + counts, escalate multiplicity note, --parallel 1-4.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794649767.6645238,
-      "timestamp_str": "2026-11-14 12:49:27",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "review-fixes-b",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/6] M2 threads: hasSmt (ARM no, Linux cpuinfo, else assume yes); no-SMT keeps logical-1. 3 failing-first tests pass, 804 pass, tune:gate 9/9 b=0 c=0 on 252 fresh answers.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794650112.575624,
-      "timestamp_str": "2026-11-14 12:55:12",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "review-fixes-b",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/6] M3 width tags: answers carry the call's width, rows tag call and tune width, serial tunes reuse every serial row. 3 failing-first tests pass, 807 pass, tune:gate 9/9 b=0 c=0.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794650380.130214,
-      "timestamp_str": "2026-11-14 12:59:40",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "review-fixes-b",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[5/6] M4 parallel probe: 8 items, greedy + sampled (T=0.7) passes, alternating order, summed timing. 3 failing-first tests pass, 810 pass, tune:gate 9/9 b=0 c=0.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794650648.6948638,
-      "timestamp_str": "2026-11-14 13:04:08",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "review-fixes-b",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[6/6] M5 escalated axes per task in profiles, b/c verified correct (comment), narrowed scan keeps others' cache and overrides; M6 config test loads both stores, settings-reload polls. 812 pass, tune:gate 9/9 b=0 c=0.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794650971.888765,
-      "timestamp_str": "2026-11-14 13:09:31",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "review-fixes-b",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'review-fixes-b' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794651018.1219869,
-      "timestamp_str": "2026-11-14 13:10:18",
-      "agent": "kiro:1",
-      "delivery": {
-        "roots": [
-          "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck"
-        ],
-        "forced": false
-      }
-    },
-    {
-      "task_id": "followups-c",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/2] Plan: M1 verify-route tests state their Node version, so npm test passes on Node 20-24 (the route refuses below 25 since Task A). M2 perf and advisor scripts (review finding 23): times recorded in ms but formatted as s (1000x), main() runs on import, advisor imports names that do not exist, AI-powered wording describes fixed thresholds; fix units, add main guards and exports, plain wording, a test and npm scripts.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794651397.1814232,
-      "timestamp_str": "2026-11-14 13:16:37",
-      "agent": "kiro:1",
-      "impact_assessment": {
-        "why": "npm test fails on the declared Node 20+ for two verify tests; perf/advisor scripts print wrong numbers and cannot be imported (review finding 23)",
-        "benefits": "Test suite passes on every supported Node; perf numbers are correct and the advisor runs",
-        "risks": "contract: perf/advisor output format changes; dependency: none; concurrency: none; state: none",
-        "mitigation": "failing-first tests for the unit and import fixes; scripts are outside the tuned suite and gate"
-      },
-      "plan_digest": "b23d47fa36be5dafee90dcd3120847dbc5f0b9b87118099f4f1c9823d0669681"
-    },
-    {
-      "task_id": "followups-c",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/3] M1 verify-route tests state Node 25 (failed with 503 at 22.13.0 first). 812 pass.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794651462.980545,
-      "timestamp_str": "2026-11-14 13:17:42",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "followups-c",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/2] M2 perf scripts: seconds via runBenchmark, throughput 1/mean, main guards and exports, BenchmarkAdvisor importable with plain wording, PERF.md, npm scripts. 4 failing-first tests pass, 816 pass.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794651838.5048256,
-      "timestamp_str": "2026-11-14 13:23:58",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "followups-c",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'followups-c' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794651865.0918794,
-      "timestamp_str": "2026-11-14 13:24:25",
-      "agent": "kiro:1",
-      "delivery": {
-        "roots": [
-          "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck"
-        ],
-        "forced": false
-      }
-    },
-    {
-      "task_id": "followups-d",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/2] Plan: M1 settings version fence: a string or non-integer version is no longer skipped (numeric strings read as numbers, others refused), refusals are AppErrors with why/fix. M2 test clarity: tune-budget test stops assigning measurements internals, the verified-code 'no try passes' runner no longer reads the engine's request count.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794652057.2162502,
-      "timestamp_str": "2026-11-14 13:27:37",
-      "agent": "kiro:1",
-      "impact_assessment": {
-        "why": "Review pre-session findings: the downgrade fence skips string/non-integer versions and prints a bare message; two tests are coupled to internals or hard to follow",
-        "benefits": "A newer or damaged settings file is refused with a Why/Fix instead of being half-read; tests that survive refactors",
-        "risks": "contract: a settings file with a malformed version is now refused at startup instead of loaded; dependency: none; concurrency: none; state: settings file untouched on refusal",
-        "mitigation": "failing-first tests; numeric strings still load; the refusal names the file and the fix"
-      },
-      "plan_digest": "9ae78b15362145d406b54dfdada4601307b055102449afee08870cde776aa75b"
-    },
-    {
-      "task_id": "followups-d",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/3] M1 settings fence refuses unreadable/newer versions with why/fix (end-to-end startup checked), BOM state files read. 2 failing-first tests pass, 818 pass.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794652242.898326,
-      "timestamp_str": "2026-11-14 13:30:42",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "followups-d",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/3] M2 tests: tune-budget resumes through onAnswers + restore() instead of sharing slots; verified-code no-pass test uses a distinct half-right answer. 818 pass.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794652324.2018278,
-      "timestamp_str": "2026-11-14 13:32:04",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
-    {
       "task_id": "review-fixes-e",
       "phase": "in_progress",
       "phase_num": 2,
@@ -223,16 +29,6 @@
         "mitigation": "re-judge saved answers before and after (800-answer check from ADR-108), tune:gate after the judge change, failing-first tests for each reproduced hole"
       },
       "plan_digest": "050b262af1bfe7cf9a0bb88b3b5565b4577e09f17c1a2afa0e6c08c70333fbf1"
-    },
-    {
-      "task_id": "followups-d",
-      "phase": "superseded",
-      "phase_num": 4,
-      "description": "Superseded by 'review-fixes-e' without --complete or --reset",
-      "status": "superseded",
-      "timestamp": 1794653243.9317503,
-      "timestamp_str": "2026-11-14 13:47:23",
-      "agent": "kiro:1"
     },
     {
       "task_id": "review-fixes-e",
@@ -285,6 +81,171 @@
         ],
         "forced": false
       }
+    },
+    {
+      "task_id": "reforge:run-1",
+      "phase": "reforge stage 1",
+      "phase_num": 3,
+      "description": "Reforge stage 1: stage 1 host review reviewed; run active; coverage 6/6",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794656900.7696607,
+      "timestamp_str": "2026-11-14 14:48:20",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "reforge:run-1",
+      "phase": "reforge stage 2",
+      "phase_num": 3,
+      "description": "Reforge stage 2: window 6, 3 commit(s), 11 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794656955.3982906,
+      "timestamp_str": "2026-11-14 14:49:15",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "reforge:run-1",
+      "phase": "reforge stage 2",
+      "phase_num": 3,
+      "description": "Reforge stage 2: stage 2 host review reviewed; run active; coverage 18/18",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794658213.6601622,
+      "timestamp_str": "2026-11-14 15:10:13",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "reforge:run-1",
+      "phase": "reforge stage 3",
+      "phase_num": 3,
+      "description": "Reforge stage 3: window 9, 3 commit(s), 4 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794658235.8756096,
+      "timestamp_str": "2026-11-14 15:10:35",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "reforge:run-1",
+      "phase": "reforge stage 3",
+      "phase_num": 3,
+      "description": "Reforge stage 3: stage 3 host review reviewed; run active; coverage 4/4",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794658250.7439773,
+      "timestamp_str": "2026-11-14 15:10:50",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "reforge:run-1",
+      "phase": "reforge stage 4",
+      "phase_num": 3,
+      "description": "Reforge stage 4: window 12, 3 commit(s), 14 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794658261.8095064,
+      "timestamp_str": "2026-11-14 15:11:01",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "reforge:run-1",
+      "phase": "reforge stage 4",
+      "phase_num": 3,
+      "description": "Reforge stage 4: stage 4 host review reviewed; run active; coverage 29/29",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794658481.6747406,
+      "timestamp_str": "2026-11-14 15:14:41",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "reforge:run-1",
+      "phase": "reforge stage 5",
+      "phase_num": 3,
+      "description": "Reforge stage 5: window 15, 3 commit(s), 3 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794658496.339574,
+      "timestamp_str": "2026-11-14 15:14:56",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "reforge:run-1",
+      "phase": "reforge stage 5",
+      "phase_num": 3,
+      "description": "Reforge stage 5: stage 5 host review reviewed; run active; coverage 4/4",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794658511.057282,
+      "timestamp_str": "2026-11-14 15:15:11",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "reforge:run-1",
+      "phase": "reforge stage 6",
+      "phase_num": 3,
+      "description": "Reforge stage 6: window 18, 3 commit(s), 11 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794658515.6981218,
+      "timestamp_str": "2026-11-14 15:15:15",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "reforge:run-1",
+      "phase": "reforge stage 6",
+      "phase_num": 3,
+      "description": "Reforge stage 6: stage 6 host review reviewed; run active; coverage 21/21",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794658581.2970512,
+      "timestamp_str": "2026-11-14 15:16:21",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "reforge:run-1",
+      "phase": "reforge stage 7",
+      "phase_num": 3,
+      "description": "Reforge stage 7: window 21, 3 commit(s), 10 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794658594.8254704,
+      "timestamp_str": "2026-11-14 15:16:34",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "reforge:run-1",
+      "phase": "reforge stage 7",
+      "phase_num": 3,
+      "description": "Reforge stage 7: stage 7 host review reviewed; run active; coverage 21/21",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794658690.0913954,
+      "timestamp_str": "2026-11-14 15:18:10",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "reforge:run-1",
+      "phase": "reforge stage 8",
+      "phase_num": 3,
+      "description": "Reforge stage 8: window 24, 3 commit(s), 7 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794658701.546491,
+      "timestamp_str": "2026-11-14 15:18:21",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "reforge:run-1",
+      "phase": "reforge stage 8",
+      "phase_num": 3,
+      "description": "Reforge stage 8: stage 8 host review reviewed; run active; coverage 15/15",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794658744.2095466,
+      "timestamp_str": "2026-11-14 15:19:04",
+      "agent": "unidentified"
     }
   ]
 }
