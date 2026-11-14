@@ -18,6 +18,60 @@ function stdev(values) {
 /** Stable identity of one settings object; shared by the measurement cache and the gate answer cache (IDEA-1764). */
 export const settingsKey = (settings) => JSON.stringify(Object.keys(settings).sort().map((key) => [key, settings[key]]));
 
+/**
+ * Whether the thread count can change an answer's text. With every layer on
+ * the GPU the CPU threads only schedule work: 2,124 of 2,125 stored answers
+ * came out identical at 12 and at 8 threads (ADR-123). A timed call is still
+ * keyed on threads, because threads is what it times; on the CPU the thread
+ * count changes the numerics, so it stays in the key there too.
+ */
+export const threadsShapeText = (settings) =>
+  settings.timed === true || settings.gpuLayers !== "max" || !settings.gpuBackend || settings.gpuBackend === "cpu";
+
+/** The measurement cache's slot key for one settings object and seed. */
+export function slotKeyOf(settings, seed) {
+  if (threadsShapeText(settings) || !("threads" in settings)) return `${settingsKey(settings)}|${seed}`;
+  const { threads: _threads, ...rest } = settings;
+  return `${settingsKey(rest)}|${seed}`;
+}
+
+/** Live re-asks per spot-check before saved answers are reused (ADR-123). */
+export const VERIFY_SAMPLE = 8;
+
+/**
+ * Before saved answers are reused, re-ask a few of them live (ADR-123). The
+ * identity filters cannot see every code change that frames an answer, so the
+ * check asks the model directly: any text difference refuses the whole reuse
+ * and the tune measures everything. Timed rows are never the evidence. Where
+ * threads are left out of the key, every other probe runs at another thread
+ * count, so the check also tests that assumption.
+ */
+export async function verifyRestore(groups, evaluate, { sample = VERIFY_SAMPLE } = {}) {
+  const candidates = [];
+  for (const group of groups ?? []) {
+    if (!group?.settings || group.settings.timed === true) continue;
+    for (const row of group.rows ?? []) {
+      if (typeof row?.text === "string" && (row.item ?? row.id) !== undefined) candidates.push({ group, row });
+    }
+  }
+  if (!candidates.length) return { ok: true, checked: 0, mismatched: [] };
+  const count = Math.min(sample, candidates.length);
+  // Evenly spread over the saved answers, so the check is not one settings group.
+  const picked = Array.from({ length: count }, (_, index) => candidates[Math.floor(((index + 0.5) * candidates.length) / count)]);
+  const mismatched = [];
+  for (const [index, { group, row }] of picked.entries()) {
+    const id = row.item ?? row.id;
+    let settings = group.settings;
+    if (index % 2 === 1 && !threadsShapeText(settings) && Number.isFinite(settings.threads)) {
+      settings = { ...settings, threads: settings.threads > 1 ? Math.max(1, Math.floor(settings.threads / 2)) : 2 };
+    }
+    const out = await evaluate(settings, [id], group.seed);
+    const live = out?.prompts?.[0];
+    if (!live || live.text !== row.text || live.passed !== row.passed) mismatched.push(id);
+  }
+  return { ok: mismatched.length === 0, checked: count, mismatched };
+}
+
 /** Fixed-budget quota default: no cap unless the caller sets one (IDEA-1580). */
 export const QUOTA_DEFAULT = Infinity;
 
@@ -77,7 +131,7 @@ export class Measurements {
    * false when the slot already has measurements (fresh answers win).
    */
   restore(settings, seed, rows) {
-    const slotKey = `${settingsKey(settings)}|${seed}`;
+    const slotKey = slotKeyOf(settings, seed);
     if (this.slots.has(slotKey)) return false;
     this.slots.set(slotKey, {
       items: new Map(rows.map((row) => [row.item ?? row.id, { ...row, id: row.item ?? row.id }])),
@@ -88,7 +142,7 @@ export class Measurements {
   }
 
   async measure(settings, itemIds, seed) {
-    const slotKey = `${settingsKey(settings)}|${seed}`;
+    const slotKey = slotKeyOf(settings, seed);
     if (!this.slots.has(slotKey)) this.slots.set(slotKey, { items: new Map(), memoryBytes: undefined, gpuVram: undefined });
     const slot = this.slots.get(slotKey);
     const missing = itemIds.filter((id) => !slot.items.has(id));

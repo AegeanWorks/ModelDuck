@@ -232,16 +232,25 @@ const OUTCOME_FINGERPRINT_KEYS = Object.freeze(["suiteVersion", "taskHash", "nod
  * settings and seed. A continue or re-tune reuses these instead of re-asking;
  * `answers.jsonl` already holds settings, seed and item for every answer.
  */
+// What an answer depends on (ADR-123): the items, the runtime, the model file and
+// the machine. The tuner version is not here: decision rules choose among
+// answers but never change one, so a re-tune after a rule change replays them.
+const ANSWER_FINGERPRINT_KEYS = Object.freeze(["suiteVersion", "taskHash", "nodeLlamaCpp", "modelFile", "modelSize", "cpu", "platform", "arch"]);
+
 export async function cachedAnswers(dir, { profileId, fingerprint = null, limitRuns = 3, limitRows = 20000, parallel = 1 } = {}) {
-  const FINGERPRINT_KEYS = ["suiteVersion", "taskHash", "nodeLlamaCpp", "tunerVersion"];
-  const names = await fs.promises.readdir(dir).catch(() => []);
+  const dirs = (Array.isArray(dir) ? dir : [dir]).filter(Boolean);
   const runs = [];
-  for (const name of names.filter((item) => item.endsWith(".json"))) {
-    const record = await readJsonWithQuarantine(path.join(dir, name), null, { logger: quiet });
-    if (record?.schema !== RUN_SCHEMA) continue;
-    if (profileId && record.profileId !== profileId) continue;
-    if (fingerprint && FINGERPRINT_KEYS.some((key) => record.fingerprint?.[key] !== fingerprint[key])) continue;
-    runs.push({ name: name.slice(0, -5), startedAt: record.startedAt ?? "" });
+  for (const folder of dirs) {
+    const names = await fs.promises.readdir(folder).catch(() => []);
+    for (const name of names.filter((item) => item.endsWith(".json"))) {
+      const record = await readJsonWithQuarantine(path.join(folder, name), null, { logger: quiet });
+      if (record?.schema !== RUN_SCHEMA) continue;
+      if (profileId && record.profileId !== profileId) continue;
+      if (fingerprint && ANSWER_FINGERPRINT_KEYS.some((key) => record.fingerprint?.[key] !== fingerprint[key])) continue;
+      // Timings are tuner-specific evidence: a speed choice must not be made on another version's clock.
+      const otherTuner = Boolean(fingerprint) && record.fingerprint?.tunerVersion !== fingerprint.tunerVersion;
+      runs.push({ folder, name: name.slice(0, -5), startedAt: record.startedAt ?? "", otherTuner });
+    }
   }
   runs.sort((left, right) => (left.startedAt < right.startedAt ? 1 : -1));
   const groups = new Map();
@@ -249,7 +258,7 @@ export async function cachedAnswers(dir, { profileId, fingerprint = null, limitR
   for (const run of runs.slice(0, limitRuns)) {
     let file;
     try {
-      file = answersFile(dir, run.name);
+      file = answersFile(run.folder, run.name);
     } catch {
       continue;
     }
@@ -263,6 +272,7 @@ export async function cachedAnswers(dir, { profileId, fingerprint = null, limitR
           continue;
         }
         if (!row || !row.item || row.error) continue;
+        if (run.otherTuner && row.settings?.timed === true) continue;
         // Answers made at another width are another world: batching can change the numerics.
         // `parallel` is the width the call ran at (no tag: serial) and `tuneParallel` the tune's
         // (older rows have only `parallel`, set to the tune's width). A serial tune reuses every

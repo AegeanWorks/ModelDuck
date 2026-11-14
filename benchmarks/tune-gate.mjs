@@ -22,7 +22,7 @@ const BASELINE = path.join(HERE, "baseline-profiles.json");
 const LATEST = path.join(HERE, "results", "latest-tune-gate.json");
 const TASK_IDS = TASKS.map((task) => task.id);
 
-const USAGE = `Usage: npm run tune:gate [-- --update-baseline [--models <ids>] [--passes <n>] [--from-profile <home>]] [--models-dir <dir>] [--max-runs <n>] [--fresh]
+const USAGE = `Usage: npm run tune:gate [-- --update-baseline [--models <ids>] [--passes <n>] [--from-profile <home> | --reuse-from <home>]] [--models-dir <dir>] [--max-runs <n>] [--fresh]
 
 Re-measures each core model's baseline settings per task and fails when a task's
 pass rate drops by more than one item (G-001). --update-baseline re-tunes the
@@ -30,7 +30,10 @@ three core models and replaces benchmarks/baseline-profiles.json deliberately (G
 --models (comma-separated core model ids) tunes only those, and --passes limits the
 descent's passes, for a quicker baseline. --from-profile <home> uses the already
 measured profiles/<model>.json from that home instead of tuning; a missing profile
-is measured as the app defaults. The gate checks the models the baseline has.
+is measured as the app defaults. --reuse-from <home> re-tunes but replays answers
+saved in <home>/tune-runs for the same model, items, runtime and machine (any
+tuner version; timed answers only from the same one), after re-asking a few
+live; one difference turns reuse off. The gate checks the models the baseline has.
 Cached answers: identical settings/seed/item rows from the last gate are reused
 when the answer world is unchanged (suite, tasks, tuner, model, runtime, hardware
 and the answer-side file contents: the engine closure and prompt/settings
@@ -55,6 +58,7 @@ function parseArgs(argv) {
     else if (arg === "--models-parallel") options.modelsParallel = Math.max(1, Math.round(Number(argv[++index])) || 1);
     else if (arg === "--fresh") options.fresh = true;
     else if (arg === "--from-profile") options.fromProfile = argv[++index];
+    else if (arg === "--reuse-from") options.reuseFrom = argv[++index];
     else throw new AppError("Unknown option", { code: "bad_option", why: `${arg} is not a tune:gate option.`, fix: USAGE });
   }
   return options;
@@ -121,7 +125,11 @@ async function updateBaseline(options, home) {
     const onEvent = (event) => {
       if (event.type === "sweep") process.stdout.write(`  ${event.stage}${event.task ? `:${event.task}` : ""} ${event.axis} -> ${JSON.stringify(event.winner)} · ${event.runs} answers\n`);
     };
-    const { profile } = await runTune(target, { tasks: TASK_IDS, force: true, maxRuns: options.maxRuns, passes: options.passes, onEvent });
+    // --reuse-from replays answers saved in another home's tune runs (ADR-123); the
+    // temp home starts empty, so without it every answer is asked again.
+    const reuseFrom = options.reuseFrom ? [path.join(options.reuseFrom, "tune-runs")] : [];
+    const onNote = (note) => process.stdout.write(`  ${note}\n`);
+    const { profile } = await runTune(target, { tasks: TASK_IDS, force: true, maxRuns: options.maxRuns, passes: options.passes, reuseFrom, onEvent, onNote });
     models[catalogId] = baselineEntry(profile, { hardware: { cpu: target.system.cpu, threads: target.system.parallelism } });
   }
   const note = options.fromProfile
@@ -288,6 +296,9 @@ async function main() {
   }
   if (options.fromProfile && !options.updateBaseline) {
     throw new AppError("Not a baseline update", { code: "bad_option", why: "--from-profile only applies with --update-baseline.", fix: USAGE });
+  }
+  if (options.reuseFrom && (!options.updateBaseline || options.fromProfile)) {
+    throw new AppError("Not a re-tuning baseline update", { code: "bad_option", why: "--reuse-from only applies with --update-baseline, and not with --from-profile (which does not tune).", fix: USAGE });
   }
   // Gate tunes never touch the user's saved profiles.
   // The temp home isolates profiles and runs, but models must keep resolving

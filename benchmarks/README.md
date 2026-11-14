@@ -37,6 +37,11 @@ already tuned profile rather than retune from scratch, add
 `--from-profile <home>`: it reads `profiles/<model>.json` from that home, checks
 the suite/runtime/tuner identity, re-measures its task presets on the fixed
 harness, and fills models without a profile from their measured defaults.
+To re-tune after a tuner change without re-asking every answer, add
+`--reuse-from <home>` instead: the tune replays answers saved in
+`<home>/tune-runs` for the same model, items, runtime and machine, from any
+tuner version (timed answers only from the same one). It first re-asks 8 of
+them live, and any difference turns reuse off for that run (ADR-123).
 Every measurement records host RAM and GPU VRAM; a memory tie-break uses their
 sum, so a Vulkan preset is not ranked by its small host slice alone.
 `npm run tune -- ... --full-final` scores each final preset on every task item

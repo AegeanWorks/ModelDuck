@@ -19,6 +19,7 @@ import { budgetDeadline } from "./tune-budget.mjs";
 import { summarizeFailures } from "./tune-failures.mjs";
 import { PROBE_ITEMS, chooseParallel, probeItemIds, probeParallel } from "./tune-parallel.mjs";
 import { createPhaseTimer } from "./tune-timing.mjs";
+import { verifyRestore } from "./tune-measure.mjs";
 
 /** One installed model, ready to tune or measure: where it is, its profile name and what it runs on. */
 export async function openTarget({ model, home, modelsDir }) {
@@ -91,7 +92,7 @@ export function answerRow(settings, seed, answer, tuneWidth = 1) {
  * The profile is saved after every finished setting, so stopping keeps what
  * was found and a later run resumes. Resolves `{ skipped, warnings, profile, result }`.
  */
-export async function runTune(target, { tasks, stages = STAGES, only = null, steps = null, force = false, continueRun = false, quick = false, guard = false, fullFinal = false, maxRuns = 0, passes = 0, parallel: requestedParallel = 1, budgetMinutes = null, escalate = false, onEvent = () => {}, onStart = () => {}, onNote = () => {} }) {
+export async function runTune(target, { tasks, stages = STAGES, only = null, steps = null, force = false, continueRun = false, quick = false, guard = false, fullFinal = false, maxRuns = 0, passes = 0, parallel: requestedParallel = 1, budgetMinutes = null, escalate = false, reuseFrom = [], onEvent = () => {}, onStart = () => {}, onNote = () => {} }) {
   const saved = force ? null : await loadProfile(target.paths.profiles, target.profileId, target.fingerprint);
   const plan = planTune(saved, tasks, stages, only, { continueRun });
   const warnings = saved?.warnings ?? [];
@@ -192,7 +193,18 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
         ? `Parallel: answering ${width} at a time in the untimed stages (${parallelInfo.probe.speedup}× faster on the probe, ${parallelInfo.probe.matched} of ${parallelInfo.probe.total} answers byte-identical). Their latency figures are concurrent, not serial; the speed stage still times one answer at a time.`
         : `Parallel: answering one at a time, because ${parallelInfo.reason}.`);
     }
-    restore = await cachedAnswers(target.paths.tuneRuns, { profileId: target.profileId, fingerprint: target.fingerprint, parallel: width }).catch(() => []);
+    restore = await cachedAnswers([target.paths.tuneRuns, ...reuseFrom], { profileId: target.profileId, fingerprint: target.fingerprint, parallel: width }).catch(() => []);
+    // Saved answers are reused only after a few are re-asked live and match (ADR-123).
+    if (restore.length) {
+      const check = await verifyRestore(restore, evaluate);
+      const saved = restore.reduce((sum, group) => sum + group.rows.length, 0);
+      if (check.ok) {
+        onNote(`Reuse: ${saved} saved answers are available; ${check.checked} re-asked live came out identical.`);
+      } else {
+        onNote(`Reuse: off. ${check.mismatched.length} of ${check.checked} saved answers re-asked live came out different (${check.mismatched.slice(0, 4).join(", ")}), so every answer is measured.`);
+        restore = [];
+      }
+    }
     return tune({
       parallel: width,
       evaluate,
