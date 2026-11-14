@@ -1,99 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "review-fixes-a",
+    "task_id": "review-fixes-b",
     "last_phase": "in_progress",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1794649098.1264455,
+    "active_phase": 4,
+    "status": "in_progress",
+    "updated_at": 1794650971.888765,
     "owner": "kiro:1",
     "started_by": "kiro:1",
-    "continuations": [],
-    "completed_at": 1794649098.3149655
+    "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "coding-quality-tune",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/4] Plan: M1 opt-in --escalate (unproven rung leader retested alone vs incumbent on fresh unused pool items, one-sided paired test) + answer failure class telemetry; M2 measure escalate vs default code tune on coder 1.5B and qwen 0.5B (holdout + full-final); M3 serving: tuned code preset reaches clients that send their own system prompt (only if M2 shows prompts matter); M4 docs/ADR drafts. Evidence: 78% of failures are wrong logic, majority vote without tests does not help (43.8 vs 46.3), tuner rejects +5pt leaders at p 0.25-0.5.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794607085.2571673,
-      "timestamp_str": "2026-11-14 00:58:05",
-      "agent": "kiro:1",
-      "impact_assessment": {
-        "why": "The tuner's code preset equals the defaults because ~37-item rungs plus Holm over up to 9 candidates only detect ~8pt gains; five code prompts beat the default by ~5pt and were dropped",
-        "benefits": "Detect real 3-6pt coding gains with an unbiased fresh-item test instead of discarding them; failure classes show which lever helps",
-        "risks": "contract: escalate changes decisions only when opted in, default unchanged so no TUNER_VERSION bump; dependency: none; concurrency: none; state: answers rows gain a failure field, profiles record escalate in search options",
-        "mitigation": "opt-in flag, failing-first tests, default path proven unchanged by existing tests, measured on real models before proposing it as default (that needs user approval + tuner bump + baseline regen)"
-      },
-      "plan_digest": "69a516cbb3808a8910bdd85c29b26a7177a66f629e6b9bc6d33db8a07a6b6493"
-    },
-    {
-      "task_id": "coding-quality-tune",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[1/3] M1+M2 done (commit 574695e): opt-in --escalate, failure classes; measured on coder 1.5B and qwen 0.5B, no escalated leader held, greedy+default is the best of the search space. M3 serving prompt change dropped (prompts make no measurable difference). Re-plan: M2' measure quantization (Q4_K_M vs Q8_0 vs F16) on all 142 code items, M3' docs+recommendation. npm test 760 pass, tune:gate 9/9 unchanged, check 4/4. checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794608439.1972823,
-      "timestamp_str": "2026-11-14 01:20:39",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "coding-quality-tune",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/3] done: commits 574695e (escalate + failure classes) and 8258706 (measured model guide). Findings: settings search saturated (no escalated leader held on coder 1.5B or qwen 0.5B), 78% of failures wrong logic, test-free voting no help, Q4_K_M = F16 for code, coder 1.5B = llama 3B at half the memory, phi worse p=0.007. Next lever needs real tests (verify-and-retry), not built. checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794609852.3742023,
-      "timestamp_str": "2026-11-14 01:44:12",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "coding-quality-tune",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'coding-quality-tune' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794637447.2570314,
-      "timestamp_str": "2026-11-14 09:24:07",
-      "agent": "kiro:1"
-    },
-    {
-      "task_id": "test-feedback-repair",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/3] Plan: M1 opt-in repair evaluation (benchmarks/repair-evaluate.mjs + repair-run.mjs, bench:repair): answer, run the item's tests, feed back ONE failing case (call, expected, got) and retry up to N rounds in one conversation; score every round on all cases. M2 measure on coder 1.5B and qwen 0.5B over 142 code items. M3 docs. Not in PROMPTS/TASKS, no gate or hash change.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794637447.451905,
-      "timestamp_str": "2026-11-14 09:24:07",
-      "agent": "kiro:1",
-      "impact_assessment": {
-        "why": "78% of code failures are wrong logic that settings cannot fix; 30% of items greedy fails are solved by some other answer; picking needs real tests",
-        "benefits": "Measures how much test feedback lifts pass rate per model, the evidence needed before building a serving endpoint",
-        "risks": "contract: none, new opt-in files only; dependency: none; concurrency: none; state: writes results/latest-repair-<model>.json only; overfitting: model may hardcode the shown case",
-        "mitigation": "show only one failing case per round and score all cases so hardcoding one case cannot pass; tests with fake engine; real measurement before any claim"
-      },
-      "plan_digest": "c0f66490eccdfbe2b53c14d62e2367932e025769c0b35a262eedf72522ee6b7a"
-    },
-    {
-      "task_id": "test-feedback-repair",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/3] done in one commit fd563f0 (plan's M1-M3 merged; message says 1/1): bench:repair with chat/fresh/retry modes, repair temperature, show, seed. Result: feedback adds nothing over retry (resend 72-81% in chat; fresh=retry on coder; retry>fresh on 0.5B; seed noise explains item differences); test-checked retries 60.4->73.1% in 4 tries. Next (needs user decision): serving endpoint that samples k answers and returns the first passing the client's tests, in the node --permission sandbox. npm test pass, check 4/4. checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794640988.6814888,
-      "timestamp_str": "2026-11-14 10:23:08",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
     {
       "task_id": "test-feedback-repair",
       "phase": "completed",
@@ -271,6 +188,84 @@
       "timestamp": 1794649098.3149667,
       "timestamp_str": "2026-11-14 12:38:18",
       "agent": "kiro:1"
+    },
+    {
+      "task_id": "review-fixes-b",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/6] Plan (review reports/modelduck-review-unpushed.md, Task B): M1 docs truth: network denial only on Node 25+, Node 20+ still runs tuning, verify needs 25+, threat model adds generation time, request limit and same-host proxy caveat, JUDGES gains verified code, test counts, escalate has no correction across sweeps, --parallel needs a separate device run. M2 threads: halve only on SMT CPUs (ARM and Linux without siblings>cores keep logical-1). M3 answer rows tagged with the call's real width. M4 parallel probe: more items, one sampled, alternating order. M5 escalate recorded in profile identity, escalation b/c fields unswapped, narrowed registry scan keeps other models' overrides. M6 tests: config dead assertions load the older store, settings-reload polls instead of fixed sleeps.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794649640.0928237,
+      "timestamp_str": "2026-11-14 12:47:20",
+      "agent": "kiro:1",
+      "impact_assessment": {
+        "why": "Verified review findings 7,8,15,17-22,24 remain after Task A",
+        "benefits": "Docs match behaviour; no thread regression on non-SMT CPUs; serial tunes reuse serial answers; parallel verdicts on more evidence; escalated winners identifiable; fewer flaky tests",
+        "risks": "contract: tune answer cache keys (width tag) and profile search identity change, so cached rows or saved profiles may re-measure; dependency: none; concurrency: parallel probe order; state: profile fingerprint and answer rows",
+        "mitigation": "failing-first tests per finding, tune:gate before committing generation-path changes (M2-M4), identity changes documented in CHANGELOG and ADRs"
+      },
+      "plan_digest": "ebe24f819bc0f869a0849273f9053d523df0150bb48a31f19abec8a7d9e1ab75"
+    },
+    {
+      "task_id": "review-fixes-b",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[2/6] M1 docs: network denial only Node 25+, verify needs 25+, threat model limits and same-host proxy caveat, JUDGES verified code + counts, escalate multiplicity note, --parallel 1-4.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794649767.6645238,
+      "timestamp_str": "2026-11-14 12:49:27",
+      "agent": "kiro:1",
+      "checklists": "passed"
+    },
+    {
+      "task_id": "review-fixes-b",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/6] M2 threads: hasSmt (ARM no, Linux cpuinfo, else assume yes); no-SMT keeps logical-1. 3 failing-first tests pass, 804 pass, tune:gate 9/9 b=0 c=0 on 252 fresh answers.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794650112.575624,
+      "timestamp_str": "2026-11-14 12:55:12",
+      "agent": "kiro:1",
+      "checklists": "passed"
+    },
+    {
+      "task_id": "review-fixes-b",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/6] M3 width tags: answers carry the call's width, rows tag call and tune width, serial tunes reuse every serial row. 3 failing-first tests pass, 807 pass, tune:gate 9/9 b=0 c=0.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794650380.130214,
+      "timestamp_str": "2026-11-14 12:59:40",
+      "agent": "kiro:1",
+      "checklists": "passed"
+    },
+    {
+      "task_id": "review-fixes-b",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[5/6] M4 parallel probe: 8 items, greedy + sampled (T=0.7) passes, alternating order, summed timing. 3 failing-first tests pass, 810 pass, tune:gate 9/9 b=0 c=0.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794650648.6948638,
+      "timestamp_str": "2026-11-14 13:04:08",
+      "agent": "kiro:1",
+      "checklists": "passed"
+    },
+    {
+      "task_id": "review-fixes-b",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[6/6] M5 escalated axes per task in profiles, b/c verified correct (comment), narrowed scan keeps others' cache and overrides; M6 config test loads both stores, settings-reload polls. 812 pass, tune:gate 9/9 b=0 c=0.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794650971.888765,
+      "timestamp_str": "2026-11-14 13:09:31",
+      "agent": "kiro:1",
+      "checklists": "passed"
     }
   ]
 }
