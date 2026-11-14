@@ -361,6 +361,12 @@ async function main() {
     assert.equal(await evaluate('Boolean(document.getElementById("tune-guard"))'), true, "the guardrail control is missing");
     assert.ok(await waitFor(() => evaluate('document.getElementById("tune-preflight").textContent.includes("answers/model")'), 5_000), "the tune preflight estimate did not load");
     await evaluate('document.querySelector(\'[data-bench-tab="tune"]\').click(), true');
+    // Two quick opens of the shipped presets must draw each preset once, not twice.
+    const shippedCount = await evaluate('fetch("/api/presets").then((r) => r.json()).then((d) => d.presets.length)');
+    await evaluate('(() => { const d = document.getElementById("tune-presets-details"); d.open = true; d.dispatchEvent(new Event("toggle")); d.dispatchEvent(new Event("toggle")); return true; })()');
+    assert.ok(await waitFor(() => evaluate('document.querySelectorAll(".tune-preset").length > 0'), 5_000), "the shipped presets did not render");
+    await delay(300);
+    assert.equal(await evaluate('document.querySelectorAll(".tune-preset").length'), shippedCount, "the shipped presets rendered more rows than presets");
     assert.equal(
       await evaluate('Boolean(document.getElementById("tune-help"))'),
       true,
