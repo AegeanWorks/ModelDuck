@@ -865,7 +865,8 @@ function judgeScript({ id, setup, code, scenario, entry, args }) {
     "    }",
     `    out += (i ? "," : "") + "[" + ${v("s")}(kind) + "," + ${v("s")}(text) + "]";`,
     "  }",
-    `  ${v("w")}(1, "\\n__MODELDUCK_${id}__" + out + "]");`,
+    // The marker opens and closes the result, so anything printed after it (an exit handler's log) is ignored.
+    `  ${v("w")}(1, "\\n__MODELDUCK_${id}__" + out + "]" + "__MODELDUCK_${id}__");`,
     "})();",
   ].join("\n");
 }
@@ -915,6 +916,20 @@ export function resetJavaScriptTestCache() {
   jsTestMisses = 0;
 }
 
+const OUTPUT_BASE_BYTES = 1024 * 1024;
+const OUTPUT_MAX_BYTES = 8 * 1024 * 1024;
+
+/**
+ * How much the child may print before it is stopped. The child prints each
+ * result as JSON text inside a JSON string, so a correct result is at most
+ * about twice the length of its expected value: the limit is a base for the
+ * framing and small results plus that, capped so a flood stays bounded.
+ */
+function outputLimit(cases) {
+  const expected = cases.reduce((sum, testCase) => sum + (JSON.stringify(testCase.expect)?.length ?? 0), 0);
+  return Math.min(OUTPUT_MAX_BYTES, OUTPUT_BASE_BYTES + 2 * expected);
+}
+
 export async function runJavaScriptTests(text, check, { timeoutMs = 5000 } = {}) {
   const cacheKey = jsTestKey(text, check, timeoutMs);
   const cached = JS_TEST_CACHE.get(cacheKey);
@@ -945,23 +960,27 @@ export async function runJavaScriptTests(text, check, { timeoutMs = 5000 } = {})
       // `-` reads the script from stdin, so it appears in no argument the answer could read.
       [sandboxFlag(), `--max-old-space-size=${SANDBOX_HEAP_MB}`, "-"],
       // SIGKILL because a handler for the default signal would keep a runaway loop alive on POSIX.
-      { timeout: timeoutMs, killSignal: "SIGKILL", windowsHide: true, maxBuffer: 1024 * 1024, env: sandboxEnv(), cwd: sandboxCwd() },
+      { timeout: timeoutMs, killSignal: "SIGKILL", windowsHide: true, maxBuffer: outputLimit(cases), env: sandboxEnv(), cwd: sandboxCwd() },
       (error, stdout) => resolve({ error, stdout: String(stdout ?? "") }),
     );
     child.stdin.on("error", () => {});
     child.stdin.end(script);
   });
+  // The result sits between the last two markers; later output (an exit handler's log) is not part of it.
   const marker = `__MODELDUCK_${id}__`;
-  const at = outcome.stdout.lastIndexOf(marker);
+  const close = outcome.stdout.lastIndexOf(marker);
+  const open = close > 0 ? outcome.stdout.lastIndexOf(marker, close - 1) : -1;
   let results = null;
-  if (at >= 0) {
+  if (open >= 0) {
     try {
-      results = JSON.parse(outcome.stdout.slice(at + marker.length));
+      results = JSON.parse(outcome.stdout.slice(open + marker.length, close));
     } catch {
       results = null;
     }
   }
-  const failure = outcome.error?.killed ? "timed out" : outcome.error ? "did not run (syntax or runtime error)" : "no results";
+  const failure = outcome.error?.killed ? "timed out"
+    : outcome.error?.code === "ERR_CHILD_PROCESS_STDIO_MAXBUFFER" ? `output too large (more than ${Math.round(outputLimit(cases) / 1024)} KB)`
+    : outcome.error ? "did not run (syntax or runtime error)" : "no results";
   const checked = cases.map((testCase, index) => {
     const verdict = judgeCase(results?.[index], testCase.expect);
     return {

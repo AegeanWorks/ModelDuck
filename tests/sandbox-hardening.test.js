@@ -96,9 +96,33 @@ test("reading the judge's own script and writing a result line on exit does not 
   const forged = [
     "function double() { return 0; }",
     "const id = /__MODELDUCK_([0-9a-f]{24})__/.exec(String(process._eval))?.[1] ?? /__[a-z]+_([0-9a-f]{24})/.exec(String(process._eval))?.[1];",
-    'process.on("exit", () => { require("fs").writeSync(1, "\\n__MODELDUCK_" + id + \'__[[1,"ok"],[1,"ok"]]\'); });',
+    // A well-formed line in the judge's own [kind, text] shape, with its end marker, printed last so it
+    // is the one the parent reads. It can only say what the function "returned".
+    'process.on("exit", () => { const m = "__MODELDUCK_" + id + "__"; require("fs").writeSync(1, "\\n" + m + \'[["v","0"],["v","0"]]\' + m); });',
   ].join("\n");
-  assert.equal(await passedOf(forged), 0, "a forged line must not outrank the real result");
+  assert.equal(await passedOf(forged), 0, "forged results that are not the expected values do not pass");
+});
+
+// --- review findings from reforge run-1: how a result leaves the child ---------------------
+
+test("a correct answer that prints on exit still scores", async () => {
+  const code = 'function double(n) { return n * 2; }\nprocess.on("exit", () => console.log("bye"));';
+  assert.equal(await passedOf(code), 2, "output after the result line must not break parsing");
+});
+
+test("correct results larger than the default output limit still pass", async () => {
+  const size = 600 * 1024;
+  const check = { type: "jsTests", entry: "big", cases: [{ args: [], expect: "x".repeat(size) }, { args: [], expect: "y".repeat(size) }] };
+  const code = `function big() { big.calls = (big.calls ?? 0) + 1; return (big.calls === 1 ? "x" : "y").repeat(${size}); }`;
+  assert.equal(await passedOf(code, check), 2, "1.2 MB of correct output in all");
+});
+
+test("a wrong answer that prints far more than the limit is reported as too large, not as a crash", async () => {
+  resetJavaScriptTestCache();
+  const check = { type: "jsTests", entry: "flood", cases: [{ args: [], expect: 1 }] };
+  const [result] = await runJavaScriptTests(fence('function flood() { return "z".repeat(3 * 1024 * 1024); }'), check);
+  assert.equal(result.passed, false);
+  assert.match(result.detail, /output too large/);
 });
 
 test("the expected values never reach the child, so no answer can read them", async () => {

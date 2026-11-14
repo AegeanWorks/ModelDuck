@@ -159,7 +159,10 @@ access are denied on every supported Node; network access only from Node 25, so 
 older Node the code can open sockets. The child gets an empty environment (on
 Windows, neutral values for the variables libuv refills), starts in the root of the
 temp drive, and a 5-second timeout kills runaway loops (with SIGKILL, so a signal
-handler cannot keep one alive on POSIX). The answer and the script that calls it
+handler cannot keep one alive on POSIX). The child prints its results between two
+markers, so anything an answer prints afterwards (an exit handler's log) is ignored,
+and its output limit is 1 MB plus twice the expected values (at most 8 MB); more is
+reported as "output too large". The answer and the script that calls it
 share one process, so the child never holds the expected values: it prints what the
 function returned and this process does the comparing. An answer that reads the
 child's script or forges its output line can only choose what the function
