@@ -8,6 +8,17 @@ import { FakeEngine, makeHarness } from "./helpers.js";
 
 // IDEA-1098: the release-barriered engine rebuild lease settings contract.
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+// A teardown that never finishes, without a timer that would hold the process open.
+const hang = () => new Promise(() => {});
+// Fixed sleeps flake when the machine is loaded: poll for the state instead.
+async function waitFor(condition, timeoutMs = 2000) {
+  const started = Date.now();
+  while (!(await condition())) {
+    if (Date.now() - started > timeoutMs) return false;
+    await sleep(5);
+  }
+  return true;
+}
 
 function makeRebuildEngine({
   fingerprint = null,
@@ -84,7 +95,7 @@ test("the lease reloads on a debounce when autoReload is on", async () => {
   const verdict = lease.update(reloadSettings({ contextSize: 16384, autoReloadOnSettingsChange: true }));
   assert.equal(verdict.required, true);
   assert.equal(verdict.scheduled, true);
-  await sleep(40);
+  assert.ok(await waitFor(() => engine.loadCalls.length === 1 && !lease.pending), "the debounced rebuild ran");
   assert.equal(engine.unloadCalls, 1);
   assert.equal(engine.loadCalls.length, 1);
   assert.equal(engine.loadCalls[0].modelId, "model-a");
@@ -100,7 +111,7 @@ test("the lease defers while the engine is busy instead of aborting a generation
   await sleep(25);
   assert.equal(engine.unloadCalls, 0); // defer: still busy
   engine.busy = false;
-  await sleep(25);
+  assert.ok(await waitFor(() => engine.unloadCalls === 1 && engine.loadCalls.length === 1), "rescheduled once the slot freed");
   assert.equal(engine.unloadCalls, 1); // rescheduled once the slot freed
   assert.equal(engine.loadCalls.length, 1);
   lease.dispose();
@@ -111,7 +122,7 @@ test("a newer fingerprint wins: only the newest settings become visible", async 
   const lease = new EngineRebuildLease({ engine, logger: null, delayMs: 10 });
   lease.update(reloadSettings({ contextSize: 16384, autoReloadOnSettingsChange: true }));
   lease.update(reloadSettings({ contextSize: 8192, autoReloadOnSettingsChange: true }));
-  await sleep(60);
+  assert.ok(await waitFor(() => engine.loadCalls.length >= 1 && !lease.pending), "the rebuild ran");
   assert.equal(engine.loadCalls.length, 1);
   assert.equal(engine.loadCalls[0].contextSize, 8192); // surge coalesced to the newest ask
   lease.dispose();
@@ -120,11 +131,11 @@ test("a newer fingerprint wins: only the newest settings become visible", async 
 test("a hung teardown is bounded and surfaces MODEL_DISPOSE_FAILED", async () => {
   const engine = makeRebuildEngine({
     fingerprint: "stale",
-    unloadImpl: () => sleep(5000),
+    unloadImpl: hang,
   });
   const lease = new EngineRebuildLease({ engine, logger: null, delayMs: 2, disposeTimeoutMs: 15 });
   lease.update(reloadSettings({ autoReloadOnSettingsChange: true }));
-  await sleep(60);
+  assert.ok(await waitFor(() => lease.lastError?.code === "MODEL_DISPOSE_FAILED"), "the bounded teardown reported its failure");
   assert.equal(engine.loadCalls.length, 0); // never loads onto an undisposed engine
   assert.equal(lease.lastError.code, "MODEL_DISPOSE_FAILED");
   assert.equal(lease.pending, false);
@@ -170,7 +181,7 @@ test("lease.status() snapshots the deferred rebuild without mutating it", async 
   const scheduled = lease.status();
   assert.equal(scheduled.pending, true);
   assert.equal(scheduled.pendingFingerprint, reloadFingerprint(asked)); // which settings the rebuild will apply
-  await sleep(40);
+  assert.ok(await waitFor(() => engine.loadCalls.length === 1 && !lease.status().pending && !lease.status().running), "the rebuild settled");
   const settled = lease.status();
   assert.equal(settled.pending, false);
   assert.equal(settled.running, false);
@@ -179,10 +190,10 @@ test("lease.status() snapshots the deferred rebuild without mutating it", async 
 });
 
 test("lease.status() keeps the failure code after a bounded teardown", async () => {
-  const engine = makeRebuildEngine({ fingerprint: "stale", unloadImpl: () => sleep(5000) });
+  const engine = makeRebuildEngine({ fingerprint: "stale", unloadImpl: hang });
   const lease = new EngineRebuildLease({ engine, logger: null, delayMs: 2, disposeTimeoutMs: 15 });
   lease.update(reloadSettings({ autoReloadOnSettingsChange: true }));
-  await sleep(60);
+  assert.ok(await waitFor(() => Boolean(lease.status().lastError)), "the failure was recorded");
   const failed = lease.status();
   assert.equal(failed.pending, false);
   assert.equal(failed.lastError.code, "MODEL_DISPOSE_FAILED");
@@ -202,7 +213,7 @@ test("GET /api/settings reports the lease state and its background failures", as
 
   class HungDisposeEngine extends FingerprintedEngine {
     async unload() {
-      return sleep(2000);
+      return hang();
     }
   }
   const hung = new HungDisposeEngine();
@@ -214,8 +225,12 @@ test("GET /api/settings reports the lease state and its background failures", as
     body: JSON.stringify({ settings: { autoReloadOnSettingsChange: true } }),
   });
   assert.equal(write.status, 200);
-  await sleep(60);
-  const after = await (await fetch(`${failing.base}/api/settings`)).json();
+  let after = null;
+  const reported = await waitFor(async () => {
+    after = await (await fetch(`${failing.base}/api/settings`)).json();
+    return Boolean(after.reload.lastError);
+  });
+  assert.ok(reported, "the background failure reached the API");
   assert.equal(after.reload.pending, false);
   assert.equal(after.reload.lastError.code, "MODEL_DISPOSE_FAILED");
   lease.dispose();

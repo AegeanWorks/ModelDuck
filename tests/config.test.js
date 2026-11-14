@@ -219,12 +219,16 @@ test("SettingsStore accepts missing or older version", async (t) => {
   const file = path.join(os.tmpdir(), `duck-settings-version-ok-${process.pid}-${Date.now()}.json`);
   t.after(() => import("node:fs/promises").then((fs) => fs.rm(file, { force: true })));
   const { writeJsonAtomic } = await import("../src/fs-atomic.js");
-  // Test with missing version
+  // A file with no version loads, and its values are used.
   await writeJsonAtomic(file, { settings: { temperature: 0.5 } });
   const store1 = new SettingsStore({ file, logger: { warn() {}, error() {} } });
-  await store1.load(); // Should not throw
-  // Test with older version (0)
+  await store1.load();
+  assert.equal(store1.value.temperature, 0.5);
+  // An older version (0) loads the same way.
+  await writeJsonAtomic(file, { version: 0, settings: { temperature: 0.4 } });
   const store2 = new SettingsStore({ file, logger: { warn() {}, error() {} } });
+  await store2.load();
+  assert.equal(store2.value.temperature, 0.4);
 });
 
 test("boolean strings parse instead of Boolean() truthiness", () => {
