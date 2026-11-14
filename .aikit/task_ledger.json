@@ -1,76 +1,18 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "reuse-run-limit",
+    "task_id": "baseline-resume",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794688691.940459,
+    "updated_at": 1794691360.687848,
     "owner": "kiro:1",
     "started_by": "kiro:1",
     "continuations": [],
-    "completed_at": 1794688692.44278,
-    "completed_head": "863a1dec8c16165edeef2b4d137e761f8359f047"
+    "completed_at": 1794691361.0907667,
+    "completed_head": "fe10ff5724c20c7e546103603140de97bd44f8bf"
   },
   "checkpoints": [
-    {
-      "task_id": "report-status-h",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "Docs only; strict gates pass",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794673398.1112924,
-      "timestamp_str": "2026-11-14 19:23:18",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "report-status-h",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'report-status-h' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794673398.5031283,
-      "timestamp_str": "2026-11-14 19:23:18",
-      "agent": "kiro:1",
-      "delivery": {
-        "roots": [
-          "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck"
-        ],
-        "forced": false
-      }
-    },
-    {
-      "task_id": "gate-hardware-note",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/1] Fix: tune:gate's regression note always blamed a hardware change (it passed null hardware); compare per model with the measured CPU and threads",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794681871.6620183,
-      "timestamp_str": "2026-11-14 21:44:31",
-      "agent": "kiro:1",
-      "impact_assessment": {
-        "why": "A real regression was reported as 'baseline hardware differs from this machine' on the same machine",
-        "benefits": "the note appears only when a known hardware value differs",
-        "risks": "contract: hardwareWarning gains an optional model argument; dependency: none; concurrency: none; state: none (reporting only)",
-        "mitigation": "failing-first test; full suite"
-      },
-      "plan_digest": "684218e14b9c5e93547a2a07ac271b1b0a7f4b652581f7cfa3dea6662184f9da"
-    },
-    {
-      "task_id": "gate-hardware-note",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "848/849 pass, 1 skipped; reporting-only change",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794681872.1817818,
-      "timestamp_str": "2026-11-14 21:44:32",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
     {
       "task_id": "gate-hardware-note",
       "phase": "completed",
@@ -309,6 +251,64 @@
       "status": "completed",
       "timestamp": 1794688692.52956,
       "timestamp_str": "2026-11-14 23:38:12",
+      "agent": "kiro:1",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
+    },
+    {
+      "task_id": "baseline-resume",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/1] tune:gate --update-baseline tunes in <home>/gate-baseline-work, which survives a kill; a restart moves the killed attempt's runs to saved/ and replays them (ADR-124)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794690884.475646,
+      "timestamp_str": "2026-11-15 00:14:44",
+      "agent": "kiro:1",
+      "impact_assessment": {
+        "why": "The v11 re-baseline was killed twice and its finished SmolLM2 tune was recovered only by copying run files by hand",
+        "benefits": "re-running a stopped update continues from its answers",
+        "risks": "contract: --update-baseline (re-tuning) no longer uses a temp home; dependency: none; concurrency: a pid file refuses a second live update, not a lock; state: saved runs accumulate until an update finishes",
+        "mitigation": "failing-first tests in a temp dir; normal gate and --from-profile unchanged; ADR-124 and docs"
+      },
+      "plan_digest": "c0087aa72127b328c96dac3e539fc278302271c9ef0c5e83c798037f1e333a80"
+    },
+    {
+      "task_id": "baseline-resume",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "targeted tests 30/30 pass (full suite deferred until the running v11 re-baseline ends, to keep CPU load off its timed stage); README and ADR checks pass",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794690885.045195,
+      "timestamp_str": "2026-11-15 00:14:45",
+      "agent": "kiro:1",
+      "checklists": "passed"
+    },
+    {
+      "task_id": "baseline-resume",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "Full suite 859/860 pass, 1 skipped; README and ADR checks pass",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794691360.687848,
+      "timestamp_str": "2026-11-15 00:22:40",
+      "agent": "kiro:1",
+      "checklists": "passed"
+    },
+    {
+      "task_id": "baseline-resume",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'baseline-resume' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794691361.1466076,
+      "timestamp_str": "2026-11-15 00:22:41",
       "agent": "kiro:1",
       "delivery": {
         "roots": [
