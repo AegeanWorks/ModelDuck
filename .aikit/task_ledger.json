@@ -1,75 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "review-fixes-b",
+    "task_id": "followups-c",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794650971.888765,
+    "updated_at": 1794651838.5048256,
     "owner": "kiro:1",
     "started_by": "kiro:1",
     "continuations": [],
-    "completed_at": 1794651018.1219842
+    "completed_at": 1794651865.0918775
   },
   "checkpoints": [
-    {
-      "task_id": "verified-code-endpoint",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/2] Plan: M1 src/verified-code.js (parseVerifyRequest validation, runVerified retry loop with injected test runner) + POST /api/code/verify (loopback only, tuned code preset defaults, greedy first then retries at T 0.7 with new seeds, first answer passing the caller's tests wins) + unit/route tests; M2 real check on coder 1.5B, README/API docs, ADR draft for user (not appended).",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794641394.5149004,
-      "timestamp_str": "2026-11-14 10:29:54",
-      "agent": "kiro:1",
-      "impact_assessment": {
-        "why": "Measured: test-checked retries lift Coder 1.5B from 60.4% to 73.1% in 4 tries; feedback adds nothing; serving had no way to use it",
-        "benefits": "Clients with tests get the best answer the local model can produce without changing /v1/chat/completions",
-        "risks": "contract: new route only, chat/completions unchanged; dependency: none; concurrency: one generation at a time, busy engine returns 409 as today; state: none persisted; security: runs caller-supplied JS",
-        "mitigation": "loopback-only regardless of LAN setting, existing cross-site/rebinding refusal, node --permission sandbox with no allow flags and 5 s timeout, body 256 KB, <=50 cases, <=8 attempts, identifier-checked entry, no harness field; ADR draft for user approval"
-      },
-      "plan_digest": "360d4c7aa1efc5af4c09fd9bf29610c2dc3880d8d10b9b7aaeb58afabaa369df"
-    },
-    {
-      "task_id": "verified-code-endpoint",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/2] done (single commit; plan M1+M2 merged): src/verified-code.js, POST /api/code/verify loopback-only, threat model, docs; live check coder 1.5B 3/5 rescued. tune:gate not rerun: /v1 chat path and generation settings unchanged, new route only. ADR draft given to user, not appended. checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794641717.0435672,
-      "timestamp_str": "2026-11-14 10:35:17",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "verified-code-endpoint",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verified-code-endpoint' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794641795.9871428,
-      "timestamp_str": "2026-11-14 10:36:35",
-      "agent": "kiro:1"
-    },
-    {
-      "task_id": "wrap-up-decisions",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/4] Plan: M1 measure CPU tok/s by thread count (idle and under synthetic load) and change the default thread count only if the data supports it, with tune:gate; M2 append ADR-101..106; M3 commit history.jsonl and bench:link (G-002); M4 aikit check --strict then push to a new branch, never master, never forced.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794641796.179185,
-      "timestamp_str": "2026-11-14 10:36:36",
-      "agent": "kiro:1",
-      "impact_assessment": {
-        "why": "User asked to finish the open items: thread default, ADRs, history, push",
-        "benefits": "Untuned users get a thread count that does not collapse under load; decisions recorded; work published on a branch",
-        "risks": "contract: thread default changes untuned generation speed and possibly answers; dependency: none; concurrency: none; state: decisions.md append-only, history.jsonl tracked file",
-        "mitigation": "measure before changing, failing-first test, tune:gate; push to a new branch only, no force"
-      },
-      "plan_digest": "7ccd0f607a1e7ff55b6db3287ef08b34ca39b26d771fe2b5ffe3cbd75a6dd541"
-    },
     {
       "task_id": "wrap-up-decisions",
       "phase": "in_progress",
@@ -266,6 +208,64 @@
       "status": "completed",
       "timestamp": 1794651018.1219869,
       "timestamp_str": "2026-11-14 13:10:18",
+      "agent": "kiro:1",
+      "delivery": {
+        "roots": [
+          "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck"
+        ],
+        "forced": false
+      }
+    },
+    {
+      "task_id": "followups-c",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/2] Plan: M1 verify-route tests state their Node version, so npm test passes on Node 20-24 (the route refuses below 25 since Task A). M2 perf and advisor scripts (review finding 23): times recorded in ms but formatted as s (1000x), main() runs on import, advisor imports names that do not exist, AI-powered wording describes fixed thresholds; fix units, add main guards and exports, plain wording, a test and npm scripts.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794651397.1814232,
+      "timestamp_str": "2026-11-14 13:16:37",
+      "agent": "kiro:1",
+      "impact_assessment": {
+        "why": "npm test fails on the declared Node 20+ for two verify tests; perf/advisor scripts print wrong numbers and cannot be imported (review finding 23)",
+        "benefits": "Test suite passes on every supported Node; perf numbers are correct and the advisor runs",
+        "risks": "contract: perf/advisor output format changes; dependency: none; concurrency: none; state: none",
+        "mitigation": "failing-first tests for the unit and import fixes; scripts are outside the tuned suite and gate"
+      },
+      "plan_digest": "b23d47fa36be5dafee90dcd3120847dbc5f0b9b87118099f4f1c9823d0669681"
+    },
+    {
+      "task_id": "followups-c",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[2/3] M1 verify-route tests state Node 25 (failed with 503 at 22.13.0 first). 812 pass.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794651462.980545,
+      "timestamp_str": "2026-11-14 13:17:42",
+      "agent": "kiro:1",
+      "checklists": "passed"
+    },
+    {
+      "task_id": "followups-c",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[2/2] M2 perf scripts: seconds via runBenchmark, throughput 1/mean, main guards and exports, BenchmarkAdvisor importable with plain wording, PERF.md, npm scripts. 4 failing-first tests pass, 816 pass.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794651838.5048256,
+      "timestamp_str": "2026-11-14 13:23:58",
+      "agent": "kiro:1",
+      "checklists": "passed"
+    },
+    {
+      "task_id": "followups-c",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'followups-c' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794651865.0918794,
+      "timestamp_str": "2026-11-14 13:24:25",
       "agent": "kiro:1",
       "delivery": {
         "roots": [
