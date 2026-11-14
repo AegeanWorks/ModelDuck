@@ -574,7 +574,9 @@ test("verified code retries until an answer passes the caller's tests, in the sa
     }
   }
   const engine = new CodeEngine();
-  const harness = await makeHarness(t, { engine });
+  // The route serves from Node 25 (its refusal below that has its own test); stating
+  // the version keeps this test passing on every Node the app supports.
+  const harness = await makeHarness(t, { engine, nodeVersion: "25.0.0" });
   const post = (body) => fetch(`${harness.base}/api/code/verify`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
   const tests = { entry: "double", cases: [{ args: [1], expect: 2 }, { args: [5], expect: 10 }] };
 
@@ -618,7 +620,7 @@ test("verified code stops generating when the client disconnects", async (t) => 
     }
   }
   const engine = new HangingEngine();
-  const harness = await makeHarness(t, { engine });
+  const harness = await makeHarness(t, { engine, nodeVersion: "25.0.0" });
   const client = new AbortController();
   const response = fetch(`${harness.base}/api/code/verify`, {
     method: "POST",
