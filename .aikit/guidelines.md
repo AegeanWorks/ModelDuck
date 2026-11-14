@@ -15,3 +15,4 @@ without modifying or quarantining that file; older versions migrate when a migra
 - **G-004** (user): Presets are benchmark candidates: they fill the settings form only and are never applied automatically until a benchmark run has recorded their quality and speed.
 - **G-005** (user, ADR-027): A tune has two stages: model-load settings first (one load config per model, chosen for speed and memory without losing quality), then sampling settings per task on that config; both stages must be recorded before a profile is applied.
 - **G-006** (user): The project's LICENSE file stays unchanged: never modify or replace the current license.
+- **G-007** (user): The AI agent does the UI review itself, with no human review: before finishing a UI task it inspects screenshots of every changed view at desktop width and at 390px, fixes what it finds, and records itself as reviewer; do not ask the user to review the UI.
