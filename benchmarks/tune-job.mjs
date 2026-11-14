@@ -193,7 +193,9 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
         ? `Parallel: answering ${width} at a time in the untimed stages (${parallelInfo.probe.speedup}× faster on the probe, ${parallelInfo.probe.matched} of ${parallelInfo.probe.total} answers byte-identical). Their latency figures are concurrent, not serial; the speed stage still times one answer at a time.`
         : `Parallel: answering one at a time, because ${parallelInfo.reason}.`);
     }
-    restore = await cachedAnswers([target.paths.tuneRuns, ...reuseFrom], { profileId: target.profileId, fingerprint: target.fingerprint, parallel: width }).catch(() => []);
+    // An explicit reuse folder is read whole (still capped by rows): a few short
+    // recent runs must not hide the long run that holds most saved answers.
+    restore = await cachedAnswers([target.paths.tuneRuns, ...reuseFrom], { profileId: target.profileId, fingerprint: target.fingerprint, parallel: width, ...(reuseFrom.length && { limitRuns: Infinity }) }).catch(() => []);
     // Saved answers are reused only after a few are re-asked live and match (ADR-123).
     if (restore.length) {
       const check = await verifyRestore(restore, evaluate);

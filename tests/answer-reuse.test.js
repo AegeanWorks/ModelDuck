@@ -60,6 +60,14 @@ test("on full GPU offload an untimed answer is reused whatever the thread count;
   assert.equal(calls, 2, "on the CPU the thread count can change the text");
 });
 
+test("a run with no answers does not take one of the newest-run slots", async (t) => {
+  const dir = await savedRun(t, { ...WORLD, tunerVersion: 10 }, [{ settings: GPU, seed: 42, item: "old", passed: 1, total: 1, text: "a" }]);
+  // The tune that is starting has already recorded its (still empty) run.
+  const starting = await startRun(dir, { profileId: "p", model: "m.gguf", request: {}, fingerprint: { ...WORLD, tunerVersion: 11 }, now: new Date("2026-11-14T10:00:00Z") });
+  assert.ok(starting);
+  assert.deepEqual(items(await cachedAnswers(dir, { profileId: "p", fingerprint: { ...WORLD, tunerVersion: 11 }, limitRuns: 1 })), ["old"]);
+});
+
 test("saved groups that share a slot are merged, not first-wins, and fresh answers still win", async () => {
   // A v11 run at 8 threads asked only a few items; the v10 run at 12 threads holds the rest.
   // On full GPU offload both are one slot, so the second restore must add its items.

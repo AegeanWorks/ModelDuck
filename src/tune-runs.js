@@ -249,6 +249,9 @@ export async function cachedAnswers(dir, { profileId, fingerprint = null, limitR
       if (fingerprint && ANSWER_FINGERPRINT_KEYS.some((key) => record.fingerprint?.[key] !== fingerprint[key])) continue;
       // Timings are tuner-specific evidence: a speed choice must not be made on another version's clock.
       const otherTuner = Boolean(fingerprint) && record.fingerprint?.tunerVersion !== fingerprint.tunerVersion;
+      // A run with no answers (the tune that is starting, or one stopped at once)
+      // holds nothing to reuse, so it must not push a real run out of `limitRuns`.
+      if (record.answers === 0) continue;
       runs.push({ folder, name: name.slice(0, -5), startedAt: record.startedAt ?? "", otherTuner });
     }
   }
