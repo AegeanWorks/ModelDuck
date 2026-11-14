@@ -741,5 +741,26 @@
     "final_snapshot_digest": "",
     "final_snapshot_entries": 0,
     "surface_digest": "dc7b3ec393283f6e772576147b2d5808752511b4f5bcab8e153202925c9cdeb9"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [
+      "public/app.js",
+      "public/redesign.css"
+    ],
+    "no_visual_reason": "",
+    "baseline_commit": "1954b8275ad1ee0afdf986f7c58a089d7c2bffca",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1794642715.4196074,
+    "finished_at": 1794643593.9880502,
+    "strikes": 1,
+    "reviewer": "kiro:1 (agent, per G-007)",
+    "allowed_removals": [],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "48e6a8f1a8f4ac8e2035f5c30af82f1604e40356b9ecd0abc3f09bc4c761008d"
   }
 ]

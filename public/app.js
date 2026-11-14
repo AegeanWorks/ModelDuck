@@ -2170,10 +2170,13 @@ function renderMultistepSuite(multistep) {
     Object.assign(document.createElement("small"), { textContent: "checks" }),
   );
   head.append(title, count);
+  // The meta line is short like the tasks'; the description and the case-sensitive command stay in plain case.
   const meta = Object.assign(document.createElement("p"), {
     className: "suite-task-meta",
-    textContent: `${multistep.chains.length} chains · ${multistep.steps} steps · ${multistep.description} Run: ${multistep.command}`,
+    textContent: `${multistep.chains.length} chains · ${multistep.steps} steps · not tuned or gated`,
   });
+  const text = Object.assign(document.createElement("p"), { className: "suite-optin-text", textContent: `${multistep.description} Run: ` });
+  text.appendChild(Object.assign(document.createElement("code"), { textContent: multistep.command }));
   const types = document.createElement("div");
   types.className = "suite-types";
   for (const chain of multistep.chains) {
@@ -2185,7 +2188,7 @@ function renderMultistepSuite(multistep) {
     );
     types.appendChild(row);
   }
-  section.append(head, meta, types);
+  section.append(head, meta, text, types);
   return section;
 }
 
@@ -2602,17 +2605,28 @@ const PRESET_FIT = Object.freeze({
 });
 
 /** Shipped presets with how each fits here; applying one is always the user's click (G-004). */
+let shippedPresetsLoad = 0;
+
+/** "measured on test suite v17, this is v18" → "Measured on test suite v17, this is v18." */
+const sentence = (text) => {
+  const trimmed = String(text ?? "").trim();
+  return trimmed ? `${trimmed[0].toUpperCase()}${trimmed.slice(1)}${/[.!?]$/.test(trimmed) ? "" : "."}` : "";
+};
+
 async function loadShippedPresets() {
   const box = $("tune-presets");
   if (!box) return;
-  box.replaceChildren();
+  // Opening the section twice quickly must not draw the list twice: only the latest load renders.
+  const load = ++shippedPresetsLoad;
   let presets = [];
   try {
     ({ presets } = await request("/api/presets"));
   } catch (error) {
-    showError(error);
+    if (load === shippedPresetsLoad) showError(error);
     return;
   }
+  if (load !== shippedPresetsLoad) return;
+  box.replaceChildren();
   if (!presets.length) {
     const empty = document.createElement("p");
     empty.textContent = "No shipped presets.";
@@ -2628,7 +2642,11 @@ async function loadShippedPresets() {
     const meta = document.createElement("span");
     meta.textContent = [rate != null ? `code ${rate}% on ${preset.rates.code.items ?? "?"} items` : "", preset.measuredOn ? `measured on ${preset.measuredOn}` : ""].filter(Boolean).join(" · ");
     const fit = document.createElement("p");
-    fit.textContent = [PRESET_FIT[preset.status] ?? preset.status, ...(preset.reasons ?? [])].join(" ");
+    fit.textContent = PRESET_FIT[preset.status] ?? preset.status;
+    // What changed since it was measured: one sentence per reason, apart from the fit.
+    const note = document.createElement("p");
+    note.className = "tune-preset-note";
+    note.textContent = (preset.reasons ?? []).map(sentence).join(" ");
     const apply = document.createElement("button");
     apply.type = "button";
     apply.className = "small-btn";
@@ -2636,7 +2654,7 @@ async function loadShippedPresets() {
     apply.disabled = preset.status !== "exact" && preset.status !== "portable";
     apply.setAttribute("aria-label", `Apply the shipped preset for ${preset.catalogId}`);
     apply.addEventListener("click", () => void applyShippedPreset(preset.catalogId));
-    row.append(name, meta, fit, apply);
+    row.append(name, meta, fit, ...(note.textContent ? [note] : []), apply);
     box.appendChild(row);
   }
 }

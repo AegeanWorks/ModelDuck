@@ -2645,26 +2645,57 @@ label.small-btn {
   border-bottom: 1px solid var(--line);
 }
 
+.tune-preset strong {
+  grid-column: 1;
+  color: var(--text);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+/* Detail lines read like the rest of the panel: smaller and muted, not body text. */
 .tune-preset span,
 .tune-preset p {
   grid-column: 1;
   margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
   overflow-wrap: anywhere;
+}
+
+.tune-preset .tune-preset-note {
+  color: var(--faint);
+  font-size: 11px;
 }
 
 .tune-preset .small-btn {
   grid-column: 2;
-  grid-row: 1 / span 3;
+  grid-row: 1 / span 4;
 }
 
+/* Same type and input look as the checkboxes and fields beside it. */
 .tune-budget {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  min-height: 30px;
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .tune-budget input {
   width: 7em;
+  min-height: 28px;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg-2);
+  color: var(--text);
+  font-size: 12px;
+}
+
+.tune-budget input:focus {
+  border-color: var(--accent);
 }
 
 .tune-actions .primary-btn {
@@ -2676,16 +2707,32 @@ label.small-btn {
   padding-inline: 6px;
 }
 
-.tune-only-details {
+.tune-only-details,
+.tune-presets-details {
   margin-top: 16px;
   border-top: 1px solid var(--line);
   padding-top: 12px;
 }
 
-.tune-only-details summary {
+.tune-only-details summary,
+.tune-presets-details summary {
   color: var(--muted);
   font-size: 11.5px;
   cursor: pointer;
+}
+
+/* The opt-in multistep section: plain-case description and a copyable command. */
+.suite-optin-text {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.suite-optin-text code {
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
 }
 
 .tune-only {
@@ -3011,7 +3058,8 @@ label.small-btn {
   gap: 18px;
 }
 
-.suite-task h4 {
+.suite-task h4,
+.suite-optin h4 {
   margin: 2px 0 0;
   font-family: var(--font-display);
   font-size: 24px;
@@ -3103,7 +3151,8 @@ label.small-btn {
     grid-template-columns: 1fr;
   }
 
-  .suite-task h4 {
+  .suite-task h4,
+  .suite-optin h4 {
     font-size: 21px;
   }
 }
