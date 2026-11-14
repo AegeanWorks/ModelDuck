@@ -63,8 +63,11 @@ up (model load included) and saves the best settings found so far; `--continue`
 finishes the rest later. With a budget the tuner asks four items per call, so it
 stops a few answers past the limit rather than a whole rung: a 0.5-minute budget
 ended at 31 s. In the app, **Minutes per model** on the Tune tab does the same per
-model; a quick pass that uses up its time keeps its preset provisional and skips
-the full continue.
+model. Only that model's own tune processes count: waiting for other models and
+paused time do not, and a new tune starts with the whole budget. Once the time is
+used up no further process starts. A quick pass that uses up its time keeps its
+preset provisional and skips the full continue, and a full tune stopped by its
+budget is provisional too.
 
 `npm run tune -- ... --escalate` adds power where the search has the least. Code
 rungs are small: after leaving out items no setting ever flipped, Qwen2.5 Coder 1.5B

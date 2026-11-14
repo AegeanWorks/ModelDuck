@@ -513,3 +513,76 @@ test("without a budget no --budget flag is passed, and a bad budget is refused",
     assert.throws(() => budgetScheduler(spawner(), () => 0).start({ models: [MODELS[0]], budgetMinutes: bad }), (error) => error.code === "tune_budget_invalid", `refuses ${bad}`);
   }
 });
+
+// --- budget bookkeeping (review findings 15-18) ---------------------------------------------
+
+test("a model's budget counts only its own processes, not waiting for others or a pause", async () => {
+  let now = 0;
+  const spawn = spawner();
+  const runner = budgetScheduler(spawn, () => now);
+  runner.start({ models: [MODELS[0], MODELS[1]], stages: ["device", "quality"], budgetMinutes: 5 });
+  await settle();
+  now += 60_000;
+  spawn.children[0].finish(0); // first probe: 1 minute
+  await settle();
+  now += 2 * 60_000;
+  spawn.children[1].finish(0); // second probe: 2 minutes, while the first model waits
+  await settle();
+  assert.equal(value(spawn.children[2].args, "--budget"), "4", "the first model waited 2 minutes for the other probe; that is not its time");
+  runner.pause();
+  now += 60_000;
+  spawn.children[2].finish(0);
+  await settle();
+  now += 10 * 60_000; // paused between models
+  runner.resume();
+  assert.ok(await waitFor(() => spawn.children.length === 4), "the second model starts after resuming");
+  assert.equal(value(spawn.children[3].args, "--budget"), "3", "ten paused minutes do not count");
+  spawn.children[3].finish(0);
+  await settle();
+});
+
+test("a new tune gives a model its whole budget again", async () => {
+  let now = 0;
+  const spawn = spawner();
+  const runner = budgetScheduler(spawn, () => now);
+  runner.start({ models: [MODELS[0]], stages: ["quality"], budgetMinutes: 5 });
+  await settle();
+  now += 4 * 60_000;
+  spawn.children[0].finish(0);
+  await settle();
+  assert.equal(runner.get().status, "complete");
+  now += 60 * 60_000;
+  runner.start({ models: [MODELS[0]], stages: ["quality"], budgetMinutes: 5 });
+  await settle();
+  assert.equal(value(spawn.children[1].args, "--budget"), "5");
+  spawn.children[1].finish(0);
+  await settle();
+});
+
+test("no process starts once a model's budget is spent", async () => {
+  let now = 0;
+  const spawn = spawner();
+  const runner = budgetScheduler(spawn, () => now);
+  runner.start({ models: [MODELS[0]], stages: ["device", "quality"], budgetMinutes: 1 });
+  await settle();
+  now += 90_000; // the device probe alone took longer than the budget
+  spawn.children[0].finish(0);
+  await settle();
+  assert.equal(spawn.children.length, 1, "the tune is not started on borrowed time");
+  const item = runner.get().items[0];
+  assert.equal(item.status, "done");
+  assert.match(item.log.at(-1) ?? "", /budget/i);
+  assert.equal(runner.get().status, "complete");
+});
+
+test("a full tune that ran out of time is marked provisional", async () => {
+  let now = 0;
+  const spawn = spawner();
+  const runner = budgetScheduler(spawn, () => now);
+  runner.start({ models: [MODELS[0]], stages: ["quality"], budgetMinutes: 2 });
+  await settle();
+  now += 2 * 60_000;
+  spawn.children[0].finish(0, [{ type: "complete", phase: "tune", quick: false, timeExhausted: true }]);
+  await settle();
+  assert.equal(runner.get().items[0].provisional, true, "the best settings so far are saved but the search did not finish");
+});

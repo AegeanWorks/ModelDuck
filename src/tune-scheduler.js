@@ -37,8 +37,6 @@ export class TuneScheduler {
   #children = new Set();
   #listeners = new Set();
   #clock;
-  // When each model's first process started, for its time budget (profileId -> ms).
-  #budgetStarts = new Map();
 
   constructor({ homeDir, modelsDir, profilesDir = null, tuneStepsFile = null, queueFile = null, scriptPath = SCRIPT, spawnImpl = spawn, readLanes = null, readLane = null, logger = console, clock = Date.now }) {
     this.#clock = clock;
@@ -309,9 +307,9 @@ export class TuneScheduler {
           const rank = new Map((job.order ?? []).map((profileId, index) => [profileId, index]));
           queue.sort((left, right) => (rank.get(left.item.profileId) ?? Infinity) - (rank.get(right.item.profileId) ?? Infinity));
           const { model, item } = queue.shift();
-          await this.#runChild(job, item, model, rest, "tune", forceOnce(model), false, { quick: job.quick });
+          const ran = await this.#runChild(job, item, model, rest, "tune", forceOnce(model), false, { quick: job.quick });
           // A quick pass is saved immediately, then continued on the full rungs.
-          if (job.quick && job.status === "running" && item.status !== "failed" && item.status !== "cancelled") {
+          if (ran && job.quick && job.status === "running" && item.status !== "failed" && item.status !== "cancelled") {
             await this.#waitIfPaused(job);
             if (job.status === "running" && this.#minutesLeft(job, item) !== null && this.#minutesLeft(job, item) <= 0) {
               // Out of time: the quick preset is saved and stays provisional until a later full tune.
@@ -335,14 +333,27 @@ export class TuneScheduler {
     this.#finish(job, job.status === "running" ? "complete" : job.status);
   }
 
-  /** Minutes this model has left of the job's per-model budget; null without a budget. */
+  /**
+   * Minutes this model has left of the job's per-model budget; null without a
+   * budget. Only the model's own processes use it (`item.budgetUsedMs`), so
+   * waiting for other models or sitting paused costs nothing, and a new job
+   * starts with new items and the whole budget.
+   */
   #minutesLeft(job, item) {
     if (job.budgetMinutes == null) return null;
-    const started = this.#budgetStarts.get(item.profileId) ?? this.#clock();
-    return job.budgetMinutes - (this.#clock() - started) / 60_000;
+    return job.budgetMinutes - (item.budgetUsedMs ?? 0) / 60_000;
   }
 
+  /** Run one tune process for `item`; resolves true once it closed, false when none was started. */
   #runChild(job, item, model, stages, phase, force, more, { quick = false, continueRun = job.continueRun } = {}) {
+    const left = this.#minutesLeft(job, item);
+    if (left !== null && left <= 0) {
+      pushLog(item, `The ${job.budgetMinutes}-minute budget for this model is used up before the ${phase === "device" ? "device probe" : "tune"}; what it saved so far stays. Run the tune again to finish it.`);
+      Object.assign(item, { phase, status: "done" });
+      this.#changed();
+      return Promise.resolve(false);
+    }
+    const spawnedAt = this.#clock();
     return new Promise((resolve) => {
       const args = [this.#scriptPath, "--events", "--model", model.fileName, "--stages", stages.join(","), "--home", this.#homeDir];
       if (this.#modelsDir) args.push("--models-dir", this.#modelsDir);
@@ -352,10 +363,9 @@ export class TuneScheduler {
       if (quick) args.push("--quick");
       if (continueRun) args.push("--continue");
       if (job.guard) args.push("--guard");
-      if (job.budgetMinutes != null) {
-        if (!this.#budgetStarts.has(item.profileId)) this.#budgetStarts.set(item.profileId, this.#clock());
+      if (left !== null) {
         // At least a few seconds, so a process started just before the end still saves what it has.
-        args.push("--budget", String(Math.max(0.1, Math.round(this.#minutesLeft(job, item) * 100) / 100)));
+        args.push("--budget", String(Math.max(0.1, Math.round(left * 100) / 100)));
       }
       Object.assign(item, { phase, status: "running", progress: { type: "starting", stage: stages[0] }, exitCode: null });
       this.#changed();
@@ -376,7 +386,8 @@ export class TuneScheduler {
         item.progress = event;
         if (event.guard) item.guard = event.guard;
         if (event.guard && job.guardQueue) this.#stopQueue(job, event.guard, child);
-        if (event.type === "complete" && event.quick) item.provisional = true;
+        // A quick pass, or a tune stopped by its time budget, saved settings from an unfinished search.
+        if (event.type === "complete" && (event.quick || event.timeExhausted)) item.provisional = true;
         followLive(item.live, event);
         if (event.type === "complete" && event.skipped) skipped = true;
         this.#changed();
@@ -387,12 +398,13 @@ export class TuneScheduler {
         if (closed) return;
         closed = true;
         this.#children.delete(child);
+        if (job.budgetMinutes != null) item.budgetUsedMs = (item.budgetUsedMs ?? 0) + Math.max(0, this.#clock() - spawnedAt);
         item.exitCode = code;
         if (job.status === "cancelled" || job.status === "guarded") item.status = code === 0 && job.status === "guarded" ? (skipped ? "skipped" : "done") : "cancelled";
         else if (code === 0) item.status = more ? "queued" : skipped ? "skipped" : "done";
         else Object.assign(item, { status: "failed", error: item.log.at(-1) ?? `The tune exited with code ${code}.` });
         this.#changed();
-        resolve();
+        resolve(true);
       });
     });
   }
