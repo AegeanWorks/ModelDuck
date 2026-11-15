@@ -1,58 +1,18 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "recommend-measured",
+    "task_id": "paraphrase-watch",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794698351.6841505,
+    "updated_at": 1794732811.0140684,
     "owner": "kiro:1",
     "started_by": "kiro:1",
     "continuations": [],
-    "completed_at": 1794698352.0418983,
-    "completed_head": "45ec8f083ca48aa3382aa9eb486d3ad9403a4b80"
+    "completed_at": 1794732811.2968261,
+    "completed_head": "d9f1d8d62674a1e973695c4dae2a0fe8b84b6070"
   },
   "checkpoints": [
-    {
-      "task_id": "baseline-resume",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "targeted tests 30/30 pass (full suite deferred until the running v11 re-baseline ends, to keep CPU load off its timed stage); README and ADR checks pass",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794690885.045195,
-      "timestamp_str": "2026-11-15 00:14:45",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "baseline-resume",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "Full suite 859/860 pass, 1 skipped; README and ADR checks pass",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794691360.687848,
-      "timestamp_str": "2026-11-15 00:22:40",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "baseline-resume",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'baseline-resume' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794691361.1466076,
-      "timestamp_str": "2026-11-15 00:22:41",
-      "agent": "kiro:1",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
     {
       "task_id": "tuner-v11-clustered-gate",
       "phase": "in_progress",
@@ -295,6 +255,52 @@
       "status": "completed",
       "timestamp": 1794698352.0777297,
       "timestamp_str": "2026-11-15 02:19:12",
+      "agent": "kiro:1",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
+    },
+    {
+      "task_id": "paraphrase-watch",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/1] Item 4: check the paraphrase (rewording) gap on the v11 presets before any prompt search; record the result as ADR-130",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794732810.661126,
+      "timestamp_str": "2026-11-15 11:53:30",
+      "agent": "kiro:1",
+      "impact_assessment": {
+        "why": "ADR-100's watch item rested on Coder 1.5B's v10 comprehension preset (61.1% on reworded probes against 83.3%)",
+        "benefits": "No GPU hours spent on a gap that is gone or unmeasurable",
+        "risks": "contract: none; dependency: none; concurrency: none; state: docs and ledger only",
+        "mitigation": "figures read from the v11 gate result file and the earlier gate log"
+      },
+      "plan_digest": "13e18fcaaf4293e1bbf9f59745e8200ad8385071790f2f5dc77c5924d567b1a2"
+    },
+    {
+      "task_id": "paraphrase-watch",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "Docs only; figures from benchmarks/results/latest-tune-gate.json (v11) and the 23:14 v10 gate log",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794732811.0140684,
+      "timestamp_str": "2026-11-15 11:53:31",
+      "agent": "kiro:1",
+      "checklists": "passed"
+    },
+    {
+      "task_id": "paraphrase-watch",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'paraphrase-watch' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794732811.328487,
+      "timestamp_str": "2026-11-15 11:53:31",
       "agent": "kiro:1",
       "delivery": {
         "roots": [
