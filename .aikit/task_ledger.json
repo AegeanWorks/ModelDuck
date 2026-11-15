@@ -1,57 +1,18 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "chatduck-archived",
+    "task_id": "mit-everywhere",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794735554.1036012,
+    "updated_at": 1794736547.142698,
     "owner": "kiro:1",
     "started_by": "kiro:1",
     "continuations": [],
-    "completed_at": 1794735555.1574051,
-    "completed_head": "044de4bb9b74da4e3d640174889feab0d5d136d6"
+    "completed_at": 1794736547.3934426,
+    "completed_head": "ec96a72fe471334b7b99a2c6b2d9fc96366f3328"
   },
   "checkpoints": [
-    {
-      "task_id": "prompt-opt-in",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "872/873 pass, 1 skipped; failing-first ui-shell test; ui:smoke OK; screenshot reviewed; README and ADR-127",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794697560.1622324,
-      "timestamp_str": "2026-11-15 02:06:00",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "prompt-opt-in",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'prompt-opt-in' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794697560.4637685,
-      "timestamp_str": "2026-11-15 02:06:00",
-      "agent": "kiro:1",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
-    {
-      "task_id": "presets-v11",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/3] Resumed: the three core profiles are re-tuned on tuner v11 (02:08); exporting recipes with profileRecipe() into benchmarks/presets and rewriting the presets README figures",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794697745.463109,
-      "timestamp_str": "2026-11-15 02:09:05",
-      "agent": "kiro:1"
-    },
     {
       "task_id": "presets-v11",
       "phase": "in_progress",
@@ -302,6 +263,52 @@
       "status": "completed",
       "timestamp": 1794735555.2884488,
       "timestamp_str": "2026-11-15 12:39:15",
+      "agent": "kiro:1",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
+    },
+    {
+      "task_id": "mit-everywhere",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/2] Finish the MIT migration (README License section, remove COMMERCIAL.md, Kiro steering, audit correction), push; [2/2] build ModelDuck-Windows-x64.zip from that commit, verify it, publish release v0.1.1-kiroween",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794735927.3212495,
+      "timestamp_str": "2026-11-15 12:45:27",
+      "agent": "kiro:1",
+      "impact_assessment": {
+        "why": "LICENSE and package.json said MIT while the README, COMMERCIAL.md and the steering said AL-1.1 with paid commercial use, and the released zip shipped AL-1.1",
+        "benefits": "One license everywhere, and a download that matches it",
+        "risks": "contract: the license terms readers see change to MIT, as the LICENSE already granted; dependency: none; concurrency: none; state: COMMERCIAL.md removed (kept in history); a public release is added",
+        "mitigation": "user approved MIT everywhere and the upload; the old release stays; the zip is checked before upload"
+      },
+      "plan_digest": "564f6109b84199a5e107a8ebbd1b48d17b82933a3a5d2b64b08f5a4fec0b66de"
+    },
+    {
+      "task_id": "mit-everywhere",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[2/2] v0.1.1-kiroween published from 9382995; uploaded zip digest equals the local build; zip checked: MIT only, 876/877 tests, app and MCP server start",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794736547.142698,
+      "timestamp_str": "2026-11-15 12:55:47",
+      "agent": "kiro:1",
+      "checklists": "passed"
+    },
+    {
+      "task_id": "mit-everywhere",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'mit-everywhere' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794736547.4303694,
+      "timestamp_str": "2026-11-15 12:55:47",
       "agent": "kiro:1",
       "delivery": {
         "roots": [
