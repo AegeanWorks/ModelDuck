@@ -192,17 +192,17 @@ const runDetail = {
 
 const estimate = {
   tasks: ["code", "comprehension", "recall"],
-  stages: ["device", "quality", "speed", "sampling", "prompt"],
+  stages: ["device", "quality", "speed", "sampling"],
   settings: null,
   logicalCores: 16,
   models: 2,
   perModel: [
-    { id: "qwen-coder", name: "Qwen2.5 Coder 1.5B", profileId: QWEN, pace: { secondsPerAnswer: 1.8, low: 1.4, high: 2.6, samples: 3 }, quick: { answersPerModel: 5838, estimate: { onePassSeconds: 17639 }, lowSeconds: 11200, highSeconds: 20300 }, full: { answersPerModel: 17532, estimate: { onePassSeconds: 51515 }, lowSeconds: 36000, highSeconds: 63500 } },
-    { id: "phi-mini", name: "Phi-3.5 mini 3.8B", profileId: PHI, pace: { secondsPerAnswer: 2.1, low: 1.6, high: 3.0, samples: 2 }, quick: { answersPerModel: 5838, estimate: { onePassSeconds: 19500 }, lowSeconds: 13100, highSeconds: 23800 }, full: { answersPerModel: 17532, estimate: { onePassSeconds: 56800 }, lowSeconds: 41000, highSeconds: 72100 } },
+    { id: "qwen-coder", name: "Qwen2.5 Coder 1.5B", profileId: QWEN, pace: { secondsPerAnswer: 1.8, low: 1.4, high: 2.6, samples: 3 }, quick: { answersPerModel: 2346, estimate: { onePassSeconds: 7088 }, lowSeconds: 4501, highSeconds: 8158 }, full: { answersPerModel: 8412, estimate: { onePassSeconds: 24717 }, lowSeconds: 17273, highSeconds: 30468 } },
+    { id: "phi-mini", name: "Phi-3.5 mini 3.8B", profileId: PHI, pace: { secondsPerAnswer: 2.1, low: 1.6, high: 3.0, samples: 2 }, quick: { answersPerModel: 2346, estimate: { onePassSeconds: 7836 }, lowSeconds: 5264, highSeconds: 9564 }, full: { answersPerModel: 8412, estimate: { onePassSeconds: 27253 }, lowSeconds: 19672, highSeconds: 34594 } },
   ],
-  answersPerModel: 17532,
-  estimate: { onePassSeconds: 51515 },
-  quick: { answersPerModel: 5838, estimate: { onePassSeconds: 17639 } },
+  answersPerModel: 8412,
+  estimate: { onePassSeconds: 24717 },
+  quick: { answersPerModel: 2346, estimate: { onePassSeconds: 7088 } },
 };
 
 const recommendations = {
@@ -212,7 +212,10 @@ const recommendations = {
     { name: "Qwen2.5 Coder 1.5B", fileName: QWEN_FILE, rate: 83.6, tokensPerSecond: 42.8, memoryBytes: 1_116_669_952, contextSize: 8192, fit: "comfortable", why: "Fits with 8 GiB to spare." },
     { name: "Phi-3.5 mini 3.8B", fileName: PHI_FILE, rate: 81.9, tokensPerSecond: 31.2, memoryBytes: 2_393_000_000, contextSize: 8192, fit: "tight", why: "Fits with 3.2 GiB to spare." },
   ],
-  catalog: [],
+  // A shipped preset's real figure (benchmarks/presets, ADR-129), shown as measured elsewhere.
+  catalog: [
+    { id: "qwen2.5-0.5b-instruct-q4", name: "Qwen2.5 0.5B Instruct", params: "0.5B", quant: "Q4_K_M", sizeBytes: 491_400_032, totalBytes: 760_000_000, recommended: true, fit: "fits (weights and runtime only)", measuredRate: 35.4, measuredItems: 48, measuredOn: "Intel(R) Core(TM) i5-14400F", why: "35.4% on 48 items, measured on Intel(R) Core(TM) i5-14400F with the shipped preset; tune it to measure this PC." },
+  ],
 };
 
 const phaseItems = {

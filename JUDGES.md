@@ -59,6 +59,18 @@ multistep evaluation that says how well the model keeps state across steps.
    items of the repair bench (`npm run bench:repair`), Qwen2.5 Coder 1.5B solved
    60.4% with one answer and 70.9% with the default 4 tries. Telling the model why
    it failed measured no better than asking again.
+7. **The same from Kiro, over MCP** (from the repository's `master`; the
+   `v0.1.0-kiroween` zip predates it). With ModelDuck running and a model
+   loaded, add this to `.kiro/settings/mcp.json` and give the folder path:
+   ```json
+   { "mcpServers": { "modelduck": { "command": "node",
+     "args": ["<ModelDuck folder>/src/mcp-server.js"] } } }
+   ```
+   Kiro then has a `verified_code` tool: ask it for a function with a few
+   input/output examples, and the local model's code comes back only after it
+   passed them, or with the best try and the failing cases. The local model
+   writes the code and the tests run on this computer; the result goes back to
+   Kiro like any other tool result.
 
 ---
 
