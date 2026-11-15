@@ -978,5 +978,25 @@
     "final_snapshot_digest": "",
     "final_snapshot_entries": 0,
     "surface_digest": "d7f4cc32dce79766d441a1e77068f68997d3f3d804d2c4ce8097f836b2ba5a16"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [
+      "public/index.html"
+    ],
+    "no_visual_reason": "",
+    "baseline_commit": "02292b5e587cd6d9b8c0dfba56e65ab9530faebc",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1794735251.173408,
+    "finished_at": 1794735482.2386541,
+    "strikes": 0,
+    "reviewer": "kiro:1 (agent review under G-007: overview and mobile overview screenshots read - ChatDuck sidebar link gone, theme toggle alone in the rail foot, reworded lede reads cleanly at 1440 and 390 px; API panel note and removed Open ChatDuck button pinned by the ui-shell test; ui:smoke OK incl. 390px reflow)",
+    "allowed_removals": [],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "8581edafa5a81bece313c28807ed1ad4ec9ac18870f3176b5bb7b33ff30fb6c0"
   }
 ]
