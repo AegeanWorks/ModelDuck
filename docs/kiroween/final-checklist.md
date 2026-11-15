@@ -33,7 +33,8 @@ Use this to verify eligibility before hitting Submit on Devpost.
 - [x] Build manifest: `docs/kiroween/build-manifest.md`
 - [x] **GitHub Release created**: https://github.com/AegeanWorks/ModelDuck/releases/tag/v0.1.0-kiroween
   - Zip and `.sha256` checksum file both attached to the release
-- [ ] Add release URL to Devpost "Try it out" field: `https://github.com/AegeanWorks/ModelDuck/releases/tag/v0.1.0-kiroween`
+- [x] **Rebuilt release**: https://github.com/AegeanWorks/ModelDuck/releases/tag/v0.1.1-kiroween (2026-11-15, commit `9382995`, MIT, SHA-256 `C8FDF28D…624ECD`)
+- [ ] Add the v0.1.1 release URL to Devpost "Try it out": `https://github.com/AegeanWorks/ModelDuck/releases/tag/v0.1.1-kiroween`
 
 ## 5. License
 
@@ -43,7 +44,8 @@ Use this to verify eligibility before hitting Submit on Devpost.
 - [x] `LICENSES/MIT.txt` added; `LICENSES/LicenseRef-AL-1.1.txt` removed
 - [x] `README.md` badge updated to MIT
 - [x] `package.json` `"license"` field updated to `"MIT"`
-- [ ] **The released zip is not MIT.** Checked 2026-11-15: `ModelDuck-Windows-x64.zip` of `v0.1.0-kiroween` was built from the tree before the license commit, so its `LICENSE` is Aegean License 1.1, its `package.json` says `SEE LICENSE IN LICENSE`, and it has `LICENSES/LicenseRef-AL-1.1.txt` but no `MIT.txt` and no `.kiro/`. The repository and the tag are MIT. Rebuild the zip from the tag (or `master`) to make the download match.
+- [x] **The v0.1.1-kiroween zip is MIT** (checked 2026-11-15 on the built zip: `LICENSE` and `package.json` say MIT, no `COMMERCIAL.md`, no AL-1.1 file; the README License section and `.kiro` steering say MIT too). The older finding, kept for the record:
+- [x] ~~The released zip is not MIT.~~ Checked 2026-11-15: `ModelDuck-Windows-x64.zip` of `v0.1.0-kiroween` was built from the tree before the license commit, so its `LICENSE` is Aegean License 1.1, its `package.json` says `SEE LICENSE IN LICENSE`, and it has `LICENSES/LicenseRef-AL-1.1.txt` but no `MIT.txt` and no `.kiro/`. The repository and the tag are MIT. Rebuild the zip from the tag (or `master`) to make the download match.
 
 ## 6. Devpost form fields
 
@@ -70,7 +72,9 @@ Use this to verify eligibility before hitting Submit on Devpost.
 
 ## 8. Pre-submission sanity checks
 
-Checked 2026-11-15 on the downloaded release zip (Windows 11, Node 26.9.0, a temp home):
+v0.1.1-kiroween, checked 2026-11-15 on the built zip before upload (Windows 11, Node 26.9.0, a temp home): SHA-256 matches its `.sha256`; `npm test` on its contents 877 tests, 876 pass, 1 skipped, 0 fail; the app starts and serves the page (no ChatDuck); recommendations rank Qwen2.5 Coder 1.5B first at 54.2%; `src/mcp-server.js` answers `initialize`. `start.bat` on a fresh machine is still unchecked.
+
+v0.1.0-kiroween, checked 2026-11-15 on the downloaded release zip (Windows 11, Node 26.9.0, a temp home):
 
 - [x] `npm test` passes on the zip contents: 609 tests, 608 pass, 1 skipped, 0 fail
 - [ ] `start.bat` launches without error on a fresh Windows machine (or VM): not checked; the app was started with `node src/main.js`, the command `start.bat` runs, on a machine that already has Node

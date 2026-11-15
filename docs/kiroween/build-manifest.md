@@ -2,10 +2,13 @@
 
 ## Zip contents
 
+**Release**: `v0.1.1-kiroween`, built from commit `9382995` with `git archive` (tracked files only, `.aikit/` left out) plus `node_modules`  
 **File**: `ModelDuck-Windows-x64.zip`  
-**SHA-256**: `5766974A458D949DD8324D137AB7C16474C21F14B297307CA90A49BEC39CB254`  
-**Compressed size**: 163.5 MB (163,546,235 bytes, from the release page)  
-**Uncompressed size**: ~377 MB
+**SHA-256**: `C8FDF28DF6BCB567AA203EDC2F2BBD001374775CA99364342FE7E42515624ECD`  
+**Compressed size**: 153.4 MB (160,842,428 bytes)  
+**Uncompressed size**: 338 MB
+
+The earlier `v0.1.0-kiroween` zip (SHA-256 `5766974A…CB254`, 163.5 MB) was built before the MIT switch and ships the Aegean License 1.1; it stays on its release page as history.
 
 ## What's included
 
@@ -19,7 +22,8 @@ ModelDuck-Windows-x64/
 ├── docs/                 Threat model, state machine docs, kiroween/ folder
 ├── assets/               Logo, social preview, screenshots, demo script
 │                         (MP4/WAV binaries excluded — rebuild with ffmpeg)
-├── LICENSES/             LicenseRef-AL-1.1.txt (the zip predates the MIT switch; see the checklist)
+├── LICENSES/             MIT.txt
+├── .kiro/                Kiro steering, specs and settings
 ├── node_modules/         Production + devDependencies, with:
 │   ├── node-llama-cpp/   The inference binding (CPU prebuilt included)
 │   ├── @node-llama-cpp/
@@ -32,8 +36,7 @@ ModelDuck-Windows-x64/
 ├── start.bat             Double-click to run on Windows
 ├── README.md
 ├── JUDGES.md
-├── LICENSE               Aegean License 1.1 in this zip; the repository is MIT
-├── COMMERCIAL.md
+├── LICENSE               MIT
 └── REUSE.toml
 ```
 
