@@ -691,7 +691,6 @@ modelduck/
 ├── package-lock.json <- pinned dependencies
 ├── README.md
 ├── LICENSE
-├── COMMERCIAL.md
 ├── JUDGES.md <- judges' demo walkthrough
 ├── LICENSES/
 ├── docs/ <- threat model and design notes
@@ -737,6 +736,5 @@ OpenAI-compatible client can use the same `/v1` URL for a conversation.
 
 ## License
 
-Free for personal use under the Aegean License 1.1 (AL-1.1); see [LICENSE](LICENSE).
-Any commercial use needs the Aegean Commercial License 1.0 (ACL-1.0); see
-[COMMERCIAL.md](COMMERCIAL.md).
+MIT; see [LICENSE](LICENSE). Personal and commercial use are both allowed under
+its terms.

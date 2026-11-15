@@ -13,7 +13,7 @@ ModelDuck itself is the control panel: Models, Bench & Tune, Settings, Server.
 ## Repository
 
 - GitHub: https://github.com/AegeanWorks/ModelDuck
-- License: Aegean License 1.1 (AL-1.1) — personal-use source-available
+- License: MIT (see `LICENSE`)
 - Runtime: Node.js 20+, single dependency (`node-llama-cpp 3.22.2`)
 
 ## Architecture in one paragraph

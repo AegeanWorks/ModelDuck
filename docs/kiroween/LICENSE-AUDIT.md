@@ -40,3 +40,13 @@ MIT is compatible with all of the above. No additional NOTICE file is required.
 ## Bonus prize eligibility (updated)
 
 MIT is an OSI-approved open-source license. The **open-source bonus prize** is now claimable.
+
+## Correction (2026-11-15)
+
+The migration above was incomplete. Three files still described the Aegean
+licenses after it: the README's License section (AL-1.1 for personal use, ACL-1.0
+for commercial use), `COMMERCIAL.md` (the paid commercial tiers) and
+`.kiro/steering/project-overview.md`. The README section and the steering line now
+say MIT, and `COMMERCIAL.md` is removed; it stays in git history. The
+`v0.1.0-kiroween` zip was also built before the migration and ships AL-1.1; the
+`v0.1.1-kiroween` zip is built from the corrected tree.
