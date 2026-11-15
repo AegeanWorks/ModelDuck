@@ -1,64 +1,18 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "housekeeping-nov15",
+    "task_id": "release-check",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794734213.9674206,
+    "updated_at": 1794735035.2218816,
     "owner": "kiro:1",
     "started_by": "kiro:1",
     "continuations": [],
-    "completed_at": 1794734215.1211228,
-    "completed_head": "9e6dcd706711dd35da2ca5fb06c7a5a7a3c7241d"
+    "completed_at": 1794735036.046958,
+    "completed_head": "0c30634845962cbda478d8e997979fdb41d88b1e"
   },
   "checkpoints": [
-    {
-      "task_id": "presets-v11",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/3] Plan (item 5 of the user's 1-5 list): M1 re-tune the three core profiles on tuner v11 with npm run tune --force (answers replay from ~/.modelduck/tune-runs), snapshot first in ~/.modelduck/snapshots/before-tuner-v11; M2 export each with profileRecipe() into benchmarks/presets and update the figures in presets/README; M3 tests (preset-recipes, preset-match), ADR, commit, push",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794691986.7655396,
-      "timestamp_str": "2026-11-15 00:33:06",
-      "agent": "kiro:1",
-      "impact_assessment": {
-        "why": "The shipped recipes predate suite v18 and tuner v10/v11, so they load with stale warnings",
-        "benefits": "Shipped presets match the current suite and tuner, so Apply works without stale warnings",
-        "risks": "contract: recipe files change content; dependency: none; concurrency: the re-tune holds the GPU; other work must not run tune:gate or heavy CPU meanwhile; state: the user's three core profiles are overwritten",
-        "mitigation": "profiles snapshotted to ~/.modelduck/snapshots/before-tuner-v11; tune writes .bak too; recipes are diff-reviewed before commit"
-      },
-      "plan_digest": "1b0088f1d6b662ae1816286cf06dcea1357be62b61ee1ddadd282270a9193041"
-    },
-    {
-      "task_id": "presets-v11",
-      "phase": "suspended",
-      "phase_num": 2,
-      "description": "Task 'presets-v11' suspended: Re-tune of the three core profiles runs in the background (pid in %TEMP%\\md-presets-v11.pid, log %TEMP%\\md-presets-v11.log); resume for export once it finishes",
-      "status": "suspended",
-      "timestamp": 1794692022.6823766,
-      "timestamp_str": "2026-11-15 00:33:42",
-      "agent": "kiro:1"
-    },
-    {
-      "task_id": "mcp-verified",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/3] Plan (item 1): M1 src/mcp-server.js, a stdio MCP server (JSON-RPC 2.0, newline-delimited; initialize, tools/list, tools/call, ping) with one tool verified_code that forwards to the running app's loopback POST /api/code/verify, no new dependency; failing-first tests with fake streams and a fake fetch. M2 npm run mcp entry with --port, Why/Fix errors when the app is not running, README section with a Kiro mcp.json example. M3 docs (ADR-126, threat model note), full suite, commit, push.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794692022.8918593,
-      "timestamp_str": "2026-11-15 00:33:42",
-      "agent": "kiro:1",
-      "impact_assessment": {
-        "why": "ADR-105/106: test-checked retries are the one measured coding lever (60.4% to 73.1% in four tries), but no client reaches /api/code/verify",
-        "benefits": "Coding agents such as Kiro get test-checked code from the local model as a tool",
-        "risks": "contract: new npm script and module, no change to existing routes; dependency: none added; concurrency: forwards to the app, which serializes engine use (engine_busy); state: none; security: the tool runs caller tests in the existing node --permission sandbox, loopback only",
-        "mitigation": "only forwards to 127.0.0.1; validation stays in the server's parseVerifyRequest; failing-first tests; threat model updated"
-      },
-      "plan_digest": "1dce22f02e542f4364ceb7f94ec0d230116e2f6287c465090cf6aa7c7112b941"
-    },
     {
       "task_id": "mcp-verified",
       "phase": "in_progress",
@@ -302,6 +256,52 @@
       "status": "completed",
       "timestamp": 1794734215.245801,
       "timestamp_str": "2026-11-15 12:16:55",
+      "agent": "kiro:1",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
+    },
+    {
+      "task_id": "release-check",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/1] Run the checklist's five unticked sanity checks on the downloaded v0.1.0-kiroween zip and record the results; correct the license and size claims",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794735033.687174,
+      "timestamp_str": "2026-11-15 12:30:33",
+      "agent": "kiro:1",
+      "impact_assessment": {
+        "why": "The submission's sanity checks were never ticked, and the manifest's license and size disagreed with the release",
+        "benefits": "The checklist states what the shipped zip is",
+        "risks": "contract: none; dependency: none; concurrency: none; state: docs and ledger only",
+        "mitigation": "evidence from the downloaded asset: sha256, tar listing, npm test on its contents, a launch with a temp home"
+      },
+      "plan_digest": "7d2882834bb7e73fbeda922e72d7eea558569d95dec83065195ff7b84e87c8c6"
+    },
+    {
+      "task_id": "release-check",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "Docs only; checks run on the downloaded release asset",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794735035.2218816,
+      "timestamp_str": "2026-11-15 12:30:35",
+      "agent": "kiro:1",
+      "checklists": "passed"
+    },
+    {
+      "task_id": "release-check",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'release-check' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794735036.1990151,
+      "timestamp_str": "2026-11-15 12:30:36",
       "agent": "kiro:1",
       "delivery": {
         "roots": [
