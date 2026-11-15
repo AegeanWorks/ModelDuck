@@ -43,6 +43,7 @@ Use this to verify eligibility before hitting Submit on Devpost.
 - [x] `LICENSES/MIT.txt` added; `LICENSES/LicenseRef-AL-1.1.txt` removed
 - [x] `README.md` badge updated to MIT
 - [x] `package.json` `"license"` field updated to `"MIT"`
+- [ ] **The released zip is not MIT.** Checked 2026-11-15: `ModelDuck-Windows-x64.zip` of `v0.1.0-kiroween` was built from the tree before the license commit, so its `LICENSE` is Aegean License 1.1, its `package.json` says `SEE LICENSE IN LICENSE`, and it has `LICENSES/LicenseRef-AL-1.1.txt` but no `MIT.txt` and no `.kiro/`. The repository and the tag are MIT. Rebuild the zip from the tag (or `master`) to make the download match.
 
 ## 6. Devpost form fields
 
@@ -69,11 +70,13 @@ Use this to verify eligibility before hitting Submit on Devpost.
 
 ## 8. Pre-submission sanity checks
 
-- [ ] `npm test` passes on the zip contents (no model needed)
-- [ ] `start.bat` launches without error on a fresh Windows machine (or VM)
-- [ ] The app opens at http://127.0.0.1:4141
-- [ ] Models tab loads; Discover is accessible
-- [ ] SHA-256 of the zip matches the `.sha256` file
+Checked 2026-11-15 on the downloaded release zip (Windows 11, Node 26.9.0, a temp home):
+
+- [x] `npm test` passes on the zip contents: 609 tests, 608 pass, 1 skipped, 0 fail
+- [ ] `start.bat` launches without error on a fresh Windows machine (or VM): not checked; the app was started with `node src/main.js`, the command `start.bat` runs, on a machine that already has Node
+- [x] The app opens: the page answers 200 (checked on port 4196)
+- [x] Models and catalog endpoints answer (the API behind the Models tab and Discover; the tab itself was not clicked)
+- [x] SHA-256 of the zip matches the `.sha256` file (`5766974A…CB254`)
 
 ---
 

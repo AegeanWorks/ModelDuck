@@ -4,7 +4,7 @@
 
 **File**: `ModelDuck-Windows-x64.zip`  
 **SHA-256**: `5766974A458D949DD8324D137AB7C16474C21F14B297307CA90A49BEC39CB254`  
-**Compressed size**: ~118 MB  
+**Compressed size**: 163.5 MB (163,546,235 bytes, from the release page)  
 **Uncompressed size**: ~377 MB
 
 ## What's included
@@ -19,7 +19,7 @@ ModelDuck-Windows-x64/
 ├── docs/                 Threat model, state machine docs, kiroween/ folder
 ├── assets/               Logo, social preview, screenshots, demo script
 │                         (MP4/WAV binaries excluded — rebuild with ffmpeg)
-├── LICENSES/             LicenseRef-AL-1.1.txt
+├── LICENSES/             LicenseRef-AL-1.1.txt (the zip predates the MIT switch; see the checklist)
 ├── node_modules/         Production + devDependencies, with:
 │   ├── node-llama-cpp/   The inference binding (CPU prebuilt included)
 │   ├── @node-llama-cpp/
@@ -32,7 +32,7 @@ ModelDuck-Windows-x64/
 ├── start.bat             Double-click to run on Windows
 ├── README.md
 ├── JUDGES.md
-├── LICENSE               Aegean License 1.1
+├── LICENSE               Aegean License 1.1 in this zip; the repository is MIT
 ├── COMMERCIAL.md
 └── REUSE.toml
 ```
