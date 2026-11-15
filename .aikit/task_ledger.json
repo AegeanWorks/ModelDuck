@@ -1,64 +1,18 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "release-check",
+    "task_id": "chatduck-archived",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794735035.2218816,
+    "updated_at": 1794735554.1036012,
     "owner": "kiro:1",
     "started_by": "kiro:1",
     "continuations": [],
-    "completed_at": 1794735036.046958,
-    "completed_head": "0c30634845962cbda478d8e997979fdb41d88b1e"
+    "completed_at": 1794735555.1574051,
+    "completed_head": "044de4bb9b74da4e3d640174889feab0d5d136d6"
   },
   "checkpoints": [
-    {
-      "task_id": "mcp-verified",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/3] 871/872 pass, 1 skipped; 10 new tests incl. a real stdio process; live check through a stdio client against Coder 1.5B on Vulkan: plumbing works, two tasks failed honestly (judged code read); README Kiro mcp.json example, threat model, ADR-126",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794695248.98425,
-      "timestamp_str": "2026-11-15 01:27:28",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "mcp-verified",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'mcp-verified' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794695249.4513001,
-      "timestamp_str": "2026-11-15 01:27:29",
-      "agent": "kiro:1",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
-    {
-      "task_id": "prompt-opt-in",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/1] Plan (item 2): the Tune panel's Prompt stage is opt-in (unticked by default) with a note; failing-first ui-shell test; UI task begin/verify/finish with a screenshot review; ADR-127",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794695381.236906,
-      "timestamp_str": "2026-11-15 01:29:41",
-      "agent": "kiro:1",
-      "impact_assessment": {
-        "why": "Under tuner v11 the prompt stage chose the defaults in all 9 core model-task cases, and it is 55% of a full tune's answers (18,714 to 8,412)",
-        "benefits": "A default tune takes about half the answers and keeps every measured gain (device, KV, speed, greedy code sampling)",
-        "risks": "contract: the Tune form's default stage set changes; API and CLI defaults unchanged; dependency: none; concurrency: none; state: none",
-        "mitigation": "the stage stays one click away; the note says what it costs and what it found; failing-first test; UI review"
-      },
-      "plan_digest": "dc9e071ef44555ad09338957c9fa9c17e3e74531dcf04bd3e21db136a5baaf1c"
-    },
     {
       "task_id": "prompt-opt-in",
       "phase": "in_progress",
@@ -302,6 +256,52 @@
       "status": "completed",
       "timestamp": 1794735036.1990151,
       "timestamp_str": "2026-11-15 12:30:36",
+      "agent": "kiro:1",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
+    },
+    {
+      "task_id": "chatduck-archived",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/1] ChatDuck was archived on GitHub 2026-11-14: remove the app's ChatDuck link and 'Open ChatDuck' button (dead 127.0.0.1:4173 target) and its mentions in the README, JUDGES and Kiro steering; update the README (no chat UI, any OpenAI-compatible client, verified code and MCP bullet, npm run mcp, Coder 1.5B as the code starter); recapture screenshots",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794735232.1212215,
+      "timestamp_str": "2026-11-15 12:33:52",
+      "agent": "kiro:1",
+      "impact_assessment": {
+        "why": "The control panel's main call to action and the docs send users to an archived client",
+        "benefits": "No dead links; the README describes the current app",
+        "risks": "contract: the dashboard loses a link and a button, no ids or routes; dependency: none; concurrency: none; state: none",
+        "mitigation": "failing-first ui-shell test; UI task with screenshot review; dated records (ADR-071, demo script, idea lists) left as history"
+      },
+      "plan_digest": "bb9c8d3dcd4ddae1fd808d97fd6cd54224f5b8d83898ed99b4a27b454d3bc77f"
+    },
+    {
+      "task_id": "chatduck-archived",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "876/877 pass, 1 skipped; failing-first ui-shell test; ui:smoke OK; overview screenshots reviewed; README check OK (34,652 chars)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794735554.1036012,
+      "timestamp_str": "2026-11-15 12:39:14",
+      "agent": "kiro:1",
+      "checklists": "passed"
+    },
+    {
+      "task_id": "chatduck-archived",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'chatduck-archived' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794735555.2884488,
+      "timestamp_str": "2026-11-15 12:39:15",
       "agent": "kiro:1",
       "delivery": {
         "roots": [
