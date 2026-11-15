@@ -12,9 +12,9 @@ computer; the only network requests are model downloads you start (the inference
 runtime is never downloaded or built on demand). The tuner measures quality per
 second and per GB on your machine, so a preset is evidence, not a guess.
 
-The chat UI lives in [**ChatDuck**](https://github.com/AegeanWorks/Chatduck), a
-separate static client for any OpenAI-compatible server. ModelDuck keeps the
-server and the tuning control panel: Models, Bench & Tune, Settings and Server.
+ModelDuck has no chat UI: its page is a control panel for Models, Bench & Tune,
+Settings and Server. Chat or code with any OpenAI-compatible client pointed at
+`http://127.0.0.1:4141/v1` (ChatDuck, the former companion client, is archived).
 
 ## 30-Second Cold-Start Quick Reference
 
@@ -48,10 +48,10 @@ server and the tuning control panel: Models, Bench & Tune, Settings and Server.
    browser. Closing the window leaves the server running; **Ctrl+C** quits.
 3. Click **Models → Discover**, download a starter model, then **Install → Load**.
 4. Open **Bench & Tune → Tune** to optimize the model, or **Models → Load** to serve it.
-   Chat lives in ChatDuck; point it at 127.0.0.1:4141.
+   To chat, point any OpenAI-compatible client at `http://127.0.0.1:4141/v1`.
 
-Bundled: none. Start with **Qwen2.5 0.5B Instruct** (469 MB) or
-**Qwen2.5 1.5B Instruct** (1.1 GB, better answers).
+Bundled: none. For code start with **Qwen2.5 Coder 1.5B Instruct** (1.1 GB, the
+best shipped preset: 54.2% on code), or **Qwen2.5 0.5B Instruct** (469 MB) to start small.
 
 ### AIKit Commands (run from the AIKit folder)
 
@@ -83,6 +83,7 @@ npm run bench:multistep -- --model <id>   # multistep chains: one conversation, 
 npm run bench:repair -- --model <id> --mode retry --repair-temperature 0.7   # tests pick among retries
 npm run tune -- --model <id> --settings threads,batchSize   # re-tune only these settings
 npm run tune:gate            # re-measure the core models' baseline settings (G-001)
+npm run mcp                  # MCP server: the verified_code tool for coding agents
 ```
 
 `MODELDUCK_GPU=auto npm start` lets `node-llama-cpp` use a detected CUDA/Vulkan/Metal
@@ -101,9 +102,8 @@ device. It is off by default so a missing driver never prevents local inference 
 - **OpenAI-compatible API** — `GET /v1/models`, `GET /v1/models/:id`,
   `POST /v1/chat/completions` and `POST /v1/completions`, including SSE
   streaming, so local tools can use ModelDuck as a drop-in backend.
-- **Chat lives in ChatDuck** — the separate static client at
-  https://github.com/AegeanWorks/Chatduck speaks the same `/v1` API. ModelDuck's
-  own page is a control panel for Models, Bench & Tune, Settings and Server.
+- **Verified code** — `POST /api/code/verify` retries until your tests pass, and
+  `npm run mcp` offers it to coding agents such as Kiro as the `verified_code` tool.
 - **Benchmark** — its own tab and gate: run either phase and read per-test rates;
   older-suite reports appear only when asked.
 - **Settings tuner** — **Bench & Tune → Tune** finds each model's best settings in order: device (CPU/GPU, partial offload when full won't fit), context + KV cache, speed (threads, batch, flash, mmap), then sampling per task; the prompt stage is opt-in (it never beat the default prompt). A setting changes only on a clear paired gain (Holm-corrected); laggards stop early, presets are checked on unseen items, and every step is saved so tunes resume anywhere. **Run all** tunes CPU and GPU lanes; **Runs** keeps every run; the Tune panel shows quick/full estimates, a pausable queue, and **Quick pass**. **Recommended for this PC** ranks by measured quality/speed, and models not installed by the shipped presets' rates. A sampling re-tune re-measures its prompt.
@@ -711,8 +711,8 @@ curl http://127.0.0.1:4141/health
 ```
 
 Open `http://127.0.0.1:4141`, load the model in **Models**, open **Bench & Tune**
-and **Settings**/**Server**, and confirm `curl /v1/models` lists it. ChatDuck
-can point at the same `/v1` URL for a conversation.
+and **Settings**/**Server**, and confirm `curl /v1/models` lists it. Any
+OpenAI-compatible client can use the same `/v1` URL for a conversation.
 
 ## Design notes
 

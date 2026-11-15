@@ -7,7 +7,7 @@ serves an OpenAI-compatible API (`/v1/chat/completions`, `/v1/completions`,
 `/v1/models`), and tunes it for code quality. Everything runs on the CPU or a
 Vulkan GPU; no cloud account, no telemetry, no model weights bundled.
 
-The companion chat client is [ChatDuck](https://github.com/AegeanWorks/Chatduck).
+ModelDuck has no chat UI. Its former companion client, [ChatDuck](https://github.com/AegeanWorks/ChatDuck), was archived on 2026-11-14; chat with any OpenAI-compatible client.
 ModelDuck itself is the control panel: Models, Bench & Tune, Settings, Server.
 
 ## Repository

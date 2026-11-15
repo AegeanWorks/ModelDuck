@@ -211,3 +211,10 @@ test("the Recommended table shows a catalog model's measured rate as another mac
   assert.match(render, /elsewhere/, "the rate is labelled as measured elsewhere");
   assert.match(render, /row\.why/, "the row explains where the figure came from");
 });
+
+test("the control panel no longer sends users to ChatDuck, which is archived", () => {
+  assert.doesNotMatch(html, /ChatDuck/i, "no ChatDuck link, button or text");
+  assert.doesNotMatch(html, /127\.0\.0\.1:4173/, "no link to the old ChatDuck port");
+  assert.match(html, /id="dashboard-copy-api"/, "the API panel keeps its Copy URL button");
+  assert.match(html, /any OpenAI-compatible client/, "the API panel still says what to connect");
+});

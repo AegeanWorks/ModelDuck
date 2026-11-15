@@ -112,9 +112,9 @@ ModelDuck checks the GGUF header with a SHA-256 receipt before loading.
 
 1. After loading, the **Server** tab shows `Loaded: <model name>`.
 2. The status bar at the top shows the active model.
-3. To chat, open **ChatDuck** (a separate client):
-   - GitHub: https://github.com/AegeanWorks/Chatduck
-   - Or use any OpenAI-compatible client pointed at `http://127.0.0.1:4141/v1`.
+3. To chat, use any OpenAI-compatible client pointed at `http://127.0.0.1:4141/v1`.
+   ModelDuck has no chat window of its own; ChatDuck, the former companion
+   client, is archived.
 4. Quick API test (PowerShell):
 
 ```powershell
