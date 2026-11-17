@@ -1,64 +1,25 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "mit-everywhere",
-    "last_phase": "in_progress",
+    "task_id": "response-format",
+    "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794736547.142698,
-    "owner": "kiro:1",
-    "started_by": "kiro:1",
+    "updated_at": 1794944943.2670126,
+    "owner": "kilo:1",
+    "started_by": "kilo:1",
     "continuations": [],
-    "completed_at": 1794736547.3934426,
-    "completed_head": "ec96a72fe471334b7b99a2c6b2d9fc96366f3328"
+    "workspaces": [
+      {
+        "name": "modelduck",
+        "path": "projects/modelduck"
+      }
+    ],
+    "completed_at": 1794944962.5284739,
+    "completed_head": "c8fb5f947f4b4ad9066571c53a2120063f26dc4c",
+    "completed_tree": "6987e5e232773a645da7f7d2a6491ea3784fa627"
   },
   "checkpoints": [
-    {
-      "task_id": "presets-v11",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/3] Recipes exported and checked (greedy code presets, default prompts, f16 KV); preset tests 7/7; full suite 872/873, 1 skipped; ADR-128",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794697824.2419324,
-      "timestamp_str": "2026-11-15 02:10:24",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "presets-v11",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'presets-v11' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794697824.6133022,
-      "timestamp_str": "2026-11-15 02:10:24",
-      "agent": "kiro:1",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
-    {
-      "task_id": "recommend-measured",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/1] Plan (item 3): recommendCatalog ranks catalog models that are not installed by the shipped presets' measured rate for the task (then the recommended flag, then size) and returns the rate, items and machine; /api/recommendations passes them from benchmarks/presets; the Recommended table shows it as measured on another machine. Failing-first tests, UI task with a screenshot review, ADR-129.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794697902.775206,
-      "timestamp_str": "2026-11-15 02:11:42",
-      "agent": "kiro:1",
-      "impact_assessment": {
-        "why": "The catalog ranked by a hand-set flag and size only; Coder 1.5B, the best measured code model, is not flagged, so a new user is pointed at general models for code",
-        "benefits": "Download suggestions rest on measured evidence where it exists",
-        "risks": "contract: recommendCatalog gains optional measured and task inputs and row fields; dependency: none; concurrency: none; state: none",
-        "mitigation": "rates are labelled as another machine's; models without a recipe keep the old order; failing-first tests; UI review"
-      },
-      "plan_digest": "8acdb43c6f6fedcce3275002ea98ec610246f1ce75ff8f17fce6d909fcc5834e"
-    },
     {
       "task_id": "recommend-measured",
       "phase": "in_progress",
@@ -310,6 +271,65 @@
       "timestamp": 1794736547.4303694,
       "timestamp_str": "2026-11-15 12:55:47",
       "agent": "kiro:1",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
+    },
+    {
+      "task_id": "response-format",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/2] Per-request response_format (IDEA-0859): accept {type:text|json_object|json_schema} on /v1/chat/completions and /v1/completions, map it to the request's structured-output grammar (settings untouched), refuse unsupported or malformed formats with a 400 invalid_response_format, failing-first tests, README and ADR-131; [2/2] run npm test and the G-001 tune:gate, record the gate, commit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794942563.4103968,
+      "timestamp_str": "2026-11-17 22:09:23",
+      "agent": "kilo:1",
+      "impact_assessment": {
+        "why": "OpenAI clients send response_format for JSON output; the server silently ignored it, so a client asking for JSON got unconstrained text",
+        "benefits": "JSON mode and a client-supplied JSON schema work per request without changing saved settings; unsupported formats are refused instead of faked",
+        "risks": "contract: the OpenAI routes gain an opt-in response_format mapping and a 400 code; dependency: none (assertJsonSchemaSupported is local); concurrency: none; state: none changed on disk",
+        "mitigation": "mapping is opt-in, defaults unchanged; schema limits reuse the existing 12,000-char and compiler checks; failing-first tests; G-001 gate for generation defaults"
+      },
+      "plan_digest": "2eb65eb9e5cc28dbe3ca1f85ce5e6994a03bb7a18746e7c0b2bc50f26652a33e",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "response-format",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[2/2] npm test 882/883 pass, 1 skipped; G-001 tune:gate passed 9/9 with every task rate unchanged (b=0 c=0), run 2f4a5a25 linked to e70a584; live check on Qwen2.5 0.5B (json_object, json_schema, xml 400); aikit check 4/4; ADR-131; README updated",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794944943.2670126,
+      "timestamp_str": "2026-11-17 22:49:03",
+      "agent": "kilo:1",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "response-format",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'response-format' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794944962.6283658,
+      "timestamp_str": "2026-11-17 22:49:22",
+      "agent": "kilo:1",
+      "head": "c8fb5f947f4b4ad9066571c53a2120063f26dc4c",
       "delivery": {
         "roots": [
           "."
