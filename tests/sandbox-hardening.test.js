@@ -10,6 +10,10 @@ const passedOf = async (code, check = CHECK) => {
   resetJavaScriptTestCache();
   return (await runJavaScriptTests(fence(code), check)).filter((result) => result.passed).length;
 };
+const resultsOf = async (code, check = CHECK) => {
+  resetJavaScriptTestCache();
+  return runJavaScriptTests(fence(code), check);
+};
 
 // --- the permission flag and what it can deny, by Node version -----------------------
 
@@ -47,18 +51,18 @@ test("an honest answer still scores as before", async () => {
   assert.equal(await passedOf("const double = (n) => n * 2;\nmodule.exports = { double };"), 2, "module.exports still works");
 });
 
-test("printing a fake result marker and exiting does not pass", async () => {
-  const forged = 'function double() { return 0; }\nprocess.stdout.write("\\n__MODELDUCK_TEST_RESULTS__" + JSON.stringify([{ ok: true, detail: "ok" }, { ok: true, detail: "ok" }]));\nprocess.exit(0);';
-  assert.equal(await passedOf(forged), 0);
-});
-
-test("rewriting the harness output on its way out does not pass", async () => {
+test("replacing the write helper after the capture cannot forge a result", async () => {
+  // The harness captures fs.writeSync before the answer runs; a later patch cannot
+  // change the line it writes, so a wrong answer stays wrong (ADR-121).
   const forged = [
+    "const fs = require('fs');",
+    "const real = fs.writeSync;",
+    'fs.writeSync = (fd, text) => real(fd, String(text).replace(/\\[\\[[^\\]]*\\]\\]/, \'[["v","2"],["v","10"]]\'));',
     "function double() { return 0; }",
-    "const write = process.stdout.write.bind(process.stdout);",
-    'process.stdout.write = (text, ...rest) => write(String(text).replace(/\\[\\{.*\\}\\]/, JSON.stringify([{ ok: true, detail: "ok" }, { ok: true, detail: "ok" }])), ...rest);',
   ].join("\n");
-  assert.equal(await passedOf(forged), 0);
+  const results = await resultsOf(forged);
+  assert.equal(results.filter((result) => result.passed).length, 0);
+  assert.match(results[0].detail, /got 0/, "the real line came from the captured writer");
 });
 
 test("polluting toJSON so every value serializes alike does not pass", async () => {
@@ -100,7 +104,11 @@ test("reading the judge's own script and writing a result line on exit does not 
     // is the one the parent reads. It can only say what the function "returned".
     'process.on("exit", () => { const m = "__MODELDUCK_" + id + "__"; require("fs").writeSync(1, "\\n" + m + \'[["v","0"],["v","0"]]\' + m); });',
   ].join("\n");
-  assert.equal(await passedOf(forged), 0, "forged results that are not the expected values do not pass");
+  const results = await resultsOf(forged);
+  assert.equal(results.filter((result) => result.passed).length, 0, "forged results that are not the expected values do not pass");
+  // The line is parsed and rejected by value; a retired marker shape would read as "no results" and
+  // would let a judge change that accepts any well-formed line slip through (ADR-135).
+  assert.match(results[0].detail, /got 0/, "the forged line was well formed and rejected by value, not ignored as malformed");
 });
 
 // --- review findings from reforge run-1: how a result leaves the child ---------------------
