@@ -1019,5 +1019,26 @@
     "final_snapshot_entries": 0,
     "surface_digest": "8b749ba4deb21532d43a13d71ef0ed6a816b42d93115e6d92d0b0ac641399639",
     "baseline_digest": "8b749ba4deb21532d43a13d71ef0ed6a816b42d93115e6d92d0b0ac641399639"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [],
+    "no_visual_reason": "",
+    "no_change_reason": "Backend-only OpenAI route change (parameter refusals, ADR-132); no public/ file and no rendered view changed, so the review covered the committed diff and the route tests.",
+    "baseline_commit": "3b3fa8301b04b6fbf0101e0380e09aeb86416dd1",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1794947853.575166,
+    "finished_at": 1794947878.8180788,
+    "strikes": 0,
+    "reviewer": "kilo:1",
+    "allowed_removals": [],
+    "allowed_tests": [],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "583031125b7fd30eaeb8c76be69b8bc04f222b5c4d3a87e5509922d4e0962ec0",
+    "baseline_digest": "583031125b7fd30eaeb8c76be69b8bc04f222b5c4d3a87e5509922d4e0962ec0"
   }
 ]
