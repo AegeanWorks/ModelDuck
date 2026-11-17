@@ -1061,5 +1061,26 @@
     "final_snapshot_entries": 0,
     "surface_digest": "ecdb2a2f7e46cd5b94199392999b0ebc90c42c2fe4eb3eb22c1b0d79fea9169c",
     "baseline_digest": "ecdb2a2f7e46cd5b94199392999b0ebc90c42c2fe4eb3eb22c1b0d79fea9169c"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [],
+    "no_visual_reason": "",
+    "no_change_reason": "Backend-only test seam and route wiring (ADR-134); no public/ file and no rendered view changed; reviewed the committed diff plus repeated route tests.",
+    "baseline_commit": "4e20d62890b68a9f2d9029dec7edd6ba537985bc",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1794951118.889298,
+    "finished_at": 1794951156.4994462,
+    "strikes": 0,
+    "reviewer": "kilo:1",
+    "allowed_removals": [],
+    "allowed_tests": [],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "cbfab1a41101ac7bb91ffd3a141d17bb7e010c1b2d02db3faf344210660a5b1c",
+    "baseline_digest": "cbfab1a41101ac7bb91ffd3a141d17bb7e010c1b2d02db3faf344210660a5b1c"
   }
 ]
