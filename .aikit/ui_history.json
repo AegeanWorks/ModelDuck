@@ -998,5 +998,26 @@
     "final_snapshot_digest": "",
     "final_snapshot_entries": 0,
     "surface_digest": "8581edafa5a81bece313c28807ed1ad4ec9ac18870f3176b5bb7b33ff30fb6c0"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [],
+    "no_visual_reason": "",
+    "no_change_reason": "Backend-only OpenAI route change (response_format grammar, ADR-131); it touches no public/ file and renders no UI, so there is no changed view to inspect. Reviewed the committed diff and the live API responses instead.",
+    "baseline_commit": "10a5c9ddbdbbc6adf6d722955561927d0a8be881",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1794944835.1888027,
+    "finished_at": 1794944865.8698056,
+    "strikes": 0,
+    "reviewer": "kilo:1",
+    "allowed_removals": [],
+    "allowed_tests": [],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "8b749ba4deb21532d43a13d71ef0ed6a816b42d93115e6d92d0b0ac641399639",
+    "baseline_digest": "8b749ba4deb21532d43a13d71ef0ed6a816b42d93115e6d92d0b0ac641399639"
   }
 ]
