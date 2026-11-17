@@ -1,11 +1,11 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "graceful-drain",
+    "task_id": "recommend-memory-seam",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794949873.6927655,
+    "updated_at": 1794951196.9816809,
     "owner": "kilo:1",
     "started_by": "kilo:1",
     "continuations": [],
@@ -15,57 +15,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1794949874.3983028,
-    "completed_head": "caa2e53377cf86b34da210c9e2c06b7fe627088f",
-    "completed_tree": "f0cf1a77bbcb75980f5672347b7b2254caa81048"
+    "completed_at": 1794951197.8376548,
+    "completed_head": "c603d56e4c315fba0a3ec539af519c2b7ee49a48",
+    "completed_tree": "1d2757c33da548b6c54e2d38056789d658a9499a"
   },
   "checkpoints": [
-    {
-      "task_id": "housekeeping-nov15",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/2] Gate rows committed and linked; 7 redundant stashes dropped (audit stash kept); JUDGES step 7; screenshots recaptured and spot-checked (tune controls, models tab); suite passes",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794734213.9674206,
-      "timestamp_str": "2026-11-15 12:16:53",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "housekeeping-nov15",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'housekeeping-nov15' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794734215.245801,
-      "timestamp_str": "2026-11-15 12:16:55",
-      "agent": "kiro:1",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
-    {
-      "task_id": "release-check",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/1] Run the checklist's five unticked sanity checks on the downloaded v0.1.0-kiroween zip and record the results; correct the license and size claims",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794735033.687174,
-      "timestamp_str": "2026-11-15 12:30:33",
-      "agent": "kiro:1",
-      "impact_assessment": {
-        "why": "The submission's sanity checks were never ticked, and the manifest's license and size disagreed with the release",
-        "benefits": "The checklist states what the shipped zip is",
-        "risks": "contract: none; dependency: none; concurrency: none; state: docs and ledger only",
-        "mitigation": "evidence from the downloaded asset: sha256, tar listing, npm test on its contents, a launch with a temp home"
-      },
-      "plan_digest": "7d2882834bb7e73fbeda922e72d7eea558569d95dec83065195ff7b84e87c8c6"
-    },
     {
       "task_id": "release-check",
       "phase": "in_progress",
@@ -356,6 +310,65 @@
       "timestamp_str": "2026-11-18 00:11:14",
       "agent": "kilo:1",
       "head": "caa2e53377cf86b34da210c9e2c06b7fe627088f",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
+    },
+    {
+      "task_id": "recommend-memory-seam",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/2] Make the recommendations route's machine memory injectable (createHttpServer system option, default systemInfo; makeHarness passes it) so the ADR-129 route test stops reading live os.freemem(); failing-first route test for the seam; keep recommendCatalog semantics (free-memory fit rule) unchanged; ADR-134; [2/2] npm test, repeat the route test, aikit check, commit (G-001 not applicable: route wiring only, no generation path)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794950502.533047,
+      "timestamp_str": "2026-11-18 00:21:42",
+      "agent": "kilo:1",
+      "impact_assessment": {
+        "why": "The ADR-129 route test failed once in a full-suite run because the route ranks against live free memory; under load the coder row fell out as 'too large'. A test of measured ranking must not depend on host memory",
+        "benefits": "The recommendation tests are hermetic and the flake is gone; the route gains the same explicit test seam nodeVersion already uses",
+        "risks": "contract: createHttpServer gains an optional system dependency defaulting to systemInfo; dependency: none; concurrency: none; state: none; ranking behaviour unchanged",
+        "mitigation": "default keeps production behaviour; failing-first test proves the route uses the injected value; repeat the ADR-129 test many times"
+      },
+      "plan_digest": "8d484b51e395cb780d4379ecaa5bb1a6e68fbf3c86868f1ddc943214537ba476",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "recommend-memory-seam",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[2/2] npm test 894/895 pass, 1 skipped; ADR-129 test repeated 10x without a failure after the fixed machine; new seam test failed before the change; aikit check 4/4; ADR-134; UI review recorded; G-001 not applicable (no generation path changed)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794951196.9816809,
+      "timestamp_str": "2026-11-18 00:33:16",
+      "agent": "kilo:1",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "recommend-memory-seam",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'recommend-memory-seam' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794951197.9581332,
+      "timestamp_str": "2026-11-18 00:33:17",
+      "agent": "kilo:1",
+      "head": "c603d56e4c315fba0a3ec539af519c2b7ee49a48",
       "delivery": {
         "roots": [
           "."
