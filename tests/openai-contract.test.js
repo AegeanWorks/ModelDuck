@@ -2,7 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { AppError } from "../src/errors.js";
-import { finishReasonFrom, rejectedParam, responseFormatSettings } from "../src/openai.js";
+import {
+  finishReasonFrom,
+  rejectedParam,
+  rejectedParamDetail,
+  responseFormatSettings,
+} from "../src/openai.js";
 import { FakeEngine, makeHarness } from "./helpers.js";
 
 // IDEA-1085: one taxonomy everywhere.
@@ -19,6 +24,78 @@ test("rejectedParam names logit_bias, tools and functions", () => {
   assert.equal(rejectedParam({ tools: [] }), "tools");
   assert.equal(rejectedParam({ functions: [] }), "functions");
   assert.equal(rejectedParam({ temperature: 0.5 }), null);
+});
+
+test("rejectedParam names every silently ignored standard parameter", () => {
+  assert.equal(rejectedParam({ n: 2 }), "n");
+  assert.equal(rejectedParam({ best_of: 3 }), "best_of");
+  assert.equal(rejectedParam({ presence_penalty: 0.5 }), "presence_penalty");
+  assert.equal(rejectedParam({ frequency_penalty: -0.5 }), "frequency_penalty");
+  assert.equal(rejectedParam({ logprobs: true }), "logprobs");
+  assert.equal(rejectedParam({ top_logprobs: 2 }), "top_logprobs");
+  assert.equal(rejectedParam({ echo: true }), "echo");
+  assert.equal(rejectedParam({ suffix: " the end" }), "suffix");
+  assert.equal(rejectedParam({ audio: { format: "wav" } }), "audio");
+  assert.equal(rejectedParam({ modalities: ["text", "audio"] }), "modalities");
+  assert.equal(rejectedParam({ prediction: { type: "content" } }), "prediction");
+});
+
+test("the defaults of those parameters stay accepted", () => {
+  assert.equal(rejectedParam({ n: 1 }), null);
+  assert.equal(rejectedParam({ best_of: 1 }), null);
+  assert.equal(rejectedParam({ presence_penalty: 0 }), null);
+  assert.equal(rejectedParam({ frequency_penalty: 0 }), null);
+  assert.equal(rejectedParam({ logprobs: false }), null);
+  assert.equal(rejectedParam({ echo: false }), null);
+  assert.equal(rejectedParam({ suffix: "" }), null);
+  assert.equal(rejectedParam({ modalities: ["text"] }), null);
+});
+
+test("a refusal carries a Why and a Fix for the named parameter", () => {
+  const detail = rejectedParamDetail({ n: 2 });
+  assert.equal(detail.param, "n");
+  assert.match(detail.why, /one choice/);
+  assert.match(detail.fix, /n=1|omit/);
+});
+
+test("a request for two choices is a 400 and asks the model nothing", async (t) => {
+  const engine = new RecordingEngine();
+  const harness = await makeHarness(t, { engine });
+  const response = await postOpenAi(harness, "/v1/chat/completions", chatBody({ n: 2 }));
+  assert.equal(response.status, 400);
+  const payload = await response.json();
+  assert.equal(payload.error.type, "invalid_request_error");
+  assert.equal(payload.error.code, "unsupported_parameter");
+  assert.equal(payload.error.param, "n");
+  assert.equal(engine.requests.length, 0);
+});
+
+test("a non-zero penalty is a 400 on either route", async (t) => {
+  const engine = new RecordingEngine();
+  const harness = await makeHarness(t, { engine });
+  const chat = await postOpenAi(harness, "/v1/chat/completions", chatBody({ presence_penalty: 0.5 }));
+  assert.equal(chat.status, 400);
+  assert.equal((await chat.json()).error.param, "presence_penalty");
+  const completion = await postOpenAi(harness, "/v1/completions", {
+    model: "fake-model",
+    prompt: "hello",
+    best_of: 2,
+  });
+  assert.equal(completion.status, 400);
+  assert.equal((await completion.json()).error.param, "best_of");
+  assert.equal(engine.requests.length, 0);
+});
+
+test("the accepted defaults still generate", async (t) => {
+  const engine = new RecordingEngine();
+  const harness = await makeHarness(t, { engine });
+  const response = await postOpenAi(
+    harness,
+    "/v1/chat/completions",
+    chatBody({ n: 1, presence_penalty: 0, frequency_penalty: 0, logprobs: false, echo: false }),
+  );
+  assert.equal(response.status, 200);
+  assert.equal(engine.requests.length, 1);
 });
 
 // IDEA-1080: stop sequences are accepted and passed through, not dropped.

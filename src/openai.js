@@ -58,12 +58,12 @@ function contentText(content, role) {
   });
 }
 
-function openAiError(res, status, message, { type = "invalid_request_error", code = null } = {}) {
+function openAiError(res, status, message, { type = "invalid_request_error", code = null, param = null } = {}) {
   sendJson(res, status, {
     error: {
       message,
       type,
-      param: null,
+      param,
       code,
     },
   });
@@ -211,12 +211,105 @@ export function finishReasonFrom(stopReason) {
 }
 
 /** IDEA-1264: never silently fake an unsupported parameter. */
-export function rejectedParam(body) {
+const UNSUPPORTED_PARAM_RULES = Object.freeze([
+  {
+    param: "logit_bias",
+    used: (body) => Object.hasOwn(body, "logit_bias"),
+    why: "This server cannot apply a logit bias.",
+    fix: "Remove logit_bias from the request.",
+  },
+  {
+    param: "tools",
+    used: (body) => body.tools !== undefined || body.tool_choice !== undefined,
+    why: "This server has no tool calling.",
+    fix: "Remove tools and tool_choice from the request.",
+  },
+  {
+    param: "functions",
+    used: (body) => body.functions !== undefined || body.function_call !== undefined,
+    why: "This server has no function calling.",
+    fix: "Remove functions and function_call from the request.",
+  },
+  {
+    param: "n",
+    used: (body) => body.n !== undefined && Number(body.n) !== 1,
+    why: "This server returns one choice per request.",
+    fix: "Send n=1 or omit it.",
+  },
+  {
+    param: "best_of",
+    used: (body) => body.best_of !== undefined && Number(body.best_of) !== 1,
+    why: "This server returns one choice per request.",
+    fix: "Send best_of=1 or omit it.",
+  },
+  {
+    param: "presence_penalty",
+    used: (body) => body.presence_penalty !== undefined && Number(body.presence_penalty) !== 0,
+    why: "This server has no presence penalty.",
+    fix: "Send presence_penalty=0 or omit it.",
+  },
+  {
+    param: "frequency_penalty",
+    used: (body) => body.frequency_penalty !== undefined && Number(body.frequency_penalty) !== 0,
+    why: "This server has no frequency penalty.",
+    fix: "Send frequency_penalty=0 or omit it.",
+  },
+  {
+    param: "logprobs",
+    used: (body) => Boolean(body.logprobs),
+    why: "This server does not return token probabilities.",
+    fix: "Remove logprobs or send false.",
+  },
+  {
+    param: "top_logprobs",
+    used: (body) => body.top_logprobs !== undefined,
+    why: "This server does not return token probabilities.",
+    fix: "Remove top_logprobs from the request.",
+  },
+  {
+    param: "echo",
+    used: (body) => Boolean(body.echo),
+    why: "This server does not echo the prompt.",
+    fix: "Remove echo or send false.",
+  },
+  {
+    param: "suffix",
+    used: (body) => typeof body.suffix === "string" && body.suffix.length > 0,
+    why: "This server does not fill in a suffix.",
+    fix: "Remove suffix from the request.",
+  },
+  {
+    param: "audio",
+    used: (body) => body.audio !== undefined,
+    why: "This server returns text only.",
+    fix: "Remove audio from the request.",
+  },
+  {
+    param: "modalities",
+    used: (body) =>
+      Array.isArray(body.modalities) && !(body.modalities.length === 1 && body.modalities[0] === "text"),
+    why: "This server returns text only.",
+    fix: 'Send modalities ["text"] or omit it.',
+  },
+  {
+    param: "prediction",
+    used: (body) => body.prediction !== undefined,
+    why: "This server has no predicted-output support.",
+    fix: "Remove prediction from the request.",
+  },
+]);
+
+/** The refusal for the first parameter this server cannot honour, or null. */
+export function rejectedParamDetail(body) {
   if (!body || typeof body !== "object") return null;
-  if (Object.hasOwn(body, "logit_bias")) return "logit_bias";
-  if (body.tools !== undefined || body.tool_choice !== undefined) return "tools";
-  if (body.functions !== undefined || body.function_call !== undefined) return "functions";
+  for (const rule of UNSUPPORTED_PARAM_RULES) {
+    if (rule.used(body)) return { param: rule.param, why: rule.why, fix: rule.fix };
+  }
   return null;
+}
+
+export function rejectedParam(body) {
+  return rejectedParamDetail(body)?.param ?? null;
 }
 
 async function ensureReady({ engine, jit, body, res }) {
@@ -418,10 +511,11 @@ export async function handleOpenAI(
   }
 
   const body = await readJsonBody(req, { limitBytes: 8 * 1024 * 1024 });
-  const refused = rejectedParam(body);
+  const refused = rejectedParamDetail(body);
   if (refused) {
-    openAiError(res, 400, `"${refused}" is not supported by this local server`, {
+    openAiError(res, 400, `${refused.why} ${refused.fix}`.trim(), {
       code: "unsupported_parameter",
+      param: refused.param,
     });
     return;
   }

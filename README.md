@@ -301,6 +301,9 @@ comprehension or recall; or a `modelduck_task` body field, with the header
 winning; default code) sets the chat defaults; values you send win.
 `response_format` applies to that request only: `text`, `json_object`, or
 `json_schema` with a client schema up to 12,000 characters; other types are a 400.
+Parameters this server cannot honour (`n>1`, `best_of`, non-zero penalties,
+`logprobs`, `echo`, `suffix`, tools, audio) are also a 400 `unsupported_parameter`,
+never silently ignored.
 
 In an OpenAI SDK, set `baseURL: "http://127.0.0.1:4141/v1"` and any API key
 (ModelDuck ignores it). `stream: true` returns standard `data:` chunks ending
