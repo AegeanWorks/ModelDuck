@@ -1082,5 +1082,26 @@
     "final_snapshot_entries": 0,
     "surface_digest": "cbfab1a41101ac7bb91ffd3a141d17bb7e010c1b2d02db3faf344210660a5b1c",
     "baseline_digest": "cbfab1a41101ac7bb91ffd3a141d17bb7e010c1b2d02db3faf344210660a5b1c"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [],
+    "no_visual_reason": "",
+    "no_change_reason": "Test-only judge hardening (ADR-135); no public/ file or rendered view changed; reviewed the committed diff and ran the judge probe that distinguishes no-results from a value mismatch.",
+    "baseline_commit": "0d408a1d02f14937784d915aaa0cb7196a53686a",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1794952083.366659,
+    "finished_at": 1794952097.881679,
+    "strikes": 0,
+    "reviewer": "kilo:1",
+    "allowed_removals": [],
+    "allowed_tests": [],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "cbfab1a41101ac7bb91ffd3a141d17bb7e010c1b2d02db3faf344210660a5b1c",
+    "baseline_digest": "cbfab1a41101ac7bb91ffd3a141d17bb7e010c1b2d02db3faf344210660a5b1c"
   }
 ]
