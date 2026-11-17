@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { AppError } from "./errors.js";
+import { assertJsonSchemaSupported } from "./engine.js";
 import { readJsonBody, sendJson, sseStart } from "./http.js";
 
 function sseJson(res, value) {
@@ -68,6 +69,12 @@ function openAiError(res, status, message, { type = "invalid_request_error", cod
   });
 }
 
+/** A refusal the client can fix keeps OpenAI's invalid_request_error shape. */
+function errorTypeFor(error) {
+  const status = Number(error?.status);
+  return Number.isInteger(status) && status >= 400 && status < 500 ? "invalid_request_error" : "server_error";
+}
+
 function toMessages(body) {
   if (!Array.isArray(body.messages) || body.messages.length === 0) {
     throw new AppError("messages is required", {
@@ -120,7 +127,44 @@ function normalizeStop(value) {
   return null;
 }
 
+const RESPONSE_FORMAT_SCHEMA_MAX = 12000;
+
+/**
+ * IDEA-0859: an OpenAI request's response_format becomes that request's
+ * structured-output grammar. Returns null when the request names no format, so
+ * the saved settings still decide. A client-supplied schema is refused before
+ * the engine sees it or a model is loaded.
+ */
+export function responseFormatSettings(body) {
+  if (!body || typeof body !== "object" || body.response_format === undefined) return null;
+  const format = body.response_format;
+  const type = format && typeof format === "object" ? format.type : null;
+  if (type === "text") return { structuredOutput: "none", jsonSchema: "" };
+  if (type === "json_object") return { structuredOutput: "json_object", jsonSchema: "" };
+  if (type === "json_schema") {
+    const schema = format.json_schema?.schema;
+    assertJsonSchemaSupported(schema);
+    const jsonSchema = JSON.stringify(schema);
+    if (jsonSchema.length > RESPONSE_FORMAT_SCHEMA_MAX) {
+      throw new AppError("The JSON schema is too large", {
+        code: "invalid_response_format",
+        status: 400,
+        why: `response_format carries a ${jsonSchema.length}-character schema; this server accepts up to ${RESPONSE_FORMAT_SCHEMA_MAX}.`,
+        fix: "Send a smaller schema, or use response_format type json_object.",
+      });
+    }
+    return { structuredOutput: "json_schema", jsonSchema };
+  }
+  throw new AppError("response_format is not supported", {
+    code: "invalid_response_format",
+    status: 400,
+    why: `"${type ?? ""}" is not a response_format this server can produce.`,
+    fix: 'Send {"type":"text"}, {"type":"json_object"} or {"type":"json_schema","json_schema":{"schema":{...}}}.',
+  });
+}
+
 function optionsFrom(body, settings) {
+  const format = responseFormatSettings(body);
   return {
     temperature: body.temperature ?? settings.temperature,
     topP: body.top_p ?? settings.topP,
@@ -138,8 +182,8 @@ function optionsFrom(body, settings) {
     threads: settings.threads,
     systemPrompt: settings.systemPrompt,
     seed: body.seed ?? settings.seed,
-    structuredOutput: settings.structuredOutput,
-    jsonSchema: settings.jsonSchema,
+    structuredOutput: format ? format.structuredOutput : settings.structuredOutput,
+    jsonSchema: format ? format.jsonSchema : settings.jsonSchema,
     contextOverflow: settings.contextOverflow,
     reasoning: settings.reasoning,
     promptRepeat: settings.promptRepeat,
@@ -207,9 +251,8 @@ async function ensureReady({ engine, jit, body, res }) {
   return current;
 }
 
-async function handleCompletions({ res, body, prompt, engine, current, settings, logger, jit }) {
+async function handleCompletions({ res, body, prompt, engine, current, requestSettings, logger, jit }) {
   const conversationId = `openai-${randomUUID()}`;
-  const requestSettings = { ...optionsFrom(body, settings.value), promptRepeat: 1 };
   const id = `cmpl-${randomUUID().replaceAll("-", "").slice(0, 24)}`;
   const created = Math.floor(Date.now() / 1000);
   const modelId = current.model?.id ?? "modelduck";
@@ -242,7 +285,7 @@ async function handleCompletions({ res, body, prompt, engine, current, settings,
     } catch (error) {
       logger.warn?.(`[modelduck] OpenAI completion failed: ${error.message}`);
       openAiError(res, error.status ?? 500, error.message, {
-        type: "server_error",
+        type: errorTypeFor(error),
         code: error.code ?? "generation_failed",
       });
     } finally {
@@ -382,6 +425,16 @@ export async function handleOpenAI(
     });
     return;
   }
+  // IDEA-0859: refuse a bad response_format before a model is loaded or a
+  // session is created; a good one becomes this request's grammar below.
+  try {
+    responseFormatSettings(body);
+  } catch (error) {
+    openAiError(res, error.status ?? 400, `${error.why ?? error.message} ${error.fix ?? ""}`.trim(), {
+      code: error.code ?? "invalid_response_format",
+    });
+    return;
+  }
   const parsed = isChat ? toMessages(body) : { prompt: toPrompt(body) };
   const current = await ensureReady({ engine, jit, body, res });
   if (!current) return;
@@ -405,7 +458,7 @@ export async function handleOpenAI(
       prompt: parsed.prompt,
       engine,
       current,
-      settings,
+      requestSettings: { ...requestSettings, promptRepeat: 1 },
       logger,
       jit,
     });
@@ -448,7 +501,7 @@ export async function handleOpenAI(
     } catch (error) {
       logger.warn?.(`[modelduck] OpenAI request failed: ${error.message}`);
       openAiError(res, error.status ?? 500, error.message, {
-        type: "server_error",
+        type: errorTypeFor(error),
         code: error.code ?? "generation_failed",
       });
     } finally {

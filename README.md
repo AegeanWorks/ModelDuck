@@ -299,6 +299,8 @@ The `model` field is accepted for compatibility; the loaded model answers.
 take one string prompt. A tuned model's task preset (`x-modelduck-task`: code,
 comprehension or recall; or a `modelduck_task` body field, with the header
 winning; default code) sets the chat defaults; values you send win.
+`response_format` applies to that request only: `text`, `json_object`, or
+`json_schema` with a client schema up to 12,000 characters; other types are a 400.
 
 In an OpenAI SDK, set `baseURL: "http://127.0.0.1:4141/v1"` and any API key
 (ModelDuck ignores it). `stream: true` returns standard `data:` chunks ending

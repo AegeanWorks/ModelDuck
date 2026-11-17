@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { finishReasonFrom, rejectedParam } from "../src/openai.js";
+import { AppError } from "../src/errors.js";
+import { finishReasonFrom, rejectedParam, responseFormatSettings } from "../src/openai.js";
 import { FakeEngine, makeHarness } from "./helpers.js";
 
 // IDEA-1085: one taxonomy everywhere.
@@ -48,6 +49,138 @@ test("logit_bias is refused with 400", async (t) => {
   assert.equal(response.status, 400);
   const payload = await response.json();
   assert.equal(payload.error.code, "unsupported_parameter");
+});
+
+// IDEA-0859: a request's response_format becomes that request's grammar, and
+// the saved settings stay untouched.
+class RecordingEngine extends FakeEngine {
+  constructor() {
+    super();
+    this.requests = [];
+  }
+
+  async chat(args) {
+    this.requests.push(args.settings);
+    return super.chat(args);
+  }
+
+  async complete(args) {
+    this.requests.push(args.settings);
+    return super.complete(args);
+  }
+}
+
+function chatBody(extra = {}) {
+  return {
+    model: "fake-model",
+    messages: [{ role: "user", content: "hello" }],
+    ...extra,
+  };
+}
+
+async function postOpenAi(harness, path, body) {
+  return fetch(`${harness.base}${path}`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+test("responseFormatSettings maps text, json_object and json_schema", () => {
+  assert.equal(responseFormatSettings({}), null);
+  assert.deepEqual(responseFormatSettings({ response_format: { type: "text" } }), {
+    structuredOutput: "none",
+    jsonSchema: "",
+  });
+  assert.deepEqual(responseFormatSettings({ response_format: { type: "json_object" } }), {
+    structuredOutput: "json_object",
+    jsonSchema: "",
+  });
+  const schema = { type: "object", properties: { quack: { type: "string" } }, required: ["quack"] };
+  assert.deepEqual(
+    responseFormatSettings({ response_format: { type: "json_schema", json_schema: { name: "quack", schema } } }),
+    { structuredOutput: "json_schema", jsonSchema: JSON.stringify(schema) },
+  );
+});
+
+test("responseFormatSettings refuses an unknown type or a missing schema", () => {
+  assert.throws(
+    () => responseFormatSettings({ response_format: { type: "xml" } }),
+    (error) => error instanceof AppError && error.code === "invalid_response_format" && error.status === 400,
+  );
+  assert.throws(
+    () => responseFormatSettings({ response_format: { type: "json_schema" } }),
+    (error) => error instanceof AppError && error.code === "invalid_json_schema" && error.status === 400,
+  );
+  assert.throws(
+    () => responseFormatSettings({ response_format: { type: "json_schema", json_schema: { schema: [] } } }),
+    (error) => error instanceof AppError && error.code === "invalid_json_schema",
+  );
+  const huge = { type: "object", properties: { text: { type: "string", description: "x".repeat(12001) } } };
+  assert.throws(
+    () => responseFormatSettings({ response_format: { type: "json_schema", json_schema: { schema: huge } } }),
+    (error) => error instanceof AppError && error.code === "invalid_response_format",
+  );
+});
+
+test("a chat request's response_format sets that request's grammar only", async (t) => {
+  const engine = new RecordingEngine();
+  const harness = await makeHarness(t, { engine });
+
+  const response = await postOpenAi(harness, "/v1/chat/completions", chatBody({ response_format: { type: "json_object" } }));
+  assert.equal(response.status, 200);
+  assert.equal(engine.requests.at(-1).structuredOutput, "json_object");
+  assert.equal(harness.settings.value.structuredOutput, "none", "saved settings are untouched");
+
+  const schema = { type: "object", properties: { n: { type: "number" } } };
+  const routed = await postOpenAi(
+    harness,
+    "/v1/chat/completions",
+    chatBody({ response_format: { type: "json_schema", json_schema: { name: "n", schema } } }),
+  );
+  assert.equal(routed.status, 200);
+  assert.equal(engine.requests.at(-1).structuredOutput, "json_schema");
+  assert.equal(engine.requests.at(-1).jsonSchema, JSON.stringify(schema));
+});
+
+test("an explicit text format overrides a saved structured-output setting", async (t) => {
+  const engine = new RecordingEngine();
+  const harness = await makeHarness(t, { engine });
+  await harness.settings.update({ structuredOutput: "json_object" });
+
+  const plain = await postOpenAi(harness, "/v1/chat/completions", chatBody());
+  assert.equal(plain.status, 200);
+  assert.equal(engine.requests.at(-1).structuredOutput, "json_object", "no format keeps the saved default");
+
+  const text = await postOpenAi(harness, "/v1/chat/completions", chatBody({ response_format: { type: "text" } }));
+  assert.equal(text.status, 200);
+  assert.equal(engine.requests.at(-1).structuredOutput, "none");
+});
+
+test("the completions route applies response_format too", async (t) => {
+  const engine = new RecordingEngine();
+  const harness = await makeHarness(t, { engine });
+
+  const response = await postOpenAi(harness, "/v1/completions", {
+    model: "fake-model",
+    prompt: "hello",
+    response_format: { type: "json_object" },
+  });
+  assert.equal(response.status, 200);
+  assert.equal(engine.requests.at(-1).structuredOutput, "json_object");
+  assert.equal(engine.requests.at(-1).promptRepeat, 1);
+});
+
+test("an unsupported response_format is a 400 and asks the model nothing", async (t) => {
+  const engine = new RecordingEngine();
+  const harness = await makeHarness(t, { engine });
+
+  const response = await postOpenAi(harness, "/v1/chat/completions", chatBody({ response_format: { type: "xml" } }));
+  assert.equal(response.status, 400);
+  const payload = await response.json();
+  assert.equal(payload.error.type, "invalid_request_error");
+  assert.equal(payload.error.code, "invalid_response_format");
+  assert.equal(engine.requests.length, 0);
 });
 
 // IDEA-1074: the two-phase stream failure contract. A failed stream always ends with a
