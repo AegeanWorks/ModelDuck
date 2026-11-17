@@ -10,6 +10,12 @@ import { AppError } from "../src/errors.js";
 import { currentFingerprint, profileFromTune, profileIdFor, saveProfile } from "../src/model-profiles.js";
 import { startRun } from "../src/tune-runs.js";
 
+const GIB = 1024 ** 3;
+// A fixed machine for recommendation tests: live os.freemem() under load can
+// hide the very row the test ranks (ADR-134).
+const FIXED_SYSTEM = () => ({ freeMemory: 8 * GIB, totalMemory: 16 * GIB, cpu: "Test CPU", platform: "test", arch: "test", cores: 8 });
+const TINY_SYSTEM = () => ({ freeMemory: 1, totalMemory: 16 * GIB, cpu: "Test CPU", platform: "test", arch: "test", cores: 8 });
+
 function parseSse(text) {
   return text
     .trim()
@@ -446,7 +452,7 @@ test("a malformed route escape is a 400, never a 500", async (t) => {
 });
 
 test("recommendations rank installed models and list fitting catalog models", async (t) => {
-  const harness = await makeHarness(t);
+  const harness = await makeHarness(t, { system: FIXED_SYSTEM });
   const response = await fetch(`${harness.base}/api/recommendations?task=recall`);
   assert.equal(response.status, 200);
   const data = await response.json();
@@ -979,7 +985,7 @@ test("the benchmark suite route describes every task's questions", async (t) => 
 test("recommendations rank catalog models by their shipped preset's measured rate (ADR-129)", async (t) => {
   const presetsDir = await mkdtemp(path.join(os.tmpdir(), "modelduck-presets-"));
   t.after(() => rm(presetsDir, { recursive: true, force: true }));
-  const harness = await makeHarness(t, { presetsDir });
+  const harness = await makeHarness(t, { presetsDir, system: FIXED_SYSTEM });
   await writeFile(path.join(presetsDir, "qwen2.5-coder-1.5b-instruct-q4.modelduck-profile.json"), JSON.stringify({
     schema: 1, kind: "modelduck-profile", catalogId: "qwen2.5-coder-1.5b-instruct-q4", createdAt: "2026-11-15T00:00:00.000Z",
     fingerprint: { cpu: "Reference CPU" }, load: { settings: {}, stats: null }, speed: null,
@@ -993,4 +999,11 @@ test("recommendations rank catalog models by their shipped preset's measured rat
   assert.equal(coder.measuredOn, "Reference CPU");
   const recall = await (await fetch(`${harness.base}/api/recommendations?task=recall`)).json();
   assert.equal(recall.catalog.find((row) => row.id === coder.id)?.measuredRate ?? null, null, "a rate is only used for its own task");
+});
+
+test("the recommendations route uses the machine memory it is given (ADR-134)", async (t) => {
+  const harness = await makeHarness(t, { system: TINY_SYSTEM });
+  const data = await (await fetch(`${harness.base}/api/recommendations?task=code`)).json();
+  assert.equal(data.memory.free, 1, "the route reports the injected machine");
+  assert.deepEqual(data.catalog, [], "a machine with no free memory is offered no catalog downloads");
 });

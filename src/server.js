@@ -118,6 +118,9 @@ export function createHttpServer({
   presetsDir = SHIPPED_PRESETS_DIR,
   // The Node the test sandbox runs on; tests pass another to check version policy.
   nodeVersion = process.versions.node,
+  // The machine's memory and CPU; tests pass a fixed one so a recommendation
+  // test does not depend on live os.freemem() under load (ADR-134).
+  system = systemInfo,
   tuneRunsDir = null,
   profileFingerprint = currentFingerprint,
   tuneStepsFile = null,
@@ -402,8 +405,8 @@ export function createHttpServer({
     if (pathname === "/api/recommendations" && method === "GET") {
       const wanted = new URL(req.url, "http://localhost").searchParams.get("task") ?? "code";
       const task = TASKS.some((item) => item.id === wanted) ? wanted : "code";
-      const system = systemInfo();
-      const memory = { free: system.freeMemory, total: system.totalMemory };
+      const machine = system();
+      const memory = { free: machine.freeMemory, total: machine.totalMemory };
       const models = registry.listPublic().map((model) => ({ ...model, profileId: profileIdFor(model.fileName) }));
       const profiles = {};
       for (const model of models) {
