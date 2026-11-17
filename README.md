@@ -45,7 +45,8 @@ Settings and Server. Chat or code with any OpenAI-compatible client pointed at
    The first run installs `node-llama-cpp` and its prebuilt CPU runtime.
 2. ModelDuck opens at **http://127.0.0.1:4141**. On Windows it uses an installed
    Edge or Chrome to open a standalone app window; otherwise your default
-   browser. Closing the window leaves the server running; **Ctrl+C** quits.
+   browser. Closing the window leaves the server running; **Ctrl+C** quits, letting
+   a running reply finish first (press it twice to quit at once).
 3. Click **Models → Discover**, download a starter model, then **Install → Load**.
 4. Open **Bench & Tune → Tune** to optimize the model, or **Models → Load** to serve it.
    To chat, point any OpenAI-compatible client at `http://127.0.0.1:4141/v1`.
@@ -459,6 +460,7 @@ generation-affecting change.
 modelduck/
 ├── src/
 │   ├── main.js
+│   ├── drain.js
 │   ├── server.js
 │   ├── engine.js
 │   ├── memory-fit.js
@@ -579,6 +581,7 @@ modelduck/
 │   └── baseline-profiles.json
 ├── tests/
 │   ├── helpers.js
+│   ├── drain.test.js
 │   ├── ui-shell.test.js
 │   ├── local-actions.test.js
 │   ├── state-machine.test.js

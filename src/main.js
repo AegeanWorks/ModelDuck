@@ -7,6 +7,7 @@ import { BenchmarkRunner } from "./benchmark-runner.js";
 import { TunedSettings } from "./tuned-settings.js";
 import { TuneScheduler } from "./tune-scheduler.js";
 import { DownloadManager } from "./downloader.js";
+import { drainServer } from "./drain.js";
 import { LlamaEngine } from "./engine.js";
 import { AppError } from "./errors.js";
 import { acquireHomeLock, ensureDirectory } from "./fs-atomic.js";
@@ -194,12 +195,24 @@ async function main() {
 
   let closing = false;
   const shutdown = async (signal) => {
-    if (closing) return;
+    if (closing) {
+      process.stdout.write("\n[modelduck] second interrupt: quitting now.\n");
+      server.closeAllConnections?.();
+      process.exit(130);
+    }
     closing = true;
     process.stdout.write(`\n[modelduck] ${signal} received, shutting down...\n`);
-    const closed = new Promise((resolve) => server.close(resolve));
-    server.closeAllConnections?.();
-    await closed;
+    if (engine?.busy) {
+      process.stdout.write(
+        "[modelduck] letting the running reply finish (press Ctrl+C again to quit now; up to 30 s).\n",
+      );
+    }
+    // IDEA-1024: stop accepting connections, let the reply finish, then
+    // force-close whatever is left so a stuck client cannot hold Ctrl+C.
+    const drain = await drainServer(server, { isBusy: () => Boolean(engine?.busy) });
+    if (drain.timedOut) {
+      process.stdout.write("[modelduck] a reply was still running after 30 s; it was stopped.\n");
+    }
     for (const download of downloads.list()) {
       if (download.status === "downloading" || download.status === "queued") {
         await downloads.cancel(download.id).catch(() => {});
