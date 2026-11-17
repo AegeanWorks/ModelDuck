@@ -1,11 +1,11 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "recommend-memory-seam",
+    "task_id": "forged-judge-tests",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794951196.9816809,
+    "updated_at": 1794952127.5121043,
     "owner": "kilo:1",
     "started_by": "kilo:1",
     "continuations": [],
@@ -15,57 +15,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1794951197.8376548,
-    "completed_head": "c603d56e4c315fba0a3ec539af519c2b7ee49a48",
-    "completed_tree": "1d2757c33da548b6c54e2d38056789d658a9499a"
+    "completed_at": 1794952128.1981323,
+    "completed_head": "92fd6d5857b31a48607cac77e14693d7af4dcb8b",
+    "completed_tree": "48cc3923e0eed3dc8ea9d3dd5452c909a7e347c3"
   },
   "checkpoints": [
-    {
-      "task_id": "release-check",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "Docs only; checks run on the downloaded release asset",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794735035.2218816,
-      "timestamp_str": "2026-11-15 12:30:35",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "release-check",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'release-check' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794735036.1990151,
-      "timestamp_str": "2026-11-15 12:30:36",
-      "agent": "kiro:1",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
-    {
-      "task_id": "chatduck-archived",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/1] ChatDuck was archived on GitHub 2026-11-14: remove the app's ChatDuck link and 'Open ChatDuck' button (dead 127.0.0.1:4173 target) and its mentions in the README, JUDGES and Kiro steering; update the README (no chat UI, any OpenAI-compatible client, verified code and MCP bullet, npm run mcp, Coder 1.5B as the code starter); recapture screenshots",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794735232.1212215,
-      "timestamp_str": "2026-11-15 12:33:52",
-      "agent": "kiro:1",
-      "impact_assessment": {
-        "why": "The control panel's main call to action and the docs send users to an archived client",
-        "benefits": "No dead links; the README describes the current app",
-        "risks": "contract: the dashboard loses a link and a button, no ids or routes; dependency: none; concurrency: none; state: none",
-        "mitigation": "failing-first ui-shell test; UI task with screenshot review; dated records (ADR-071, demo script, idea lists) left as history"
-      },
-      "plan_digest": "bb9c8d3dcd4ddae1fd808d97fd6cd54224f5b8d83898ed99b4a27b454d3bc77f"
-    },
     {
       "task_id": "chatduck-archived",
       "phase": "in_progress",
@@ -369,6 +323,65 @@
       "timestamp_str": "2026-11-18 00:33:17",
       "agent": "kilo:1",
       "head": "c603d56e4c315fba0a3ec539af519c2b7ee49a48",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
+    },
+    {
+      "task_id": "forged-judge-tests",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/1] Repair the two stale forgery tests from reforge run-1 stage 2: the exit-line test used the retired TEST_RESULTS marker and ok/detail array, and the stdout-patch test patched process.stdout.write while the child writes through a captured fs.writeSync, so both passed without exercising the judge. Rewrite them to forge the real per-run marker recovered from process._eval, assert the value rejection (detail got 0, not no results), and prove the captured writer defeats a late fs.writeSync patch. ADR-135",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794951680.7851827,
+      "timestamp_str": "2026-11-18 00:41:20",
+      "agent": "kilo:1",
+      "impact_assessment": {
+        "why": "Two tests guarding the judge anti-forgery property passed for the wrong reason, so a regression that accepted a well-formed forged line would not be caught",
+        "benefits": "The anti-forgery property is exercised end to end against the current marker format and captured writer",
+        "risks": "contract: tests only; dependency: none; concurrency: none; state: none",
+        "mitigation": "production judge untouched; the rewritten tests assert both the failing count and the value-mismatch detail so they cannot pass as no-results"
+      },
+      "plan_digest": "14afc79695a09643c761660a894a65385df8362ae7ad93be685baa03a81027db",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "forged-judge-tests",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[1/1] npm test 893/894 pass, 1 skipped; the canonical forgery test now asserts got 0 (not no results), a probe confirmed the retired marker shape yields no results while the real marker yields got 0; new captured-writer test; aikit check 4/4; ADR-135; UI review recorded; G-001 not applicable (tests only)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794952127.5121043,
+      "timestamp_str": "2026-11-18 00:48:47",
+      "agent": "kilo:1",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "forged-judge-tests",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'forged-judge-tests' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794952128.2656078,
+      "timestamp_str": "2026-11-18 00:48:48",
+      "agent": "kilo:1",
+      "head": "92fd6d5857b31a48607cac77e14693d7af4dcb8b",
       "delivery": {
         "roots": [
           "."
