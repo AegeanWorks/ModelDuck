@@ -16,6 +16,15 @@ export function defaultEngines({ catalog = createEngineCatalog(), ...options } =
   return catalog.adapters(engineContext(options));
 }
 
+/**
+ * How the app resolves the engine a profile names. The llama.cpp prompt cache is off: against a real llama-server it saved
+ * nothing (a long shared prefix, 329 ms with it and 351 without) and, with concurrent clients, made each wait about 5 s
+ * where cache-off requests queued in 74 to 274 ms (ADR-163). The in-process engine drops its sessions between requests too.
+ */
+export function servingResolver(options) {
+  return (id) => externalEngineFor(id, { ...options, cachePrompt: false });
+}
+
 /** A ready engine for tuning or serving by id, or null when this machine cannot provide it. */
 export function externalEngineFor(id, { catalog = createEngineCatalog(), ...options } = {}) {
   return catalog.resolve(id, engineContext(options));

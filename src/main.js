@@ -10,7 +10,7 @@ import { DownloadManager } from "./downloader.js";
 import { drainServer } from "./drain.js";
 import { BUILTIN_DESCRIPTORS, createEngineCatalog, engineContext, loadEnginePlugin } from "./engine-catalog.js";
 import { RoutedEngine } from "./external-engines.js";
-import { externalEngineFor } from "./inference-engines.js";
+import { servingResolver } from "./inference-engines.js";
 import { LlamaEngine } from "./engine.js";
 import { AppError } from "./errors.js";
 import { acquireHomeLock, ensureDirectory } from "./fs-atomic.js";
@@ -124,7 +124,7 @@ async function main() {
   const catalog = createEngineCatalog({ descriptors: [...BUILTIN_DESCRIPTORS, ...await Promise.all((options.enginePlugins ?? []).map(loadEnginePlugin))] });
   const engine = new RoutedEngine({
     inProcess: new LlamaEngine({ registry }),
-    resolve: (id) => externalEngineFor(id, { catalog, registry, cachePrompt: true }),
+    resolve: servingResolver({ catalog, registry }),
     fallback: true,
   });
   await registry.scan();

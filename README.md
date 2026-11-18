@@ -93,8 +93,8 @@ the status bar says so: a saved profile never leaves you without a model. A prof
 refuses, with a Why and a Fix, the settings it cannot honour (`responsePrefix`, and
 `penalizeNewLine` off on llama-server) instead of quietly changing them; such a candidate
 simply fails during a tune. On this machine, with SmolLM2-135M, the same 5 x 100-token
-workload through `/v1/chat/completions` served 450 tok/s end to end on llama-server (Vulkan)
-against 149 on the in-process engine (Vulkan).
+workload through `/v1/chat/completions` served 386 tok/s end to end on llama-server (Vulkan)
+against 149 on the in-process engine (Vulkan), and four concurrent clients were all answered in 364 ms.
 
 **Adding an engine.** Every engine is one descriptor in `src/engine-catalog.js`: a `kind`,
 whether the app can start it itself (`servable`), the adapters that time it, and (if it can

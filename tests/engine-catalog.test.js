@@ -244,3 +244,15 @@ test("an engine reports the version the app would run, from its own descriptor",
   assert.equal(catalog.version("ollama", ctx), null, "an engine with no version() reports none rather than guessing");
   assert.equal(catalog.version("nope", ctx), null);
 });
+
+// ADR-163: measured against a real llama-server, the prompt cache saved nothing and made concurrent clients wait ~5 s each.
+test("the app resolves a profile's engine with the prompt cache off, however the engine is built", async () => {
+  const { servingResolver } = await import("../src/inference-engines.js");
+  const seen = [];
+  const probe = { ...fastDuck(), resolve: (id, ctx) => { seen.push(ctx.cachePrompt); return new ServerEngine({ id, registry: ctx.registry, backend: fakeDuckBackend() }); } };
+  const catalog = createEngineCatalog({ descriptors: [...BUILTIN_DESCRIPTORS, probe] });
+  const resolve = servingResolver({ catalog, registry: MODELS, roots: [] });
+  assert.equal(typeof resolve("fastduck")?.load, "function");
+  assert.deepEqual(seen, [false]);
+  assert.equal(resolve("nope"), null, "an engine this machine does not have is null, so the router can fall back");
+});
