@@ -130,6 +130,26 @@ async function readOpenAiStream(response, { pieceOf, onToken, started }) {
   };
 }
 
+/** A request that failed because the server went away (as opposed to refusing it): a refused connection, a reset, a stream cut short. */
+function connectionLost(error) {
+  const codes = new Set(["ECONNREFUSED", "ECONNRESET", "EPIPE", "UND_ERR_SOCKET", "UND_ERR_CLOSED"]);
+  return (error instanceof TypeError && /fetch failed|terminated/i.test(error.message)) || codes.has(error?.code) || codes.has(error?.cause?.code);
+}
+
+/** Run one request; a server that vanished becomes a crash the engine can recover from, with the reason in plain words. */
+async function guarded(who, run, { signal, gone = () => false, detail = () => "" }) {
+  try {
+    return await run();
+  } catch (error) {
+    if (signal?.aborted || error?.name === "AbortError") throw error;
+    if (gone() || connectionLost(error)) {
+      const how = detail();
+      throw refusal(who + " stopped", "engine_crashed", who + " is no longer answering" + (how ? " (" + how + ")" : "") + ": " + (error?.cause?.code ?? error?.message ?? "the connection was lost") + ".", "ModelDuck restarts it on the next request; if it keeps stopping, check free memory and the GPU driver, or use another engine.");
+    }
+    throw error;
+  }
+}
+
 const chatPiece = (choice) => choice?.delta?.content;
 const textPiece = (choice) => choice?.text;
 
@@ -150,6 +170,7 @@ export class LlamaServerBackend {
   #cachePrompt;
   #child = null;
   #base = null;
+  #exitedWith = null;
 
   /** `cachePrompt`: reuse the prompt cache between requests (serving); a tune sets it off so every answer pays for its own prompt. */
   constructor({ binary, spawnImpl = spawn, fetchImpl = globalThis.fetch, startTimeoutMs = 120_000, cachePrompt = false }) {
@@ -195,7 +216,8 @@ export class LlamaServerBackend {
     let stderr = "";
     child.stderr?.on("data", (chunk) => { stderr = (stderr + chunk).slice(-4000); });
     let exited = null;
-    child.once("exit", (code) => { exited = code ?? "signal"; });
+    child.once("exit", (code) => { exited = code ?? "signal"; this.#exitedWith = exited; });
+    this.#exitedWith = null;
     // A tune or app that dies must not leave a server holding the model.
     const reap = () => child.kill();
     process.once("exit", reap);
@@ -219,16 +241,28 @@ export class LlamaServerBackend {
     }
   }
 
+  #lost(signal) {
+    return {
+      signal,
+      gone: () => this.#child === null || this.#child.exitCode !== null || this.#exitedWith !== null,
+      detail: () => (this.#exitedWith === null ? "" : "it exited with " + this.#exitedWith),
+    };
+  }
+
   async generate({ messages, settings, signal, onToken }) {
     const started = performance.now();
-    const response = await post(this.#fetch, `${this.#base}/v1/chat/completions`, { messages, stream: true, stream_options: { include_usage: true }, cache_prompt: this.#cachePrompt, ...openAiFields(settings) }, signal, undefined, "llama-server");
-    return readOpenAiStream(response, { pieceOf: chatPiece, onToken, started });
+    return guarded("llama-server", async () => {
+      const response = await post(this.#fetch, `${this.#base}/v1/chat/completions`, { messages, stream: true, stream_options: { include_usage: true }, cache_prompt: this.#cachePrompt, ...openAiFields(settings) }, signal, undefined, "llama-server");
+      return readOpenAiStream(response, { pieceOf: chatPiece, onToken, started });
+    }, this.#lost(signal));
   }
 
   async complete({ prompt, settings, signal, onToken }) {
     const started = performance.now();
-    const response = await post(this.#fetch, `${this.#base}/v1/completions`, { prompt, stream: true, stream_options: { include_usage: true }, cache_prompt: this.#cachePrompt, ...openAiFields(settings) }, signal, undefined, "llama-server");
-    return readOpenAiStream(response, { pieceOf: textPiece, onToken, started });
+    return guarded("llama-server", async () => {
+      const response = await post(this.#fetch, `${this.#base}/v1/completions`, { prompt, stream: true, stream_options: { include_usage: true }, cache_prompt: this.#cachePrompt, ...openAiFields(settings) }, signal, undefined, "llama-server");
+      return readOpenAiStream(response, { pieceOf: textPiece, onToken, started });
+    }, this.#lost(signal));
   }
 
   async stop() {
@@ -342,10 +376,18 @@ export class OllamaBackend {
   }
 
   generate({ messages, settings, signal, onToken }) {
+    return guarded("Ollama", () => this.#chatStream({ messages, settings, signal, onToken }), { signal });
+  }
+
+  #chatStream({ messages, settings, signal, onToken }) {
     return this.#stream("/api/chat", { model: this.#tag, messages, stream: true, keep_alive: "10m", options: this.#options_(settings), format: this.#format(settings) }, { pieceOf: (event) => event.message?.content, onToken, signal });
   }
 
   complete({ prompt, settings, signal, onToken }) {
+    return guarded("Ollama", () => this.#completeStream({ prompt, settings, signal, onToken }), { signal });
+  }
+
+  #completeStream({ prompt, settings, signal, onToken }) {
     return this.#stream("/api/generate", { model: this.#tag, prompt, raw: true, stream: true, keep_alive: "10m", options: this.#options_(settings), format: this.#format(settings) }, { pieceOf: (event) => event.response, onToken, signal });
   }
 
@@ -413,14 +455,18 @@ export class OpenAICompatBackend {
 
   async generate({ messages, settings, signal, onToken }) {
     const started = performance.now();
-    const response = await post(this.#fetch, `${this.#baseUrl}/chat/completions`, { model: this.#tag, messages, stream: true, stream_options: { include_usage: true }, ...openAiFields(settings, { vllmNames: true }) }, signal, this.#headers());
-    return readOpenAiStream(response, { pieceOf: chatPiece, onToken, started });
+    return guarded("The attached server", async () => {
+      const response = await post(this.#fetch, `${this.#baseUrl}/chat/completions`, { model: this.#tag, messages, stream: true, stream_options: { include_usage: true }, ...openAiFields(settings, { vllmNames: true }) }, signal, this.#headers());
+      return readOpenAiStream(response, { pieceOf: chatPiece, onToken, started });
+    }, { signal });
   }
 
   async complete({ prompt, settings, signal, onToken }) {
     const started = performance.now();
-    const response = await post(this.#fetch, `${this.#baseUrl}/completions`, { model: this.#tag, prompt, stream: true, stream_options: { include_usage: true }, ...openAiFields(settings, { vllmNames: true }) }, signal, this.#headers());
-    return readOpenAiStream(response, { pieceOf: textPiece, onToken, started });
+    return guarded("The attached server", async () => {
+      const response = await post(this.#fetch, `${this.#baseUrl}/completions`, { model: this.#tag, prompt, stream: true, stream_options: { include_usage: true }, ...openAiFields(settings, { vllmNames: true }) }, signal, this.#headers());
+      return readOpenAiStream(response, { pieceOf: textPiece, onToken, started });
+    }, { signal });
   }
 
   async stop() {
@@ -442,6 +488,8 @@ export class ServerEngine {
   #entry = null;
   #load = null;
   #effective = null;
+  #startLoad = null;
+  #restarts = 0;
   #loadedAt = null;
   #active = new Map();
   #running = 0;
@@ -491,6 +539,7 @@ export class ServerEngine {
       gpuBackend: load.gpuBackend ?? "cpu",
       kvCache: load.kvCache ?? null,
       loadedAt: this.#loadedAt,
+      restarts: this.#restarts,
       lastStats: this.#lastStats,
       fit: null,
       contextFallback: null,
@@ -515,6 +564,8 @@ export class ServerEngine {
     this.#entry = entry;
     this.#load = options;
     this.#effective = { ...effective, requestedContextSize: requested };
+    this.#startLoad = effective;
+    this.#restarts = 0;
     this.#loadedAt = new Date().toISOString();
     this.#state = { status: "ready", model: publicModel(entry), error: null };
     return this.status();
@@ -537,6 +588,27 @@ export class ServerEngine {
     }
   }
 
+  /**
+   * A crashed engine process is restarted once, and only before the request produced anything: a client that already
+   * received part of an answer must not be sent it twice. A second crash, or a restart that fails, is the result.
+   */
+  async #withRecovery(attempt, mayRetry) {
+    try {
+      return await attempt();
+    } catch (error) {
+      if (error?.code !== "engine_crashed" || !mayRetry() || !this.#entry) throw error;
+      try {
+        await this.#backend.start({ entry: this.#entry, load: this.#startLoad });
+      } catch (restartError) {
+        this.#state = { status: "error", model: this.#state.model, error: restartError.message };
+        this.#entry = null;
+        throw restartError;
+      }
+      this.#restarts += 1;
+      return attempt();
+    }
+  }
+
   /** One request: tracked for abort and for `busy`, and a cancel returns what was produced so far, as the in-process engine does. */
   async #run(conversationId, signal, work) {
     const controller = new AbortController();
@@ -546,7 +618,7 @@ export class ServerEngine {
     const started = Date.now();
     let text = "";
     try {
-      const result = await work(merged, (piece) => { text += piece; });
+      const result = await this.#withRecovery(() => work(merged, (piece) => { text += piece; }), () => text === "" && !merged.aborted);
       const stats = { ms: Date.now() - started, tokensPerSecond: result.tokensPerSecond, outputTokens: result.outputTokens, stopReason: result.stopReason, promptTokens: result.promptTokens, firstTokenMs: result.firstTokenMs };
       this.#lastStats = stats;
       return { text: result.text, stats, manifest: null };

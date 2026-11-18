@@ -44,7 +44,7 @@ function fakeLlamaServer({ healthyAfter = 1, exitWith = null, reply } = {}) {
     child.stderr = new EventEmitter();
     child.exitCode = null;
     const port = Number(args[args.indexOf("--port") + 1]);
-    const record = { binary, args, port, requests: [], killed: false };
+    const record = { binary, args, port, requests: [], killed: false, child };
     spawned.push(record);
     let server = null;
     child.kill = () => {
@@ -503,4 +503,91 @@ test("the device stage records the version of the engine it adopted, and none fo
   const inProcess = await run([], ["cpu", "vulkan"]);
   assert.equal(inProcess.device.settings.engine, undefined, "an in-process device was chosen");
   assert.equal("engineVersion" in inProcess.device, false);
+});
+
+// A serving engine process can die (a crash, or someone ends it). The next request must not stay broken.
+const crashed = () => Object.assign(new Error("llama-server stopped"), { code: "engine_crashed" });
+
+function crashingBackend({ crashes = 1, partial = false, restartFails = false } = {}) {
+  const log = { starts: 0, generates: 0, remaining: crashes };
+  return {
+    log,
+    start: async () => {
+      log.starts += 1;
+      if (restartFails && log.starts > 1) throw Object.assign(new Error("llama-server did not start"), { code: "engine_start_failed" });
+    },
+    generate: async ({ onToken }) => {
+      log.generates += 1;
+      if (log.remaining > 0) {
+        log.remaining -= 1;
+        if (partial) onToken("qu");
+        throw crashed();
+      }
+      onToken("ok");
+      return { text: "ok", stopReason: "eogToken", promptTokens: 1, outputTokens: 1, tokensPerSecond: 10, firstTokenMs: 1 };
+    },
+    complete: async () => ({ text: "ok", stopReason: "eogToken", promptTokens: 1, outputTokens: 1, tokensPerSecond: 10, firstTokenMs: 1 }),
+    stop: async () => {},
+  };
+}
+
+test("a request that finds the engine process dead restarts it once and is answered", async () => {
+  const backend = crashingBackend();
+  const engine = new ServerEngine({ id: "fake", registry: REGISTRY, backend });
+  await engine.load({ modelId: "m1", contextSize: 2048 });
+  const pieces = [];
+  const answer = await engine.chat({ messages: [{ role: "user", content: "hi" }], settings: {}, onToken: (piece) => pieces.push(piece) });
+  assert.equal(answer.text, "ok");
+  assert.deepEqual(pieces, ["ok"], "the client sees only the answer, not the failed try");
+  assert.deepEqual([backend.log.starts, backend.log.generates], [2, 2], "one restart, one retry");
+  assert.equal((await engine.status()).restarts, 1);
+  assert.equal(engine.loadedId, "m1", "the engine is serving again");
+});
+
+test("an engine that dies after it started answering is not retried, so the client never gets half an answer twice", async () => {
+  const backend = crashingBackend({ partial: true });
+  const engine = new ServerEngine({ id: "fake", registry: REGISTRY, backend });
+  await engine.load({ modelId: "m1", contextSize: 2048 });
+  await assert.rejects(() => engine.chat({ messages: [{ role: "user", content: "hi" }], settings: {} }), (error) => error.code === "engine_crashed");
+  assert.equal(backend.log.starts, 1, "no restart behind a half-sent answer");
+  // The next request finds it dead before sending anything, so that one is recovered.
+  assert.equal((await engine.chat({ messages: [{ role: "user", content: "again" }], settings: {} })).text, "ok");
+});
+
+test("an engine that keeps dying is tried once, then reported with its own reason", async () => {
+  const twice = crashingBackend({ crashes: 2 });
+  const engine = new ServerEngine({ id: "fake", registry: REGISTRY, backend: twice });
+  await engine.load({ modelId: "m1", contextSize: 2048 });
+  await assert.rejects(() => engine.chat({ messages: [{ role: "user", content: "hi" }], settings: {} }), (error) => error.code === "engine_crashed");
+  assert.equal(twice.log.starts, 2, "one restart and no more");
+
+  const cannot = crashingBackend({ restartFails: true });
+  const stuck = new ServerEngine({ id: "fake", registry: REGISTRY, backend: cannot });
+  await stuck.load({ modelId: "m1", contextSize: 2048 });
+  await assert.rejects(() => stuck.chat({ messages: [{ role: "user", content: "hi" }], settings: {} }), (error) => error.code === "engine_start_failed");
+  assert.equal((await stuck.status()).status, "error", "the status no longer claims the model is ready");
+  assert.equal(stuck.loadedId, null);
+});
+
+test("a cancelled request is not mistaken for a crash", async () => {
+  const backend = crashingBackend({ crashes: 0 });
+  const engine = new ServerEngine({ id: "fake", registry: REGISTRY, backend });
+  await engine.load({ modelId: "m1", contextSize: 2048 });
+  const controller = new AbortController();
+  backend.generate = async () => { controller.abort(); throw crashed(); };
+  const result = await engine.chat({ messages: [{ role: "user", content: "hi" }], settings: {}, signal: controller.signal });
+  assert.equal(result.stats.stopReason, "abort");
+  assert.equal(backend.log.starts, 1);
+});
+
+test("llama-server reports a dead process as a crash with a Why and a Fix, not as a raw fetch failure", async () => {
+  const { spawnImpl, spawned } = fakeLlamaServer();
+  const backend = new LlamaServerBackend({ binary: "b", spawnImpl });
+  await backend.start({ entry: ENTRY, load: LOAD });
+  spawned[0].child.kill();
+  await assert.rejects(
+    () => backend.generate({ messages: [{ role: "user", content: "hi" }], settings: {} }),
+    (error) => error.code === "engine_crashed" && /llama-server/.test(error.why) && Boolean(error.fix),
+  );
+  await backend.stop();
 });
