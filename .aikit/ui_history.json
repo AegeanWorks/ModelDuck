@@ -1208,5 +1208,26 @@
     "final_snapshot_entries": 0,
     "surface_digest": "f558f3e1910dcdbd6216b9668eb0eaa04d3c4b232307009ea7d034579651c2ea",
     "baseline_digest": "f558f3e1910dcdbd6216b9668eb0eaa04d3c4b232307009ea7d034579651c2ea"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [],
+    "no_visual_reason": "",
+    "no_change_reason": "Review of committed work (a2f6613): the Discover Hugging Face form on a live server at 1440x900 and 390x844 in both themes, checked with DOM geometry and computed styles (this model cannot read images). Controls share a row at 1440; at 390 both inputs are 42px tall and full width, Add below, inside the box with no sideways scroll; a real download showed 3% with Cancel and Cancel moved the job to canceled; a wrong host showed the server Why/Fix in an error toast; the reference input has a 2px accent focus ring. ui:smoke machine-checks the post, running row, cleared input, refusal toast and 390px fit.",
+    "baseline_commit": "a2f6613a9d3e81f1987786f0ac98b8ed46edfddf",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1794994932.9143977,
+    "finished_at": 1794995031.0720193,
+    "strikes": 0,
+    "reviewer": "kilo:1",
+    "allowed_removals": [],
+    "allowed_tests": [],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "8229bcf052f3800f20e224d21b68fa2adbd99af7cabddc4715f4ae82669ddc6d",
+    "baseline_digest": "8229bcf052f3800f20e224d21b68fa2adbd99af7cabddc4715f4ae82669ddc6d"
   }
 ]
