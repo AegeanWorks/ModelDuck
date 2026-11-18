@@ -1229,5 +1229,26 @@
     "final_snapshot_entries": 0,
     "surface_digest": "8229bcf052f3800f20e224d21b68fa2adbd99af7cabddc4715f4ae82669ddc6d",
     "baseline_digest": "8229bcf052f3800f20e224d21b68fa2adbd99af7cabddc4715f4ae82669ddc6d"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [],
+    "no_visual_reason": "",
+    "no_change_reason": "Backend download-ownership change (ADR-142); no public/ file or rendered view changed. A refused add reaches the existing error toast through showError, which the already-reviewed Hugging Face form uses; reviewed the committed diff and the three conflict tests.",
+    "baseline_commit": "843dbe96f3d2ae0fe7ceba3916cb1a7fd18593c3",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1794995538.6043367,
+    "finished_at": 1794995555.8643684,
+    "strikes": 0,
+    "reviewer": "kilo:1",
+    "allowed_removals": [],
+    "allowed_tests": [],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "a45a4ab2fb023d261ef9b32f5af321e1e3259c220b38529015f5f9282470c254",
+    "baseline_digest": "a45a4ab2fb023d261ef9b32f5af321e1e3259c220b38529015f5f9282470c254"
   }
 ]
