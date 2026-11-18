@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { AppError } from "./errors.js";
 import { assertJsonSchemaSupported } from "./engine.js";
 import { readJsonBody, sendJson, sseStart } from "./http.js";
+import { ThinkSplitter, splitThinking } from "./thinking.js";
 
 function sseJson(res, value) {
   return res.write(`data: ${JSON.stringify(value)}\n\n`);
@@ -606,6 +607,8 @@ export async function handleOpenAI(
         settings: requestSettings,
         onToken: () => {},
       });
+      // IDEA-0997: a reasoning model's <think> block is reported apart from the answer.
+      const { reasoning, content } = splitThinking(result.text);
       sendJson(res, 200, {
         id,
         object: "chat.completion",
@@ -615,7 +618,11 @@ export async function handleOpenAI(
         choices: [
           {
             index: 0,
-            message: { role: "assistant", content: result.text },
+            message: {
+              role: "assistant",
+              content,
+              ...(reasoning ? { reasoning_content: reasoning } : {}),
+            },
             logprobs: null,
             finish_reason: finishReasonFrom(result.stats?.stopReason),
           },
@@ -656,6 +663,15 @@ export async function handleOpenAI(
   // IDEA-1074: accumulate partial output so a mid-stream failure keeps the text the
   // client already rendered instead of discarding it.
   let partial = "";
+  const thinking = new ThinkSplitter();
+  const sendParts = (parts) => {
+    for (const part of parts) {
+      if (part.kind === "content") partial += part.text;
+      if (!res.destroyed) {
+        chunk(part.kind === "content" ? { content: part.text } : { reasoning_content: part.text });
+      }
+    }
+  };
   try {
     chunk({ role: "assistant", content: "" });
     const result = await engine.chat({
@@ -664,11 +680,9 @@ export async function handleOpenAI(
       systemPrompt: effectiveSystemPrompt,
       settings: requestSettings,
       signal: controller.signal,
-      onToken: (text) => {
-        partial += text;
-        if (!res.destroyed) chunk({ content: text });
-      },
+      onToken: (text) => sendParts(thinking.push(text)),
     });
+    sendParts(thinking.flush());
     if (!res.destroyed) {
       chunk(
         {},

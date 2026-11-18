@@ -106,7 +106,9 @@ device. It is off by default so a missing driver never prevents local inference 
   saved in `settings.json`.
 - **OpenAI-compatible API** — `GET /v1/models`, `GET /v1/models/:id`,
   `POST /v1/chat/completions` and `POST /v1/completions`, including SSE
-  streaming, so local tools can use ModelDuck as a drop-in backend.
+  streaming, so local tools can use ModelDuck as a drop-in backend. A reasoning
+  model's `<think>` block is returned as `reasoning_content` (and as streamed
+  `reasoning_content` deltas), so `content` holds only the answer.
 - **Verified code** — `POST /api/code/verify` retries until your tests pass, and
   `npm run mcp` offers it to coding agents such as Kiro as the `verified_code` tool.
 - **Benchmark** — its own tab and gate: run either phase and read per-test rates;

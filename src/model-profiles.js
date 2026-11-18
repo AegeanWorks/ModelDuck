@@ -526,8 +526,9 @@ export function isPartRun(stages, only) {
 /**
  * IDEA-1193: what a model can honestly do, bound to its installed entry.
  * Coarse and documented: small models draft and explain code, large contexts
- * carry multi-file work, and reasoning-model output needs the thinking
- * pipeline (IDEA-0997) before its limits can be stated.
+ * carry multi-file work. Reasoning-model output is split from its answer by
+ * the thinking pipeline (src/thinking.js, IDEA-0997); its limits are not yet
+ * measured, so they are not claimed here.
  */
 export function capabilityFor(entry) {
   const size = Number(entry?.size) || 0;
