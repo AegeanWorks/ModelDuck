@@ -1313,5 +1313,26 @@
     "final_snapshot_entries": 0,
     "surface_digest": "a20d42f8b8f528bd0bcda6ab72eedeffdd484d71d0c1e6fdf79e7a47f4f71bd7",
     "baseline_digest": "a20d42f8b8f528bd0bcda6ab72eedeffdd484d71d0c1e6fdf79e7a47f4f71bd7"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [],
+    "no_visual_reason": "",
+    "no_change_reason": "Review of committed work (9411a47): the Discover form's already-installed branch, checked by ui:smoke with a complete-job fixture (newest toast is Already in your library, form clears, no progress row) and by reading the committed diff; no other view changed. No image input, so no pixel inspection was possible.",
+    "baseline_commit": "9411a47bbaa18f341362906eacfa5248a77759ab",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1795019056.4846368,
+    "finished_at": 1795019072.7514932,
+    "strikes": 0,
+    "reviewer": "kilo:1",
+    "allowed_removals": [],
+    "allowed_tests": [],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "d0109ff89d7c8b68e51f79575b8dc4bc633ab714eb1c39d0aa3539e10d5694e2",
+    "baseline_digest": "d0109ff89d7c8b68e51f79575b8dc4bc633ab714eb1c39d0aa3539e10d5694e2"
   }
 ]
