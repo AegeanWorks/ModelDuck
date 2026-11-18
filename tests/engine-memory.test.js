@@ -42,6 +42,16 @@ test("free memory for a load counts the loaded model's own share as free", async
   assert.equal(await cpu.availableMemory({ gpuBackend: "vulkan" }), null, "no GPU runtime: unknown, so the budget falls back");
 });
 
+test("the ready status reports the requested, trained and served context (ADR-147)", async (t) => {
+  const engine = new LlamaEngine({ registry, logger: quiet, availableMemory: () => 16 * GIB, loadRuntime: runtime() });
+  t.after(() => engine.dispose().catch(() => {}));
+  await engine.load({ modelId: "m1", gpuBackend: "cpu", contextSize: 16384 });
+  const status = await engine.status();
+  assert.equal(status.requestedContextSize, 16384, "the effective request is not reported");
+  assert.equal(status.trainContextSize, 4096, "the trained limit is not reported");
+  assert.equal(status.contextSize, 4096, "the served context is not the trained cap");
+});
+
 test("inherited property names are not KV cache labels", () => {
   assert.equal(validKvLabel("toString"), "f16");
   assert.equal(validKvLabel("__proto__"), "f16");

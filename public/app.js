@@ -534,7 +534,9 @@ function contextClamp() {
   const loaded = state.loaded;
   if (loaded?.status !== "ready" || !loaded.model) return null;
   const trained = Number(loaded.trainContextSize) || 0;
-  const requested = Math.max(16384, Number(state.settings?.contextSize) || 16384);
+  // The engine reports the effective request, which can come from a tuned
+  // profile and differ from the saved setting (ADR-147).
+  const requested = Math.max(16384, Number(loaded.requestedContextSize) || Number(state.settings?.contextSize) || 16384);
   if (!trained || trained >= requested) return null;
   return { trained, requested, served: Number(loaded.contextSize) || trained };
 }

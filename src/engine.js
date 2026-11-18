@@ -226,6 +226,7 @@ export class LlamaEngine {
   #state = {
     status: "idle",
     model: null,
+    requestedContextSize: null,
     contextSize: null,
     trainContextSize: null,
     threads: null,
@@ -709,6 +710,7 @@ export class LlamaEngine {
       this.#state = {
         status: "ready",
         model: publicModel(entry),
+        requestedContextSize: requested,
         contextSize: this.#context.contextSize,
         trainContextSize: trained,
         threads: shape.actualThreads,
@@ -871,6 +873,7 @@ export class LlamaEngine {
       this.#state = {
         ...this.#state,
         status: "ready",
+        requestedContextSize: requested,
         contextSize: this.#context.contextSize,
         trainContextSize: trained,
         threads: shape.actualThreads,
@@ -963,6 +966,7 @@ export class LlamaEngine {
     this.#state = {
       status: "idle",
       model: null,
+      requestedContextSize: null,
       contextSize: null,
       trainContextSize: null,
       threads: null,

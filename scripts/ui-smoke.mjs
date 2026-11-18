@@ -112,11 +112,15 @@ async function main() {
       },
     };
     fixtureState.models = [fixtureModel];
+    // The saved setting is higher than the tuned load request, so the note must
+    // use the engine's requestedContextSize (ADR-147), not the saved value.
+    fixtureState.settings = { ...fixtureState.settings, contextSize: 32768 };
     // A loaded model that is not the fixture row, so the dashboard keeps its
     // Tune action while the status bar and Settings show the trained-context clamp.
     fixtureState.loaded = {
       status: "ready",
       model: { ...fixtureModel, id: "fixture-loaded", name: "Fixture loaded" },
+      requestedContextSize: 16384,
       contextSize: 8192,
       trainContextSize: 8192,
       threads: 8,
@@ -384,7 +388,8 @@ async function main() {
     })()`);
     assert.equal(capState.hidden, false, "the Settings form does not explain the trained-context clamp");
     assert.match(capState.text, /8[.,]192 tokens is this model's trained limit/, `the clamp note is wrong: ${capState.text}`);
-    assert.match(capState.text, /asks for 16[.,]384/, "the clamp note does not name the saved setting");
+    assert.match(capState.text, /asks for 16[.,]384/, "the clamp note does not name the load's request");
+    assert.doesNotMatch(capState.text, /32[.,]768/, "the clamp note used the saved setting instead of the engine's request");
     assert.equal(capState.inside, true, "the clamp note leaves its field");
     assert.notEqual(capState.colour, capState.baseColour, "the clamp note is styled as ordinary fine print");
     const helpState = await evaluate(`(() => {
