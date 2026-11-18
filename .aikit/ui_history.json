@@ -1103,5 +1103,26 @@
     "final_snapshot_entries": 0,
     "surface_digest": "cbfab1a41101ac7bb91ffd3a141d17bb7e010c1b2d02db3faf344210660a5b1c",
     "baseline_digest": "cbfab1a41101ac7bb91ffd3a141d17bb7e010c1b2d02db3faf344210660a5b1c"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [],
+    "no_visual_reason": "",
+    "no_change_reason": "Reviewed the committed receipt line on a running server at 1440x900 and 390x844 in dark and light themes: DOM geometry (line stays inside the card, no page overflow, no clipping at 390 after host/date hide), computed colour (now --muted, not --danger) and the green dot. Screenshot pixels could not be inspected because this model has no image input; ui:smoke machine-checks the text, title, colour and 390px fit. The review found and fixed the danger colour and the 390 clipping.",
+    "baseline_commit": "dd05303b86507ac5a77c39eb825635bc85a574a4",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1794983189.2444983,
+    "finished_at": 1794983363.1952069,
+    "strikes": 0,
+    "reviewer": "kilo:1",
+    "allowed_removals": [],
+    "allowed_tests": [],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "2a23e308411ce15420b928e57cd7a9bbe399eff3b6f063e8f8ee2c390a9584b4",
+    "baseline_digest": "2a23e308411ce15420b928e57cd7a9bbe399eff3b6f063e8f8ee2c390a9584b4"
   }
 ]
