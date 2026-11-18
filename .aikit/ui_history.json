@@ -1292,5 +1292,26 @@
     "final_snapshot_entries": 0,
     "surface_digest": "c5fda7d7489fc7b52996b2cab7675ab7f4d45317cf6eedf0f553cbd8d30b315a",
     "baseline_digest": "c5fda7d7489fc7b52996b2cab7675ab7f4d45317cf6eedf0f553cbd8d30b315a"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [],
+    "no_visual_reason": "",
+    "no_change_reason": "Review of committed work (ae90061) on a live server at 1440x900 and 390x844 in both themes: SmolLM2 135M (8K trained) showed '8.192 ctx (model max)' and the Settings note (2 lines at 390, inside its field, accent-text readable on the light dialog); Qwen2.5 0.5B (32K trained, 16,384 served) showed no suffix and a hidden empty note. ui:smoke machine-checks both states, the styling and the field fit; this model cannot read image files, so the inspection used DOM geometry and computed styles.",
+    "baseline_commit": "ae900615d107ca3b9214a05235b648021dd3a1bc",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1795017740.342113,
+    "finished_at": 1795017760.9452124,
+    "strikes": 0,
+    "reviewer": "kilo:1",
+    "allowed_removals": [],
+    "allowed_tests": [],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "a20d42f8b8f528bd0bcda6ab72eedeffdd484d71d0c1e6fdf79e7a47f4f71bd7",
+    "baseline_digest": "a20d42f8b8f528bd0bcda6ab72eedeffdd484d71d0c1e6fdf79e7a47f4f71bd7"
   }
 ]
