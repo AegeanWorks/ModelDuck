@@ -144,7 +144,7 @@ const VALID = Object.freeze({
   topK: number(0, 200, true),
   systemPrompt: (value) => typeof value === "string" && value.trim().length > 0 && value.length <= 8000,
   reasoning: oneOf("off", "auto", "deep"),
-  backends: oneOf("cpu", "vulkan", "cuda"),
+  backends: oneOf("cpu", "vulkan", "cuda", "metal"),
   cpuLanes: number(1, 4, true),
   gpuLanes: number(0, 4, true),
   promptRepeat: number(1, 3, true),

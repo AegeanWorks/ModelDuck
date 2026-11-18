@@ -22,6 +22,7 @@
     "bench:update": "node benchmarks/run.mjs --phase model --update-baseline && node benchmarks/run.mjs --phase chat --update-baseline",
     "bench:update:model": "node benchmarks/run.mjs --phase model --update-baseline",
     "bench:update:full": "node benchmarks/run.mjs --phase model --update-baseline --full-matrix",
+    "engines": "node benchmarks/engine-speed.mjs",
     "tune": "node benchmarks/tune-run.mjs",
     "tune:gate": "node benchmarks/tune-gate.mjs",
     "mcp": "node src/mcp-server.js",

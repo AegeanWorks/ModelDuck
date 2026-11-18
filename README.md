@@ -83,6 +83,8 @@ npm run tune -- --model <id> --tasks code --escalate   # retest unproven leaders
 npm run bench:multistep -- --model <id>   # multistep chains: one conversation, scored per step
 npm run bench:repair -- --model <id> --mode retry --repair-temperature 0.7   # tests pick among retries
 npm run tune -- --model <id> --settings threads,batchSize   # re-tune only these settings
+npm run tune -- --model <id> --engines   # time every inference engine first, then tune on the backends that work
+npm run engines -- --model <file.gguf>   # token speed and version of every inference engine, nothing tuned
 npm run tune:gate            # re-measure the core models' baseline settings (G-001)
 npm run mcp                  # MCP server: the verified_code tool for coding agents
 ```

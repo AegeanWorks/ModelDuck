@@ -7,6 +7,8 @@ import { readSteps, writeSteps } from "../src/tune-steps.js";
 import { javascriptTestCacheStats } from "./suite.mjs";
 import { TASKS, neededContextFor } from "./tasks.mjs";
 import { estimateTune, expectedAnswers, normalizeSteps, settingNames, timeLeft } from "./tune-grid.mjs";
+import { assessEngines, createEngineRegistry, defaultEngines, deviceBackendsFrom, formatAssessment } from "../src/inference-engines.js";
+import { writeJsonAtomic } from "../src/fs-atomic.js";
 import { openTarget, runTune, summary } from "./tune-job.mjs";
 import { STAGES } from "./tune.mjs";
 import { askSteps } from "./tune-prompt.mjs";
@@ -34,6 +36,13 @@ older test, runtime, CPU or model file is kept with a warning until --force.
                      starts a new profile, so other stages are measured again
   --grid <file>      step lists to search (default: <home>/tune-grid.json, else built-in)
   --interactive      ask for every setting's steps first and save them to <home>/tune-grid.json
+  --engines          first time every inference engine on this model (in-process CPU, Vulkan,
+                     CUDA and Metal, a native llama.cpp build, Ollama) and print prompt and
+                     generation tokens/s with each engine's version; the device stage then
+                     tries every in-process backend that measured instead of cpu and vulkan
+                     only. Saved beside the profile as <model>.engines.json.
+  --llama-bench <f>  a native llama.cpp llama-bench binary to include with --engines
+  --ollama-model <t> the Ollama model to time with --engines (default: a tag matching the file)
   --home <folder>    data folder that receives profiles/<model>.json
   --models-dir <dir> models folder
   --events           JSON progress lines on stdout (used by the app)
@@ -72,6 +81,9 @@ function parseArgs(argv) {
     else if (arg === "--parallel") options.parallel = parseParallel(take(index++, arg));
     else if (arg === "--budget") options.budget = parseBudget(take(index++, arg));
     else if (arg === "--escalate") options.escalate = true;
+    else if (arg === "--engines") options.engines = true;
+    else if (arg === "--llama-bench") options.llamaBench = take(index++, arg);
+    else if (arg === "--ollama-model") options.ollamaModel = take(index++, arg);
     else if (arg === "--force") options.force = true;
     else if (arg === "--interactive") options.interactive = true;
     else if (arg === "--grid") options.grid = take(index++, arg);
@@ -124,6 +136,17 @@ async function main() {
     log(options, `Saved your steps to ${target.paths.tuneGrid}`);
   }
   for (const problem of normalizeSteps(steps).problems.concat(loaded.problems)) log(options, `Steps: ${problem}`);
+  if (options.engines) {
+    // Every engine is timed on this model before the tune starts, one after another, so none competes for the cores.
+    const registry = createEngineRegistry({ engines: defaultEngines({ llamaBench: options.llamaBench ?? null, ollamaModel: options.ollamaModel ?? null }) });
+    const assessment = await assessEngines({ registry, entry: target.entry, onProgress: ({ engine, stage }) => emit(options, { type: "engines-progress", phase: "tune", engine, stage }) });
+    log(options, formatAssessment(assessment));
+    const backends = deviceBackendsFrom(assessment);
+    steps = { ...steps, device: { ...steps.device, backends } };
+    log(options, `Device stage will try: ${backends.join(", ")}.`);
+    await writeJsonAtomic(path.join(target.paths.profiles, `${target.profileId}.engines.json`), { assessedAt: new Date().toISOString(), ...assessment });
+    emit(options, { type: "engines", phase: "tune", model: target.profileId, fastest: assessment.fastest, results: assessment.results });
+  }
   const estimate = estimateTune(steps, { logicalCores: target.system.parallelism, tasks: options.tasks, stages: options.stages, only: options.only ?? null, quick: Boolean(options.quick) });
   // The time left comes from the answers this run asks and its own measured pace (ADR-045).
   const expected = expectedAnswers(steps, { logicalCores: target.system.parallelism, tasks: options.tasks, stages: options.stages, only: options.only ?? null, quick: Boolean(options.quick) });
