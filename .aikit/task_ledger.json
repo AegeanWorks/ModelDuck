@@ -1,11 +1,11 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "hf-ui",
+    "task_id": "source-name-conflict",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794995061.80704,
+    "updated_at": 1794995576.574782,
     "owner": "kilo:1",
     "started_by": "kilo:1",
     "continuations": [],
@@ -15,70 +15,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1794995062.8126879,
-    "completed_head": "ddf15068e7986dace7ab10aed881a92baeb00db2",
-    "completed_tree": "0251a37fcb03d2733c3cbdf2635ad68152e3ae70"
+    "completed_at": 1794995577.3111951,
+    "completed_head": "05319daccf27e1ff398c54a2a055533977e9d3be",
+    "completed_tree": "a11eeff4be2b586858284e35efa28866f07f8f4c"
   },
   "checkpoints": [
-    {
-      "task_id": "forged-judge-tests",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[1/1] npm test 893/894 pass, 1 skipped; the canonical forgery test now asserts got 0 (not no results), a probe confirmed the retired marker shape yields no results while the real marker yields got 0; new captured-writer test; aikit check 4/4; ADR-135; UI review recorded; G-001 not applicable (tests only)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794952127.5121043,
-      "timestamp_str": "2026-11-18 00:48:47",
-      "agent": "kilo:1",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "task_id": "forged-judge-tests",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'forged-judge-tests' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794952128.2656078,
-      "timestamp_str": "2026-11-18 00:48:48",
-      "agent": "kilo:1",
-      "head": "92fd6d5857b31a48607cac77e14693d7af4dcb8b",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
-    {
-      "task_id": "receipt-provenance",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/3] API: /api/state, /api/catalog and /api/models add an artifact object from the install receipt (measured digest, expected sha256, source URL, quant, downloadedAt) when one exists; failing-first route tests. [2/3] UI: the Installed card shows a Verified sha256 line with host and date, and ui-smoke asserts it from a fixture model with an artifact. [3/3] G-007 screenshot review at 1440 and 390, ADR-136, gates, commit",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794978958.2631066,
-      "timestamp_str": "2026-11-18 08:15:58",
-      "agent": "kilo:1",
-      "impact_assessment": {
-        "why": "IDEA-1194/0855: the receipt records digest, quant, source and date, but the library never shows it, so a user cannot see that a file was hash-checked or where it came from",
-        "benefits": "Provenance is visible where the model is; the API exposes it for scripts without changing anything about generation",
-        "risks": "contract: the three model routes gain an optional artifact field; dependency: none; concurrency: reads receipt files per request; state: none",
-        "mitigation": "receipts are read-only and failures are absorbed; fields are type-checked; no receipt means no field; UI escapes every value; smoke and screenshot review"
-      },
-      "plan_digest": "b6c2d527ddee16f77e2a33ad7ae2967465e791d86f313c183d0ad27c8b9f262d",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "receipt-provenance",
       "phase": "phase 4",
@@ -402,6 +343,65 @@
       "timestamp_str": "2026-11-18 12:44:22",
       "agent": "kilo:1",
       "head": "ddf15068e7986dace7ab10aed881a92baeb00db2",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
+    },
+    {
+      "task_id": "source-name-conflict",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/2] Refuse a user-chosen source whose file name already exists unless its install receipt names the same URL and size, in which case the add is idempotent and returns a complete job without fetching; never overwrite or claim success for a different file. Failing-first tests for conflict, idempotent add and another-URL receipt; [2/2] npm test, aikit check, ADR-142, UI review, commit (G-001 not applicable: download path only)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794995172.1715138,
+      "timestamp_str": "2026-11-18 12:46:12",
+      "agent": "kilo:1",
+      "impact_assessment": {
+        "why": "startSource reused the catalog early-complete check, so an existing same-named, same-sized file made the add report success with no receipt, and a same-named file of another size would be atomically replaced: a pasted link could overwrite a catalog model",
+        "benefits": "A colliding name is refused with a clear Fix instead of overwriting or faking a completed download; re-adding the same URL is a no-op",
+        "risks": "contract: one new 409 code on the source path; dependency: none; concurrency: the existing per-file starting set still serializes starts; state: none written on a refusal",
+        "mitigation": "the receipt URL+size is the identity; catalog starts keep their current behaviour; tests pin the file bytes are unchanged after a refusal"
+      },
+      "plan_digest": "9d1569ce1286759eaa8570f9be3f4df8ff3251321ba9a27127f986223546474e",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "source-name-conflict",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[2/2] npm test 918/919 pass, 1 skipped; the conflict test keeps the original bytes, the idempotent add fetches nothing, and another-URL receipt conflicts; aikit check 4/4; ADR-142; README notes the refusal; UI review recorded; G-001 not applicable (download path only)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794995576.574782,
+      "timestamp_str": "2026-11-18 12:52:56",
+      "agent": "kilo:1",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "source-name-conflict",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'source-name-conflict' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794995577.3808815,
+      "timestamp_str": "2026-11-18 12:52:57",
+      "agent": "kilo:1",
+      "head": "05319daccf27e1ff398c54a2a055533977e9d3be",
       "delivery": {
         "roots": [
           "."
