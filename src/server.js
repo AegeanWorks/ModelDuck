@@ -580,7 +580,17 @@ export function createHttpServer({
       if (!models.length) throw new AppError("Choose a model to tune", { code: "tune_model_required", why: "No model was named.", fix: "Pick an installed model, or send models: \"all\"." });
       // IDEA-1079: fail fast on a broken GPU before the first answer, not mid-run.
       if (typeof engine?.startBackend === "function") await engine.startBackend(settings.value.gpuBackend);
+      // The tune loads its own copy in child processes. A model already resident in the app
+      // competes for memory and cores, so say so; unloading it is the person's choice.
+      const warnings = engine?.loadedId
+        ? [{
+            code: "resident_model",
+            why: "A model is already loaded in the app; the tune loads its own copy, so both compete for memory and cores and the measurements can be slower or the load refused.",
+            fix: "Unload the model in Models before tuning for the cleanest results.",
+          }]
+        : [];
       sendJson(res, 202, {
+        warnings,
         job: tunes.start({
           models,
           tasks,

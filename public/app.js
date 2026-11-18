@@ -3318,8 +3318,9 @@ async function startTune(models, { force = false, forceStale = false, stage = nu
   // A task subset is a part run too: scratch on a subset would save a profile without the other tasks.
   const partRun = settings.length > 0 || stages.length < all.length || (taskList && taskList.length < TUNE_TASKS.length);
   try {
-    const { job } = await request("/api/tune/start", { method: "POST", body: { models, ...(taskList && { tasks: taskList }), ...(continueRun && { continue: true }), stages, settings: settings.length ? settings : null, force: !continueRun && (useForm ? ((force && !partRun) || (!stage && els.tuneForce.checked)) : force), forceStale, quick: Boolean(quick), guard: useForm ? Boolean(els.tuneGuard?.checked) : false, guardQueue: useForm ? Boolean(els.tuneGuardQueue?.checked) : false, ...(budget.minutes && { budgetMinutes: budget.minutes }) } });
+    const { job, warnings = [] } = await request("/api/tune/start", { method: "POST", body: { models, ...(taskList && { tasks: taskList }), ...(continueRun && { continue: true }), stages, settings: settings.length ? settings : null, force: !continueRun && (useForm ? ((force && !partRun) || (!stage && els.tuneForce.checked)) : force), forceStale, quick: Boolean(quick), guard: useForm ? Boolean(els.tuneGuard?.checked) : false, guardQueue: useForm ? Boolean(els.tuneGuardQueue?.checked) : false, ...(budget.minutes && { budgetMinutes: budget.minutes }) } });
     state.tuneJob = job;
+    for (const warning of warnings) showToast("Heads up", { message: warning.why, fix: warning.fix, kind: "info", timeout: 9000 });
     // A started tune is followed on the Tune tab.
     showBenchTab("tune");
     renderTuneJob();

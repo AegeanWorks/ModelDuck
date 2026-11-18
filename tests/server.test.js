@@ -1070,3 +1070,21 @@ test("the recommendations route uses the machine memory it is given (ADR-134)", 
   assert.equal(data.memory.free, 1, "the route reports the injected machine");
   assert.deepEqual(data.catalog, [], "a machine with no free memory is offered no catalog downloads");
 });
+
+// A model resident in the app competes with the tune's own child processes for memory and cores.
+test("starting a tune while a model is loaded warns about it and never unloads it", async (t) => {
+  const tunes = { start: () => ({ id: "job", status: "running" }), get: () => null };
+  const loaded = await makeHarness(t, { models: 1, tunes });
+  const start = (harness) => fetch(`${harness.base}/api/tune/start`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ models: "all" }) });
+  const body = await (await start(loaded)).json();
+  assert.equal(body.warnings.length, 1);
+  assert.equal(body.warnings[0].code, "resident_model");
+  assert.match(body.warnings[0].why, /memory|cores/);
+  assert.match(body.warnings[0].fix, /Unload/);
+  assert.equal(loaded.engine.loadedId, "fake-model", "the warning must not unload the model");
+
+  const idleEngine = new FakeEngine();
+  idleEngine.state.model = null;
+  const idle = await makeHarness(t, { models: 1, tunes, engine: idleEngine });
+  assert.deepEqual((await (await start(idle)).json()).warnings, []);
+});
