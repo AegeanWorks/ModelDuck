@@ -182,6 +182,20 @@ test("a saved profile loads back fresh on the same machine", async (t) => {
   assert.equal(await loadProfile(dir, "smollm2-135m", FINGERPRINT), null);
 });
 
+test("a profile saved with a UTF-8 BOM survives the text cache (ADR-139)", async (t) => {
+  const dir = await directory(t);
+  resetProfileCache();
+  const id = "qwen2.5-0.5b-instruct-q4";
+  await saveProfile(dir, profile());
+  const file = path.join(dir, `${id}.json`);
+  await writeFile(file, `\uFEFF${await readFile(file, "utf8")}`);
+  resetProfileCache();
+  const first = await loadProfile(dir, id, FINGERPRINT);
+  const second = await loadProfile(dir, id, FINGERPRINT);
+  assert.ok(first?.profile, "the BOM profile was not read");
+  assert.ok(second?.profile, "the cached BOM text failed on the second read");
+});
+
 test("the profile text cache is reused and invalidated by a save", async (t) => {
   const dir = await directory(t);
   resetProfileCache();

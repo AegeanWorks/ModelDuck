@@ -125,7 +125,7 @@ export async function writeJsonAtomic(file, value) {
 }
 
 /** A leading UTF-8 byte-order mark, as Windows PowerShell 5 and older Notepad write, is not JSON. */
-const withoutBom = (text) => (text.charCodeAt(0) === 0xfeff ? text.slice(1) : text);
+export const withoutBom = (text) => (text.charCodeAt(0) === 0xfeff ? text.slice(1) : text);
 
 /**
  * Read JSON without letting a damaged file stop the app. A broken file is

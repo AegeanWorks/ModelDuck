@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { AppError } from "./errors.js";
+import { withoutBom } from "./fs-atomic.js";
 import { importRecipe } from "./model-profiles.js";
 
 /** Where the measured presets ship (benchmarks/presets/README.md). */
@@ -74,7 +75,7 @@ export async function readShippedPresets(dir = SHIPPED_PRESETS_DIR) {
   const presets = [];
   for (const name of names.filter((item) => item.endsWith(".modelduck-profile.json")).sort()) {
     try {
-      const recipe = JSON.parse(await fs.promises.readFile(path.join(dir, name), "utf8"));
+      const recipe = JSON.parse(withoutBom(await fs.promises.readFile(path.join(dir, name), "utf8")));
       importRecipe(recipe);
       presets.push(recipe);
     } catch {

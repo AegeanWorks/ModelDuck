@@ -3,7 +3,7 @@ import path from "node:path";
 
 import { AppError } from "./errors.js";
 import { normalizeSettings } from "./config.js";
-import { readJsonWithQuarantine, writeJsonAtomic } from "./fs-atomic.js";
+import { readJsonWithQuarantine, withoutBom, writeJsonAtomic } from "./fs-atomic.js";
 import { SUITE_VERSION } from "../benchmarks/suite.mjs";
 import { TASKS, taskSubsetHash } from "../benchmarks/tasks.mjs";
 import { TUNER_VERSION } from "../benchmarks/tune.mjs";
@@ -314,10 +314,13 @@ export async function loadProfile(directory, catalogId, fingerprint) {
     }
   } else {
     profileCacheMisses += 1;
-    const text = await fs.promises.readFile(file, "utf8").catch(() => null);
-    if (text === null) return null;
+    const raw = await fs.promises.readFile(file, "utf8").catch(() => null);
+    if (raw === null) return null;
+    // Cache the BOM-free text: the cache-hit branch parses it directly, and a
+    // Windows editor's BOM used to make the second read return null (ADR-139).
+    const text = withoutBom(raw);
     try {
-      profile = JSON.parse(text.replace(/^\uFEFF/, ""));
+      profile = JSON.parse(text);
     } catch {
       // Preserve the quarantine behaviour for a damaged profile.
       await readJsonWithQuarantine(file, null);

@@ -6,7 +6,7 @@ import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 
 import { AppError } from "./errors.js";
-import { writeJsonAtomic } from "./fs-atomic.js";
+import { withoutBom, writeJsonAtomic } from "./fs-atomic.js";
 import { readSteps } from "./tune-steps.js";
 
 const SCRIPT = fileURLToPath(new URL("../benchmarks/tune-run.mjs", import.meta.url));
@@ -467,10 +467,10 @@ function pushLog(item, line) {
 }
 
 /** "gpu" when the model's profile chose a GPU in its device stage, else "cpu". */
-async function laneFromProfile(profilesDir, model) {
+export async function laneFromProfile(profilesDir, model) {
   if (!profilesDir) return "cpu";
   try {
-    const profile = JSON.parse(await fs.promises.readFile(path.join(profilesDir, `${model.profileId}.json`), "utf8"));
+    const profile = JSON.parse(withoutBom(await fs.promises.readFile(path.join(profilesDir, `${model.profileId}.json`), "utf8")));
     const backend = profile?.device?.settings?.gpuBackend;
     return backend && backend !== "cpu" ? "gpu" : "cpu";
   } catch {

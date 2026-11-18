@@ -6,7 +6,19 @@ import path from "node:path";
 import { PassThrough } from "node:stream";
 import test from "node:test";
 
-import { TuneScheduler } from "../src/tune-scheduler.js";
+import { TuneScheduler, laneFromProfile } from "../src/tune-scheduler.js";
+
+test("the lane reader tolerates a profile saved with a UTF-8 BOM (ADR-139)", async (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "modelduck-lane-bom-"));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  fs.writeFileSync(
+    path.join(dir, "smol.json"),
+    `\uFEFF${JSON.stringify({ device: { settings: { gpuBackend: "vulkan" } } })}`,
+  );
+  assert.equal(await laneFromProfile(dir, { profileId: "smol" }), "gpu", "a BOM silently sent a GPU tune to the CPU lane");
+  assert.equal(await laneFromProfile(null, { profileId: "smol" }), "cpu");
+  assert.equal(await laneFromProfile(dir, { profileId: "absent" }), "cpu");
+});
 
 /** A fake spawner: every child stays running until the test ends it. */
 function spawner() {

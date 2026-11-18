@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 
 import { AppError } from "./errors.js";
-import { assertDiskSpace, ensureDirectory, formatBytes, promoteFileAtomic } from "./fs-atomic.js";
+import { assertDiskSpace, ensureDirectory, formatBytes, promoteFileAtomic, withoutBom } from "./fs-atomic.js";
 import { checkDownloadFit, inspectGgufHeader } from "./gguf-guard.js";
 import { downloadUrl, getCatalogModel } from "./model-catalog.js";
 import { DOWNLOAD_MACHINE, moveTo } from "./state-machine.js";
@@ -38,7 +38,7 @@ export async function readInstallReceipt(modelsDir, fileName) {
     // A BOM written by a Windows editor must not hide the receipt, the same
     // tolerance the settings reader gives its files (ADR-114).
     const text = await fs.promises.readFile(receiptPath(modelsDir, fileName), "utf8");
-    return JSON.parse(text.replace(/^\uFEFF/, ""));
+    return JSON.parse(withoutBom(text));
   } catch {
     return null;
   }

@@ -70,6 +70,14 @@ test("shipped presets are read from their folder; a broken file is skipped, not 
   assert.deepEqual(await readShippedPresets(path.join(dir, "missing")), []);
 });
 
+test("a preset saved with a UTF-8 BOM is still read (ADR-139)", async (t) => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "modelduck-presets-bom-"));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  await writeFile(path.join(dir, "bom.modelduck-profile.json"), `\uFEFF${JSON.stringify(RECIPE)}`);
+  const presets = await readShippedPresets(dir);
+  assert.deepEqual(presets.map((preset) => preset.catalogId), [RECIPE.catalogId], "a Windows editor's BOM silently dropped the preset");
+});
+
 test("the shipped presets in the repository are valid recipes", async () => {
   const presets = await readShippedPresets();
   assert.ok(presets.length >= 3);
