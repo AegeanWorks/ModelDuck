@@ -529,7 +529,17 @@ export async function handleOpenAI(
     });
     return;
   }
-  const parsed = isChat ? toMessages(body) : { prompt: toPrompt(body) };
+  // A refusal in the body keeps the OpenAI error shape, not ModelDuck's UI
+  // error JSON: clients test error.type, and the status must stay 400.
+  let parsed;
+  try {
+    parsed = isChat ? toMessages(body) : { prompt: toPrompt(body) };
+  } catch (error) {
+    openAiError(res, error.status ?? 400, `${error.why ?? error.message} ${error.fix ?? ""}`.trim(), {
+      code: error.code ?? "invalid_request_error",
+    });
+    return;
+  }
   const current = await ensureReady({ engine, jit, body, res });
   if (!current) return;
   // A tuned model's preset for the task (x-modelduck-task header or modelduck_task, default code) becomes the defaults; client values still win.

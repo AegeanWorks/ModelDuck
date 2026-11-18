@@ -260,6 +260,30 @@ test("an unsupported response_format is a 400 and asks the model nothing", async
   assert.equal(engine.requests.length, 0);
 });
 
+test("a chat body without a usable message keeps the OpenAI error shape", async (t) => {
+  const engine = new RecordingEngine();
+  const harness = await makeHarness(t, { engine });
+  const response = await postOpenAi(harness, "/v1/chat/completions", { model: "fake-model", messages: [] });
+  assert.equal(response.status, 400);
+  const payload = await response.json();
+  assert.equal(payload.error.type, "invalid_request_error", "the OpenAI client expects a type, not ModelDuck's UI error");
+  assert.equal(payload.error.code, "invalid_request_error");
+  assert.match(payload.error.message, /non-empty messages array/);
+  assert.equal(engine.requests.length, 0);
+});
+
+test("a completion body without a usable prompt keeps the OpenAI error shape", async (t) => {
+  const engine = new RecordingEngine();
+  const harness = await makeHarness(t, { engine });
+  const response = await postOpenAi(harness, "/v1/completions", { model: "fake-model" });
+  assert.equal(response.status, 400);
+  const payload = await response.json();
+  assert.equal(payload.error.type, "invalid_request_error");
+  assert.equal(payload.error.code, "invalid_request_error");
+  assert.match(payload.error.message, /non-empty text prompt/);
+  assert.equal(engine.requests.length, 0);
+});
+
 // IDEA-1074: the two-phase stream failure contract. A failed stream always ends with a
 // final error frame plus [DONE], and the frame carries the partial output the client
 // already rendered, the failure phase and a retryable classification.
