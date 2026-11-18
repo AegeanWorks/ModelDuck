@@ -180,7 +180,7 @@
             "tests/tune-escalate.test.js",
             "tests/tune-scheduler.test.js"
           ],
-          "packet": "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck\\.aikit\\reforge.reviews\\stage-run-1-9-1f8d4a8bc97f.md",
+          "packet": ".aikit/reforge.reviews/stage-run-1-9-1f8d4a8bc97f.md",
           "redacted": 0,
           "reason": "",
           "method": "host",
@@ -280,7 +280,7 @@
               "public/styles.css",
               "scripts/ui-smoke.mjs"
             ],
-            "packet": "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck\\.aikit\\reforge.reviews\\stage-run-1-1-ab574a18495e.md",
+            "packet": ".aikit/reforge.reviews/stage-run-1-1-ab574a18495e.md",
             "redacted": 0,
             "reason": "",
             "method": "host",
@@ -433,7 +433,7 @@
               "tests/sandbox-hardening.test.js",
               "tests/tune-scheduler.test.js"
             ],
-            "packet": "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck\\.aikit\\reforge.reviews\\stage-run-1-2-d879043335a2.md",
+            "packet": ".aikit/reforge.reviews/stage-run-1-2-d879043335a2.md",
             "redacted": 0,
             "reason": "",
             "method": "host",
@@ -561,7 +561,7 @@
               "tests/tune-budget.test.js",
               "tests/verified-code.test.js"
             ],
-            "packet": "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck\\.aikit\\reforge.reviews\\stage-run-1-3-37310873b0e6.md",
+            "packet": ".aikit/reforge.reviews/stage-run-1-3-37310873b0e6.md",
             "redacted": 0,
             "reason": "the answer held no findings",
             "method": "host",
@@ -728,7 +728,7 @@
               "tests/fs-atomic.test.js",
               "tests/perf-scripts.test.js"
             ],
-            "packet": "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck\\.aikit\\reforge.reviews\\stage-run-1-4-217adcd3834f.md",
+            "packet": ".aikit/reforge.reviews/stage-run-1-4-217adcd3834f.md",
             "redacted": 0,
             "reason": "",
             "method": "host",
@@ -887,7 +887,7 @@
               ".aikit/ui_history.json",
               "tests/server.test.js"
             ],
-            "packet": "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck\\.aikit\\reforge.reviews\\stage-run-1-5-dde14db1d13f.md",
+            "packet": ".aikit/reforge.reviews/stage-run-1-5-dde14db1d13f.md",
             "redacted": 0,
             "reason": "the answer held no findings",
             "method": "host",
@@ -1002,7 +1002,7 @@
               "tests/settings-reload.test.js",
               "tests/tune-escalate.test.js"
             ],
-            "packet": "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck\\.aikit\\reforge.reviews\\stage-run-1-6-a63954a6107f.md",
+            "packet": ".aikit/reforge.reviews/stage-run-1-6-a63954a6107f.md",
             "redacted": 0,
             "reason": "",
             "method": "host",
@@ -1183,7 +1183,7 @@
               "tests/benchmark-tune-parallel.test.js",
               "tests/config.test.js"
             ],
-            "packet": "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck\\.aikit\\reforge.reviews\\stage-run-1-7-4ff71fec4ca0.md",
+            "packet": ".aikit/reforge.reviews/stage-run-1-7-4ff71fec4ca0.md",
             "redacted": 0,
             "reason": "",
             "method": "host",
@@ -1367,7 +1367,7 @@
               "docs/THREAT-MODEL.md",
               "scripts/ui-smoke.mjs"
             ],
-            "packet": "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck\\.aikit\\reforge.reviews\\stage-run-1-8-520723b8d62e.md",
+            "packet": ".aikit/reforge.reviews/stage-run-1-8-520723b8d62e.md",
             "redacted": 0,
             "reason": "",
             "method": "host",
@@ -1543,7 +1543,7 @@
               "tests/tune-escalate.test.js",
               "tests/tune-scheduler.test.js"
             ],
-            "packet": "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck\\.aikit\\reforge.reviews\\stage-run-1-9-1f8d4a8bc97f.md",
+            "packet": ".aikit/reforge.reviews/stage-run-1-9-1f8d4a8bc97f.md",
             "redacted": 0,
             "reason": "",
             "method": "host",
@@ -1762,7 +1762,7 @@
         "tests/tune-escalate.test.js",
         "tests/tune-scheduler.test.js"
       ],
-      "packet": "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck\\.aikit\\reforge.reviews\\stage-run-1-9-1f8d4a8bc97f.md",
+      "packet": ".aikit/reforge.reviews/stage-run-1-9-1f8d4a8bc97f.md",
       "redacted": 0,
       "reason": "",
       "method": "host",
@@ -1862,7 +1862,7 @@
           "public/styles.css",
           "scripts/ui-smoke.mjs"
         ],
-        "packet": "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck\\.aikit\\reforge.reviews\\stage-run-1-1-ab574a18495e.md",
+        "packet": ".aikit/reforge.reviews/stage-run-1-1-ab574a18495e.md",
         "redacted": 0,
         "reason": "",
         "method": "host",
@@ -2015,7 +2015,7 @@
           "tests/sandbox-hardening.test.js",
           "tests/tune-scheduler.test.js"
         ],
-        "packet": "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck\\.aikit\\reforge.reviews\\stage-run-1-2-d879043335a2.md",
+        "packet": ".aikit/reforge.reviews/stage-run-1-2-d879043335a2.md",
         "redacted": 0,
         "reason": "",
         "method": "host",
@@ -2143,7 +2143,7 @@
           "tests/tune-budget.test.js",
           "tests/verified-code.test.js"
         ],
-        "packet": "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck\\.aikit\\reforge.reviews\\stage-run-1-3-37310873b0e6.md",
+        "packet": ".aikit/reforge.reviews/stage-run-1-3-37310873b0e6.md",
         "redacted": 0,
         "reason": "the answer held no findings",
         "method": "host",
@@ -2310,7 +2310,7 @@
           "tests/fs-atomic.test.js",
           "tests/perf-scripts.test.js"
         ],
-        "packet": "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck\\.aikit\\reforge.reviews\\stage-run-1-4-217adcd3834f.md",
+        "packet": ".aikit/reforge.reviews/stage-run-1-4-217adcd3834f.md",
         "redacted": 0,
         "reason": "",
         "method": "host",
@@ -2469,7 +2469,7 @@
           ".aikit/ui_history.json",
           "tests/server.test.js"
         ],
-        "packet": "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck\\.aikit\\reforge.reviews\\stage-run-1-5-dde14db1d13f.md",
+        "packet": ".aikit/reforge.reviews/stage-run-1-5-dde14db1d13f.md",
         "redacted": 0,
         "reason": "the answer held no findings",
         "method": "host",
@@ -2584,7 +2584,7 @@
           "tests/settings-reload.test.js",
           "tests/tune-escalate.test.js"
         ],
-        "packet": "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck\\.aikit\\reforge.reviews\\stage-run-1-6-a63954a6107f.md",
+        "packet": ".aikit/reforge.reviews/stage-run-1-6-a63954a6107f.md",
         "redacted": 0,
         "reason": "",
         "method": "host",
@@ -2765,7 +2765,7 @@
           "tests/benchmark-tune-parallel.test.js",
           "tests/config.test.js"
         ],
-        "packet": "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck\\.aikit\\reforge.reviews\\stage-run-1-7-4ff71fec4ca0.md",
+        "packet": ".aikit/reforge.reviews/stage-run-1-7-4ff71fec4ca0.md",
         "redacted": 0,
         "reason": "",
         "method": "host",
@@ -2949,7 +2949,7 @@
           "docs/THREAT-MODEL.md",
           "scripts/ui-smoke.mjs"
         ],
-        "packet": "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck\\.aikit\\reforge.reviews\\stage-run-1-8-520723b8d62e.md",
+        "packet": ".aikit/reforge.reviews/stage-run-1-8-520723b8d62e.md",
         "redacted": 0,
         "reason": "",
         "method": "host",
@@ -3125,7 +3125,7 @@
           "tests/tune-escalate.test.js",
           "tests/tune-scheduler.test.js"
         ],
-        "packet": "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\modelduck\\.aikit\\reforge.reviews\\stage-run-1-9-1f8d4a8bc97f.md",
+        "packet": ".aikit/reforge.reviews/stage-run-1-9-1f8d4a8bc97f.md",
         "redacted": 0,
         "reason": "",
         "method": "host",
