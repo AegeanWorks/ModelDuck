@@ -76,3 +76,53 @@ test("cancelLoad is a no-op without a load", () => {
   const engine = new LlamaEngine({ registry, logger: quiet, availableMemory: () => 8 * GIB, loadRuntime: loadRuntime() });
   assert.equal(engine.cancelLoad(), false);
 });
+
+// Two simultaneous load requests must not both get past the guard while the first
+// is still planning memory fit; the second is refused and the model loads once.
+test("a second load started while the first is still planning is refused", async () => {
+  const registry = { findById: () => ENTRY };
+  let loads = 0;
+  const base = loadRuntime();
+  const countingRuntime = async () => {
+    const module = await base();
+    const getLlama = module.getLlama;
+    return {
+      ...module,
+      getLlama: async (...args) => {
+        const llama = await getLlama(...args);
+        const loadModel = llama.loadModel;
+        llama.loadModel = async (...a) => {
+          loads += 1;
+          return loadModel(...a);
+        };
+        return llama;
+      },
+    };
+  };
+  const engine = new LlamaEngine({
+    registry,
+    logger: quiet,
+    availableMemory: async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      return 8 * GIB;
+    },
+    loadRuntime: countingRuntime,
+  });
+  const results = await Promise.allSettled([engine.load({ modelId: "m1" }), engine.load({ modelId: "m1" })]);
+  assert.equal(results.filter((r) => r.status === "fulfilled").length, 1);
+  const refused = results.find((r) => r.status === "rejected");
+  assert.equal(refused.reason.code, "model_loading");
+  assert.equal(loads, 1);
+  assert.equal(engine.phase, "ready");
+});
+
+test("a load started while a reconfigure is still planning is refused", async () => {
+  const registry = { findById: () => ENTRY };
+  const engine = new LlamaEngine({ registry, logger: quiet, availableMemory: () => 8 * GIB, loadRuntime: loadRuntime() });
+  await engine.load({ modelId: "m1" });
+  const results = await Promise.allSettled([engine.reconfigure({ contextSize: 16384 }), engine.load({ modelId: "m1" })]);
+  assert.equal(results[0].status, "fulfilled");
+  assert.equal(results[1].status, "rejected");
+  assert.equal(results[1].reason.code, "model_loading");
+  assert.equal(engine.phase, "ready");
+});

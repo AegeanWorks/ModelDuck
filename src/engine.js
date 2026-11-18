@@ -633,8 +633,20 @@ export class LlamaEngine {
     for (const warning of entry.compat?.warnings ?? []) {
       this.#logger.warn?.(`[modelduck] Template: ${warning} (${entry.fileName})`);
     }
-    const fit = await this.#planFit(entry, { contextSize, kvCache, gpuLayers, batchSize, sequences, flashAttention });
+    // The guard above and this claim must not be separated by an await: planning
+    // is async, and a second load arriving meanwhile would pass every check.
+    this.#loading = true;
+    const epoch = ++this.#loadEpoch;
+    let fit;
+    try {
+      fit = await this.#planFit(entry, { contextSize, kvCache, gpuLayers, batchSize, sequences, flashAttention });
+      this.#assertLoadAlive(epoch);
+    } catch (error) {
+      this.#loading = false;
+      throw error;
+    }
     if (fit.verdict === "will_not_fit" && !force) {
+      this.#loading = false;
       const safer = fit.largestSafeContext >= 512
         ? `Lower Context size to ${fit.largestSafeContext} tokens, use the q8_0 KV cache,`
         : "Choose a smaller model or quantization,";
@@ -645,9 +657,6 @@ export class LlamaEngine {
         fix: `${safer} or close other programs and try again.`,
       });
     }
-
-    this.#loading = true;
-    const epoch = ++this.#loadEpoch;
 
     try {
       await this.unload();
@@ -843,8 +852,20 @@ export class LlamaEngine {
     // for less may go under it, and a rebuild never silently shrinks further.
     const requested = Math.max(16384, Number(contextSize ?? current.contextSize) || 16384);
     const wanted = Math.max(512, Math.min(requested, trained));
-    const fit = await this.#planFit(entry, { contextSize: wanted, kvCache: shape.kvLabel, gpuLayers: this.#state.gpuLayers, batchSize: shape.actualBatchSize, sequences: shape.actualSequences, flashAttention: shape.attention });
+    // Claim the engine before the async fit check so a concurrent load or
+    // reconfigure cannot pass the guards above in the meantime.
+    this.#loading = true;
+    const epoch = ++this.#loadEpoch;
+    let fit;
+    try {
+      fit = await this.#planFit(entry, { contextSize: wanted, kvCache: shape.kvLabel, gpuLayers: this.#state.gpuLayers, batchSize: shape.actualBatchSize, sequences: shape.actualSequences, flashAttention: shape.attention });
+      this.#assertLoadAlive(epoch);
+    } catch (error) {
+      this.#loading = false;
+      throw error;
+    }
     if (fit.verdict === "will_not_fit" && !force) {
+      this.#loading = false;
       throw new AppError("This model will not fit in memory", {
         code: "model_will_not_fit",
         status: 507,
@@ -853,8 +874,6 @@ export class LlamaEngine {
       });
     }
 
-    this.#loading = true;
-    const epoch = ++this.#loadEpoch;
     try {
       this.#disposeSessions();
       try {
