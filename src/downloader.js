@@ -35,7 +35,10 @@ export function gatedDownloadHeaders({ token } = {}) {
 /** IDEA-1067/1194: measured install receipt; null when no receipt was written. */
 export async function readInstallReceipt(modelsDir, fileName) {
   try {
-    return JSON.parse(await fs.promises.readFile(receiptPath(modelsDir, fileName), "utf8"));
+    // A BOM written by a Windows editor must not hide the receipt, the same
+    // tolerance the settings reader gives its files (ADR-114).
+    const text = await fs.promises.readFile(receiptPath(modelsDir, fileName), "utf8");
+    return JSON.parse(text.replace(/^\uFEFF/, ""));
   } catch {
     return null;
   }

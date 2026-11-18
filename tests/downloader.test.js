@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { DownloadManager } from "../src/downloader.js";
+import { DownloadManager, readInstallReceipt } from "../src/downloader.js";
 
 const logger = { warn() {}, error() {} };
 
@@ -14,6 +14,17 @@ async function makeManager(t, fetchImpl) {
   t.after(() => rm(directory, { recursive: true, force: true }));
   return new DownloadManager({ modelsDir: directory, logger, fetchImpl });
 }
+
+test("an install receipt saved with a UTF-8 BOM is still read", async (t) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "modelduck-receipt-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  await writeFile(
+    path.join(directory, "model.gguf.receipt.json"),
+    `\uFEFF${JSON.stringify({ file: "model.gguf", digest: "abc" })}`,
+  );
+  const receipt = await readInstallReceipt(directory, "model.gguf");
+  assert.equal(receipt.digest, "abc", "a BOM from a Windows editor hid the receipt");
+});
 
 test("unknown catalogue ids are rejected before any network work", async (t) => {
   const manager = await makeManager(t, async () => {

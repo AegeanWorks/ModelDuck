@@ -142,6 +142,26 @@ export function createHttpServer({
       .filter((recipe) => recipe?.catalogId && Number.isFinite(recipe.tasks?.[task]?.stats?.rate))
       .map((recipe) => [recipe.catalogId, { rate: recipe.tasks[task].stats.rate, items: recipe.tasks[task].stats.items ?? null, measuredOn: recipe.fingerprint?.cpu ?? null }]));
   }
+  // IDEA-1194/0855: the install receipt as read-only evidence on each model row.
+  // A model without a receipt keeps its old shape, so hand-imported files are
+  // not labelled as verified downloads.
+  async function withArtifacts(models) {
+    if (!downloads?.receiptFor || models.length === 0) return models;
+    return Promise.all(models.map(async (model) => {
+      const receipt = await downloads.receiptFor(model.fileName).catch(() => null);
+      if (!receipt || (!receipt.digest && !receipt.sha256)) return model;
+      return {
+        ...model,
+        artifact: {
+          digest: typeof receipt.digest === "string" ? receipt.digest : null,
+          expectedSha256: typeof receipt.sha256 === "string" ? receipt.sha256 : null,
+          sourceUrl: typeof receipt.url === "string" ? receipt.url : null,
+          quant: typeof receipt.quant === "string" ? receipt.quant : null,
+          downloadedAt: typeof receipt.downloadedAt === "string" ? receipt.downloadedAt : null,
+        },
+      };
+    }));
+  }
   async function route(req, res) {
     applySecurityHeaders(res);
     const serverConfig = serverSettings?.value ?? {};
@@ -213,7 +233,7 @@ export function createHttpServer({
 
     if (pathname === "/api/state" && method === "GET") {
       const [models, loaded] = await Promise.all([
-        registry ? registry.scan() : [],
+        registry ? withArtifacts(await registry.scan()) : [],
         engine ? engine.status() : { status: "idle" },
       ]);
       sendJson(res, 200, {
@@ -1008,7 +1028,7 @@ export function createHttpServer({
 
     if (pathname === "/api/models" && method === "GET") {
       sendJson(res, 200, {
-        models: registry ? await registry.scan() : [],
+        models: registry ? await withArtifacts(await registry.scan()) : [],
         modelsDir: registry?.modelsDir ?? null,
       });
       return;
@@ -1120,7 +1140,7 @@ export function createHttpServer({
     if (pathname === "/api/catalog" && method === "GET") {
       sendJson(res, 200, {
         catalog: publicCatalog(),
-        models: registry ? await registry.scan() : [],
+        models: registry ? await withArtifacts(await registry.scan()) : [],
         modelsDir: registry?.modelsDir ?? null,
         downloads: downloads ? downloads.list() : [],
       });

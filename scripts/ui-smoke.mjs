@@ -103,6 +103,13 @@ async function main() {
       quant: null,
       blocked: false,
       unreadable: false,
+      artifact: {
+        digest: "a1".repeat(32),
+        expectedSha256: "a1".repeat(32),
+        sourceUrl: "https://huggingface.co/org/repo/resolve/main/fixture.gguf",
+        quant: "Q4_K_M",
+        downloadedAt: "2026-11-15T10:00:00.000Z",
+      },
     };
     fixtureState.models = [fixtureModel];
     fixtureState.loaded = { status: "idle", model: null };
@@ -133,6 +140,7 @@ async function main() {
         const url = new URL(typeof input === "string" ? input : input.url, location.origin);
         const method = String(init.method ?? (typeof input === "string" ? "GET" : input.method) ?? "GET").toUpperCase();
         if (url.pathname === "/api/state") return json(fixture.state);
+        if (url.pathname === "/api/catalog") return json({ catalog: [], models: fixture.state.models, modelsDir: "C:/models", downloads: [] });
         if (url.pathname === "/api/tune/overview") return json(fixture.overview);
         if (url.pathname === "/api/tune/status") return json({ job: null });
         if (url.pathname === "/api/tune/start" && method === "POST") {
@@ -257,6 +265,30 @@ async function main() {
       assert.ok(state.width >= 300, `${dialog} is too narrow (${state.width}px)`);
       await evaluate(`document.getElementById("${dialog}").close(), true`);
     }
+
+    // IDEA-1194/0855: the Installed tab shows the receipt the library recorded.
+    await evaluate('document.getElementById("open-models").click(), true');
+    assert.ok(await waitFor(() => evaluate('document.getElementById("models-dialog").open'), 3_000), "the Models dialog did not reopen");
+    await evaluate(`document.querySelector('#models-dialog [data-tab="installed"]').click(), true`);
+    assert.ok(
+      await waitFor(() => evaluate('[...document.querySelectorAll(".installed-provenance")].some((note) => /^Verified sha256 a1a1a1a1a1a1/.test(note.textContent))'), 3_000),
+      "the install receipt is not shown on the installed card",
+    );
+    const receiptTitle = await evaluate('document.querySelector(".installed-provenance")?.getAttribute("title") ?? ""');
+    assert.match(receiptTitle, /SHA-256 a1a1/, "the receipt title does not carry the full digest");
+    assert.match(receiptTitle, /huggingface\.co/, "the receipt title does not carry the source");
+    const receiptStyle = await evaluate(`(() => {
+      const note = document.querySelector(".installed-provenance");
+      const root = getComputedStyle(document.documentElement);
+      return {
+        color: getComputedStyle(note).color,
+        danger: root.getPropertyValue("--danger").trim(),
+        dotWidth: getComputedStyle(note, "::before").width,
+      };
+    })()`);
+    assert.notEqual(receiptStyle.color, receiptStyle.danger, "the receipt line uses the danger colour reserved for unreadable models");
+    assert.equal(receiptStyle.dotWidth, "6px", "the verified dot is missing");
+    await evaluate('document.getElementById("models-dialog").close(), true');
 
     await evaluate('document.getElementById("open-settings").click(), true');
     assert.ok(await waitFor(() => evaluate('document.getElementById("settings-dialog").open'), 3_000), "the Settings dialog did not open for help");
@@ -425,6 +457,21 @@ async function main() {
       (await evaluate('document.getElementById("models-dialog").getBoundingClientRect().width')) <= 390,
       "the Models dialog is wider than a 390px viewport",
     );
+    await evaluate(`document.querySelector('#models-dialog [data-tab="installed"]').click(), true`);
+    const receiptFit = await evaluate(`(() => {
+      const note = document.querySelector('#models-dialog .installed-provenance');
+      const card = note?.closest('.installed-card');
+      if (!note || !card) return null;
+      return {
+        noteRight: Math.round(note.getBoundingClientRect().right),
+        cardRight: Math.round(card.getBoundingClientRect().right),
+        clipped: note.scrollWidth > note.clientWidth + 1,
+        textOverflow: getComputedStyle(note).textOverflow,
+      };
+    })()`);
+    assert.ok(receiptFit, "the receipt line is missing at 390px");
+    assert.ok(receiptFit.noteRight <= receiptFit.cardRight + 1, "the receipt line leaves its card at 390px");
+    assert.equal(receiptFit.clipped, false, `the receipt line is clipped at 390px (${JSON.stringify(receiptFit)})`);
     await evaluate('document.getElementById("models-dialog").close(), true');
     await evaluate('document.getElementById("open-benchmarks").click(), true');
     assert.ok(
@@ -483,3 +530,4 @@ main().catch((error) => {
   console.error(`[ui-smoke] ${error.stack || error}`);
   process.exitCode = 1;
 });
+

@@ -953,6 +953,17 @@ function renderInstalled() {
     const loaded = state.loaded.model?.id === model.id;
     const loading = loaded && state.loaded.status === "loading";
     const canLoad = !model.blocked && !model.unreadable;
+    const artifact = model.artifact?.digest ? model.artifact : null;
+    const artifactHost = (() => {
+      try {
+        return artifact?.sourceUrl ? new URL(artifact.sourceUrl).hostname : "";
+      } catch {
+        return "";
+      }
+    })();
+    const artifactLine = artifact
+      ? `<span class="installed-provenance${artifact.expectedSha256 ? "" : " unverified"}" title="${escapeAttribute(`SHA-256 ${artifact.digest}${artifact.expectedSha256 ? ` (expected ${artifact.expectedSha256})` : ""}${artifact.sourceUrl ? ` from ${artifact.sourceUrl}` : ""}`)}">${artifact.expectedSha256 ? "Verified" : "Installed"} sha256 ${escapeHtml(String(artifact.digest).slice(0, 12))}${(artifactHost || artifact.downloadedAt) ? `<span class="provenance-extra">${artifactHost ? ` · ${escapeHtml(artifactHost)}` : ""}${artifact.downloadedAt ? ` · ${escapeHtml(String(artifact.downloadedAt).slice(0, 10))}` : ""}</span>` : ""}</span>`
+      : "";
     const actions = loaded
       ? `<button class="small-btn" type="button" data-unload="true">Unload</button>`
       : canLoad
@@ -963,6 +974,7 @@ function renderInstalled() {
       <div class="installed-main">
         <strong>${escapeHtml(model.name)}</strong>
         <span>${escapeHtml(model.fileName)} · ${escapeHtml(model.params)} · ${escapeHtml(model.quant)}${model.contextLength ? ` · ${Number(model.contextLength).toLocaleString()} ctx` : ""} · ${escapeHtml(model.sizeLabel)}</span>
+        ${artifactLine}
         ${model.unreadable ? `<span class="installed-note">${escapeHtml(model.unreadableReason || "The GGUF header could not be read.")}</span>` : ""}
       </div>
       <div class="installed-actions">

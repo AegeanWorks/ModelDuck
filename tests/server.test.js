@@ -59,6 +59,42 @@ test("state exposes models, settings and the local app info", async (t) => {
   assert.equal(data.settings.contextSize, 16384);
 });
 
+test("an installed model carries its install receipt as artifact evidence (IDEA-1194)", async (t) => {
+  const harness = await makeHarness(t);
+  const [model] = harness.registry.listPublic();
+  const digest = "a1".repeat(32);
+  const receipt = {
+    catalogId: "some-catalog-model",
+    file: model.fileName,
+    size: 36,
+    sha256: digest,
+    digest,
+    quant: "Q4_K_M",
+    // hygiene: allow a literal receipt source URL used only as test data; the test never fetches it.
+    url: "https://huggingface.co/org/repo/resolve/main/model.gguf",
+    downloadedAt: "2026-11-15T10:00:00.000Z",
+  };
+  await writeFile(path.join(harness.paths.models, `${model.fileName}.receipt.json`), JSON.stringify(receipt));
+  for (const route of ["/api/state", "/api/catalog", "/api/models"]) {
+    const data = await (await fetch(`${harness.base}${route}`)).json();
+    const row = data.models.find((item) => item.fileName === model.fileName);
+    assert.ok(row, `${route} lost the model`);
+    assert.deepEqual(row.artifact, {
+      digest,
+      expectedSha256: digest,
+      sourceUrl: receipt.url,
+      quant: "Q4_K_M",
+      downloadedAt: receipt.downloadedAt,
+    }, `${route} did not expose the receipt`);
+  }
+});
+
+test("a model installed by hand has no artifact evidence", async (t) => {
+  const harness = await makeHarness(t);
+  const data = await (await fetch(`${harness.base}/api/state`)).json();
+  assert.equal(data.models[0].artifact, undefined);
+});
+
 test("benchmark report exposes both phases and per-test percentages", async (t) => {
   const directory = await mkdtemp(path.join(os.tmpdir(), "modelduck-bench-api-"));
   t.after(() => rm(directory, { recursive: true, force: true }));

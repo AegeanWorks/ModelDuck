@@ -1647,6 +1647,34 @@ label.small-btn {
   font-family: var(--sans, inherit);
 }
 
+/* IDEA-1194/0855: the install receipt is evidence, not a warning; a green dot
+   separates it from the danger-coloured unreadable note. */
+.installed-main .installed-provenance {
+  color: var(--muted);
+}
+
+.installed-main .installed-provenance::before {
+  content: "";
+  display: inline-block;
+  inline-size: 6px;
+  block-size: 6px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: var(--green);
+  vertical-align: middle;
+}
+
+.installed-main .installed-provenance.unverified::before {
+  background: var(--faint);
+}
+
+/* The digest and verdict stay on a phone; the host and date are in the title. */
+@media (max-width: 480px) {
+  .installed-main .provenance-extra {
+    display: none;
+  }
+}
+
 .installed-main span {
   overflow: hidden;
   margin-top: 2px;
