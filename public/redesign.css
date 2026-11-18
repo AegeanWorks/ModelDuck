@@ -564,6 +564,13 @@ a {
   white-space: nowrap;
 }
 
+/* The runtime card names the engine serving the model; let that line wrap rather than cut it off on a phone. */
+#dash-runtime-detail {
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  white-space: normal;
+}
+
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));

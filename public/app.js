@@ -558,18 +558,22 @@ function renderStatus() {
   const loaded = state.loaded;
   els.statusDot.className = `status-dot ${loaded.status === "ready" ? "ready" : loaded.status === "loading" ? "loading" : loaded.status === "error" ? "error" : ""}`;
 
+  els.statusDetail.title = "";
   if (loaded.status === "ready" && loaded.model) {
     els.statusModel.textContent = loaded.model.name;
     const details = [];
     if (loaded.model.params) details.push(loaded.model.params);
     if (loaded.contextSize) details.push(`${Number(loaded.contextSize).toLocaleString()} ctx${contextClamp() ? " (model max)" : ""}`);
+    // The engine serving the model comes before the finer settings: the rail is narrow and cuts the end of the line.
+    // It is the tuned engine, or the in-process one standing in for it.
+    if (loaded.engine) details.push(loaded.engine);
+    else if (loaded.engineFallback) details.push(`${loaded.engineFallback.wanted} unavailable`);
+    if (loaded.gpuBackend && loaded.gpuBackend !== "cpu" && !loaded.engine) details.push(`GPU ${loaded.gpuBackend}`);
     if (loaded.threads) details.push(`${loaded.threads} threads`);
     if (loaded.kvCache && loaded.kvCache !== "f16") details.push(`KV ${loaded.kvCache}`);
-    if (loaded.gpuBackend && loaded.gpuBackend !== "cpu") details.push(`GPU ${loaded.gpuBackend}`);
-    // The engine serving the model: the tuned one, or the in-process one standing in for it.
-    if (loaded.engine) details.push(`engine ${loaded.engine}`);
-    if (loaded.engineFallback) details.push(`${loaded.engineFallback.wanted} unavailable, served in-process`);
     els.statusDetail.textContent = details.join(" · ") || "Ready";
+    // The full line, for when the rail cuts it.
+    els.statusDetail.title = [details.join(" · "), loaded.engine ? `served by ${loaded.engine} on ${loaded.gpuBackend === "cpu" ? "the CPU" : `the ${loaded.gpuBackend} GPU`}` : "", loaded.engineFallback ? `${loaded.engineFallback.wanted} could not start (${loaded.engineFallback.reason}); served in-process` : ""].filter(Boolean).join(". ");
     els.contextNote.textContent = `${loaded.model.name} · ${loaded.contextSize || "?"} context`;
   } else if (loaded.status === "loading") {
     els.statusModel.textContent = loaded.model?.name || "Loading model…";
@@ -593,7 +597,10 @@ function renderDashboard() {
   const loaded = state.loaded ?? { status: "idle", model: null };
   const status = loaded.status === "ready" ? "Ready" : loaded.status === "loading" ? "Loading" : loaded.status === "error" ? "Error" : "Idle";
   els.dashRuntime.textContent = status;
-  els.dashRuntimeDetail.textContent = loaded.model?.name ?? "No model loaded";
+  els.dashRuntimeDetail.textContent = loaded.model
+    ? `${loaded.model.name}${loaded.engine ? ` · ${loaded.engine}` : ""}${loaded.engineFallback ? ` · ${loaded.engineFallback.wanted} unavailable, served in-process` : ""}`
+    : "No model loaded";
+  els.dashRuntimeDetail.title = loaded.engineFallback ? `${loaded.engineFallback.wanted} could not start (${loaded.engineFallback.reason}); served in-process` : "";
   els.dashModelCount.textContent = String(state.models.length);
   els.railModelCount.textContent = String(state.models.length);
 
@@ -2821,6 +2828,13 @@ function tuneCell(text, title = "") {
   return cell;
 }
 
+/** A cell with a small second line under its text: an engine's version, or the engine a device runs on. */
+function tuneCellNote(text, note, title = "") {
+  const cell = tuneCell(text, title);
+  if (note) cell.appendChild(Object.assign(document.createElement("small"), { className: "cell-note", textContent: note }));
+  return cell;
+}
+
 function renderTuneModels() {
   const models = state.tuneOverview ?? [];
   const order = state.tuneJob?.order;
@@ -2874,7 +2888,7 @@ function renderTuneModels() {
     }
     row.appendChild(nameCell);
     const device = profile?.device?.settings;
-    row.appendChild(tuneCell(device ? `${device.gpuBackend === "cpu" ? "CPU" : `${device.gpuBackend} GPU`}${device.engine ? ` · ${device.engine}` : ""}` : "–", profile?.device?.reason ?? ""));
+    row.appendChild(tuneCellNote(device ? (device.gpuBackend === "cpu" ? "CPU" : `${device.gpuBackend} GPU`) : "–", device?.engine ?? "", profile?.device?.reason ?? ""));
     const progress = document.createElement("td");
     progress.appendChild(tuneStageChips(profile?.stages, model.staleParts ?? [], { modelId: model.id, running, current: item && running ? item.progress?.stage : null, deviceParts: model.deviceParts ?? [] }));
     // After the device changed, the later stages were measured on the old one: offer to run them again.
@@ -2941,10 +2955,8 @@ function renderTuneBest(models, repeated) {
   els.tuneBest.replaceChildren();
   const label = (model) => (repeated.has(model.name) ? `${model.name} (${model.fileName})` : model.name);
   const percent = (rate) => `${Number(Number(rate).toFixed(1))}%`;
-  const device = (model) => {
-    const load = model.profile?.load?.settings;
-    return `${(load?.gpuBackend ?? "cpu") === "cpu" ? "CPU" : `${load.gpuBackend} GPU`}${load?.engine ? ` · ${load.engine}` : ""}`;
-  };
+  const device = (model) => (model.profile?.load?.settings?.gpuBackend ?? "cpu") === "cpu" ? "CPU" : `${model.profile.load.settings.gpuBackend} GPU`;
+  const deviceEngine = (model) => model.profile?.load?.settings?.engine ?? "";
   const rated = (task) => models
     .filter((model) => Number.isFinite(model.profile?.tasks?.[task]?.stats?.rate))
     .map((model) => ({ model, stats: model.profile.tasks[task].stats, current: !model.stale?.length }))
@@ -2965,7 +2977,7 @@ function renderTuneBest(models, repeated) {
       tuneCell(TASK_NAMES[task]),
       tuneCell(`${label(best.model)}${older}`, best.current ? "" : "No model is tuned on the current test suite for this task yet; re-tune to compare fairly."),
       tuneCell(`${percent(best.stats.rate)}${range}`, "The true rate lies in the range with 95% confidence; overlapping ranges mean the models may be equally good"),
-      tuneCell(device(best.model)),
+      tuneCellNote(device(best.model), deviceEngine(best.model)),
       tuneCell(next && next.current === best.current ? `${label(next.model)} ${percent(next.stats.rate)}` : "–"),
     );
   }
@@ -3079,16 +3091,15 @@ function liveCard(item) {
     const table = document.createElement("table");
     table.className = "benchmark-table";
     const head = table.createTHead().insertRow();
-    for (const text of ["Inference engine", "Answer speed", "Prompt speed", "Version"]) head.appendChild(Object.assign(document.createElement("th"), { textContent: text }));
+    for (const text of ["Inference engine", "Answer speed"]) head.appendChild(Object.assign(document.createElement("th"), { textContent: text }));
     const body = table.createTBody();
     for (const engine of ranked) {
       const row = body.insertRow();
       if (engine.ok && engine.genTps === bestSpeed) row.className = "tune-live-best";
       row.append(
-        tuneCell(engine.label),
-        tuneCell(engine.ok ? `${engine.genTps} tok/s` : engine.note ?? "not available"),
-        tuneCell(engine.ok && engine.promptTps ? `${Math.round(engine.promptTps)} tok/s` : "–"),
-        tuneCell(engine.version ?? "–"),
+        tuneCellNote(engine.label, engine.version ?? "", engine.id),
+        // Two columns, so the label keeps its room on a phone; the prompt speed sits under the answer speed.
+        engine.ok ? tuneCellNote(`${engine.genTps} tok/s`, engine.promptTps ? `prompt ${Math.round(engine.promptTps)} tok/s` : "") : tuneCell(engine.note ?? "not available"),
       );
     }
     card.appendChild(table);

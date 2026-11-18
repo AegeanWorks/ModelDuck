@@ -696,6 +696,14 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
 .benchmark-table th:last-child, .benchmark-table td:last-child {
   text-align: right;
 }
+/* A second, quieter line in a table cell: an engine's version, or the engine a device runs on. */
+.benchmark-table .cell-note {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
 .benchmark-run {
   padding: 14px;
   margin-bottom: 16px;
