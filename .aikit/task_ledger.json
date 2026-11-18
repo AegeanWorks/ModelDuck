@@ -1,11 +1,11 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "forged-judge-tests",
+    "task_id": "receipt-provenance",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794952127.5121043,
+    "updated_at": 1794983420.1620243,
     "owner": "kilo:1",
     "started_by": "kilo:1",
     "continuations": [],
@@ -15,57 +15,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1794952128.1981323,
-    "completed_head": "92fd6d5857b31a48607cac77e14693d7af4dcb8b",
-    "completed_tree": "48cc3923e0eed3dc8ea9d3dd5452c909a7e347c3"
+    "completed_at": 1794983421.0395625,
+    "completed_head": "fad9699e4eb2076786198f7613da7ea110d278bb",
+    "completed_tree": "322dd1cbb6e235304ce75c5ee806d9d98fde167e"
   },
   "checkpoints": [
-    {
-      "task_id": "chatduck-archived",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "876/877 pass, 1 skipped; failing-first ui-shell test; ui:smoke OK; overview screenshots reviewed; README check OK (34,652 chars)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794735554.1036012,
-      "timestamp_str": "2026-11-15 12:39:14",
-      "agent": "kiro:1",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "chatduck-archived",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'chatduck-archived' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794735555.2884488,
-      "timestamp_str": "2026-11-15 12:39:15",
-      "agent": "kiro:1",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
-    {
-      "task_id": "mit-everywhere",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/2] Finish the MIT migration (README License section, remove COMMERCIAL.md, Kiro steering, audit correction), push; [2/2] build ModelDuck-Windows-x64.zip from that commit, verify it, publish release v0.1.1-kiroween",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794735927.3212495,
-      "timestamp_str": "2026-11-15 12:45:27",
-      "agent": "kiro:1",
-      "impact_assessment": {
-        "why": "LICENSE and package.json said MIT while the README, COMMERCIAL.md and the steering said AL-1.1 with paid commercial use, and the released zip shipped AL-1.1",
-        "benefits": "One license everywhere, and a download that matches it",
-        "risks": "contract: the license terms readers see change to MIT, as the LICENSE already granted; dependency: none; concurrency: none; state: COMMERCIAL.md removed (kept in history); a public release is added",
-        "mitigation": "user approved MIT everywhere and the upload; the old release stays; the zip is checked before upload"
-      },
-      "plan_digest": "564f6109b84199a5e107a8ebbd1b48d17b82933a3a5d2b64b08f5a4fec0b66de"
-    },
     {
       "task_id": "mit-everywhere",
       "phase": "in_progress",
@@ -382,6 +336,65 @@
       "timestamp_str": "2026-11-18 00:48:48",
       "agent": "kilo:1",
       "head": "92fd6d5857b31a48607cac77e14693d7af4dcb8b",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
+    },
+    {
+      "task_id": "receipt-provenance",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/3] API: /api/state, /api/catalog and /api/models add an artifact object from the install receipt (measured digest, expected sha256, source URL, quant, downloadedAt) when one exists; failing-first route tests. [2/3] UI: the Installed card shows a Verified sha256 line with host and date, and ui-smoke asserts it from a fixture model with an artifact. [3/3] G-007 screenshot review at 1440 and 390, ADR-136, gates, commit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794978958.2631066,
+      "timestamp_str": "2026-11-18 08:15:58",
+      "agent": "kilo:1",
+      "impact_assessment": {
+        "why": "IDEA-1194/0855: the receipt records digest, quant, source and date, but the library never shows it, so a user cannot see that a file was hash-checked or where it came from",
+        "benefits": "Provenance is visible where the model is; the API exposes it for scripts without changing anything about generation",
+        "risks": "contract: the three model routes gain an optional artifact field; dependency: none; concurrency: reads receipt files per request; state: none",
+        "mitigation": "receipts are read-only and failures are absorbed; fields are type-checked; no receipt means no field; UI escapes every value; smoke and screenshot review"
+      },
+      "plan_digest": "b6c2d527ddee16f77e2a33ad7ae2967465e791d86f313c183d0ad27c8b9f262d",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "receipt-provenance",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[3/3] npm test 896/897 pass, 1 skipped; ui:smoke passes and now asserts receipt text, full title, non-danger colour, 6px dot and no clipping at 390px; review found and fixed the danger colour and phone clipping; BOM tolerance added; aikit check 4/4; ADR-136; G-001 not applicable (no generation/prompt/settings path)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794983420.1620243,
+      "timestamp_str": "2026-11-18 09:30:20",
+      "agent": "kilo:1",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "receipt-provenance",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'receipt-provenance' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794983421.181854,
+      "timestamp_str": "2026-11-18 09:30:21",
+      "agent": "kilo:1",
+      "head": "fad9699e4eb2076786198f7613da7ea110d278bb",
       "delivery": {
         "roots": [
           "."
