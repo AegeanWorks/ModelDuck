@@ -1240,6 +1240,13 @@ label.small-btn {
   line-height: 1.45;
 }
 
+/* ADR-145: the trained-context clamp is an explanation, not an error. */
+.field small.field-cap {
+  color: var(--accent-text);
+  border-inline-start: 2px solid var(--accent);
+  padding-inline-start: 6px;
+}
+
 .field.full {
   grid-column: 1 / -1;
 }

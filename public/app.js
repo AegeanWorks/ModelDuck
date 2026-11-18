@@ -59,6 +59,7 @@ const els = {
   settingMax: $("setting-max"),
   settingRepeatPrompt: $("setting-repeat-prompt"),
   settingContext: $("setting-context"),
+  contextCap: $("context-cap"),
   settingThreads: $("setting-threads"),
   settingMaxThreads: $("setting-max-threads"),
   settingBatch: $("setting-batch"),
@@ -524,6 +525,29 @@ function applyTheme() {
 
 /* Header and status -------------------------------------------------------- */
 
+/**
+ * ADR-145: a load clamps the requested context to the model's trained size
+ * (ADR-089). The saved setting can ask for more, so the served value is
+ * reported with its reason instead of looking like a silent downgrade.
+ */
+function contextClamp() {
+  const loaded = state.loaded;
+  if (loaded?.status !== "ready" || !loaded.model) return null;
+  const trained = Number(loaded.trainContextSize) || 0;
+  const requested = Math.max(16384, Number(state.settings?.contextSize) || 16384);
+  if (!trained || trained >= requested) return null;
+  return { trained, requested, served: Number(loaded.contextSize) || trained };
+}
+
+function renderContextCap() {
+  if (!els.contextCap) return;
+  const clamp = contextClamp();
+  els.contextCap.hidden = !clamp;
+  els.contextCap.textContent = clamp
+    ? `${clamp.trained.toLocaleString()} tokens is this model's trained limit, so it loads at ${clamp.served.toLocaleString()} even though the setting asks for ${clamp.requested.toLocaleString()}.`
+    : "";
+}
+
 function renderHeader() {
   document.title = "ModelDuck Code — server and tuner";
 }
@@ -536,7 +560,7 @@ function renderStatus() {
     els.statusModel.textContent = loaded.model.name;
     const details = [];
     if (loaded.model.params) details.push(loaded.model.params);
-    if (loaded.contextSize) details.push(`${loaded.contextSize} ctx`);
+    if (loaded.contextSize) details.push(`${Number(loaded.contextSize).toLocaleString()} ctx${contextClamp() ? " (model max)" : ""}`);
     if (loaded.threads) details.push(`${loaded.threads} threads`);
     if (loaded.kvCache && loaded.kvCache !== "f16") details.push(`KV ${loaded.kvCache}`);
     if (loaded.gpuBackend && loaded.gpuBackend !== "cpu") details.push(`GPU ${loaded.gpuBackend}`);
@@ -555,6 +579,7 @@ function renderStatus() {
     els.statusDetail.textContent = "Open Models to begin";
     els.contextNote.textContent = "No model loaded.";
   }
+  renderContextCap();
   renderDashboard();
 }
 
@@ -1329,6 +1354,7 @@ function openSettings() {
   els.settingKv.value = settings.kvCache || "f16";
   updateSettingsOutputs();
   renderPresets();
+  renderContextCap();
   loadGpuStatus();
   els.settingsNote.textContent = state.loaded.status === "ready"
     ? "Temperature, top P and max tokens apply to the next message. Context, threads, batching, attention, mmap, checkpoints and KV cache apply after reloading the model."

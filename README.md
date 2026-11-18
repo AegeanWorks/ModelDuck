@@ -97,7 +97,8 @@ device. It is off by default so a missing driver never prevents local inference 
   **Discover → Add from Hugging Face** takes one `hf:owner/repo/file.gguf` reference or
   resolve link (optional pin); a name already used by another source is refused, never
   overwritten.
-- **Model controls** - context size (16K floor or higher), CPU threads and thread pool, batch size,
+- **Model controls** - context size (16K floor or higher, capped by the model's trained
+  length; the status bar and Settings name the cap when it applies), CPU threads and thread pool, batch size,
   context sequences, GPU backend/layers, KV cache, checkpoint interval (a pre-load
   fallback), max and memory budget,
   flash attention, mmap, temperature, top-p/top-k/min-p, repeat penalty, max reply tokens, system

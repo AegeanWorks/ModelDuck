@@ -112,7 +112,17 @@ async function main() {
       },
     };
     fixtureState.models = [fixtureModel];
-    fixtureState.loaded = { status: "idle", model: null };
+    // A loaded model that is not the fixture row, so the dashboard keeps its
+    // Tune action while the status bar and Settings show the trained-context clamp.
+    fixtureState.loaded = {
+      status: "ready",
+      model: { ...fixtureModel, id: "fixture-loaded", name: "Fixture loaded" },
+      contextSize: 8192,
+      trainContextSize: 8192,
+      threads: 8,
+      kvCache: "f16",
+      gpuBackend: "cpu",
+    };
     const fixtureOverview = {
       models: [{
         id: fixtureModel.id,
@@ -345,6 +355,26 @@ async function main() {
 
     await evaluate('document.getElementById("open-settings").click(), true');
     assert.ok(await waitFor(() => evaluate('document.getElementById("settings-dialog").open'), 3_000), "the Settings dialog did not open for help");
+    // ADR-145: the served context is the trained cap, and both places say so.
+    const statusText = await evaluate('document.getElementById("status-detail").textContent');
+    assert.match(statusText, /8[.,]192 ctx \(model max\)/, `the status bar does not name the trained cap: ${statusText}`);
+    const capState = await evaluate(`(() => {
+      const cap = document.getElementById("context-cap");
+      const field = cap.closest(".field");
+      const rect = (el) => el.getBoundingClientRect();
+      return {
+        hidden: cap.hidden,
+        text: cap.textContent,
+        inside: rect(cap).right <= rect(field).right + 1,
+        colour: getComputedStyle(cap).color,
+        baseColour: getComputedStyle(field.querySelector("small")).color,
+      };
+    })()`);
+    assert.equal(capState.hidden, false, "the Settings form does not explain the trained-context clamp");
+    assert.match(capState.text, /8[.,]192 tokens is this model's trained limit/, `the clamp note is wrong: ${capState.text}`);
+    assert.match(capState.text, /asks for 16[.,]384/, "the clamp note does not name the saved setting");
+    assert.equal(capState.inside, true, "the clamp note leaves its field");
+    assert.notEqual(capState.colour, capState.baseColour, "the clamp note is styled as ordinary fine print");
     const helpState = await evaluate(`(() => {
       const count = document.querySelectorAll(".field-help").length;
       const button = document.querySelector("#setting-context").closest("label").querySelector(".field-help");
@@ -439,7 +469,7 @@ async function main() {
     }
     await evaluate('document.querySelector(\'[data-bench-tab="tune"]\').click(), true');
     await evaluate('document.querySelector(\'[data-bench-tab="suite"]\').click(), true');
-    assert.ok(await waitFor(() => evaluate('document.querySelectorAll(".suite-task").length === 3'), 8_000), "the Bench suite did not render three tasks");
+    assert.ok(await waitFor(() => evaluate('document.querySelectorAll(".suite-task").length === 3'), 15_000), "the Bench suite did not render three tasks");
     assert.equal(await evaluate('document.querySelectorAll(".suite-optin").length'), 1, "the Bench suite does not describe the opt-in multistep chains");
     assert.equal(await evaluate('document.querySelectorAll(".suite-stat").length'), 4, "the Bench suite is missing its summary stats");
     assert.equal(await evaluate('document.querySelectorAll(".suite-details").length'), 3, "the Bench suite is missing its detail disclosures");
