@@ -19,6 +19,7 @@ export class JitManager {
   #logger;
   #trackedId = null;
   #timer = null;
+  #inflight = null; // { id, promise }: the one JIT load running now.
 
   constructor({ engine, registry, settings, serverSettings, tuned = null, logger = console }) {
     this.#engine = engine;
@@ -69,6 +70,17 @@ export class JitManager {
     const full = this.#registry.findById(entry.id);
     if (!full) throw new AppError("Model not found", { status: 404 });
 
+    // Parallel clients on a cold server all ask at once: the first starts the
+    // load, the same model's other requests wait for it, another model is refused.
+    if (this.#inflight) {
+      if (this.#inflight.id === full.id) return this.#inflight.promise;
+      throw new AppError("A model is already loading", {
+        code: "model_loading",
+        status: 409,
+        why: `${this.#inflight.id} is still loading and only one model can load at a time.`,
+        fix: "Retry the request when the current load has finished.",
+      });
+    }
     const loadedId = this.#engine.loadedId;
     if (loadedId === full.id) {
       this.#touch();
@@ -90,6 +102,16 @@ export class JitManager {
         fix: "Unload the current model, or enable only-keep-last in Server settings.",
       });
     }
+    const promise = this.#load(full, loadedId);
+    this.#inflight = { id: full.id, promise };
+    try {
+      return await promise;
+    } finally {
+      this.#inflight = null;
+    }
+  }
+
+  async #load(full, loadedId) {
     if (loadedId) await this.#engine.unload();
     const applied = await this.#tuned?.resolve(full.id);
     await this.#engine.load({
