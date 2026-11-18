@@ -510,7 +510,17 @@ export async function handleOpenAI(
     return;
   }
 
-  const body = await readJsonBody(req, { limitBytes: 8 * 1024 * 1024 });
+  // The body reader refuses invalid JSON and oversized bodies; those refusals
+  // keep this route's OpenAI error shape, not ModelDuck's UI error JSON.
+  let body;
+  try {
+    body = await readJsonBody(req, { limitBytes: 8 * 1024 * 1024 });
+  } catch (error) {
+    openAiError(res, error.status ?? 400, `${error.why ?? error.message} ${error.fix ?? ""}`.trim(), {
+      code: error.code ?? "invalid_request_error",
+    });
+    return;
+  }
   const refused = rejectedParamDetail(body);
   if (refused) {
     openAiError(res, 400, `${refused.why} ${refused.fix}`.trim(), {

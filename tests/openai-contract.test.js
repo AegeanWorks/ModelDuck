@@ -260,6 +260,36 @@ test("an unsupported response_format is a 400 and asks the model nothing", async
   assert.equal(engine.requests.length, 0);
 });
 
+test("invalid JSON on an OpenAI route is an OpenAI 400, not a UI error", async (t) => {
+  const engine = new RecordingEngine();
+  const harness = await makeHarness(t, { engine });
+  const response = await fetch(`${harness.base}/v1/chat/completions`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: "{not json",
+  });
+  assert.equal(response.status, 400);
+  const payload = await response.json();
+  assert.equal(payload.error.type, "invalid_request_error", "a client testing error.type sees none");
+  assert.equal(payload.error.code, "invalid_json");
+  assert.equal(engine.requests.length, 0);
+});
+
+test("an oversized OpenAI body reports its 413 in the OpenAI shape", async (t) => {
+  const engine = new RecordingEngine();
+  const harness = await makeHarness(t, { engine });
+  const response = await fetch(`${harness.base}/v1/chat/completions`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ model: "fake-model", messages: [{ role: "user", content: "x".repeat(8 * 1024 * 1024 + 16) }] }),
+  });
+  assert.equal(response.status, 413);
+  const payload = await response.json();
+  assert.equal(payload.error.type, "invalid_request_error");
+  assert.equal(payload.error.code, "body_too_large");
+  assert.equal(engine.requests.length, 0);
+});
+
 test("a chat body without a usable message keeps the OpenAI error shape", async (t) => {
   const engine = new RecordingEngine();
   const harness = await makeHarness(t, { engine });
