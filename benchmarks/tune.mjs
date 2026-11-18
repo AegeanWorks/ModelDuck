@@ -522,6 +522,7 @@ export async function tune({
   tunedOn = null,
   hardware = {},
   deviceBackends = ["cpu", "vulkan"],
+  externalEngines = [],
   parallel = 1,
   // Held while a stage times answers, so tunes running side by side pause (ADR-033).
   timing = { acquire: async () => {}, release: async () => {} },
@@ -590,11 +591,11 @@ export async function tune({
   const loadNow = () => ({ ...start, ...state.device.settings, ...state.quality.settings, ...state.speed.settings });
 
   const deviceWanted = stages.includes("device") && (only ? only.includes("device") : state.device.status !== "done");
-  if (deviceWanted && deviceBackends.length > 1 && rungs.speed?.length) {
+  if (deviceWanted && (deviceBackends.length > 1 || externalEngines.length > 0) && rungs.speed?.length) {
     const settled = await timing.acquire();
     let outcome;
     try {
-      outcome = await deviceStage(context, { backends: deviceBackends, layers: modelLayers, start: loadNow(), items: rungs.speed[0], forced: TIMED, loadItems: rungs.load?.[0] ?? null });
+      outcome = await deviceStage(context, { backends: deviceBackends, externalEngines, layers: modelLayers, start: loadNow(), items: rungs.speed[0], forced: TIMED, loadItems: rungs.load?.[0] ?? null });
     } finally {
       await timing.release();
     }

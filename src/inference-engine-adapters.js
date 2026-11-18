@@ -5,6 +5,10 @@ import path from "node:path";
 import { promisify } from "node:util";
 
 import { LlamaEngine } from "./engine.js";
+import { cleanPath, locateBinary, parseLlamaVersion } from "./engine-env.js";
+import { LlamaServerBackend, OpenAICompatBackend } from "./external-engines.js";
+
+export { cleanPath, parseLlamaVersion };
 
 /**
  * Inference engines the tuner can measure (ADR-155). Each adapter answers two
@@ -134,23 +138,6 @@ export class NodeBackendAdapter {
   }
 }
 
-/**
- * A MinGW-built llama.cpp dies with a DLL entry-point error (0xC0000139) when Git for Windows'
- * own usr/mingw directories come first on PATH, which is how a Git Bash session starts. The
- * native engine is therefore spawned with those directories removed.
- */
-export function cleanPath(pathValue, platform = process.platform) {
-  if (platform !== "win32") return pathValue;
-  const entries = String(pathValue ?? "").split(";");
-  return entries.filter((entry) => !/[\\/]Git[\\/](usr|mingw\d*)([\\/]|$)/i.test(entry)).join(";");
-}
-
-/** "version: 0.8.0-dev (build 1, commit cd8427d)" -> "0.8.0-dev (cd8427d)". */
-export function parseLlamaVersion(text) {
-  const match = /version:\s*(\S+)(?:\s*\(build\s*\d+,\s*commit\s*(\w+)\))?/i.exec(String(text ?? ""));
-  return match ? `${match[1]}${match[2] ? ` (${match[2]})` : ""}` : null;
-}
-
 /** A run's output as text: a plain string, or the chosen stream(s) of { stdout, stderr }. */
 function outputText(output, stream = "all") {
   if (typeof output === "string") return output;
@@ -158,9 +145,6 @@ function outputText(output, stream = "all") {
 ${output.stderr ?? ""}`;
 }
 
-function locateBinary(candidates, exists) {
-  return candidates.find((candidate) => candidate && exists(candidate)) ?? null;
-}
 
 /** A native llama.cpp build, measured with its own `llama-bench`. */
 export class LlamaBenchAdapter {
@@ -215,6 +199,93 @@ export class LlamaBenchAdapter {
       detail: `${first.backends ?? "unknown backend"} build ${first.build_commit ?? "unknown"}`,
       ...(first.build_commit && { version: `commit ${first.build_commit}` }),
     };
+  }
+}
+
+const GPU_NAMES = Object.freeze({ vulkan: "vulkan", cuda: "cuda", metal: "metal" });
+
+/** GPU backends named in `llama-server --list-devices` ("  Vulkan0: NVIDIA ..."), lower-cased. */
+export function parseDevices(text) {
+  const found = [...String(text ?? "").matchAll(/^\s+(Vulkan|CUDA|Metal)\w*:/gim)].map((match) => GPU_NAMES[match[1].toLowerCase()]);
+  return [...new Set(found)];
+}
+
+/**
+ * llama.cpp's own server, started on the model for the measurement and stopped
+ * after. Unlike llama-bench it generates text, so the tuner can use it too.
+ */
+export class LlamaServerAdapter {
+  #binary;
+  #variant;
+  #release;
+  #run;
+  #makeBackend;
+  #gpu = null;
+
+  /**
+   * `variant` names the build (cpu, vulkan, cuda, metal) when it comes from an
+   * install, so each variant is its own engine with its own speed. Without one
+   * (a binary passed by hand) the build's own device list says what it can use.
+   */
+  constructor({
+    binary = null,
+    variant = null,
+    release = null,
+    platform = process.platform,
+    run = (file, args, timeoutMs) => execFileAsync(file, args, { timeout: timeoutMs, maxBuffer: 16 * 1024 * 1024, windowsHide: true, env: { ...process.env, PATH: cleanPath(process.env.PATH, platform) } }).then(({ stdout, stderr }) => ({ stdout, stderr })),
+    makeBackend = (file) => new LlamaServerBackend({ binary: file }),
+  } = {}) {
+    this.#run = run;
+    this.#makeBackend = makeBackend;
+    this.#binary = binary;
+    this.#variant = variant;
+    this.#release = release;
+  }
+
+  get id() {
+    return `llama.cpp:llama-server${this.#variant ? `:${this.#variant}` : ""}`;
+  }
+
+  get label() {
+    return `llama.cpp${this.#release ? ` ${this.#release}` : ""} llama-server${this.#variant ? ` (${this.#variant})` : ""}`;
+  }
+
+  async detect() {
+    if (!this.#binary) {
+      return { available: false, reason: "llama-server is not installed (run: npm run engines:install, or pass --llama-server <file>).", version: null };
+    }
+    try {
+      const version = parseLlamaVersion(outputText(await this.#run(this.#binary, ["--version"], 20_000)));
+      const devices = parseDevices(outputText(await this.#run(this.#binary, ["--list-devices"], 20_000)));
+      const wanted = this.#variant ?? devices[0] ?? "cpu";
+      // A GPU build on a machine without that GPU would quietly run on the CPU; say so instead.
+      if (wanted !== "cpu" && !devices.includes(wanted)) {
+        return { available: false, reason: `this build uses ${wanted} but ${this.#binary} found no ${wanted} device on this machine.`, version };
+      }
+      this.#gpu = wanted === "cpu" ? null : wanted;
+      return { available: true, reason: null, version, backends: this.#variant ? [wanted] : ["cpu", ...devices], location: this.#binary };
+    } catch (error) {
+      return { available: false, reason: `${this.#binary} did not start (${error?.code ?? error?.message}); a DLL on PATH usually conflicts with it.`, version: null };
+    }
+  }
+
+  async measure({ entry, runs = 3 }) {
+    const backend = this.#makeBackend(this.#binary);
+    const gpu = this.#gpu;
+    try {
+      await backend.start({ entry, load: { contextSize: 4096, threads: 8, batchSize: 512, sequences: 1, gpuBackend: gpu ?? "cpu", gpuLayers: gpu ? "max" : 0 } });
+      const prompts = [];
+      const gens = [];
+      for (let run = 0; run <= runs; run += 1) {
+        const result = await backend.generate({ messages: [{ role: "user", content: WORKLOAD.prompt }], settings: { maxTokens: WORKLOAD.genTokens, temperature: 0, seed: 1 } });
+        if (run === 0) continue;
+        if (result.firstTokenMs > 0 && result.promptTokens > 0) prompts.push(result.promptTokens / (result.firstTokenMs / 1000));
+        gens.push(Number(result.tokensPerSecond));
+      }
+      return { promptTps: round(median(prompts)), genTps: round(median(gens)), genRange: range(gens), runs, detail: `${gpu ?? "cpu"}, served over HTTP` };
+    } finally {
+      await backend.stop();
+    }
   }
 }
 
@@ -282,5 +353,66 @@ export class OllamaAdapter {
       return name.length > 3 && stem.includes(name.split("latest")[0] || name);
     });
     return found?.name ?? null;
+  }
+}
+
+/**
+ * Any server that speaks the OpenAI chat API, attached by address: vLLM, SGLang,
+ * TGI, mistral.rs, koboldcpp, LocalAI, llamafile, LM Studio. It is not started
+ * or configured by ModelDuck, so what is measured is that server as launched.
+ */
+export class OpenAICompatAdapter {
+  #spec;
+  #apiKey;
+  #fetch;
+  #backend;
+
+  constructor({ spec, apiKey = null, fetchImpl = globalThis.fetch }) {
+    this.#spec = spec;
+    this.#apiKey = apiKey;
+    this.#fetch = fetchImpl;
+    this.#backend = new OpenAICompatBackend({ baseUrl: spec.baseUrl, model: spec.model, apiKey, fetchImpl });
+  }
+
+  get id() {
+    return `openai:${this.#spec.name}`;
+  }
+
+  get label() {
+    return `${this.#spec.name} (OpenAI API)`;
+  }
+
+  async detect() {
+    const headers = this.#apiKey ? { authorization: `Bearer ${this.#apiKey}` } : {};
+    try {
+      const response = await this.#fetch(`${this.#spec.baseUrl}/models`, { headers, signal: AbortSignal.timeout(3000) });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    } catch (error) {
+      return { available: false, reason: `${this.#spec.baseUrl}/models did not answer (${error.message}); is the server running?`, version: null };
+    }
+    // vLLM and others expose /version beside the API root; a server that does not is still usable.
+    let version = null;
+    try {
+      const origin = new URL(this.#spec.baseUrl).origin;
+      const response = await this.#fetch(`${origin}/version`, { headers, signal: AbortSignal.timeout(2000) });
+      if (response.ok) version = (await response.json())?.version ?? null;
+    } catch {
+      version = null;
+    }
+    return { available: true, reason: null, version, backends: ["cpu"], location: this.#spec.baseUrl };
+  }
+
+  async measure({ entry, runs = 3 }) {
+    await this.#backend.start({ entry });
+    const prompts = [];
+    const gens = [];
+    // The first request warms the server's caches and is not counted.
+    for (let run = 0; run <= runs; run += 1) {
+      const result = await this.#backend.generate({ messages: [{ role: "user", content: `${WORKLOAD.prompt} ${run}` }], settings: { maxTokens: WORKLOAD.genTokens, temperature: 0, seed: 1 } });
+      if (run === 0) continue;
+      if (result.firstTokenMs > 0 && result.promptTokens > 0) prompts.push(result.promptTokens / (result.firstTokenMs / 1000));
+      gens.push(Number(result.tokensPerSecond));
+    }
+    return { promptTps: round(median(prompts)), genTps: round(median(gens)), genRange: range(gens), runs, detail: "server settings as launched; prompt speed includes queueing" };
   }
 }

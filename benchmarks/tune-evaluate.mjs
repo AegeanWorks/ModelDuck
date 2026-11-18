@@ -89,8 +89,9 @@ export function createEvaluator({ engine, modelId, prompts = PROMPTS, systemProm
   }
 
   async function ensureLoaded(settings, width = settings.parallelism === 1 ? 1 : parallel) {
-    const load = { ...LOAD_DEFAULTS, ...pick(settings, LOAD_KEYS), sequences: Math.max(1, width) };
-    const nextModel = JSON.stringify(pick(load, MODEL_LEVEL_KEYS));
+    // `engine` names an external engine for this candidate (ADR-156); it is not a saved load key.
+    const load = { ...LOAD_DEFAULTS, ...pick(settings, LOAD_KEYS), ...(settings.engine ? { engine: settings.engine } : {}), sequences: Math.max(1, width) };
+    const nextModel = JSON.stringify(pick(load, [...MODEL_LEVEL_KEYS, "engine"]));
     const nextContext = JSON.stringify(pick(load, CONTEXT_LEVEL_KEYS));
     if (modelSignature === nextModel && contextSignature === nextContext) return load;
     const reloadModel = modelSignature !== nextModel;

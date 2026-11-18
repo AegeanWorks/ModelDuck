@@ -7,7 +7,7 @@ import { readSteps, writeSteps } from "../src/tune-steps.js";
 import { javascriptTestCacheStats } from "./suite.mjs";
 import { TASKS, neededContextFor } from "./tasks.mjs";
 import { estimateTune, expectedAnswers, normalizeSteps, settingNames, timeLeft } from "./tune-grid.mjs";
-import { assessEngines, createEngineRegistry, defaultEngines, deviceBackendsFrom, formatAssessment } from "../src/inference-engines.js";
+import { assessEngines, createEngineRegistry, defaultEngines, deviceBackendsFrom, externalSetFrom, formatAssessment } from "../src/inference-engines.js";
 import { writeJsonAtomic } from "../src/fs-atomic.js";
 import { openTarget, runTune, summary } from "./tune-job.mjs";
 import { STAGES } from "./tune.mjs";
@@ -36,13 +36,23 @@ older test, runtime, CPU or model file is kept with a warning until --force.
                      starts a new profile, so other stages are measured again
   --grid <file>      step lists to search (default: <home>/tune-grid.json, else built-in)
   --interactive      ask for every setting's steps first and save them to <home>/tune-grid.json
-  --engines          first time every inference engine on this model (in-process CPU, Vulkan,
-                     CUDA and Metal, a native llama.cpp build, Ollama) and print prompt and
-                     generation tokens/s with each engine's version; the device stage then
-                     tries every in-process backend that measured instead of cpu and vulkan
-                     only. Saved beside the profile as <model>.engines.json.
-  --llama-bench <f>  a native llama.cpp llama-bench binary to include with --engines
-  --ollama-model <t> the Ollama model to time with --engines (default: a tag matching the file)
+  --engines          the start of the device (CPU/GPU) stage: time every inference engine on this
+  --no-engines       model (in-process CPU, Vulkan, CUDA and Metal; every installed llama.cpp
+                     variant; Ollama; servers attached with --openai-engine) and print prompt and
+                     generation tokens/s with each engine's version. On by default whenever the
+                     device stage runs; --no-engines skips it. The device stage then tries every
+                     in-process backend that measured (unless your tune-grid.json names backends),
+                     and llama-server, Ollama and attached servers also answer its items, so their
+                     speed and accuracy are judged like a GPU's. Those are reported but never saved
+                     into the profile, because the app serves in-process only. Saved beside the
+                     profile as <model>.engines.json. Install the llama.cpp builds with
+                     npm run engines:install.
+  --llama-bench <f>  a native llama.cpp llama-bench binary to include (times only)
+  --llama-server <f> a llama.cpp llama-server binary of your own (for example an ik_llama.cpp build)
+  --ollama-model <t> the Ollama model to use (default: a tag matching the file)
+  --openai-engine <name=url[#model]>  attach a running OpenAI-compatible server (vLLM, SGLang, TGI,
+                     mistral.rs, koboldcpp, llamafile, LM Studio...); repeat for several. A key, if
+                     it needs one, is read from MODELDUCK_ENGINE_KEY.
   --home <folder>    data folder that receives profiles/<model>.json
   --models-dir <dir> models folder
   --events           JSON progress lines on stdout (used by the app)
@@ -82,7 +92,10 @@ function parseArgs(argv) {
     else if (arg === "--budget") options.budget = parseBudget(take(index++, arg));
     else if (arg === "--escalate") options.escalate = true;
     else if (arg === "--engines") options.engines = true;
+    else if (arg === "--no-engines") options.engines = false;
+    else if (arg === "--openai-engine") (options.openai ??= []).push(take(index++, arg));
     else if (arg === "--llama-bench") options.llamaBench = take(index++, arg);
+    else if (arg === "--llama-server") options.llamaServer = take(index++, arg);
     else if (arg === "--ollama-model") options.ollamaModel = take(index++, arg);
     else if (arg === "--force") options.force = true;
     else if (arg === "--interactive") options.interactive = true;
@@ -136,14 +149,20 @@ async function main() {
     log(options, `Saved your steps to ${target.paths.tuneGrid}`);
   }
   for (const problem of normalizeSteps(steps).problems.concat(loaded.problems)) log(options, `Steps: ${problem}`);
-  if (options.engines) {
+  // The engine speed test opens the device stage, so it runs whenever that stage does, unless turned off.
+  if (options.engines ?? options.stages.includes("device")) {
     // Every engine is timed on this model before the tune starts, one after another, so none competes for the cores.
-    const registry = createEngineRegistry({ engines: defaultEngines({ llamaBench: options.llamaBench ?? null, ollamaModel: options.ollamaModel ?? null }) });
-    const assessment = await assessEngines({ registry, entry: target.entry, onProgress: ({ engine, stage }) => emit(options, { type: "engines-progress", phase: "tune", engine, stage }) });
+    const engineOptions = { llamaBench: options.llamaBench ?? null, llamaServer: options.llamaServer ?? null, ollamaModel: options.ollamaModel ?? null, openai: options.openai ?? [], openaiKey: process.env.MODELDUCK_ENGINE_KEY ?? null };
+    const registry = createEngineRegistry({ engines: defaultEngines(engineOptions) });
+    const assessment = await assessEngines({ registry, entry: target.entry, runs: 2, onProgress: ({ engine, stage }) => emit(options, { type: "engines-progress", phase: "tune", engine, stage }) });
     log(options, formatAssessment(assessment));
-    const backends = deviceBackendsFrom(assessment);
+    // Backends the user named in their own steps win over what was detected.
+    const backends = loaded.custom ? steps.device.backends : deviceBackendsFrom(assessment);
     steps = { ...steps, device: { ...steps.device, backends } };
-    log(options, `Device stage will try: ${backends.join(", ")}.`);
+    const external = externalSetFrom(assessment, { registry: target.registry, ollamaModel: options.ollamaModel ?? null, openai: engineOptions.openai, openaiKey: engineOptions.openaiKey });
+    target.externalEngines = external.engines;
+    target.externalCandidates = external.candidates;
+    log(options, `Device stage will try: ${backends.join(", ")}${external.candidates.length ? `, and measure ${[...new Set(external.candidates.map((candidate) => candidate.engine))].join(", ")} (not saved)` : ""}.`);
     await writeJsonAtomic(path.join(target.paths.profiles, `${target.profileId}.engines.json`), { assessedAt: new Date().toISOString(), ...assessment });
     emit(options, { type: "engines", phase: "tune", model: target.profileId, fastest: assessment.fastest, results: assessment.results });
   }

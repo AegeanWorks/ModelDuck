@@ -15,13 +15,16 @@ const CPU = Object.freeze({ gpuBackend: "cpu", gpuLayers: 0 });
 const speedOf = (entry) => entry.stats.tokensPerSecond ?? 0;
 const passedOf = (entry) => Math.round((entry.stats.rate / 100) * entry.stats.items);
 
-function candidatePatches(backends, layers) {
+// Only a device the app itself can serve may be saved into a profile (ADR-156).
+const adoptable = (entry) => !entry.patch.engine;
+
+function candidatePatches(backends, layers, external = []) {
   const gpus = backends.filter((backend) => backend !== "cpu");
   const smaller = layers > 1
     ? [...new Set([Math.ceil(layers * 0.75), Math.ceil(layers * 0.5), Math.ceil(layers * 0.25)])].filter((count) => count >= 1 && count < layers)
     : [];
   return {
-    first: [CPU, ...gpus.map((gpuBackend) => ({ gpuBackend, gpuLayers: "max" }))],
+    first: [CPU, ...gpus.map((gpuBackend) => ({ gpuBackend, gpuLayers: "max" })), ...external],
     fallback: (gpuBackend) => smaller.map((gpuLayers) => ({ gpuBackend, gpuLayers })),
   };
 }
@@ -37,10 +40,10 @@ function summarise(entry, verdict) {
  */
 const LOAD_RECHECK_MIN = 8;
 
-export async function deviceStage(context, { backends, layers = 0, start, items, forced, loadItems = null }) {
+export async function deviceStage(context, { backends, layers = 0, start, items, forced, loadItems = null, externalEngines = [] }) {
   const { measurements, options } = context;
   const seeds = options.seeds.slice(0, 1);
-  const { first, fallback } = candidatePatches(backends, layers);
+  const { first, fallback } = candidatePatches(backends, layers, externalEngines);
   const entries = [];
   const measure = async (patch) => {
     const stats = await score(measurements, { ...start, ...patch, ...forced }, items, seeds);
@@ -54,7 +57,7 @@ export async function deviceStage(context, { backends, layers = 0, start, items,
     const entry = await measure(patch);
     if (!entry) return { aborted: true };
     // A GPU that cannot load all layers tries smaller offloads until one loads (ADR-066).
-    const fallbacks = entry.stats.failed && patch.gpuBackend !== "cpu" ? fallback(patch.gpuBackend) : [];
+    const fallbacks = entry.stats.failed && patch.gpuBackend !== "cpu" && !patch.engine ? fallback(patch.gpuBackend) : [];
     for (const attempt of fallbacks) {
       const smaller = await measure(attempt);
       if (!smaller) return { aborted: true };
@@ -74,7 +77,7 @@ export async function deviceStage(context, { backends, layers = 0, start, items,
   // A full offload that loads but shares memory (spilled, slow) loses to the
   // CPU without a partial offload ever being tried (G7): try 75% then 50%.
   for (const entry of entries.slice(1)) {
-    if (entry.patch.gpuBackend === "cpu" || entry.patch.gpuLayers !== "max") continue;
+    if (entry.patch.engine || entry.patch.gpuBackend === "cpu" || entry.patch.gpuLayers !== "max") continue;
     if (entry.stats.failed || verdicts.get(entry) !== "not measurably faster than the CPU") continue;
     for (const attempt of fallback(entry.patch.gpuBackend)) {
       if (entries.some((existing) => existing.patch.gpuBackend === attempt.gpuBackend && existing.patch.gpuLayers === attempt.gpuLayers)) break;
@@ -84,14 +87,15 @@ export async function deviceStage(context, { backends, layers = 0, start, items,
       if (!smaller.stats.failed) break;
     }
   }
-  let winners = entries.slice(1).filter((entry) => verdicts.get(entry) === "faster than the CPU");
+  const fasterThanCpu = entries.slice(1).filter((entry) => verdicts.get(entry) === "faster than the CPU");
+  let winners = fasterThanCpu.filter(adoptable);
   // One rounding-induced loss on six items rejects a 5x GPU (S7): when the
   // fastest GPU loses exactly one item but is at least twice as fast, decide
   // accuracy on the larger load rung instead of the 6-item count.
   let recheck = null;
   if (!winners.length && loadItems?.length >= LOAD_RECHECK_MIN && !cpu.stats.failed) {
     const bySpeed = entries.slice(1)
-      .filter((entry) => !entry.stats.failed && passedOf(entry) === passedOf(cpu) - 1)
+      .filter((entry) => adoptable(entry) && !entry.stats.failed && passedOf(entry) === passedOf(cpu) - 1)
       .sort((left, right) => speedOf(right) - speedOf(left))[0];
     const speedup = bySpeed && cpu.stats.tokensPerSecond ? (bySpeed.stats.tokensPerSecond / cpu.stats.tokensPerSecond) : 0;
     if (bySpeed && speedup >= 2) {
@@ -113,9 +117,13 @@ export async function deviceStage(context, { backends, layers = 0, start, items,
   verdicts.set(cpu, cpu.stats.failed ? `did not run: ${cpu.stats.error}` : chosen === cpu ? "chosen" : "slower than the chosen GPU");
   if (chosen !== cpu && !verdicts.get(chosen)?.includes("non-inferiority")) verdicts.set(chosen, "chosen");
   const tokS = (entry) => (entry.stats.tokensPerSecond ? `${entry.stats.tokensPerSecond} tok/s` : `${entry.stats.latencyMs} ms/answer`);
-  const reason = chosen === cpu
+  // An external engine that beat the CPU is reported, not adopted: the app serves in-process only.
+  const skipped = fasterThanCpu.filter((entry) => !adoptable(entry));
+  for (const entry of skipped) verdicts.set(entry, `faster than the CPU, but not adopted: the app serves in-process only (${entry.patch.engine} is measured, not served)`);
+  const note = skipped.length ? ` Also measured faster than the CPU but not adopted (the app serves in-process only): ${skipped.map((entry) => `${entry.patch.engine} ${tokS(entry)}, ${passedOf(entry)}/${entry.stats.items}`).join("; ")}.` : "";
+  const reason = (chosen === cpu
     ? `CPU kept (${tokS(cpu)}): no GPU option was both faster and as accurate.`
-    : `${chosen.patch.gpuBackend} with ${chosen.patch.gpuLayers} layers: ${tokS(chosen)} vs ${cpu.stats.failed ? `the CPU could not run it (${cpu.stats.error})` : `${tokS(cpu)} on the CPU`}, ${passedOf(chosen)}/${chosen.stats.items} correct.`;
+    : `${chosen.patch.gpuBackend} with ${chosen.patch.gpuLayers} layers: ${tokS(chosen)} vs ${cpu.stats.failed ? `the CPU could not run it (${cpu.stats.error})` : `${tokS(cpu)} on the CPU`}, ${passedOf(chosen)}/${chosen.stats.items} correct.`) + note;
   return {
     settings: { ...chosen.patch },
     probe: entries.map((entry) => summarise(entry, verdicts.get(entry))),

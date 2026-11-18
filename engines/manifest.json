@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "note": "Inference engines ModelDuck ships and can install. Each asset is pinned to a release and checked against its SHA-256 before it is unpacked. Engines with a licence that forbids bundling (koboldcpp, AGPL-3.0) and servers that need a GPU stack of their own (vLLM, SGLang, TGI) are not here: attach them with --openai-engine.",
+  "engines": {
+    "llama.cpp": {
+      "source": "https://github.com/ggml-org/llama.cpp",
+      "license": "MIT",
+      "release": "b12521",
+      "downloadBase": "https://github.com/ggml-org/llama.cpp/releases/download",
+      "variants": {
+        "win32-x64": {
+          "cpu": { "asset": "llama-b12521-bin-win-cpu-x64.zip", "size": 25555594, "sha256": "bd4e093bce292452248c318d4b176fbfebe1ca43a7f3779ebb3846fe7753653e" },
+          "vulkan": { "asset": "llama-b12521-bin-win-vulkan-x64.zip", "size": 38757221, "sha256": "d2498cfdd7973e0c14e832dbd1db7f5d8f409ebb08df27abfc5c54dfc3161c6a" },
+          "cuda": {
+            "asset": "llama-b12521-bin-win-cuda-13.5-x64.zip", "size": 228918500, "sha256": "5ff596e1665cfa31a3657740a945f8d200cf494c644e67f981499b273bac6cdd",
+            "extra": [{ "asset": "cudart-llama-bin-win-cuda-13.5-x64.zip", "size": 426314199, "sha256": "c2bf4cc202bfbaaa7a0b75f5082457c3811326947bb216059b72839d844e9cba" }]
+          }
+        },
+        "linux-x64": {
+          "cpu": { "asset": "llama-b12521-bin-ubuntu-x64.tar.gz", "size": 23852655, "sha256": "ab8343cb39e17a18f183ce0a35543a6c3dcc15fb287f55909dd182cb975e345e" },
+          "vulkan": { "asset": "llama-b12521-bin-ubuntu-vulkan-x64.tar.gz", "size": 36925213, "sha256": "0278acdb4b12e24f90002039c011038e824d308b9ae5971433b284b1b3b5fc97" },
+          "cuda": { "asset": "llama-b12521-bin-ubuntu-cuda-12.8-x64.tar.gz", "size": 223055106, "sha256": "02509065d54065aeff9f71fd15ef22c2f1804742f6823e75cfd67d9e6cdff84a" }
+        },
+        "darwin-arm64": {
+          "metal": { "asset": "llama-b12521-bin-macos-arm64.tar.gz", "size": 17294048, "sha256": "6ebeeea8575081ff968eb1c26f6fffcafe8e3ff2a0fb5d548c0aea7f5575e038" }
+        },
+        "darwin-x64": {
+          "cpu": { "asset": "llama-b12521-bin-macos-x64.tar.gz", "size": 13065451, "sha256": "8f78d3e6d405dac94c539e76834c132bff394ab8835d66f968c6a23eea9dcbe7" }
+        }
+      }
+    }
+  }
+}

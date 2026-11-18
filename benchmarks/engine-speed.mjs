@@ -22,6 +22,11 @@ installed or will not start are listed with the reason.
   --runs <n>            counted runs per engine after one warm-up (default 3)
   --only <ids>          comma-separated engine ids (see the table; default: all)
   --llama-bench <file>  a native llama.cpp llama-bench binary to include
+  --llama-server <file> a llama.cpp llama-server binary of your own (installed variants are found on their own;
+                        install them with: npm run engines:install)
+  --openai-engine <name=url[#model]>  attach a running OpenAI-compatible server (vLLM, SGLang, TGI,
+                        mistral.rs, koboldcpp, llamafile, LM Studio...); repeat for several; a key, if
+                        needed, is read from MODELDUCK_ENGINE_KEY
   --ollama-model <tag>  the Ollama model to time (default: a tag matching the file)
   --ollama-url <url>    Ollama server (default http://127.0.0.1:11434)
   --json                print the assessment as JSON
@@ -45,6 +50,8 @@ function parseArgs(argv) {
     else if (arg === "--runs") options.runs = Number.parseInt(take(index++, arg), 10);
     else if (arg === "--only") options.only = take(index++, arg).split(",").map((id) => id.trim()).filter(Boolean);
     else if (arg === "--llama-bench") options.llamaBench = take(index++, arg);
+    else if (arg === "--llama-server") options.llamaServer = take(index++, arg);
+    else if (arg === "--openai-engine") (options.openai ??= []).push(take(index++, arg));
     else if (arg === "--ollama-model") options.ollamaModel = take(index++, arg);
     else if (arg === "--ollama-url") options.ollamaUrl = take(index++, arg);
     else if (arg === "--save") options.save = take(index++, arg);
@@ -80,7 +87,7 @@ export async function main(argv = process.argv.slice(2), out = process.stdout) {
   if (!entry) {
     throw new AppError("Model not found", { code: "model_not_found", status: 404, why: `${options.model} is not in ${paths.models}.`, fix: "Use an installed file name, or pass --models-dir." });
   }
-  const registry = createEngineRegistry({ engines: defaultEngines({ llamaBench: options.llamaBench ?? null, ollamaModel: options.ollamaModel ?? null, ollamaUrl: options.ollamaUrl }) });
+  const registry = createEngineRegistry({ engines: defaultEngines({ llamaBench: options.llamaBench ?? null, llamaServer: options.llamaServer ?? null, ollamaModel: options.ollamaModel ?? null, ollamaUrl: options.ollamaUrl, openai: options.openai ?? [], openaiKey: process.env.MODELDUCK_ENGINE_KEY ?? null }) });
   if (options.only) {
     const unknown = options.only.filter((id) => !registry.ids().includes(id));
     if (unknown.length) {

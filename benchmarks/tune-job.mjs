@@ -2,6 +2,7 @@ import path from "node:path";
 
 import { DEFAULT_SETTINGS, resolvePaths } from "../src/config.js";
 import { LlamaEngine } from "../src/engine.js";
+import { RoutedEngine } from "../src/external-engines.js";
 import { AppError } from "../src/errors.js";
 import { getCatalogModel } from "../src/model-catalog.js";
 import { currentFingerprint, loadProfile, measuredOnAfter, measuredUnderAfter, planTune, profileFromTune, profileIdFor, saveProfile } from "../src/model-profiles.js";
@@ -44,7 +45,11 @@ export async function openTarget({ model, home, modelsDir }) {
 
 /** Run `fn(engine)` on a fresh engine and always release the model. */
 export async function withEngine(target, fn) {
-  const engine = new LlamaEngine({ registry: target.registry });
+  const inProcess = new LlamaEngine({ registry: target.registry });
+  // External engines (ADR-156) are only present when the tune was asked to use them.
+  const engine = target.externalEngines && Object.keys(target.externalEngines).length
+    ? new RoutedEngine({ inProcess, external: target.externalEngines })
+    : inProcess;
   try {
     return await fn(engine);
   } finally {
@@ -232,6 +237,7 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
       restore,
       hardware: { logicalCores },
       deviceBackends: used.device.backends,
+      externalEngines: target.externalCandidates ?? [],
       modelLayers: target.entry.kvShape?.layers ?? 0,
       qualityAxes: qualityAxes(used.load),
       speedAxes: speedAxes({ logicalCores }, used.load),

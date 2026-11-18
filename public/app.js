@@ -3063,6 +3063,30 @@ function liveCard(item) {
   });
   const counts = `${live.answers ?? 0}${live.expectedAnswers ? ` of up to ${live.expectedAnswers}` : ""} answers${live.eta ? ` · ${live.eta}` : ""}`;
   card.append(bar, Object.assign(document.createElement("p"), { className: "tune-live-counts", textContent: counts }));
+  // The engine speed test that opens the CPU/GPU (device) stage.
+  if (live.enginesNow) {
+    card.appendChild(Object.assign(document.createElement("p"), { className: "tune-live-counts", textContent: `Testing engine speed: ${live.enginesNow.engine} (${live.enginesNow.stage === "detect" ? "looking for it" : "timing it"})` }));
+  }
+  if (live.engines?.length) {
+    const ranked = [...live.engines].sort((left, right) => (right.genTps ?? -1) - (left.genTps ?? -1));
+    const bestSpeed = Math.max(...ranked.map((engine) => engine.genTps ?? -1));
+    const table = document.createElement("table");
+    table.className = "benchmark-table";
+    const head = table.createTHead().insertRow();
+    for (const text of ["Inference engine", "Answer speed", "Prompt speed", "Version"]) head.appendChild(Object.assign(document.createElement("th"), { textContent: text }));
+    const body = table.createTBody();
+    for (const engine of ranked) {
+      const row = body.insertRow();
+      if (engine.ok && engine.genTps === bestSpeed) row.className = "tune-live-best";
+      row.append(
+        tuneCell(engine.label),
+        tuneCell(engine.ok ? `${engine.genTps} tok/s` : engine.note ?? "not available"),
+        tuneCell(engine.ok && engine.promptTps ? `${Math.round(engine.promptTps)} tok/s` : "–"),
+        tuneCell(engine.version ?? "–"),
+      );
+    }
+    card.appendChild(table);
+  }
   if (live.axis?.candidates?.length) {
     // Speed settings are judged on time with identical answers; the rest on right answers.
     const speed = live.axis.stage === "speed";

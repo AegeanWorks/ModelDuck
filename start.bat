@@ -24,5 +24,11 @@ if not exist "node_modules\node-llama-cpp" (
   )
 )
 
+if not exist "engines\bin" (
+  echo First run: installing the llama.cpp inference engines ^(CPU and Vulkan, about 65 MB^)...
+  node scripts\install-engines.mjs
+  if errorlevel 1 echo Engines were not installed; ModelDuck still works. Retry later with: npm run engines:install
+)
+
 node src\main.js %*
 if errorlevel 1 pause

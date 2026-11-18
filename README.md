@@ -42,7 +42,10 @@ Settings and Server. Chat or code with any OpenAI-compatible client pointed at
    npm install
    npm start
    ```
-   The first run installs `node-llama-cpp` and its prebuilt CPU runtime.
+   The first run installs `node-llama-cpp` and its prebuilt CPU runtime, and `start.bat`
+   also downloads the llama.cpp inference engines (CPU and Vulkan builds, about 65 MB,
+   checksum-verified). Elsewhere run `npm run engines:install` once. See
+   [Inference engines](#inference-engines).
 2. ModelDuck opens at **http://127.0.0.1:4141**. On Windows it uses an installed
    Edge or Chrome to open a standalone app window; otherwise your default
    browser. Closing the window leaves the server running; **Ctrl+C** quits, letting
@@ -53,6 +56,35 @@ Settings and Server. Chat or code with any OpenAI-compatible client pointed at
 
 Bundled: none. For code start with **Qwen2.5 Coder 1.5B Instruct** (1.1 GB, the
 best shipped preset: 54.2% on code), or **Qwen2.5 0.5B Instruct** (469 MB) to start small.
+
+### Inference engines
+
+ModelDuck serves models with node-llama-cpp, and it measures the other engines that can
+run the same GGUF file. At the start of the device (CPU/GPU) stage of every tune it times
+each engine on the model being tuned (about 256 prompt tokens, 64 generated) and shows
+prompt and answer tokens per second with each engine's version, in the Bench panel and in
+`<home>/profiles/<model>.engines.json`. Run it alone with `npm run engines -- --model <file.gguf>`;
+skip it in a tune with `--no-engines`.
+
+| Engine | How ModelDuck gets it | Timed | Answers the tuner's items |
+|---|---|---|---|
+| node-llama-cpp: CPU, Vulkan, CUDA, Metal | in the app (a backend that is missing is reported, never faked) | yes | yes, and it is what the profile is saved for |
+| llama.cpp `llama-server`: each installed variant (cpu, vulkan, cuda) | `npm run engines:install` (official builds, MIT, pinned and SHA-256 checked) | yes | yes |
+| llama.cpp `llama-bench` | the same install | yes | no (it times, it does not generate) |
+| Ollama | a running server | yes | yes |
+| vLLM, SGLang, TGI, mistral.rs, koboldcpp, llamafile, LM Studio, LocalAI | `--openai-engine name=http://host:port/v1[#model]` on a running server | yes | yes |
+| Your own llama.cpp build (for example ik_llama.cpp) | `--llama-server <file>` | yes | yes |
+
+`npm run engines:install -- --variants cpu,vulkan,cuda` chooses what to download (CUDA is
+about 650 MB and needs an NVIDIA driver). Engines land in `engines/bin` and are never
+installed system-wide. Not bundled on purpose: koboldcpp (AGPL-3.0), and the servers that
+bring their own GPU stack (vLLM, SGLang, TGI), which need Linux and an NVIDIA GPU. Attach
+them when they are already running. A key, if one is needed, is read from `MODELDUCK_ENGINE_KEY`.
+
+The device stage judges every engine that answers its items like a GPU: faster than the CPU
+and as accurate. **Only an in-process device is saved into a profile**, because the app
+serves through node-llama-cpp; a faster engine is reported with its speed and accuracy
+("measured faster, not adopted"), so you can see what serving through it would gain.
 
 ### AIKit Commands (run from the AIKit folder)
 

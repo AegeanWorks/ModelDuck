@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { LlamaBenchAdapter, NodeBackendAdapter, OllamaAdapter, WORKLOAD, cleanPath, parseLlamaVersion } from "../src/inference-engine-adapters.js";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { LlamaBenchAdapter, LlamaServerAdapter, NodeBackendAdapter, OllamaAdapter, OpenAICompatAdapter, WORKLOAD, cleanPath, parseDevices, parseLlamaVersion } from "../src/inference-engine-adapters.js";
 import { assessEngines, createEngineRegistry, defaultEngines, fastestEngine, formatAssessment, usableNodeBackends } from "../src/inference-engines.js";
 
 const ENTRY = { id: "m1", fileName: "tiny-q4_k_m.gguf", path: "C:\\models\\tiny-q4_k_m.gguf" };
@@ -20,9 +23,13 @@ test("the registry looks engines up by id and names the known ones on a miss", (
   assert.throws(() => registry.get("zzz"), /Unknown inference engine "zzz"; known: a, b/);
 });
 
-test("the default engines cover every in-process backend, native llama.cpp and Ollama", () => {
-  const ids = createEngineRegistry({ engines: defaultEngines() }).ids();
-  assert.deepEqual(ids, ["node-llama-cpp:cpu", "node-llama-cpp:vulkan", "node-llama-cpp:cuda", "node-llama-cpp:metal", "llama.cpp:llama-bench", "ollama"]);
+test("with nothing installed the default engines still list every engine, and the missing server says how to install it", async () => {
+  const ids = createEngineRegistry({ engines: defaultEngines({ roots: [] }) }).ids();
+  assert.deepEqual(ids, ["node-llama-cpp:cpu", "node-llama-cpp:vulkan", "node-llama-cpp:cuda", "node-llama-cpp:metal", "llama.cpp:llama-bench", "llama.cpp:llama-server", "ollama"]);
+  const server = createEngineRegistry({ engines: defaultEngines({ roots: [] }) }).get("llama.cpp:llama-server");
+  const found = await server.detect();
+  assert.equal(found.available, false);
+  assert.match(found.reason, /npm run engines:install/);
 });
 
 test("assessing ranks by generation speed and never lets one engine stop the others", async () => {
@@ -296,4 +303,51 @@ test("the engines command explains itself and refuses bad input with a Why and a
   await assert.rejects(() => main(["--model", "x", "--runs", "0"], out), (error) => error.code === "bad_option" && /1 to 20/.test(error.why));
   await assert.rejects(() => main(["--model", "x", "--bogus"], out), (error) => error.code === "bad_option" && /--bogus/.test(error.why));
   await assert.rejects(() => main(["--model", "x", "--models-dir", "C:\definitely\not\here"], out), (error) => error.code === "model_not_found");
+});
+
+// Shipped engines: every installed llama.cpp variant is its own engine, with its own speed.
+function installedRoot(t, variants) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duck-roots-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  for (const variant of variants) {
+    const dir = path.join(root, "bin", `llama.cpp-${variant}`);
+    fs.mkdirSync(path.join(dir, "inner"), { recursive: true });
+    fs.writeFileSync(path.join(dir, "install.json"), JSON.stringify({ engine: "llama.cpp", variant, release: "b9" }));
+    fs.writeFileSync(path.join(dir, "inner", "llama-server.exe"), "");
+    fs.writeFileSync(path.join(dir, "llama-bench.exe"), "");
+  }
+  return root;
+}
+
+test("each installed variant becomes its own engine, and a binary passed by hand is kept apart", (t) => {
+  const root = installedRoot(t, ["cpu", "vulkan"]);
+  const ids = (options) => createEngineRegistry({ engines: defaultEngines({ roots: [root], platform: "win32", ...options }) }).ids();
+  assert.deepEqual(ids().filter((id) => id.startsWith("llama.cpp")), ["llama.cpp:llama-bench", "llama.cpp:llama-server:cpu", "llama.cpp:llama-server:vulkan"]);
+  assert.ok(ids({ llamaServer: "C:\mine\llama-server.exe" }).includes("llama.cpp:llama-server"), "a hand-passed build has its own id");
+  assert.ok(ids({ openai: ["vllm=http://127.0.0.1:8000/v1"] }).includes("openai:vllm"));
+  assert.throws(() => ids({ openai: ["not-an-address"] }), (error) => error.code === "bad_option" && /name=url/.test(error.why));
+});
+
+test("a GPU build on a machine without that GPU is unavailable, not a silent CPU run", async () => {
+  const run = (devices) => async (file, args) => ({ stdout: "", stderr: args[0] === "--version" ? "version: 0.8.0 (build 1, commit abc1234)" : devices });
+  const withGpu = new LlamaServerAdapter({ binary: "b", variant: "vulkan", release: "b9", run: run("Available devices:\n  Vulkan0: AMD Radeon (8192 MiB)") });
+  const ok = await withGpu.detect();
+  assert.equal(ok.available, true);
+  assert.deepEqual(ok.backends, ["vulkan"]);
+  assert.equal(withGpu.id, "llama.cpp:llama-server:vulkan");
+  assert.equal(withGpu.label, "llama.cpp b9 llama-server (vulkan)");
+  const without = await new LlamaServerAdapter({ binary: "b", variant: "vulkan", run: run("Available devices:\n  (none)") }).detect();
+  assert.equal(without.available, false);
+  assert.match(without.reason, /found no vulkan device/);
+  assert.equal(without.version, "0.8.0 (abc1234)", "the version is still reported");
+  const cpu = await new LlamaServerAdapter({ binary: "b", variant: "cpu", run: run("Available devices:\n  (none)") }).detect();
+  assert.deepEqual([cpu.available, cpu.backends], [true, ["cpu"]]);
+  const byHand = await new LlamaServerAdapter({ binary: "b", run: run("Available devices:\n  CUDA0: RTX\n  Vulkan0: RTX") }).detect();
+  assert.deepEqual(byHand.backends, ["cpu", "cuda", "vulkan"], "a build with no declared variant reports what it finds");
+});
+
+test("device lines name the GPU backends a llama.cpp build found", () => {
+  assert.deepEqual(parseDevices("Available devices:\n  Vulkan0: NVIDIA (8 GiB)\n  Vulkan1: Intel\n  CUDA0: X"), ["vulkan", "cuda"]);
+  assert.deepEqual(parseDevices("Available devices:\n  (none)"), []);
+  assert.deepEqual(parseDevices(undefined), []);
 });

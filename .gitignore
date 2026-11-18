@@ -45,3 +45,7 @@ secrets.*
 
 # Reforge review packets: bulky diffs of every audited commit; the run state (.aikit/reforge.json) is what stays
 .aikit/reforge.reviews/
+
+# Inference engines are downloaded by `npm run engines:install`; only the manifest is tracked.
+engines/bin/
+engines/.cache/

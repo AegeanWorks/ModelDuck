@@ -423,7 +423,7 @@ export class TuneScheduler {
 
 const KEPT_DECISIONS = 30;
 
-const emptyLive = () => ({ expectedAnswers: null, answers: 0, eta: null, axis: null, decisions: [] });
+const emptyLive = () => ({ expectedAnswers: null, answers: 0, eta: null, axis: null, decisions: [], engines: null, enginesNow: null });
 
 /**
  * What the Bench panel shows while a tune runs: answers so far against the expected
@@ -434,6 +434,15 @@ function followLive(live, event) {
   if (Number.isFinite(event.runs)) live.answers = event.runs;
   if (event.eta) live.eta = event.eta;
   if (event.type === "estimate" && Number.isFinite(event.expectedAnswers)) live.expectedAnswers = event.expectedAnswers;
+  // The engine speed test that opens the device stage (ADR-156): what is being timed, then the table.
+  if (event.type === "engines-progress") live.enginesNow = { engine: event.engine, stage: event.stage };
+  if (event.type === "engines") {
+    live.enginesNow = null;
+    live.engines = (event.results ?? []).map((result) => ({
+      id: result.id, label: result.label, ok: Boolean(result.ok), genTps: result.genTps ?? null, promptTps: result.promptTps ?? null,
+      version: result.version ?? null, note: result.ok ? null : result.error ?? result.reason ?? null,
+    }));
+  }
   if (event.type === "tune-candidate") {
     const key = `${event.stage}|${event.task ?? ""}|${event.axis}`;
     if (live.axis?.key !== key) live.axis = { key, stage: event.stage, task: event.task ?? null, axis: event.axis, candidates: [] };
