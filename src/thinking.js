@@ -8,7 +8,12 @@
  *
  * Only a block that opens the reply (after optional whitespace) counts; a
  * `<think>` later in the text is ordinary text, so a model explaining the tag
- * is never rewritten. A block the token limit cut off is all reasoning.
+ * is never rewritten. A block the token limit cut off is all reasoning. A model
+ * whose chat template opens the block itself (templateOpensThinking in the
+ * model registry) starts mid-thought; the splitter is told so.
+ *
+ * Raw `/v1/completions` is deliberately not split: the prompt there is the
+ * client's own, and so is the output.
  */
 
 const OPEN = "<think>";
@@ -25,10 +30,20 @@ function partialTagSuffix(text, tag) {
 /** @typedef {{kind: "reasoning" | "content", text: string}} ThinkPart */
 
 export class ThinkSplitter {
+  #startsInThink;
   #state = "start";
   #buf = "";
   #reasoningStarted = false;
   #contentStarted = false;
+
+  /**
+   * @param {{startsInThink?: boolean}} [options] startsInThink: the model's chat
+   * template already opened the block, so the reply begins mid-thought and only
+   * the closing tag marks where the answer starts.
+   */
+  constructor({ startsInThink = false } = {}) {
+    this.#startsInThink = startsInThink === true;
+  }
 
   /** @returns {ThinkPart[]} the parts that are now certain; the rest waits. */
   push(text) {
@@ -41,6 +56,11 @@ export class ThinkSplitter {
         if (lead.startsWith(OPEN)) {
           this.#state = "think";
           this.#buf = lead.slice(OPEN.length);
+          continue;
+        }
+        if (this.#startsInThink) {
+          this.#state = "think";
+          this.#buf = lead;
           continue;
         }
         this.#state = "answer";
@@ -96,8 +116,8 @@ export class ThinkSplitter {
 }
 
 /** Split a finished reply into its thinking and its answer. */
-export function splitThinking(text) {
-  const splitter = new ThinkSplitter();
+export function splitThinking(text, options) {
+  const splitter = new ThinkSplitter(options);
   const result = { reasoning: "", content: "" };
   for (const part of [...splitter.push(String(text ?? "")), ...splitter.flush()]) {
     result[part.kind] += part.text;

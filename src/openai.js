@@ -608,7 +608,7 @@ export async function handleOpenAI(
         onToken: () => {},
       });
       // IDEA-0997: a reasoning model's <think> block is reported apart from the answer.
-      const { reasoning, content } = splitThinking(result.text);
+      const { reasoning, content } = splitThinking(result.text, { startsInThink: current.model?.thinkOpen === true });
       sendJson(res, 200, {
         id,
         object: "chat.completion",
@@ -663,7 +663,7 @@ export async function handleOpenAI(
   // IDEA-1074: accumulate partial output so a mid-stream failure keeps the text the
   // client already rendered instead of discarding it.
   let partial = "";
-  const thinking = new ThinkSplitter();
+  const thinking = new ThinkSplitter({ startsInThink: current.model?.thinkOpen === true });
   const sendParts = (parts) => {
     for (const part of parts) {
       if (part.kind === "content") partial += part.text;

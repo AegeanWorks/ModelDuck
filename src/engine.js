@@ -40,6 +40,7 @@ function publicModel(entry) {
     contextLength: entry.contextLength,
     chatTemplate: entry.chatTemplate,
     chatTemplateHash: entry.chatTemplateHash ?? null,
+    thinkOpen: entry.thinkOpen === true,
   };
 }
 

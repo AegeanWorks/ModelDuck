@@ -65,6 +65,21 @@ function nameFromFile(file) {
  * underscore-prefixed file follows the private-HF convention where a rename
  * may have detached the weights from the template they were tuned with.
  */
+/**
+ * IDEA-0997: true when the template's generation prompt ends by opening a
+ * `<think>` block and never closes it (DeepSeek-R1 style), so the model's own
+ * output starts mid-thought. A template that opens and closes the block there
+ * (Qwen3 with thinking off) leaves the opening to the model, so it is false.
+ */
+export function templateOpensThinking(template) {
+  const text = typeof template === "string" ? template : "";
+  const at = text.lastIndexOf("add_generation_prompt");
+  if (at === -1) return false;
+  const tail = text.slice(at);
+  const open = tail.lastIndexOf("<think>");
+  return open !== -1 && !tail.includes("</think>", open);
+}
+
 export function templateCompat(entry) {
   const warnings = [];
   const fileName = String(entry?.fileName ?? "");
@@ -210,6 +225,7 @@ function summarize(info, file, stats) {
       // IDEA-1323: NFC identity so the same template hashes the same everywhere.
       ? createHash("sha256").update(chatTemplateText.normalize("NFC")).digest("hex").slice(0, 16)
       : null,
+    thinkOpen: templateOpensThinking(chatTemplateText),
     modifiedAt: new Date(stats.mtimeMs).toISOString(),
   };
   summary.compat = templateCompat(summary);
