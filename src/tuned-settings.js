@@ -12,8 +12,11 @@ export class TunedSettings {
   #registry;
   #settings;
   #fingerprint;
+  #engineVersion;
 
-  constructor({ profilesDir, registry, settings, fingerprint = currentFingerprint }) {
+  /** `engineVersion(id)` names the build of an engine the app would run now, or null (ADR-161). */
+  constructor({ profilesDir, registry, settings, fingerprint = currentFingerprint, engineVersion = null }) {
+    this.#engineVersion = engineVersion;
     this.#profilesDir = profilesDir;
     this.#registry = registry;
     this.#settings = settings;
@@ -38,7 +41,13 @@ export class TunedSettings {
     const catalogId = profileIdFor(entry.fileName);
     const loaded = await loadProfile(this.#profilesDir, catalogId, await this.#fingerprint(entry));
     if (!loaded) return null;
-    const { profile, stale, warnings } = loaded;
+    const { profile, stale } = loaded;
+    // An engine that was updated since the profile was measured is not the engine it was measured on.
+    const engine = profile.load?.settings?.engine ?? null;
+    const recorded = profile.device?.engineVersion ?? null;
+    const now = engine && recorded && this.#engineVersion ? this.#engineVersion(engine) : null;
+    const engineChanged = Boolean(now && now !== recorded);
+    const warnings = engineChanged ? [...loaded.warnings, `Measured on ${engine} ${recorded}, now ${now}: tune again so the profile matches the engine that serves it.`] : loaded.warnings;
     const speedPreset = ["fastest", "light", "quiet"].includes(this.#settings.value.speedPreset) ? this.#settings.value.speedPreset : "fastest";
     const chosen = task && profile.tasks?.[task];
     return {
@@ -52,6 +61,7 @@ export class TunedSettings {
       typeWarnings: task ? typeWarnings(profile)[task] ?? [] : [],
       stale,
       warnings,
+      engineChanged,
     };
   }
 }

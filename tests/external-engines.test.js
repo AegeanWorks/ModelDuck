@@ -489,3 +489,18 @@ test("a model trained for more keeps at least the 16K floor, and one with no kno
   assert.equal(await sizes(undefined, 4096), 16384);
   assert.equal(await sizes(2048, 16384), 2048, "a model trained for less is never given more");
 });
+
+test("the device stage records the version of the engine it adopted, and none for an in-process device", async () => {
+  const evaluate = async (settings, itemIds) => ({ prompts: itemIds.map((id) => ({ id, passed: 1, total: 1, ms: settings.engine ? 100 : 1000, tokensPerSecond: 1000 / (settings.engine ? 100 : 1000), digest: id })) });
+  const ids = (prefix, count) => Array.from({ length: count }, (_, index) => `${prefix}-${index + 1}`);
+  const run = (engines, deviceBackends = ["cpu"]) => tune({
+    evaluate, base: { threads: 4 }, tasks: [], stages: ["device"], modelLayers: 28, deviceBackends,
+    externalEngines: engines, servableEngines: ["llama-server:cpu"], engineVersionOf: (id) => (id === "llama-server:cpu" ? "b12521" : null),
+    rungs: { load: [ids("mix", 6)], speed: [ids("speed", 6)] }, qualityAxes: [], speedAxes: [],
+  });
+  const adopted = await run([{ engine: "llama-server:cpu", gpuBackend: "cpu", gpuLayers: 0 }]);
+  assert.equal(adopted.device.engineVersion, "b12521");
+  const inProcess = await run([], ["cpu", "vulkan"]);
+  assert.equal(inProcess.device.settings.engine, undefined, "an in-process device was chosen");
+  assert.equal("engineVersion" in inProcess.device, false);
+});

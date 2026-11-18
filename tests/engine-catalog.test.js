@@ -228,3 +228,19 @@ test("whether the app can start an engine can depend on which one: an installed 
   assert.deepEqual(["fastduck:local", "fastduck:remote"].map((id) => custom.isServable(id)), [true, false]);
   assert.throws(() => assertDescriptor({ ...fastDuck(), servable: "yes" }), (error) => /servable must be true, false or a function/.test(error.why));
 });
+
+test("an engine reports the version the app would run, from its own descriptor", (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duck-ver-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const dir = path.join(root, "bin", "llama.cpp-vulkan");
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, "install.json"), JSON.stringify({ engine: "llama.cpp", variant: "vulkan", release: "b12521" }));
+  const catalog = createEngineCatalog({ descriptors: [...BUILTIN_DESCRIPTORS, { ...fastDuck(), version: () => "9.9" }] });
+  const ctx = engineContext({ roots: [root] });
+  assert.equal(catalog.version("llama-server:vulkan", ctx), "b12521", "the installed release, the same string at tune time and at serve time");
+  assert.equal(catalog.version("llama-server:cuda", ctx), null, "not installed");
+  assert.equal(catalog.version("llama-server", ctx), null, "a hand-passed binary has no release to name");
+  assert.equal(catalog.version("fastduck", ctx), "9.9", "a new engine says its own");
+  assert.equal(catalog.version("ollama", ctx), null, "an engine with no version() reports none rather than guessing");
+  assert.equal(catalog.version("nope", ctx), null);
+});

@@ -238,6 +238,7 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
       deviceBackends: used.device.backends,
       externalEngines: target.externalCandidates ?? [],
       servableEngines: target.servableEngines ?? [],
+      engineVersionOf: target.engineVersionOf ?? (() => null),
       modelLayers: target.entry.kvShape?.layers ?? 0,
       qualityAxes: qualityAxes(used.load),
       speedAxes: speedAxes({ logicalCores }, used.load),

@@ -7,7 +7,7 @@ import { readSteps, writeSteps } from "../src/tune-steps.js";
 import { javascriptTestCacheStats } from "./suite.mjs";
 import { TASKS, neededContextFor } from "./tasks.mjs";
 import { estimateTune, expectedAnswers, normalizeSteps, settingNames, timeLeft } from "./tune-grid.mjs";
-import { BUILTIN_DESCRIPTORS, createEngineCatalog, loadEnginePlugin } from "../src/engine-catalog.js";
+import { BUILTIN_DESCRIPTORS, createEngineCatalog, engineContext, loadEnginePlugin } from "../src/engine-catalog.js";
 import { assessEngines, createEngineRegistry, defaultEngines, deviceBackendsFrom, externalEngineFor, externalSetFrom, formatAssessment } from "../src/inference-engines.js";
 import { writeJsonAtomic } from "../src/fs-atomic.js";
 import { openTarget, runTune, summary } from "./tune-job.mjs";
@@ -159,6 +159,7 @@ async function main() {
   const catalog = createEngineCatalog({ descriptors: [...BUILTIN_DESCRIPTORS, ...await Promise.all((options.enginePlugins ?? []).map(loadEnginePlugin))] });
   const engineOptions = { catalog, llamaBench: options.llamaBench ?? null, llamaServer: options.llamaServer ?? null, ollamaModel: options.ollamaModel ?? null, openai: options.openai ?? [], openaiKey: process.env.MODELDUCK_ENGINE_KEY ?? null };
   target.resolveEngine = (id) => externalEngineFor(id, { ...engineOptions, registry: target.registry });
+  target.engineVersionOf = (id) => catalog.version(id, engineContext({ ...engineOptions, registry: target.registry }));
   // The engine speed test opens the device stage, so it runs whenever that stage does, unless turned off.
   if (options.engines ?? options.stages.includes("device")) {
     // Every engine is timed on this model before the tune starts, one after another, so none competes for the cores.

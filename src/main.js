@@ -8,7 +8,7 @@ import { TunedSettings } from "./tuned-settings.js";
 import { TuneScheduler } from "./tune-scheduler.js";
 import { DownloadManager } from "./downloader.js";
 import { drainServer } from "./drain.js";
-import { BUILTIN_DESCRIPTORS, createEngineCatalog, loadEnginePlugin } from "./engine-catalog.js";
+import { BUILTIN_DESCRIPTORS, createEngineCatalog, engineContext, loadEnginePlugin } from "./engine-catalog.js";
 import { RoutedEngine } from "./external-engines.js";
 import { externalEngineFor } from "./inference-engines.js";
 import { LlamaEngine } from "./engine.js";
@@ -128,7 +128,7 @@ async function main() {
     fallback: true,
   });
   await registry.scan();
-  const tuned = new TunedSettings({ profilesDir: paths.profiles, registry, settings });
+  const tuned = new TunedSettings({ profilesDir: paths.profiles, registry, settings, engineVersion: (id) => catalog.version(id, engineContext({ registry })) });
   const jit = new JitManager({ engine, registry, settings, serverSettings, tuned });
   const benchmarks = new BenchmarkRunner({ modelsDir: paths.models, homeDir: paths.home });
   const tunes = new TuneScheduler({ homeDir: paths.home, modelsDir: paths.models, profilesDir: paths.profiles, tuneStepsFile: paths.tuneGrid, queueFile: path.join(paths.home, "tune-queue.json"), enginePlugins: options.enginePlugins ?? [] });

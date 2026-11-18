@@ -22,6 +22,9 @@ import { LlamaBenchAdapter, LlamaServerAdapter, NodeBackendAdapter, OllamaAdapte
  *   adapters(ctx)         -> adapters {id, label, detect(), measure({entry, runs})} for assessment
  *   resolve(id, ctx)      -> a ServerEngine for tuning and serving, or null (optional)
  *   candidates(result, ctx) -> device-stage patches {engine, gpuBackend, gpuLayers} for a measured result (optional)
+ *   version(id, ctx)      -> the build the app would run, as a short string or null (optional). It is the string a
+ *                            profile records when it adopts the engine and compares when it is applied, so it must
+ *                            be the same at tune time and at serve time and cheap to ask (no process is started).
  * An engine id is `kind` or `kind:detail` and is the same id in assessments,
  * profiles and logs. `ctx` is { registry, roots, platform, options, cachePrompt }.
  */
@@ -85,6 +88,8 @@ const llamaServer = {
     return binary ? new ServerEngine({ id, registry: ctx.registry, backend: new LlamaServerBackend({ binary, cachePrompt: ctx.cachePrompt }) }) : null;
   },
   candidates: (result) => (result.backends ?? ["cpu"]).map((backend) => ({ engine: result.id, gpuBackend: backend, gpuLayers: backend === "cpu" ? 0 : "max" })),
+  // The release the installer pinned; a binary passed by hand has none to name.
+  version: (id, ctx) => installed(ctx).find((entry) => id === `llama-server:${entry.variant}`)?.release ?? null,
 };
 
 const ollama = {
@@ -122,7 +127,7 @@ export function assertDescriptor(descriptor, where = "the engine descriptor") {
     if (typeof descriptor.owns !== "function") problems.push("owns(id) must be a function");
     if (typeof descriptor.adapters !== "function") problems.push("adapters(ctx) must be a function");
     if (typeof descriptor.servable !== "boolean" && typeof descriptor.servable !== "function") problems.push("servable must be true, false or a function");
-    for (const optional of ["resolve", "candidates"]) {
+    for (const optional of ["resolve", "candidates", "version"]) {
       if (descriptor[optional] !== undefined && typeof descriptor[optional] !== "function") problems.push(`${optional} must be a function when given`);
     }
     if (descriptor.servable && typeof descriptor.resolve !== "function") problems.push("a servable engine needs resolve(id, ctx), or a saved profile could not start it");
@@ -164,6 +169,8 @@ export function createEngineCatalog({ descriptors = BUILTIN_DESCRIPTORS } = {}) 
       const servable = forId(id)?.servable;
       return typeof servable === "function" ? servable(id) === true : servable === true;
     },
+    /** The build the app would run for an engine, or null when the engine does not say. */
+    version: (id, ctx) => forId(id)?.version?.(id, ctx) ?? null,
     /** The device-stage candidates one measured result offers. */
     candidates: (result, ctx) => forId(result.id)?.candidates?.(result, ctx) ?? [],
   });

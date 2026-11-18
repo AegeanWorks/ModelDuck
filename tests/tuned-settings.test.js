@@ -150,3 +150,39 @@ test("a profile that chose the GPU loads the model on it", async (t) => {
   assert.equal(resolved.settings.gpuBackend, "vulkan");
   assert.equal(resolved.settings.gpuLayers, "max");
 });
+
+// ADR-161: engines get updated. A profile measured on one build must not be silently applied to another.
+async function engineSetup(t, { recorded = "b100", engineVersion }) {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "modelduck-tuned-engine-"));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  await saveProfile(dir, profileFromTune(
+    {
+      load: { settings: { contextSize: 8192, threads: 6, engine: "llama-server:vulkan", gpuBackend: "vulkan", gpuLayers: "max" } },
+      device: { settings: { engine: "llama-server:vulkan", gpuBackend: "vulkan", gpuLayers: "max" }, probe: [], reason: "x", ...(recorded && { engineVersion: recorded }) },
+      tasks: { code: { settings: { temperature: 0.1 } } },
+      sweeps: [], runs: 1, budgetExhausted: false,
+    },
+    { catalogId: "tuned-model", fingerprint: await fingerprint(ENTRY) },
+  ));
+  return new TunedSettings({ profilesDir: dir, registry, settings: { value: { ...DEFAULT_SETTINGS } }, fingerprint, engineVersion });
+}
+
+test("a profile whose engine has since been updated says so, and still applies", async (t) => {
+  const asked = [];
+  const tuned = await engineSetup(t, { engineVersion: (id) => { asked.push(id); return "b200"; } });
+  const resolved = await tuned.resolve("m1", "code");
+  assert.deepEqual(asked, ["llama-server:vulkan"]);
+  assert.equal(resolved.engineChanged, true);
+  assert.ok(resolved.warnings.some((warning) => /llama-server:vulkan b100, now b200: tune again/.test(warning)), resolved.warnings.join(" | "));
+  assert.equal(resolved.settings.engine, "llama-server:vulkan", "a changed build is a warning, not a refusal");
+});
+
+test("the same engine version, an unknown one, or a profile from before versions were recorded, warn about nothing", async (t) => {
+  for (const [recorded, now] of [["b100", "b100"], ["b100", null], [null, "b200"]]) {
+    const resolved = await (await engineSetup(t, { recorded, engineVersion: () => now })).resolve("m1", "code");
+    assert.equal(resolved.engineChanged, false, `${recorded} -> ${now}`);
+    assert.equal(resolved.warnings.some((warning) => /tune again so the profile matches the engine/.test(warning)), false);
+  }
+  const noResolver = await (await engineSetup(t, { engineVersion: undefined })).resolve("m1", "code");
+  assert.equal(noResolver.engineChanged, false);
+});

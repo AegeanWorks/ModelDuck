@@ -524,6 +524,7 @@ export async function tune({
   deviceBackends = ["cpu", "vulkan"],
   externalEngines = [],
   servableEngines = [],
+  engineVersionOf = () => null,
   parallel = 1,
   // Held while a stage times answers, so tunes running side by side pause (ADR-033).
   timing = { acquire: async () => {}, release: async () => {} },
@@ -601,7 +602,7 @@ export async function tune({
       await timing.release();
     }
     if (!outcome.aborted) {
-      Object.assign(state.device, { status: "done", settings: outcome.settings, probe: outcome.probe, reason: outcome.reason, settled, ...(outcome.accuracyRecheck && { accuracyRecheck: outcome.accuracyRecheck }) });
+      Object.assign(state.device, { status: "done", ...(outcome.settings.engine && { engineVersion: engineVersionOf(outcome.settings.engine) ?? undefined }), settings: outcome.settings, probe: outcome.probe, reason: outcome.reason, settled, ...(outcome.accuracyRecheck && { accuracyRecheck: outcome.accuracyRecheck }) });
       context.onEvent({ type: "sweep", stage: "device", task: null, axis: "device", pass: 1, winner: outcome.settings, changed: outcome.settings.gpuBackend !== "cpu", reason: outcome.reason, runs: context.measurements.runs, settled });
       await report();
     }
@@ -901,7 +902,7 @@ export function resultFrom(state, { budgetExhausted = false, stopped = null, opt
   const status = (entry) => entry?.status ?? "pending";
   return {
     load: { settings: { ...state.device.settings, ...state.quality.settings, ...state.speed.settings }, stats: state.quality.stats, ...(state.quality.perTask && { perTask: state.quality.perTask, reverted: state.quality.reverted }), ...(state.quality.kvConfirm && { kvConfirm: state.quality.kvConfirm }) },
-    device: state.device.status === "done" ? { settings: state.device.settings, probe: state.device.probe, reason: state.device.reason, ...(state.device.settled !== undefined && { settled: state.device.settled }), ...(state.device.accuracyRecheck && { accuracyRecheck: state.device.accuracyRecheck }) } : null,
+    device: state.device.status === "done" ? { ...(state.device.engineVersion && { engineVersion: state.device.engineVersion }), settings: state.device.settings, probe: state.device.probe, reason: state.device.reason, ...(state.device.settled !== undefined && { settled: state.device.settled }), ...(state.device.accuracyRecheck && { accuracyRecheck: state.device.accuracyRecheck }) } : null,
     speed: state.speed.fastest ? { fastest: state.speed.fastest, light: state.speed.light, ...(state.speed.quiet && { quiet: state.speed.quiet }) } : null,
     tasks,
     stages: {

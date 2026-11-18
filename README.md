@@ -89,7 +89,7 @@ An external engine must be at least 10% faster than the best in-process device t
 chosen, since it is a second process to keep running; below that the in-process engine stays
 and the reason says by how much it fell short. If the chosen engine cannot start when the
 model is loaded (its files were removed, its GPU is gone), the in-process engine serves and
-the status bar says so: a saved profile never leaves you without a model. An external engine
+the status bar says so: a saved profile never leaves you without a model. A profile also records the build of the engine it was measured on (for llama-server, the installed release); when you later install a different build, loading the model warns that the profile should be tuned again, and still applies it. An external engine
 refuses, with a Why and a Fix, the settings it cannot honour (`responsePrefix`, and
 `penalizeNewLine` off on llama-server) instead of quietly changing them; such a candidate
 simply fails during a tune. On this machine, with SmolLM2-135M, the same 5 x 100-token
