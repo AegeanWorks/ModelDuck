@@ -1,11 +1,11 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "source-hardening",
+    "task_id": "context-cap",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1795004268.1478474,
+    "updated_at": 1795017788.5115547,
     "owner": "kilo:1",
     "started_by": "kilo:1",
     "continuations": [],
@@ -15,46 +15,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795004268.9065876,
-    "completed_head": "5e607e86bd1135ebd0a576f6c88784f94d37e5b3",
-    "completed_tree": "9268700d0d8306f43cad1fbda78ae699ff71bcea"
+    "completed_at": 1795017789.3435364,
+    "completed_head": "19ef58999e3e7f4fe1bfe8291d0aed6b4ea24656",
+    "completed_tree": "00dc8d9272038e09f12edc67b5b89e501319b4e7"
   },
   "checkpoints": [
-    {
-      "task_id": "openai-body-reader-shape",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[1/1] npm test 900/901 pass, 1 skipped; invalid JSON (400 invalid_json) and an 8 MB + 16 byte body (413 body_too_large) now answer with error.type invalid_request_error and never reach the engine; aikit check 4/4; ADR-138; UI review recorded; G-001 not applicable (refusal path only)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794984778.0019715,
-      "timestamp_str": "2026-11-18 09:52:58",
-      "agent": "kilo:1",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "task_id": "openai-body-reader-shape",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'openai-body-reader-shape' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794984778.971466,
-      "timestamp_str": "2026-11-18 09:52:58",
-      "agent": "kilo:1",
-      "head": "83524f13f49ab22d03b073e1268d5b8909c32aac",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
     {
       "task_id": "bom-tolerant-reads",
       "phase": "phase 2",
@@ -402,6 +367,41 @@
       "timestamp_str": "2026-11-18 15:17:48",
       "agent": "kilo:1",
       "head": "5e607e86bd1135ebd0a576f6c88784f94d37e5b3",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
+    },
+    {
+      "task_id": "context-cap",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[2/2] npm test 922/923 pass, 1 skipped; ui:smoke passes three times with the clamp fixture and assertions; live review on SmolLM2 (8K, note shown) and Qwen2.5 0.5B (32K, note hidden) at 1440/390 in both themes; aikit check 4/4; ADR-145; README updated; UI review recorded; G-001 not applicable (no engine/settings-application change)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795017788.5115547,
+      "timestamp_str": "2026-11-18 19:03:08",
+      "agent": "kilo:1",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "context-cap",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'context-cap' completed successfully.",
+      "status": "completed",
+      "timestamp": 1795017789.553886,
+      "timestamp_str": "2026-11-18 19:03:09",
+      "agent": "kilo:1",
+      "head": "19ef58999e3e7f4fe1bfe8291d0aed6b4ea24656",
       "delivery": {
         "roots": [
           "."
