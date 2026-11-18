@@ -1271,5 +1271,26 @@
     "final_snapshot_entries": 0,
     "surface_digest": "3594bd6f20fadacc7db60f76677c2b28b9d488db6e62725df1a96be9006c4ddc",
     "baseline_digest": "3594bd6f20fadacc7db60f76677c2b28b9d488db6e62725df1a96be9006c4ddc"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [],
+    "no_visual_reason": "",
+    "no_change_reason": "Backend guardrail change (ADR-144); no public/ file or rendered view changed. The live end-to-end import exercised the existing Discover form and Installed provenance line visually through DOM checks (Verified line with green dot, correct title), and the changed files are the resolver and downloader only.",
+    "baseline_commit": "d994ff7fcaf82c8369f77ee6d02f8594520a8bde",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1795004213.4664364,
+    "finished_at": 1795004239.2473576,
+    "strikes": 0,
+    "reviewer": "kilo:1",
+    "allowed_removals": [],
+    "allowed_tests": [],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "c5fda7d7489fc7b52996b2cab7675ab7f4d45317cf6eedf0f553cbd8d30b315a",
+    "baseline_digest": "c5fda7d7489fc7b52996b2cab7675ab7f4d45317cf6eedf0f553cbd8d30b315a"
   }
 ]
