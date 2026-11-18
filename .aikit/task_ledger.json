@@ -3,8 +3,8 @@
   "active_task": {
     "task_id": "inference-engines",
     "last_phase": "phase 4",
-    "active_phase": 4,
-    "status": "in_progress",
+    "active_phase": 5,
+    "status": "completed",
     "updated_at": 1795041623.4672835,
     "owner": "claude:sonnet-5.5",
     "started_by": "claude:sonnet-5.5",
@@ -14,33 +14,12 @@
         "name": "modelduck",
         "path": "projects/modelduck"
       }
-    ]
+    ],
+    "completed_at": 1795041661.7398329,
+    "completed_head": "4a713c6495ead6c370acdf551dd35c0b8714b780",
+    "completed_tree": "b1075c2422737e5688148d1336d0a490b0c80974"
   },
   "checkpoints": [
-    {
-      "task_id": "already-installed-add",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/2] When /api/models/add-hf answers with an already-complete job (same URL and receipt), the form says Already in your library instead of Download started, marks the job id as seen so the poll does not toast a second time, and keeps the row list empty because complete jobs are not shown. Failing-first ui:smoke fixture path; [2/2] npm test, ui:smoke, aikit check, ADR-146, UI review, commit (G-001 not applicable: UI wording only)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795018066.3411393,
-      "timestamp_str": "2026-11-18 19:07:46",
-      "agent": "kilo:1",
-      "impact_assessment": {
-        "why": "ADR-142 makes re-adding the same URL idempotent, but the UI still announced a download that never ran and then let the poll announce completion for it",
-        "benefits": "The user gets one truthful message for an already-installed file and no phantom progress or duplicate toast",
-        "risks": "contract: none (same request, same job); dependency: none; concurrency: the poll already keys on job id; state: a seen-id entry in the existing set",
-        "mitigation": "the complete branch is keyed on the job status the server returns, not on a guess; the smoke fixture returns a complete job and asserts the message"
-      },
-      "plan_digest": "bb7db84c69e6b25b0f390cb044fe39d29392f64a3dc02aaa179d3c6e5edaac82",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "already-installed-add",
       "phase": "phase 4",
@@ -418,6 +397,23 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "task_id": "inference-engines",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'inference-engines' completed successfully.",
+      "status": "completed",
+      "timestamp": 1795041661.7952292,
+      "timestamp_str": "2026-11-19 01:41:01",
+      "agent": "claude:sonnet-5.5",
+      "head": "4a713c6495ead6c370acdf551dd35c0b8714b780",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
     }
   ]
 }
