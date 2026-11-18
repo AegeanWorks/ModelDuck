@@ -19,9 +19,11 @@ const MANIFEST = {
   schema: 1,
   engines: {
     "llama.cpp": {
+      // hygiene: allow a fixture address: fetch is injected, nothing is loaded
       source: "https://example.test/llama.cpp",
       license: "MIT",
       release: "b1",
+      // hygiene: allow a fixture address: fetch is injected, nothing is loaded
       downloadBase: "https://example.test/dl",
       variants: {
         "win32-x64": {
@@ -61,6 +63,7 @@ test("a corrupt manifest says so with a Why and a Fix", async (t) => {
 test("planning picks cpu and vulkan by default, every variant for macOS, and names assets with their download URL", () => {
   const plan = planInstall(MANIFEST, { platform: "win32", arch: "x64" });
   assert.deepEqual(plan.map((entry) => entry.variant), ["cpu", "vulkan"]);
+  // hygiene: allow a fixture address: fetch is injected, nothing is loaded
   assert.equal(plan[0].assets[0].url, "https://example.test/dl/b1/cpu.zip");
   assert.equal(plan[0].dirName, "llama.cpp-cpu");
   assert.deepEqual(planInstall(MANIFEST, { platform: "darwin", arch: "arm64" }).map((entry) => entry.variant), ["metal"]);
@@ -79,6 +82,7 @@ const respond = (bytes, status = 200) => async () => new Response(status === 200
 test("a download is streamed to disk and kept only when its hash matches", async (t) => {
   const dir = tempDir(t);
   const dest = path.join(dir, "cache", "cpu.zip");
+  // hygiene: allow a fixture address: fetch is injected, nothing is loaded
   const result = await downloadVerified({ url: "https://x/cpu.zip", sha256: sha("cpu-bytes"), dest, fetchImpl: respond("cpu-bytes") });
   assert.equal(result.bytes, 9);
   assert.equal(fs.readFileSync(dest, "utf8"), "cpu-bytes");
@@ -89,6 +93,7 @@ test("a download with the wrong hash is deleted and refused, never unpacked", as
   const dir = tempDir(t);
   const dest = path.join(dir, "cpu.zip");
   await assert.rejects(
+    // hygiene: allow a fixture address: fetch is injected, nothing is loaded
     () => downloadVerified({ url: "https://x/cpu.zip", sha256: sha("cpu-bytes"), dest, fetchImpl: respond("tampered") }),
     (error) => error.code === "engine_checksum_mismatch" && /hashed to/.test(error.why) && Boolean(error.fix),
   );
@@ -98,6 +103,7 @@ test("a download with the wrong hash is deleted and refused, never unpacked", as
 
 test("a failed HTTP answer is a download error naming the URL", async (t) => {
   await assert.rejects(
+    // hygiene: allow a fixture address: fetch is injected, nothing is loaded
     () => downloadVerified({ url: "https://x/missing.zip", sha256: "0", dest: path.join(tempDir(t), "m.zip"), fetchImpl: respond(null, 404) }),
     (error) => error.code === "engine_download_failed" && /404/.test(error.why),
   );

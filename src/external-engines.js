@@ -397,6 +397,7 @@ export class OllamaBackend {
   }
 }
 
+// hygiene: allow an example address in a doc comment, nothing is loaded
 /** "name=http://host:8000/v1#model": an OpenAI-compatible server to attach, with an optional model id. */
 export function parseOpenAiSpec(text) {
   const match = /^([A-Za-z0-9_.-]+)=(https?:\/\/[^#\s]+)(?:#(.+))?$/.exec(String(text ?? "").trim());

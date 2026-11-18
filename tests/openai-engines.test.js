@@ -50,6 +50,7 @@ function openAiServer({ models = ["tiny-q4"], finish = "stop", chunks = ["Fo", "
 test("an engine address is name=url with an optional model, and anything else is refused", () => {
   assert.deepEqual(parseOpenAiSpec("vllm=http://127.0.0.1:8000/v1"), { name: "vllm", baseUrl: "http://127.0.0.1:8000/v1", model: null });
   assert.deepEqual(parseOpenAiSpec("kobold=http://localhost:5001/v1/#tiny-q4"), { name: "kobold", baseUrl: "http://localhost:5001/v1", model: "tiny-q4" });
+  // hygiene: allow a fixture address: fetch is injected, nothing is loaded
   for (const bad of ["vllm", "=http://x/v1", "a=ftp://x", "a b=http://x", ""]) {
     assert.throws(() => parseOpenAiSpec(bad), (error) => error.code === "bad_option" && /name=url/.test(error.why), bad);
   }
@@ -125,10 +126,13 @@ test("the tuner uses each installed llama-server variant and each attached serve
       { id: "llama-server:cpu", ok: true, location: "C:\\e\\cpu\\llama-server.exe", backends: ["cpu"] },
       { id: "llama-server:vulkan", ok: true, location: "C:\\e\\vk\\llama-server.exe", backends: ["vulkan"] },
       { id: "llama-server:cuda", ok: false, location: "C:\\e\\cu\\llama-server.exe", backends: ["cuda"] },
+      // hygiene: allow a fixture address: fetch is injected, nothing is loaded
       { id: "openai:vllm", ok: true, location: "http://h:8000/v1" },
+      // hygiene: allow a fixture address: fetch is injected, nothing is loaded
       { id: "openai:unlisted", ok: true, location: "http://h:9/v1" },
     ],
   };
+  // hygiene: allow a fixture address: fetch is injected, nothing is loaded
   const { engines, candidates } = externalSetFrom(assessment, { registry: REGISTRY, openai: ["vllm=http://h:8000/v1#m"] });
   assert.deepEqual(Object.keys(engines).sort(), ["llama-server:cpu", "llama-server:vulkan", "openai:vllm"], "a variant that did not measure, and a server nobody attached, are not offered");
   assert.deepEqual(candidates, [

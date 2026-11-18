@@ -59,51 +59,17 @@ best shipped preset: 54.2% on code), or **Qwen2.5 0.5B Instruct** (469 MB) to st
 
 ### Inference engines
 
-ModelDuck can run a model on several inference engines, and **tunes and serves on the fastest one**.
-At the start of the device (CPU/GPU) stage of every tune it times each engine on the model
-being tuned (about 256 prompt tokens, 64 generated) and shows prompt and answer tokens per
-second with each engine's version, in the Bench panel and in `<home>/profiles/<model>.engines.json`.
-The device stage then judges every engine on the tune's own items, by the time it takes to
-answer them end to end, and picks the fastest one that is as accurate as the CPU. Every later
-stage (quality, speed, sampling, prompt) runs on that engine, the profile names it
-(`engine` in its load settings), and loading the model serves through it. Run the speed test
-alone with `npm run engines -- --model <file.gguf>`; skip it in a tune with `--no-engines`.
+ModelDuck tunes and serves on the fastest inference engine it can find. The device (CPU/GPU) stage of every tune first times each engine on your model (token speed and version, shown in the Bench panel and saved as `<model>.engines.json`), then judges them on the tune's own items. The fastest one that answers as well as the CPU is used for every later stage, named in the profile, and used when the model is loaded; if it cannot start, the in-process engine serves and the status says so.
 
-| Engine | How ModelDuck gets it | Timed | Answers the tuner's items |
-|---|---|---|---|
-| node-llama-cpp: CPU, Vulkan, CUDA, Metal | in the app (a backend that is missing is reported, never faked) | yes | yes, the default |
-| llama.cpp `llama-server`: each installed variant (cpu, vulkan, cuda) | `npm run engines:install` (official builds, MIT, pinned and SHA-256 checked) | yes | yes, and the app serves through it |
-| llama.cpp `llama-bench` | the same install | yes | no (it times, it does not generate) |
-| Ollama | a running server | yes | yes, and the app can serve through it |
-| vLLM, SGLang, TGI, mistral.rs, koboldcpp, llamafile, LM Studio, LocalAI | `--openai-engine name=http://host:port/v1[#model]` on a running server | yes | yes, measured only: someone else's process, so a saved profile cannot start it |
-| Your own llama.cpp build (for example ik_llama.cpp) | `--llama-server <file>` | yes | yes, in a tune, measured only: a saved profile cannot start a binary passed on one command line (install it as a variant to serve through it) |
-| An engine of your own | `--engine-plugin <file>` (see below) | as the plugin says | as the plugin says |
+| Engine | Where it comes from |
+|---|---|
+| node-llama-cpp: CPU, Vulkan, CUDA, Metal | built in, the default |
+| llama.cpp `llama-server`: cpu, vulkan, cuda | `npm run engines:install` (official builds, checksum-verified; `start.bat` runs it on first launch) |
+| Ollama | a running server |
+| vLLM, SGLang, TGI, mistral.rs, koboldcpp, llamafile, LM Studio | `--openai-engine name=url`, measured only |
+| Your own | `--engine-plugin <file>` |
 
-`npm run engines:install -- --variants cpu,vulkan,cuda` chooses what to download (CUDA is
-about 650 MB and needs an NVIDIA driver). Engines land in `engines/bin` and are never
-installed system-wide. Not bundled on purpose: koboldcpp (AGPL-3.0), and the servers that
-bring their own GPU stack (vLLM, SGLang, TGI), which need Linux and an NVIDIA GPU. Attach
-them when they are already running. A key, if one is needed, is read from `MODELDUCK_ENGINE_KEY`.
-
-An external engine must be at least 10% faster than the best in-process device to be
-chosen, since it is a second process to keep running; below that the in-process engine stays
-and the reason says by how much it fell short. If the chosen engine cannot start when the
-model is loaded (its files were removed, its GPU is gone), the in-process engine serves and
-the status bar says so: a saved profile never leaves you without a model. A profile also records the build of the engine it was measured on (for llama-server, the installed release); when you later install a different build, loading the model warns that the profile should be tuned again, and still applies it. An external engine
-refuses, with a Why and a Fix, the settings it cannot honour (`responsePrefix`, and
-`penalizeNewLine` off on llama-server) instead of quietly changing them; such a candidate
-simply fails during a tune. On this machine, with SmolLM2-135M, the same 5 x 100-token
-workload through `/v1/chat/completions` served 386 tok/s end to end on llama-server (Vulkan)
-against 149 on the in-process engine (Vulkan), and four concurrent clients were all answered in 364 ms.
-
-**Adding an engine.** Every engine is one descriptor in `src/engine-catalog.js`: a `kind`,
-whether the app can start it itself (`servable`), the adapters that time it, and (if it can
-generate) how to resolve it into an engine and which device candidates it offers. Nothing else
-in the code names an engine. A descriptor can live in your own file and be added with
-`--engine-plugin <file>` (on `npm run tune`, `npm run engines` and `node src/main.js`). Its backend
-must pass the conformance check in `tests/engine-contract.js`; `tests/engine-catalog.test.js` adds a
-made-up engine end to end (assessment, tuner adoption, serving, fallback) without touching any
-other source file.
+`npm run engines -- --model <file.gguf>` times them without tuning. The decision rules, what each engine can and cannot do, measurements, and how to add an engine: [docs/ENGINES.md](docs/ENGINES.md).
 
 ### AIKit Commands (run from the AIKit folder)
 
@@ -523,6 +489,13 @@ modelduck/
 │   ├── hf-reference.js
 │   ├── server.js
 │   ├── engine.js
+│   ├── engine-catalog.js <- engine descriptors
+│   ├── engine-env.js
+│   ├── engine-install.js <- engine installer
+│   ├── external-engines.js <- engines outside the process
+│   ├── inference-engine-adapters.js <- engine detection and timing
+│   ├── inference-engines.js <- engine speed assessment
+│   ├── thinking.js <- <think> block splitter
 │   ├── memory-fit.js
 │   ├── model-profiles.js
 │   ├── preset-match.js
@@ -557,8 +530,10 @@ modelduck/
 │   ├── state-machine.js
 │   ├── recommend.js
 │   └── system.js
+├── engines/ <- pinned engine manifest
 ├── docs/
 │   ├── THREAT-MODEL.md <- local-inference threat model
+│   ├── ENGINES.md <- inference engines
 │   ├── state-machines.md <- the 25-machine inventory and verified gaps
 │   ├── state-machines.json <- machine inventory checked by tests
 │   ├── state-machine-proposals.md <- judged proposals
@@ -575,11 +550,13 @@ modelduck/
 │       └── duck.svg <- the ModelDuck mascot and favicon
 ├── scripts/
 │   ├── capture-screenshots.mjs <- screenshot gallery
+│   ├── install-engines.mjs <- npm run engines:install
 │   ├── test-parallel.mjs <- sharded parallel `npm test` runner
 │   └── ui-smoke.mjs <- control-panel check
 ├── benchmarks/ <- seeded quality, speed and history gate
 │   ├── README.md
 │   ├── run.mjs
+│   ├── engine-speed.mjs <- npm run engines
 │   ├── merge-shards.mjs
 │   ├── suite.mjs
 │   ├── matrix.mjs
@@ -687,6 +664,13 @@ modelduck/
 │   ├── benchmark-tune-stats.test.js
 │   ├── tuned-settings.test.js
 │   ├── jit-tuned.test.js
+│   ├── engine-catalog.test.js
+│   ├── engine-contract.js <- engine backend check
+│   ├── engine-install.test.js
+│   ├── external-engines.test.js
+│   ├── inference-engines.test.js
+│   ├── openai-engines.test.js
+│   ├── thinking.test.js
 │   ├── engine-parallel.test.js
 │   ├── engine-reconfigure.test.js
 │   ├── engine-system-prompt.test.js
