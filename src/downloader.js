@@ -6,6 +6,7 @@ import path from "node:path";
 import { AppError } from "./errors.js";
 import { assertDiskSpace, ensureDirectory, formatBytes, promoteFileAtomic, withoutBom } from "./fs-atomic.js";
 import { checkDownloadFit, inspectGgufHeader } from "./gguf-guard.js";
+import { assertHuggingFaceFileUrl } from "./hf-reference.js";
 import { downloadUrl, getCatalogModel } from "./model-catalog.js";
 import { DOWNLOAD_MACHINE, moveTo } from "./state-machine.js";
 
@@ -119,6 +120,17 @@ export class DownloadManager {
         fix: "Use the file's resolve link on Hugging Face, which reports its size.",
       });
     }
+    // The host rule lives in one module (ADR-144): a direct caller can never
+    // send the gated token to another first hop or download another host.
+    assertHuggingFaceFileUrl(url);
+    if (sha256 !== undefined && sha256 !== null && typeof sha256 !== "string") {
+      throw new AppError("The SHA-256 is not valid", {
+        code: "invalid_source_sha256",
+        status: 400,
+        why: "The pin must be 64 hex characters of text.",
+        fix: "Send the SHA-256 as text, or leave it out.",
+      });
+    }
     const expected = typeof sha256 === "string" && sha256.trim() ? sha256.trim().toLowerCase() : null;
     if (expected && !/^[0-9a-f]{64}$/.test(expected)) {
       throw new AppError("The SHA-256 is not valid", {
@@ -126,14 +138,6 @@ export class DownloadManager {
         status: 400,
         why: `"${sha256}" is not a 64-character hex digest.`,
         fix: "Paste the SHA-256 from the file page, or leave the fingerprint empty.",
-      });
-    }
-    if (typeof url !== "string" || !/^https:\/\//i.test(url)) {
-      throw new AppError("The source URL is not valid", {
-        code: "invalid_source_url",
-        status: 400,
-        why: "Only an https file URL can be downloaded.",
-        fix: "Paste the Hugging Face file link again.",
       });
     }
     // IDEA-0995: a user-chosen file has no catalog identity, so its name is the
@@ -185,6 +189,15 @@ export class DownloadManager {
    * only through the same redirect gate the download uses.
    */
   async inspectSource({ url, sha256 = null }) {
+    assertHuggingFaceFileUrl(url);
+    if (sha256 !== undefined && sha256 !== null && typeof sha256 !== "string") {
+      throw new AppError("The SHA-256 is not valid", {
+        code: "invalid_source_sha256",
+        status: 400,
+        why: "The pin must be 64 hex characters of text.",
+        fix: "Send the SHA-256 as text, or leave it out.",
+      });
+    }
     const headers = { "User-Agent": "ModelDuck/0.1 (+local)", ...gatedDownloadHeaders() };
     let response;
     try {

@@ -221,7 +221,7 @@ test("startSource refuses a path, a short fingerprint, an unknown size or a plai
   await assert.rejects(() => manager.startSource({ ...base, file: "tiny.txt" }), (error) => error.code === "invalid_source_file");
   await assert.rejects(() => manager.startSource({ ...base, sha256: "abc" }), (error) => error.code === "invalid_source_sha256");
   await assert.rejects(() => manager.startSource({ ...base, size: 0 }), (error) => error.code === "invalid_source_size");
-  await assert.rejects(() => manager.startSource({ ...base, url: SOURCE_URL.replace("https:", "http:") }), (error) => error.code === "invalid_source_url");
+  await assert.rejects(() => manager.startSource({ ...base, url: SOURCE_URL.replace("https:", "http:") }), (error) => error.code === "invalid_hf_reference");
   assert.deepEqual(manager.list(), []);
 });
 
@@ -333,6 +333,37 @@ test("a receipt naming another URL is a conflict, not a silent reuse", async (t)
     () => manager.startSource({ url: SOURCE_URL, file: "tiny.gguf", name: "tiny", size: TINY_BYTES.length }),
     (error) => error.code === "source_name_conflict",
   );
+});
+
+test("the source methods refuse a non-Hugging-Face host before any request", async (t) => {
+  const manager = await makeManager(t, async () => {
+    throw new Error("should not fetch");
+  });
+  const elsewhere = SOURCE_URL.replace("huggingface.co", "example.com");
+  await assert.rejects(
+    () => manager.startSource({ url: elsewhere, file: "tiny.gguf", name: "tiny", size: TINY_BYTES.length }),
+    (error) => error.code === "invalid_hf_reference",
+  );
+  await assert.rejects(
+    () => manager.inspectSource({ url: elsewhere }),
+    (error) => error.code === "invalid_hf_reference",
+  );
+  assert.deepEqual(manager.list(), []);
+});
+
+test("the source methods refuse a non-string SHA-256 instead of unpinning the file", async (t) => {
+  const manager = await makeManager(t, async () => {
+    throw new Error("should not fetch");
+  });
+  await assert.rejects(
+    () => manager.inspectSource({ url: SOURCE_URL, sha256: 123 }),
+    (error) => error.code === "invalid_source_sha256",
+  );
+  await assert.rejects(
+    () => manager.startSource({ url: SOURCE_URL, file: "tiny.gguf", name: "tiny", size: TINY_BYTES.length, sha256: 123 }),
+    (error) => error.code === "invalid_source_sha256",
+  );
+  assert.deepEqual(manager.list(), []);
 });
 
 test("a download whose bytes match the catalog SHA-256 is promoted", async (t) => {

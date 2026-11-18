@@ -24,6 +24,24 @@ function refuse(message, why, fix = FIX) {
   throw new AppError(message, { code: "invalid_hf_reference", status: 400, why, fix });
 }
 
+/**
+ * The one host rule. The resolver and the downloader's source methods both call
+ * it, so a direct caller can never send the gated token to another first hop or
+ * download a file from elsewhere.
+ */
+export function assertHuggingFaceFileUrl(url) {
+  let parsed;
+  try {
+    parsed = new URL(String(url ?? ""));
+  } catch {
+    refuse("The address is not a URL", "It does not parse as a web address.");
+  }
+  if (parsed.protocol !== "https:") refuse("Only https addresses are accepted", `"${parsed.protocol}" would send the request in the clear.`);
+  const host = parsed.hostname.toLowerCase();
+  if (host !== HOST && host !== `www.${HOST}`) refuse("Only Hugging Face links are accepted", `${parsed.hostname} is not huggingface.co.`);
+  return parsed;
+}
+
 function decode(segment, what) {
   try {
     return decodeURIComponent(segment);
@@ -56,15 +74,7 @@ export function resolveHuggingFaceReference(reference) {
     repo = head;
     fileSegments = parts.slice(2);
   } else {
-    let url;
-    try {
-      url = new URL(text);
-    } catch {
-      return refuse("The address is not a URL", "It does not parse as a web address.");
-    }
-    if (url.protocol !== "https:") refuse("Only https addresses are accepted", `"${url.protocol}" would send the download in the clear.`);
-    const host = url.hostname.toLowerCase();
-    if (host !== HOST && host !== `www.${HOST}`) refuse("Only Hugging Face links are accepted", `${url.hostname} is not huggingface.co.`);
+    const url = assertHuggingFaceFileUrl(text);
     if (url.port || url.username || url.password) refuse("The link carries credentials or a port", "Paste the plain model file link from Hugging Face.");
     if (url.search || url.hash) refuse("The link has a query or a fragment", "Keep only the path to the .gguf file.");
     const parts = url.pathname.split("/").filter(Boolean).map((segment) => decode(segment, "path"));
