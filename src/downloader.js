@@ -11,6 +11,8 @@ import { DOWNLOAD_MACHINE, moveTo } from "./state-machine.js";
 
 const MAX_ACTIVE = 2;
 const IDLE_TIMEOUT_MS = 60_000;
+// IDEA-0995: a user-chosen file is capped so a bad link cannot fill the disk.
+const MAX_SOURCE_BYTES = 32 * 1024 ** 3;
 // Hugging Face resolve URLs redirect to its own CDN hosts; the token stays
 // only on Hugging Face infrastructure, never on a third-party host.
 const MAX_REDIRECT_HOPS = 5;
@@ -91,14 +93,135 @@ export class DownloadManager {
         fix: "Refresh the model list and choose one of the listed downloads.",
       });
     }
+    return this.#startModel(model);
+  }
 
+  /**
+   * IDEA-0995: download one file the user named on Hugging Face. The source is
+   * already resolved and inspected by the caller, so no catalog entry exists;
+   * the job carries its own URL and the receipt records it.
+   */
+  async startSource({ url, file, name, size, sha256 = null, quant = null }) {
+    const fileName = String(file ?? "");
+    if (path.basename(fileName) !== fileName || !/\.gguf$/i.test(fileName)) {
+      throw new AppError("The file name is not valid", {
+        code: "invalid_source_file",
+        status: 400,
+        why: `"${fileName}" is not a plain .gguf file name.`,
+        fix: "Paste the Hugging Face file link again.",
+      });
+    }
+    if (!Number.isFinite(size) || size <= 0) {
+      throw new AppError("The source size is unknown", {
+        code: "invalid_source_size",
+        status: 400,
+        why: "The download cannot start without the file's exact size.",
+        fix: "Use the file's resolve link on Hugging Face, which reports its size.",
+      });
+    }
+    const expected = typeof sha256 === "string" && sha256.trim() ? sha256.trim().toLowerCase() : null;
+    if (expected && !/^[0-9a-f]{64}$/.test(expected)) {
+      throw new AppError("The SHA-256 is not valid", {
+        code: "invalid_source_sha256",
+        status: 400,
+        why: `"${sha256}" is not a 64-character hex digest.`,
+        fix: "Paste the SHA-256 from the file page, or leave the fingerprint empty.",
+      });
+    }
+    if (typeof url !== "string" || !/^https:\/\//i.test(url)) {
+      throw new AppError("The source URL is not valid", {
+        code: "invalid_source_url",
+        status: 400,
+        why: "Only an https file URL can be downloaded.",
+        fix: "Paste the Hugging Face file link again.",
+      });
+    }
+    return this.#startModel({
+      id: null,
+      name: String(name ?? fileName.replace(/\.gguf$/i, "")),
+      file: fileName,
+      size,
+      sha256: expected,
+      url,
+      quant: quant ?? null,
+    });
+  }
+
+  /**
+   * IDEA-0995: ask Hugging Face how large a resolved file is before a job is
+   * created, so the disk and fit checks run on a real number. The token rides
+   * only through the same redirect gate the download uses.
+   */
+  async inspectSource({ url, sha256 = null }) {
+    const headers = { "User-Agent": "ModelDuck/0.1 (+local)", ...gatedDownloadHeaders() };
+    let response;
+    try {
+      response = await this.#fetchFollowingRedirects(url, {
+        headers,
+        method: "HEAD",
+        signal: AbortSignal.timeout(this.#idleTimeoutMs),
+      });
+    } catch (error) {
+      throw new AppError("Hugging Face did not answer", {
+        code: "source_unreachable",
+        status: 502,
+        why: error?.message || "The size check could not reach Hugging Face.",
+        fix: "Check your internet connection, then try again.",
+      });
+    }
+    if (response.status === 401 || response.status === 403) {
+      throw new AppError("Hugging Face refused the file", {
+        code: "download_unauthorized",
+        status: 502,
+        why: `Hugging Face answered HTTP ${response.status}; the model needs access approval.`,
+        fix: "Approve the model on Hugging Face, set HF_TOKEN, then retry. The token is never stored.",
+      });
+    }
+    if (response.status === 404) {
+      throw new AppError("The file was not found", {
+        code: "source_not_found",
+        status: 404,
+        why: "Hugging Face has no file at that address.",
+        fix: "Open the repository's Files tab and copy the .gguf link again.",
+      });
+    }
+    if (!response.ok) {
+      throw new AppError(`The size check failed with HTTP ${response.status}`, {
+        code: "source_check_failed",
+        status: 502,
+        why: `Hugging Face answered HTTP ${response.status} to the size check.`,
+        fix: "Check your internet connection, then try again.",
+      });
+    }
+    const advertised = Number(response.headers?.get?.("content-length"));
+    if (!Number.isFinite(advertised) || advertised <= 0) {
+      throw new AppError("The file size is unknown", {
+        code: "source_size_unknown",
+        status: 502,
+        why: "Hugging Face did not report how large the file is, so it cannot be downloaded safely.",
+        fix: "Use the file's resolve link, or pick a model from ModelDuck's catalog.",
+      });
+    }
+    if (advertised > MAX_SOURCE_BYTES) {
+      throw new AppError("The file is too large", {
+        code: "source_too_large",
+        status: 413,
+        why: `${formatBytes(advertised)} is larger than the ${formatBytes(MAX_SOURCE_BYTES)} limit for a user-chosen file.`,
+        fix: "Choose a smaller quantization, or pick a model from ModelDuck's catalog.",
+      });
+    }
+    return { url, size: advertised, sha256: typeof sha256 === "string" && sha256.trim() ? sha256.trim().toLowerCase() : null };
+  }
+
+  async #startModel(model) {
     const active = [...this.#jobs.values()].filter(
       (job) => job.status === "queued" || job.status === "downloading",
     );
     // Two jobs for one model would append to the same .part file and promote a corrupt model.
-    const running = active.find((job) => job.catalogId === model.id);
+    const running = active.find((job) => (model.id ? job.catalogId === model.id : job.fileName === model.file));
     if (running) return this.#publicJob(running);
-    if (this.#starting.has(model.id)) {
+    const key = model.id ?? `file:${model.file}`;
+    if (this.#starting.has(key)) {
       throw new AppError("This download is already starting", {
         code: "download_starting",
         status: 409,
@@ -114,11 +237,11 @@ export class DownloadManager {
         fix: "Wait for one download to finish, or cancel it.",
       });
     }
-    this.#starting.add(model.id);
+    this.#starting.add(key);
     try {
       return await this.#beginStart(model);
     } finally {
-      this.#starting.delete(model.id);
+      this.#starting.delete(key);
     }
   }
 
@@ -182,12 +305,17 @@ export class DownloadManager {
     const startedAt = new Date().toISOString();
     return {
       id: randomUUID(),
-      catalogId: model.id,
-      modelId: model.id,
+      catalogId: model.id ?? null,
+      modelId: model.id ?? null,
       name: model.name,
       fileName: model.file,
       size: model.size,
       sha256: model.sha256 ?? null,
+      // IDEA-0995: a user-chosen file has no catalog entry; its own source URL
+      // and quantization travel with the job and into the receipt.
+      url: model.url ?? null,
+      quant: model.quant ?? null,
+      model,
       received: 0,
       total: model.size,
       status: "queued",
@@ -226,12 +354,12 @@ export class DownloadManager {
    * *.huggingface.co CDN); any other redirect target — or an https-to-http
    * downgrade — drops it before the request is sent.
    */
-  async #fetchFollowingRedirects(url, { headers = {}, signal } = {}) {
+  async #fetchFollowingRedirects(url, { headers = {}, signal, method = "GET" } = {}) {
     const originHost = new URL(url).hostname.toLowerCase();
     let current = url;
     let outgoing = { ...headers };
     for (let hop = 0; hop <= MAX_REDIRECT_HOPS; hop += 1) {
-      const response = await this.#fetch(current, { headers: outgoing, signal, redirect: "manual" });
+      const response = await this.#fetch(current, { headers: outgoing, signal, method, redirect: "manual" });
       const location = response.headers?.get?.("location");
       if (![301, 302, 303, 307, 308].includes(response.status) || !location) return response;
       const next = new URL(location, current);
@@ -271,13 +399,13 @@ export class DownloadManager {
     // catalog entry; another model's bytes are never appended. Parts written
     // before receipts existed have no receipt and resume once (the end-to-end
     // SHA-256 still guards them); the receipt written below covers next time.
-    const model = this.#getModel(job.catalogId);
+    const model = job.model ?? this.#getModel(job.catalogId);
+    const sourceUrl = job.url ?? (() => { try { return downloadUrl(model); } catch { return null; } })();
     const identity = { catalogId: job.catalogId, file: job.fileName, size: job.size, sha256: job.sha256 ?? null };
     if (partSize > 0) {
       try {
         const prior = JSON.parse(await fs.promises.readFile(resumePath, "utf8"));
-        const wantUrl = (() => { try { return downloadUrl(model); } catch { return null; } })();
-        if (prior?.catalogId !== identity.catalogId || prior?.size !== identity.size || (prior?.sha256 ?? null) !== identity.sha256 || (wantUrl && prior?.url && prior.url !== wantUrl)) {
+        if (prior?.catalogId !== identity.catalogId || prior?.size !== identity.size || (prior?.sha256 ?? null) !== identity.sha256 || (sourceUrl && prior?.url && prior.url !== sourceUrl)) {
           await fs.promises.truncate(partPath, 0).catch(() => {});
           partSize = 0;
         }
@@ -297,7 +425,7 @@ export class DownloadManager {
     job.received = partSize;
     job.controller = new AbortController();
     // Record whose bytes the .part file holds before any byte is appended.
-    await fs.promises.writeFile(resumePath, JSON.stringify({ ...identity, url: downloadUrl(model), startedAt: new Date().toISOString() })).catch(() => {});
+    await fs.promises.writeFile(resumePath, JSON.stringify({ ...identity, url: sourceUrl, startedAt: new Date().toISOString() })).catch(() => {});
     // A connection that stops sending data would otherwise stay "downloading" forever
     // and hold one of the two download slots; the .part file is kept for resume.
     let idleTimer = null;
@@ -316,7 +444,7 @@ export class DownloadManager {
       const headers = { "User-Agent": "ModelDuck/0.1 (+local)", ...auth };
       if (partSize > 0) headers.Range = `bytes=${partSize}-`;
 
-      let response = await this.#fetchFollowingRedirects(downloadUrl(this.#getModel(job.catalogId)), {
+      let response = await this.#fetchFollowingRedirects(sourceUrl, {
         headers,
         signal: job.controller.signal,
       });
@@ -325,7 +453,7 @@ export class DownloadManager {
         await fs.promises.truncate(partPath, 0).catch(() => {});
         partSize = 0;
         job.received = 0;
-        response = await this.#fetchFollowingRedirects(downloadUrl(this.#getModel(job.catalogId)), {
+        response = await this.#fetchFollowingRedirects(sourceUrl, {
           headers: { "User-Agent": "ModelDuck/0.1 (+local)", ...gatedDownloadHeaders() },
           signal: job.controller.signal,
         });
@@ -433,7 +561,7 @@ export class DownloadManager {
       await promoteFileAtomic(partPath, finalPath);
       await fs.promises.rm(resumePath, { force: true }).catch(() => {});
       // IDEA-1067/1194: measured artifact receipt binds digest, quant and source.
-      const catalogEntry = this.#getModel(job.catalogId);
+      const catalogEntry = job.model ? null : this.#getModel(job.catalogId);
       await fs.promises.writeFile(
         receiptPath(this.#modelsDir, job.fileName),
         JSON.stringify({
@@ -442,8 +570,8 @@ export class DownloadManager {
           size: job.size,
           sha256: job.sha256 ?? null,
           digest,
-          quant: catalogEntry?.quant ?? null,
-          url: catalogEntry ? downloadUrl(catalogEntry) : null,
+          quant: job.quant ?? catalogEntry?.quant ?? null,
+          url: sourceUrl ?? (catalogEntry ? downloadUrl(catalogEntry) : null),
           downloadedAt: new Date().toISOString(),
         }),
       ).catch(() => {});

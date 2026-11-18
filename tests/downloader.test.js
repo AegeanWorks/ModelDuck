@@ -171,6 +171,110 @@ async function tinyManager(t, body, { status = 200, part = null } = {}) {
   return { directory, final: manager.get(job.id) };
 }
 
+// hygiene: allow fixed fixture URL for the user-chosen-source unit tests, never fetched
+const SOURCE_URL = "https://huggingface.co/duck/tiny/resolve/main/tiny.gguf";
+
+test("a user-chosen source is inspected with a HEAD request and its size reported", async (t) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "modelduck-source-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const seen = [];
+  const manager = new DownloadManager({
+    modelsDir: directory,
+    logger,
+    fetchImpl: async (url, init) => {
+      seen.push({ url: String(url), method: init.method });
+      return new Response(null, { status: 200, headers: { "content-length": String(TINY_BYTES.length) } });
+    },
+  });
+  const url = SOURCE_URL;
+  assert.deepEqual(await manager.inspectSource({ url }), { url, size: TINY_BYTES.length, sha256: null });
+  assert.deepEqual(seen, [{ url, method: "HEAD" }]);
+  assert.deepEqual(await manager.inspectSource({ url, sha256: "A1".repeat(32) }), { url, size: TINY_BYTES.length, sha256: "a1".repeat(32) });
+});
+
+test("a source without a size, missing, refused or over the cap never becomes a job", async (t) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "modelduck-source-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const url = SOURCE_URL;
+  const manager = (headers, status = 200) =>
+    new DownloadManager({
+      modelsDir: directory,
+      logger,
+      fetchImpl: async () => new Response(null, { status, headers }),
+    });
+  await assert.rejects(() => manager({}).inspectSource({ url }), (error) => error.code === "source_size_unknown");
+  await assert.rejects(() => manager({}, 404).inspectSource({ url }), (error) => error.code === "source_not_found");
+  await assert.rejects(() => manager({}, 401).inspectSource({ url }), (error) => error.code === "download_unauthorized");
+  await assert.rejects(
+    () => manager({ "content-length": String(33 * 1024 ** 3) }).inspectSource({ url }),
+    (error) => error.code === "source_too_large",
+  );
+  assert.deepEqual(await readdir(directory), []);
+});
+
+test("startSource refuses a path, a short fingerprint, an unknown size or a plain-http URL", async (t) => {
+  const manager = await makeManager(t, async () => {
+    throw new Error("should not fetch");
+  });
+  const base = { url: SOURCE_URL, file: "tiny.gguf", size: TINY_BYTES.length };
+  await assert.rejects(() => manager.startSource({ ...base, file: "../tiny.gguf" }), (error) => error.code === "invalid_source_file");
+  await assert.rejects(() => manager.startSource({ ...base, file: "tiny.txt" }), (error) => error.code === "invalid_source_file");
+  await assert.rejects(() => manager.startSource({ ...base, sha256: "abc" }), (error) => error.code === "invalid_source_sha256");
+  await assert.rejects(() => manager.startSource({ ...base, size: 0 }), (error) => error.code === "invalid_source_size");
+  await assert.rejects(() => manager.startSource({ ...base, url: SOURCE_URL.replace("https:", "http:") }), (error) => error.code === "invalid_source_url");
+  assert.deepEqual(manager.list(), []);
+});
+
+test("a source download promotes the file and records its URL in the receipt", async (t) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "modelduck-source-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const url = SOURCE_URL;
+  const manager = new DownloadManager({
+    modelsDir: directory,
+    logger,
+    fetchImpl: async () => new Response(TINY_BYTES, { status: 200, headers: { "content-length": String(TINY_BYTES.length) } }),
+  });
+  const job = await manager.startSource({ url, file: "tiny.gguf", name: "tiny", size: TINY_BYTES.length, sha256: TINY.sha256 });
+  for (let index = 0; index < 100 && ["queued", "downloading"].includes(manager.get(job.id).status); index += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+  assert.equal(manager.get(job.id).status, "complete");
+  assert.ok((await readdir(directory)).includes("tiny.gguf"));
+  const receipt = await readInstallReceipt(directory, "tiny.gguf");
+  assert.equal(receipt.catalogId, null);
+  assert.equal(receipt.url, url);
+  assert.equal(receipt.sha256, TINY.sha256);
+  assert.equal(receipt.digest, TINY.sha256);
+});
+
+test("two starts for one source file share a job instead of one .part file", async (t) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "modelduck-source-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  let release;
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  const manager = new DownloadManager({
+    modelsDir: directory,
+    logger,
+    fetchImpl: async () => {
+      await gate;
+      return new Response(TINY_BYTES, { status: 200, headers: { "content-length": String(TINY_BYTES.length) } });
+    },
+  });
+  const source = {
+    url: SOURCE_URL,
+    file: "tiny.gguf",
+    name: "tiny",
+    size: TINY_BYTES.length,
+  };
+  const first = await manager.startSource(source);
+  const second = await manager.startSource(source);
+  assert.equal(second.id, first.id);
+  await manager.cancel(first.id);
+  release();
+});
+
 test("a download whose bytes match the catalog SHA-256 is promoted", async (t) => {
   const { directory, final } = await tinyManager(t, TINY_BYTES);
   assert.equal(final.status, "complete");

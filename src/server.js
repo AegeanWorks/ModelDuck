@@ -34,6 +34,7 @@ import { readSteps, writeSteps } from "./tune-steps.js";
 import { DEFAULT_STEPS, estimateTune, expectedAnswers, settingNames } from "../benchmarks/tune-grid.mjs";
 import { STAGES } from "../benchmarks/tune.mjs";
 import { handleOpenAI } from "./openai.js";
+import { resolveHuggingFaceReference } from "./hf-reference.js";
 import { settingPresets } from "./config.js";
 import { recommendCatalog, recommendModels } from "./recommend.js";
 import { restartRequiredFor } from "./server-settings.js";
@@ -1044,6 +1045,39 @@ export function createHttpServer({
       const body = await readJsonBody(req);
       const model = await registry.importFromPath(body.path);
       sendJson(res, 201, { model, models: await registry.scan() });
+      return;
+    }
+
+    // IDEA-0995: one validated Hugging Face file, downloaded like a catalog
+    // entry but with its own source URL and no curated hash unless the user
+    // pins one. The reference is resolved before any network request.
+    if (pathname === "/api/models/add-hf" && method === "POST") {
+      requireLocalAction(req, {
+        code: "model_library_local_only",
+        message: "The model library is local only",
+        why: "Adding a download changes files on this computer.",
+        fix: "Open the ModelDuck UI on the computer running the server.",
+      });
+      if (!downloads) throw new AppError("Downloads unavailable", { code: "downloads_unavailable", status: 503 });
+      const body = await readJsonBody(req);
+      const reference = resolveHuggingFaceReference(body.reference);
+      const inspected = await downloads.inspectSource({ url: reference.url, sha256: body.sha256 });
+      const job = await downloads.startSource({
+        url: reference.url,
+        file: reference.fileName,
+        name: reference.name,
+        size: inspected.size,
+        sha256: inspected.sha256,
+      });
+      sendJson(res, 202, {
+        job,
+        reference: {
+          repo: reference.repo,
+          revision: reference.revision,
+          fileName: reference.fileName,
+          url: reference.url,
+        },
+      });
       return;
     }
 

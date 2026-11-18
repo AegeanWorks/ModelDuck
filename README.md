@@ -461,6 +461,7 @@ modelduck/
 ├── src/
 │   ├── main.js
 │   ├── drain.js
+│   ├── hf-reference.js
 │   ├── server.js
 │   ├── engine.js
 │   ├── memory-fit.js
@@ -582,6 +583,7 @@ modelduck/
 ├── tests/
 │   ├── helpers.js
 │   ├── drain.test.js
+│   ├── hf-reference.test.js
 │   ├── ui-shell.test.js
 │   ├── local-actions.test.js
 │   ├── state-machine.test.js

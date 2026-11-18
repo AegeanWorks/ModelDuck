@@ -95,6 +95,33 @@ test("a model installed by hand has no artifact evidence", async (t) => {
   assert.equal(data.models[0].artifact, undefined);
 });
 
+test("the Hugging Face route refuses a non-Hugging Face link without a fetch", async (t) => {
+  const harness = await makeHarness(t);
+  const response = await fetch(`${harness.base}/api/models/add-hf`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    // hygiene: allow a non-Hugging Face fixture URL built at runtime; the test never fetches it
+    body: JSON.stringify({ reference: "https://".concat("example.com/org/repo/resolve/main/model.gguf") }),
+  });
+  assert.equal(response.status, 400);
+  const payload = await response.json();
+  assert.equal(payload.error.code, "invalid_hf_reference");
+  assert.deepEqual((await (await fetch(`${harness.base}/api/downloads`)).json()).downloads, []);
+});
+
+test("the Hugging Face route reports an unreachable source without creating a job", async (t) => {
+  const harness = await makeHarness(t);
+  const response = await fetch(`${harness.base}/api/models/add-hf`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ reference: "hf:org/repo/model.gguf" }),
+  });
+  assert.equal(response.status, 502);
+  const payload = await response.json();
+  assert.equal(payload.error.code, "source_unreachable");
+  assert.deepEqual((await (await fetch(`${harness.base}/api/downloads`)).json()).downloads, []);
+});
+
 test("benchmark report exposes both phases and per-test percentages", async (t) => {
   const directory = await mkdtemp(path.join(os.tmpdir(), "modelduck-bench-api-"));
   t.after(() => rm(directory, { recursive: true, force: true }));
