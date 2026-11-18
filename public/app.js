@@ -1249,10 +1249,19 @@ async function addHuggingFace() {
     els.hfReference.value = "";
     els.hfSha256.value = "";
     renderHfJobs();
-    startDownloadPolling();
-    showToast("Download started", {
-      message: `${data.reference.repo} · ${formatBytes(data.job.size)}`,
-    });
+    if (data.job.status === "complete") {
+      // ADR-146: the idempotent add is already installed; no download ran, and
+      // the poll must not toast a second "complete" for this job.
+      state.completedDownloads.add(data.job.id);
+      showToast("Already in your library", {
+        message: `${data.reference.repo} is installed and matches its receipt.`,
+      });
+    } else {
+      startDownloadPolling();
+      showToast("Download started", {
+        message: `${data.reference.repo} · ${formatBytes(data.job.size)}`,
+      });
+    }
   } catch (error) {
     showError(error);
   } finally {

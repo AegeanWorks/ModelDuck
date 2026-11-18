@@ -159,8 +159,9 @@ async function main() {
           if (!String(body.reference ?? "").startsWith("hf:")) {
             return json({ error: { message: "Hugging Face refused the link", code: "invalid_hf_reference", why: "The address is empty.", fix: "Paste a link like hf:org/repo/file.gguf." } }, 400);
           }
-          const job = { id: "hf-job-1", catalogId: null, modelId: null, name: "fixture-model", fileName: "fixture.gguf", size: 1024, received: 0, total: 1024, percent: 0, status: "downloading", startedAt: new Date().toISOString(), finishedAt: null, error: null };
-          window.__uiSmokeDownloads = [job];
+          const already = String(body.reference).includes("installed.gguf");
+          const job = { id: already ? "hf-job-installed" : "hf-job-1", catalogId: null, modelId: null, name: "fixture-model", fileName: "fixture.gguf", size: 1024, received: already ? 1024 : 0, total: 1024, percent: already ? 100 : 0, status: already ? "complete" : "downloading", startedAt: new Date().toISOString(), finishedAt: already ? new Date().toISOString() : null, error: null };
+          window.__uiSmokeDownloads = already ? [] : [job];
           return json({ job, reference: { repo: "org/repo", revision: "main", fileName: "fixture.gguf", url: "https://huggingface.co/org/repo/resolve/main/fixture.gguf" } }, 202);
         }
         if (url.pathname === "/api/downloads" && method === "GET") return json({ downloads: window.__uiSmokeDownloads ?? [] });
@@ -351,6 +352,17 @@ async function main() {
       await waitFor(() => evaluate('[...document.querySelectorAll(".toast.error")].length === 0'), 2_000),
       "the refusal toast did not close and would leak into the next section",
     );
+    // ADR-146: an idempotent add (already complete) says so and starts nothing.
+    await evaluate(`(() => { document.getElementById("hf-reference").value = "hf:org/repo/installed.gguf"; document.getElementById("hf-add").click(); return true; })()`);
+    assert.ok(
+      await waitFor(() => evaluate('(window.__uiSmokeRequests ?? []).some((item) => item.body.reference === "hf:org/repo/installed.gguf")'), 3_000),
+      "the already-installed reference was not posted",
+    );
+    assert.ok(
+      await waitFor(() => evaluate('/Already in your library/.test(document.querySelector(".toast")?.textContent ?? "")'), 3_000),
+      "an already-installed add still announces a download",
+    );
+    assert.equal(await evaluate('document.getElementById("hf-reference").value'), "", "the form did not clear after an idempotent add");
     await evaluate('document.getElementById("models-dialog").close(), true');
 
     await evaluate('document.getElementById("open-settings").click(), true');
