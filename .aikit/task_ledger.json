@@ -1,11 +1,11 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "text-content-parts",
+    "task_id": "docs-test-counts",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1795029437.7852452,
+    "updated_at": 1795030142.092441,
     "owner": "kilo:1",
     "started_by": "kilo:1",
     "continuations": [],
@@ -15,70 +15,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795029438.5346324,
-    "completed_head": "2d504076d0fc88dc2432f24744f48eb5ba10b003",
-    "completed_tree": "d2827a545f9304833cb7730e6597251191218cc8"
+    "completed_at": 1795030142.8699458,
+    "completed_head": "41482e0c6ae87d70b65ef25534f8292253718b85",
+    "completed_tree": "b5d013aaf0d77a8175fad4d0c72b85397194c595"
   },
   "checkpoints": [
-    {
-      "task_id": "source-hardening",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/2] Keep the Hugging Face host rule in one exported helper (assertHuggingFaceFileUrl) and call it from inspectSource and startSource too, so a direct caller can never send the token to a non-Hugging-Face first hop or download another host; refuse a non-string SHA-256 instead of ignoring it. Failing-first tests for both methods; [2/2] npm test, a full pinned live import in a temp home (download, header check, promotion, receipt, Installed line), aikit check, ADR-144, UI review, commit (G-001 not applicable: download path only)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795002632.445852,
-      "timestamp_str": "2026-11-18 14:50:32",
-      "agent": "kilo:1",
-      "impact_assessment": {
-        "why": "Only the route enforced the host; the methods are exported and one direct call would send the HF token on the first request to any host and could download any https file, and a numeric sha256 was silently dropped",
-        "benefits": "The guardrail lives in one module and every source entry point enforces it; a mistyped pin is refused instead of unpinning the file",
-        "risks": "contract: source methods refuse non-HF URLs and non-string pins; dependency: none; concurrency: none; state: none",
-        "mitigation": "the canonical resolver URL and www host still pass; catalog downloads do not use these methods; tests pin both refusals and no engine/job is created"
-      },
-      "plan_digest": "6f6a9a9aca18768b4ac2790f217302a2247f05f26320fc964734b7234efee697",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "task_id": "source-hardening",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[2/2] npm test 922/923 pass, 1 skipped; both source methods refuse a non-Hugging-Face host before any request and a non-string pin; live pinned import in a clean home downloaded 105,454,432 bytes, receipt url+sha256 correct, Installed showed Verified with a green dot, the model loaded and answered a chat request; aikit check 4/4; ADR-144; UI review recorded; G-001 not applicable (download path only)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795004268.1478474,
-      "timestamp_str": "2026-11-18 15:17:48",
-      "agent": "kilo:1",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "task_id": "source-hardening",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'source-hardening' completed successfully.",
-      "status": "completed",
-      "timestamp": 1795004268.9699185,
-      "timestamp_str": "2026-11-18 15:17:48",
-      "agent": "kilo:1",
-      "head": "5e607e86bd1135ebd0a576f6c88784f94d37e5b3",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
     {
       "task_id": "context-cap",
       "phase": "phase 4",
@@ -402,6 +343,65 @@
       "timestamp_str": "2026-11-18 22:17:18",
       "agent": "kilo:1",
       "head": "2d504076d0fc88dc2432f24744f48eb5ba10b003",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
+    },
+    {
+      "task_id": "docs-test-counts",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/1] Track B: correct JUDGES.md's stale test figures from about 840 tests and 8-12 seconds to about 930 tests and 12-25 seconds, noting the sharded runner; no code, rules or schemas change, so no ADR is needed (the counts are facts, not a decision). Then run the project check, commit, and record the Post-Flight checklist.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795030001.1492956,
+      "timestamp_str": "2026-11-18 22:26:41",
+      "agent": "kilo:1",
+      "impact_assessment": {
+        "why": "JUDGES.md is the judge-facing verification recipe and quotes a test count and runtime that are now wrong (928 tests, measured 12-25 s), which undermines the document's credibility",
+        "benefits": "The recipe matches what a judge will see; no other content changes",
+        "risks": "contract: docs only; dependency: none; concurrency: none; state: none",
+        "mitigation": "only the two figures change; the test command, expected output and sharding note stay"
+      },
+      "plan_digest": "5da0721f8f261f3804ea7064ebaa75e131a84ebb221ceb9f3c54a2916bdb8959",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "docs-test-counts",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[1/1] Track B complete: JUDGES.md now says about 930 hermetic tests and 12-25 seconds (about 13 with test:parallel); aikit check 4/4 (hygiene, guidelines, secrets, tests 927/928); docs-only, so no ADR was required; no UI change",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795030142.092441,
+      "timestamp_str": "2026-11-18 22:29:02",
+      "agent": "kilo:1",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "docs-test-counts",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'docs-test-counts' completed successfully.",
+      "status": "completed",
+      "timestamp": 1795030142.931415,
+      "timestamp_str": "2026-11-18 22:29:02",
+      "agent": "kilo:1",
+      "head": "41482e0c6ae87d70b65ef25534f8292253718b85",
       "delivery": {
         "roots": [
           "."
