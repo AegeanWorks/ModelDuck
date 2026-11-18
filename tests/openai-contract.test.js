@@ -137,6 +137,7 @@ class RecordingEngine extends FakeEngine {
   }
 
   async chat(args) {
+    this.lastChat = args;
     this.requests.push(args.settings);
     return super.chat(args);
   }
@@ -312,6 +313,30 @@ test("a completion body without a usable prompt keeps the OpenAI error shape", a
   assert.equal(payload.error.code, "invalid_request_error");
   assert.match(payload.error.message, /non-empty text prompt/);
   assert.equal(engine.requests.length, 0);
+});
+
+test("a text-part array becomes one message, and non-text parts are refused", async (t) => {
+  const engine = new RecordingEngine();
+  const harness = await makeHarness(t, { engine });
+  const text = await postOpenAi(harness, "/v1/chat/completions", chatBody({
+    messages: [{ role: "user", content: [{ type: "text", text: "hello " }, { type: "text", text: "world" }] }],
+  }));
+  assert.equal(text.status, 200);
+  assert.equal(engine.lastChat.messages[0].content, "hello world");
+
+  for (const content of [
+    // hygiene: allow a fixture image URL; the request is refused before any fetch.
+    [{ type: "image_url", image_url: { url: "https://example.com/duck.png" } }],
+    [{ type: "text", text: "hi" }, { type: "input_audio", input_audio: { data: "AAAA", format: "wav" } }],
+    [{ type: "text" }],
+  ]) {
+    const response = await postOpenAi(harness, "/v1/chat/completions", chatBody({ messages: [{ role: "user", content }] }));
+    assert.equal(response.status, 400, `a non-text part was accepted: ${JSON.stringify(content)}`);
+    const payload = await response.json();
+    assert.equal(payload.error.type, "invalid_request_error");
+    assert.match(payload.error.message, /text parts only|no vision|non-text/);
+  }
+  assert.equal(engine.requests.length, 1, "a refused content part still reached the engine");
 });
 
 // IDEA-1074: the two-phase stream failure contract. A failed stream always ends with a

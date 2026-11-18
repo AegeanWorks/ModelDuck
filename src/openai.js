@@ -47,8 +47,18 @@ function contentText(content, role) {
   if (typeof content === "string") return content;
   if (Array.isArray(content)) {
     return content
-      .filter((part) => part && part.type === "text" && typeof part.text === "string")
-      .map((part) => part.text)
+      .map((part) => {
+        if (!part || typeof part !== "object" || part.type !== "text" || typeof part.text !== "string") {
+          // Refuse instead of dropping: a dropped image part used to become an
+          // empty message and the misleading "last message must be from the user".
+          throw new AppError(`Unsupported content for ${role}`, {
+            code: "invalid_request_error",
+            why: `This server reads text parts only; the ${role} message contains a non-text part.`,
+            fix: "Remove image, audio or other non-text parts; ModelDuck has no vision or audio input.",
+          });
+        }
+        return part.text;
+      })
       .join("");
   }
   throw new AppError(`Invalid content for ${role}`, {
