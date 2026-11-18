@@ -1,11 +1,11 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "add-hf-local-action",
+    "task_id": "text-content-parts",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1795027513.819153,
+    "updated_at": 1795029437.7852452,
     "owner": "kilo:1",
     "started_by": "kilo:1",
     "continuations": [],
@@ -15,70 +15,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795027514.511528,
-    "completed_head": "40ab33ca04e366da2a9625055baff604dd109c3a",
-    "completed_tree": "39a14363733fc8eb211b5235058073ec51483c11"
+    "completed_at": 1795029438.5346324,
+    "completed_head": "2d504076d0fc88dc2432f24744f48eb5ba10b003",
+    "completed_tree": "d2827a545f9304833cb7730e6597251191218cc8"
   },
   "checkpoints": [
-    {
-      "task_id": "no-split-parts",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/2] Refuse a split GGUF part (name matching -00001-of-00002.gguf) in the Hugging Face resolver with a Fix that points at the single-file quantization; leave names that merely contain of or digits alone. Failing-first resolver tests; [2/2] npm test, aikit check, ADR-143, UI review, commit (G-001 not applicable: resolver only)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794995865.8069766,
-      "timestamp_str": "2026-11-18 12:57:45",
-      "agent": "kilo:1",
-      "impact_assessment": {
-        "why": "A split part downloads like any GGUF, then the library's spliceSplitFiles:false scan and the loader cannot use it alone, so the user pays a multi-GB download for a model that cannot load",
-        "benefits": "The refusal happens before any network request and names the reason; single-file quants keep working",
-        "risks": "contract: one more invalid reference (a file that could never load); dependency: none; concurrency: none; state: none",
-        "mitigation": "the pattern requires the five-digit HF split suffix, so ordinary names with of or digits are unaffected; tests cover both sides"
-      },
-      "plan_digest": "b1f4d5a4e0227bdc228b4848304f3cde86b0c2e2c070855c404a684e88cdd177",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "task_id": "no-split-parts",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[2/2] npm test 920/921 pass, 1 skipped; a shard in hf: and URL form is refused by the resolver and ordinary names still resolve; aikit check 4/4; ADR-143; UI review recorded; G-001 not applicable (resolver only)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794996190.8763587,
-      "timestamp_str": "2026-11-18 13:03:10",
-      "agent": "kilo:1",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "task_id": "no-split-parts",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'no-split-parts' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794996191.5359218,
-      "timestamp_str": "2026-11-18 13:03:11",
-      "agent": "kilo:1",
-      "head": "120fc2110bc16eb3850dd5b2dcdf1c2b06db54a0",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
     {
       "task_id": "source-hardening",
       "phase": "phase 2",
@@ -402,6 +343,65 @@
       "timestamp_str": "2026-11-18 21:45:14",
       "agent": "kilo:1",
       "head": "40ab33ca04e366da2a9625055baff604dd109c3a",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
+    },
+    {
+      "task_id": "text-content-parts",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/2] Refuse a non-text content part (image_url, input_audio, or a text part without text) with a clear invalid_request_error instead of dropping it and treating the message as empty; keep text-part arrays joining as before. Failing-first tests for text parts, an image part and a mixed message, asserting the engine is never called; [2/2] npm test, aikit check, ADR-150, UI review, commit (G-001 not applicable: refusal path only)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795027886.4494202,
+      "timestamp_str": "2026-11-18 21:51:26",
+      "agent": "kilo:1",
+      "impact_assessment": {
+        "why": "contentText filtered non-text parts, so a client sending an image got either a silent partial prompt or the misleading last-message-must-be-user error; the project refuses audio/modalities but not content parts",
+        "benefits": "Vision or audio payloads get an honest 400 naming the limit; pure text-part arrays keep working",
+        "risks": "contract: one more 400 for payloads that were already unusable; dependency: none; concurrency: none; state: none",
+        "mitigation": "only non-text parts are refused; the existing string and text-part forms are unchanged and tested; the refusal runs before ensureReady"
+      },
+      "plan_digest": "da330ca46801d8e90348754f98efb4ea92dff5c23d028a55360987eaf151df55",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "text-content-parts",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[2/2] npm test 927/928 pass, 1 skipped; text-part arrays join, image/audio/missing-text parts return 400 invalid_request_error, and the engine sees only the valid message; aikit check 4/4; ADR-150; UI review recorded; G-001 not applicable (refusal path only)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795029437.7852452,
+      "timestamp_str": "2026-11-18 22:17:17",
+      "agent": "kilo:1",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "text-content-parts",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'text-content-parts' completed successfully.",
+      "status": "completed",
+      "timestamp": 1795029438.6080973,
+      "timestamp_str": "2026-11-18 22:17:18",
+      "agent": "kilo:1",
+      "head": "2d504076d0fc88dc2432f24744f48eb5ba10b003",
       "delivery": {
         "roots": [
           "."
