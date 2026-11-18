@@ -1,11 +1,11 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "mcp-protocol-tests",
+    "task_id": "add-hf-local-action",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1795026347.254497,
+    "updated_at": 1795027513.819153,
     "owner": "kilo:1",
     "started_by": "kilo:1",
     "continuations": [],
@@ -15,70 +15,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795026348.3456595,
-    "completed_head": "11212f093d4b797417228fd93a6a23840f40d723",
-    "completed_tree": "d4516636dcb65d79d1f2dfd089dada14bd2d0cb2"
+    "completed_at": 1795027514.511528,
+    "completed_head": "40ab33ca04e366da2a9625055baff604dd109c3a",
+    "completed_tree": "39a14363733fc8eb211b5235058073ec51483c11"
   },
   "checkpoints": [
-    {
-      "task_id": "source-name-conflict",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/2] Refuse a user-chosen source whose file name already exists unless its install receipt names the same URL and size, in which case the add is idempotent and returns a complete job without fetching; never overwrite or claim success for a different file. Failing-first tests for conflict, idempotent add and another-URL receipt; [2/2] npm test, aikit check, ADR-142, UI review, commit (G-001 not applicable: download path only)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794995172.1715138,
-      "timestamp_str": "2026-11-18 12:46:12",
-      "agent": "kilo:1",
-      "impact_assessment": {
-        "why": "startSource reused the catalog early-complete check, so an existing same-named, same-sized file made the add report success with no receipt, and a same-named file of another size would be atomically replaced: a pasted link could overwrite a catalog model",
-        "benefits": "A colliding name is refused with a clear Fix instead of overwriting or faking a completed download; re-adding the same URL is a no-op",
-        "risks": "contract: one new 409 code on the source path; dependency: none; concurrency: the existing per-file starting set still serializes starts; state: none written on a refusal",
-        "mitigation": "the receipt URL+size is the identity; catalog starts keep their current behaviour; tests pin the file bytes are unchanged after a refusal"
-      },
-      "plan_digest": "9d1569ce1286759eaa8570f9be3f4df8ff3251321ba9a27127f986223546474e",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "task_id": "source-name-conflict",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[2/2] npm test 918/919 pass, 1 skipped; the conflict test keeps the original bytes, the idempotent add fetches nothing, and another-URL receipt conflicts; aikit check 4/4; ADR-142; README notes the refusal; UI review recorded; G-001 not applicable (download path only)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794995576.574782,
-      "timestamp_str": "2026-11-18 12:52:56",
-      "agent": "kilo:1",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "task_id": "source-name-conflict",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'source-name-conflict' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794995577.3808815,
-      "timestamp_str": "2026-11-18 12:52:57",
-      "agent": "kilo:1",
-      "head": "05319daccf27e1ff398c54a2a055533977e9d3be",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
     {
       "task_id": "no-split-parts",
       "phase": "phase 2",
@@ -402,6 +343,65 @@
       "timestamp_str": "2026-11-18 21:25:48",
       "agent": "kilo:1",
       "head": "11212f093d4b797417228fd93a6a23840f40d723",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
+    },
+    {
+      "task_id": "add-hf-local-action",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/2] Add the new POST /api/models/add-hf route to the LAN mutation test so a remote client with a key is refused with a *_local_only code before any reference resolution or fetch; [2/2] run the suite and aikit check, record ADR-149 and the UI review, commit (G-001 not applicable: test coverage of an existing local-only rule)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795026834.9898689,
+      "timestamp_str": "2026-11-18 21:33:54",
+      "agent": "kilo:1",
+      "impact_assessment": {
+        "why": "Every other mutating model route is pinned as local-only in local-actions.test.js, but the Hugging Face add route was not, so a future middleware change could expose arbitrary downloads to a LAN client without a failing test",
+        "benefits": "The new route's local-only contract is machine-checked with the others",
+        "risks": "contract: test only; dependency: none; concurrency: none; state: none",
+        "mitigation": "the route's own 400/502 behavior is already covered in server.test.js; this adds only the 403 path"
+      },
+      "plan_digest": "600327dbbe153b348f0fc0b1d26acb1858c3d6c184341c4d60eb20ca0be0542f",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "add-hf-local-action",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[2/2] npm test 926/927 pass, 1 skipped; the LAN mutation test now includes POST /api/models/add-hf and asserts a 403 *_local_only code with a valid key; aikit check 4/4; ADR-149; UI review recorded; G-001 not applicable (test coverage only)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795027513.819153,
+      "timestamp_str": "2026-11-18 21:45:13",
+      "agent": "kilo:1",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "add-hf-local-action",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'add-hf-local-action' completed successfully.",
+      "status": "completed",
+      "timestamp": 1795027514.6436298,
+      "timestamp_str": "2026-11-18 21:45:14",
+      "agent": "kilo:1",
+      "head": "40ab33ca04e366da2a9625055baff604dd109c3a",
       "delivery": {
         "roots": [
           "."
