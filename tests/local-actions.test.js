@@ -39,6 +39,8 @@ test("from another machine with a key, state-changing routes are refused while r
   const mutations = [
     ["PUT", "/api/settings", { settings: { temperature: 1.5 } }],
     ["POST", "/api/models/import", { path: "anything.gguf" }],
+    // IDEA-0995: a remote key may not start a download from a pasted Hugging Face link.
+    ["POST", "/api/models/add-hf", { reference: "hf:org/repo/model.gguf" }],
     ["POST", "/api/models/open-folder", {}],
     ["POST", "/api/models/unload", {}],
     ["POST", `/api/models/${harness.modelId}/load`, {}],
