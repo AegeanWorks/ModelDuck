@@ -1,11 +1,11 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "already-installed-add",
+    "task_id": "requested-context-field",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1795019114.338418,
+    "updated_at": 1795023002.7321024,
     "owner": "kilo:1",
     "started_by": "kilo:1",
     "continuations": [],
@@ -15,70 +15,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795019115.1013923,
-    "completed_head": "526edd2178c1e983ac29510207bd8692c5d6ba41",
-    "completed_tree": "0f7263d378849154709a975d7c997fdf144c1449"
+    "completed_at": 1795023003.4739347,
+    "completed_head": "94ae9f4153e7ae1b50ff6d71edc7933202fc2e98",
+    "completed_tree": "1b8d799d36077823403f2a95c3817c0b425653a3"
   },
   "checkpoints": [
-    {
-      "task_id": "hf-resolver",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/2] IDEA-0995 backend: a pure resolver (hf:org/repo@rev/folder/file.gguf or huggingface.co resolve/blob links only, https only, plain segments, .gguf only, canonical resolve URL), DownloadManager.inspectSource (HEAD through the existing redirect token gate, requires a positive Content-Length, caps user files at 32 GiB, maps 404/401/403), DownloadManager.startSource (job carries its URL and quant, no catalog id; receipt records the URL; resume identity and dedupe keep one job per file), and POST /api/models/add-hf (loopback only, resolve before any fetch, optional pinned SHA-256). 12 failing-first tests; [2/2] npm test, live HEAD check, aikit check, ADR-140, UI follows in a separate task (G-001 not applicable: no generation path)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794991425.6989045,
-      "timestamp_str": "2026-11-18 11:43:45",
-      "agent": "kilo:1",
-      "impact_assessment": {
-        "why": "The curated catalog is the only download path; IDEA-0995 is the biggest user unlock, but arbitrary URLs need guardrails before any code accepts them",
-        "benefits": "A user can add one exact HF GGUF with a validated URL, real size and optional pin; the download, resume, header check and receipt paths are reused unchanged",
-        "risks": "contract: DownloadManager gains inspectSource/startSource and jobs may carry a null catalog id; dependency: none; concurrency: remote jobs share the two-slot limit and dedupe by file; state: receipts record the URL and a null catalog id",
-        "mitigation": "resolver is pure and rejects before any network; token stays behind the existing redirect gate; size is mandatory and capped; a pinned hash still verifies; catalog path is covered by existing tests and unchanged when job.url is absent"
-      },
-      "plan_digest": "9edef37e25601267072bfed5b1b8b718097deed061da6eeae59c519254aab8fb",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "task_id": "hf-resolver",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[2/2] npm test 915/916 pass, 1 skipped; live HEAD via inspectSource matched the catalog size for SmolLM2 135M Q4_K_M (105,454,432); aikit check 4/4; ADR-140; 12 tests; UI review recorded; Models UI control follows in a separate task; G-001 not applicable (no generation path)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794992242.2327197,
-      "timestamp_str": "2026-11-18 11:57:22",
-      "agent": "kilo:1",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "task_id": "hf-resolver",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'hf-resolver' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794992252.2917645,
-      "timestamp_str": "2026-11-18 11:57:32",
-      "agent": "kilo:1",
-      "head": "ec803119d9c20caa282651a88b65d69514ea2662",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
     {
       "task_id": "hf-ui",
       "phase": "phase 2",
@@ -402,6 +343,65 @@
       "timestamp_str": "2026-11-18 19:25:15",
       "agent": "kilo:1",
       "head": "526edd2178c1e983ac29510207bd8692c5d6ba41",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
+    },
+    {
+      "task_id": "requested-context-field",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/2] Engine ready states report requestedContextSize (the effective request after the 16K floor and before the trained cap) in load and context-rebuild, and idle reports null; the UI clamp note reads it instead of guessing from the saved setting, which can differ under a tuned profile. Failing-first engine test with a 4096-trained fake runtime; [2/2] npm test, ui:smoke, aikit check, ADR-147, UI review, commit (G-001 not applicable: additive status field, no generation change)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795022469.2525802,
+      "timestamp_str": "2026-11-18 20:21:09",
+      "agent": "kilo:1",
+      "impact_assessment": {
+        "why": "ADR-145 compared the served context with the saved setting, but a tuned load can request a different context; the note could name the wrong requested value or hide a clamp",
+        "benefits": "The status is self-describing and the note is correct whatever applied the load",
+        "risks": "contract: additive status field; dependency: none; concurrency: none; state: none",
+        "mitigation": "the field is the same requested value the load already computes; a test pins requested/trained/served on a clamp"
+      },
+      "plan_digest": "4988b236a1a94b5ecdd953db5d1d7259ad06ccf8e2d01b9f7662e401f9e62d7c",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "requested-context-field",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[2/2] npm test 923/924 pass, 1 skipped; the engine test asserts requested 16384 / trained 4096 / served 4096; ui:smoke uses a saved 32768 with a reported 16384 and asserts the note names 16384, not 32768; aikit check 4/4; ADR-147; UI review recorded; G-001 not applicable (additive status field, no generation change)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795023002.7321024,
+      "timestamp_str": "2026-11-18 20:30:02",
+      "agent": "kilo:1",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "requested-context-field",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'requested-context-field' completed successfully.",
+      "status": "completed",
+      "timestamp": 1795023003.5410914,
+      "timestamp_str": "2026-11-18 20:30:03",
+      "agent": "kilo:1",
+      "head": "94ae9f4153e7ae1b50ff6d71edc7933202fc2e98",
       "delivery": {
         "roots": [
           "."
