@@ -83,10 +83,35 @@ function summarize(body) {
   return lines.join("\n");
 }
 
+const isPlainObject = (value) => Boolean(value) && typeof value === "object" && !Array.isArray(value);
+
+/**
+ * The tool schema is a promise: refuse anything that breaks it here, so a
+ * malformed tests array never reaches the app as a generation request.
+ */
 function invalidArguments(args) {
-  if (!args || typeof args !== "object") return "arguments must be an object.";
+  if (!isPlainObject(args)) return "arguments must be an object.";
   if (typeof args.prompt !== "string" || !args.prompt.trim()) return "prompt must be a non-empty string.";
-  if (!args.tests || typeof args.tests !== "object") return "tests must be an object with entry and cases.";
+  if (!isPlainObject(args.tests)) return "tests must be an object with entry and cases.";
+  if (typeof args.tests.entry !== "string" || !args.tests.entry.trim()) return "tests.entry must be the function's name.";
+  if (!Array.isArray(args.tests.cases) || args.tests.cases.length < 1 || args.tests.cases.length > 50) {
+    return "tests.cases must contain 1 to 50 cases.";
+  }
+  for (const [index, item] of args.tests.cases.entries()) {
+    if (!isPlainObject(item) || !Array.isArray(item.args) || !Object.hasOwn(item, "expect")) {
+      return `tests.cases[${index}] must be an object with args and expect.`;
+    }
+  }
+  if (args.tests.setup !== undefined && typeof args.tests.setup !== "string") return "tests.setup must be a string when present.";
+  if (args.attempts !== undefined && (!Number.isInteger(args.attempts) || args.attempts < 1 || args.attempts > 8)) {
+    return "attempts must be a whole number from 1 to 8.";
+  }
+  if (args.retry_temperature !== undefined && (typeof args.retry_temperature !== "number" || !(args.retry_temperature > 0) || args.retry_temperature > 2)) {
+    return "retry_temperature must be a number above 0 and at most 2.";
+  }
+  if (args.max_tokens !== undefined && (!Number.isInteger(args.max_tokens) || args.max_tokens < 16 || args.max_tokens > 8192)) {
+    return "max_tokens must be a whole number from 16 to 8192.";
+  }
   return null;
 }
 

@@ -38,6 +38,9 @@ test("notifications get no reply, ping gets an empty result, unknown methods get
   assert.equal(await server.handle({ jsonrpc: "2.0", method: "notifications/initialized" }), null);
   assert.deepEqual((await call(server, "ping")).result, {});
   assert.equal((await call(server, "resources/list")).error.code, -32601);
+  for (const bad of [null, [], {}, { jsonrpc: "1.0", id: 1, method: "ping" }, { jsonrpc: "2.0", id: 1 }]) {
+    assert.equal((await server.handle(bad)).error.code, -32600, `a malformed message was accepted: ${JSON.stringify(bad)}`);
+  }
 });
 
 test("tools/list offers verified_code with a schema that requires a prompt and tests", async () => {
@@ -51,10 +54,10 @@ test("tools/list offers verified_code with a schema that requires a prompt and t
 test("verified_code forwards to the loopback verify route and returns the passing code", async () => {
   const { fetch, calls } = fakeFetch({ status: 200, body: { model: "coder", passed: true, attempt: 2, code: "function add(a, b) { return a + b; }", tests: [{ passed: true }], attempts: [{}, {}] } });
   const server = createMcpServer({ fetch, baseUrl: "http://127.0.0.1:4141" });
-  const reply = await call(server, "tools/call", { name: "verified_code", arguments: { prompt: "Write add(a, b).", tests: TESTS, attempts: 3 } });
+  const reply = await call(server, "tools/call", { name: "verified_code", arguments: { prompt: "Write add(a, b).", tests: TESTS, attempts: 3, max_tokens: 256, extra: "ignored", retry_temperature: undefined } });
   assert.equal(calls[0].url, "http://127.0.0.1:4141/api/code/verify");
   assert.equal(calls[0].init.method, "POST");
-  assert.deepEqual(calls[0].body, { prompt: "Write add(a, b).", tests: TESTS, attempts: 3 });
+  assert.deepEqual(calls[0].body, { prompt: "Write add(a, b).", tests: TESTS, attempts: 3, max_tokens: 256 }, "only the tool's own fields are forwarded");
   const result = reply.result;
   assert.equal(result.isError, false);
   assert.equal(result.structuredContent.passed, true);
@@ -64,11 +67,12 @@ test("verified_code forwards to the loopback verify route and returns the passin
 });
 
 test("a failing answer is a result, not a tool error, and says how many tests passed", async () => {
-  const { fetch } = fakeFetch({ status: 200, body: { passed: false, attempt: 1, code: "x", tests: [{ passed: true }, { passed: false, detail: "expected 3" }], attempts: [{}, {}, {}, {}] } });
+  const { fetch } = fakeFetch({ status: 200, body: { passed: false, attempt: 1, code: "x", stopped: "the retry budget ran out", tests: [{ passed: true }, { passed: false, detail: "expected 3" }], attempts: [{}, {}, {}, {}] } });
   const result = (await call(createMcpServer({ fetch }), "tools/call", { name: "verified_code", arguments: { prompt: "p", tests: TESTS } })).result;
   assert.equal(result.isError, false);
   assert.equal(result.structuredContent.passed, false);
   assert.match(result.content[0].text, /No answer passed every test in 4 tries; the best passed 1 of 2/);
+  assert.match(result.content[0].text, /Stopped early: the retry budget ran out\./);
   assert.match(result.content[0].text, /expected 3/);
 });
 
@@ -87,10 +91,68 @@ test("an app that is not running gives a Fix to start it", async () => {
   assert.match(result.content[0].text, /Fix: Start it with npm start/);
 });
 
-test("bad calls are protocol errors: unknown tool and missing arguments", async () => {
+test("bad calls are protocol errors: unknown tool and arguments that break the schema", async () => {
   const server = createMcpServer({ fetch: fakeFetch({ status: 200, body: {} }).fetch });
   assert.equal((await call(server, "tools/call", { name: "nope", arguments: {} })).error.code, -32602);
-  assert.equal((await call(server, "tools/call", { name: "verified_code", arguments: { prompt: "p" } })).error.code, -32602);
+  const invalid = [
+    { prompt: "p" },
+    {},
+    { prompt: " ", tests: TESTS },
+    { prompt: "p", tests: [] },
+    { prompt: "p", tests: {} },
+    { prompt: "p", tests: { entry: "add" } },
+    { prompt: "p", tests: { entry: "add", cases: [] } },
+    { prompt: "p", tests: { entry: "add", cases: [{ args: [1] }] } },
+    { prompt: "p", tests: { entry: "add", cases: [{ args: "no", expect: 1 }] } },
+    { prompt: "p", tests: { entry: "", cases: [{ args: [], expect: 1 }] } },
+    { prompt: "p", tests: { entry: "add", cases: [{ args: [], expect: 1 }], setup: 5 } },
+    { prompt: "p", tests: TESTS, attempts: 0 },
+    { prompt: "p", tests: TESTS, attempts: 9 },
+    { prompt: "p", tests: TESTS, retry_temperature: 0 },
+    { prompt: "p", tests: TESTS, retry_temperature: 2.5 },
+    { prompt: "p", tests: TESTS, max_tokens: 8 },
+    { prompt: "p", tests: TESTS, max_tokens: 9000 },
+  ];
+  for (const args of invalid) {
+    const answer = await call(server, "tools/call", { name: "verified_code", arguments: args });
+    assert.equal(answer.error?.code, -32602, `an argument outside the schema was forwarded: ${JSON.stringify(args)}`);
+  }
+});
+
+test("a timeout and a transport failure explain the fix", async () => {
+  const timeout = Object.assign(new Error("timeout"), { name: "TimeoutError" });
+  const timedOut = (await call(createMcpServer({ fetch: fakeFetch(timeout).fetch, timeoutMs: 90_000 }), "tools/call", { name: "verified_code", arguments: { prompt: "p", tests: TESTS } })).result;
+  assert.equal(timedOut.isError, true);
+  assert.match(timedOut.content[0].text, /did not answer within 90 s/);
+  assert.match(timedOut.content[0].text, /fewer attempts or a shorter max_tokens/);
+  const broken = (await call(createMcpServer({ fetch: fakeFetch(new Error("socket hang up")).fetch, baseUrl: "http://127.0.0.1:4141" }), "tools/call", { name: "verified_code", arguments: { prompt: "p", tests: TESTS } })).result;
+  assert.equal(broken.isError, true);
+  assert.match(broken.content[0].text, /Could not reach ModelDuck at http:\/\/127\.0\.0\.1:4141: socket hang up/);
+});
+
+test("a non-JSON failure reports the status instead of an empty message", async () => {
+  const server = createMcpServer({
+    fetch: async () => ({ ok: false, status: 502, json: async () => { throw new SyntaxError("not JSON"); } }),
+  });
+  const result = (await call(server, "tools/call", { name: "verified_code", arguments: { prompt: "p", tests: TESTS } })).result;
+  assert.equal(result.isError, true);
+  assert.match(result.content[0].text, /ModelDuck answered HTTP 502\./);
+});
+
+test("serveStdio turns a thrown handler into an internal error line", async () => {
+  const input = new PassThrough();
+  const output = new PassThrough();
+  const server = { handle: async () => { throw new Error("boom"); } };
+  const done = serveStdio({ input, output, server });
+  const lines = [];
+  output.on("data", (chunk) => lines.push(...chunk.toString("utf8").split("\n").filter(Boolean)));
+  input.write(`${JSON.stringify({ jsonrpc: "2.0", id: 7, method: "ping" })}\n`);
+  input.end();
+  await done;
+  const [line] = lines.map((text) => JSON.parse(text));
+  assert.equal(line.id, 7);
+  assert.equal(line.error.code, -32603);
+  assert.match(line.error.message, /Internal error: boom/);
 });
 
 test("the stdio transport reads one JSON message per line and writes one reply per request", async () => {
