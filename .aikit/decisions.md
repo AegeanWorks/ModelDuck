@@ -1074,3 +1074,31 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: `contentText` accepted an array of parts and kept only `{type:"text", text:string}`, silently dropping image or audio parts. A vision payload therefore became an empty message that `toMessages` skipped, and the client received the misleading "The last message must be from the user". The OpenAI surface already refuses `audio`, non-text `modalities` and tools, so dropping content parts was the one remaining silent fake.
 - **Decision**: `contentText` now refuses any part that is not a text part with a string `text`, with `invalid_request_error` and a Why that names the role and a Fix that says ModelDuck has no vision or audio input. Text-part arrays still concatenate exactly as before. The refusal happens in the message parse, which ADR-137 already wraps, so it returns the OpenAI error shape and never reaches `ensureReady` or the engine.
 - **Consequences**: A client sending an image or audio part gets an honest 400 instead of an empty prompt or a bogus "last message" error; a mixed text and image message is refused rather than half-answered. A pure text-part message is unchanged. The test covers a joined text array, an image part, a mixed text and audio part, and a text part without text, and asserts the engine was asked only for the valid message. The suite passes 927 of 928 with 1 skipped. No generation, prompt or settings path changed, so the G-001 gate does not apply.
+
+### ADR-151: A load or reconfigure claims the engine before its async fit check
+- **Date**: 2026-11-18
+- **Status**: Accepted (implemented; load-claim-race)
+- **Context**: `load()` and `reconfigure()` checked the loading flag, then awaited the memory-fit plan, and only then set the flag. A second request arriving in that gap passed every guard, so two loads (or a load during a reconfigure) ran against one engine; in a test neither completed.
+- **Decision**: Both methods set the flag and take a load epoch immediately after their synchronous guards, release it if planning throws or the fit is refused (a refused fit still leaves the loaded model alone), and re-check the epoch after planning so a cancel during planning is honoured.
+- **Consequences**: A concurrent request gets `model_loading` (409) while the first finishes. Checked with two failing-first tests and with the real SmolLM2-135M model. No generation, prompt or settings path changed.
+
+### ADR-152: Parallel just-in-time requests for one model share a single load
+- **Date**: 2026-11-18
+- **Status**: Accepted (implemented; jit-single-flight)
+- **Context**: With ADR-151, two simultaneous `/v1` requests for the same cold model made the second fail with 409, although it only needed the first load to finish.
+- **Decision**: `JitManager` keeps one in-flight load. A request for the same model awaits it (and fails with it); a request for another model while one loads is refused with `model_loading`. The next request after a failure starts a fresh load.
+- **Consequences**: Parallel clients on a cold server all succeed after one load. The idle-unload timer and tracked-model rules are unchanged.
+
+### ADR-153: A tune warns when a model is already resident, and never unloads it
+- **Date**: 2026-11-18
+- **Status**: Accepted (implemented; tune-resident-warning)
+- **Context**: A tune loads its own copy of the model in child processes. A model already loaded in the app takes memory and cores from it, which can skew timings or make a load refused.
+- **Decision**: `/api/tune/start` returns `warnings: [{code: "resident_model", why, fix}]` when the engine has a loaded model, and the UI shows it as a toast. Unloading stays the person's choice, because it would drop their session.
+- **Consequences**: The field is additive and empty when nothing is loaded. No tune scheduling or measurement changed.
+
+### ADR-154: A reasoning model's think block is reported as reasoning_content
+- **Date**: 2026-11-18
+- **Status**: Accepted (implemented; thinking-pipeline, IDEA-0997 core)
+- **Context**: Models that write `<think>...</think>` before the answer put that block in `content` on `/v1/chat/completions`.
+- **Decision**: `src/thinking.js` splits a block that opens the reply, whole or token by token; `/v1/chat/completions` returns it as `reasoning_content` (message field, or stream deltas) and keeps only the answer in `content`. A later `<think>` is ordinary text, and an unclosed block is all reasoning.
+- **Consequences**: Plain replies are unchanged. Not covered yet: `/v1/completions`, and models whose template supplies the opening tag so the output starts mid-thought.
