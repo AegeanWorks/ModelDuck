@@ -1376,5 +1376,26 @@
     "final_snapshot_entries": 0,
     "surface_digest": "b152cbd40628bf92fb353d0c2127f05852a3a9d285b32189f525338d464375c0",
     "baseline_digest": "b152cbd40628bf92fb353d0c2127f05852a3a9d285b32189f525338d464375c0"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [],
+    "no_visual_reason": "",
+    "no_change_reason": "Test-only change (ADR-149): the new Hugging Face route added to the LAN mutation test. No public/ file or rendered view changed; reviewed the committed diff and the passing LAN test.",
+    "baseline_commit": "d49e35c7bb25aa4d2fe324297482e47383478919",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1795027120.2834067,
+    "finished_at": 1795027135.8979526,
+    "strikes": 0,
+    "reviewer": "kilo:1",
+    "allowed_removals": [],
+    "allowed_tests": [],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "b152cbd40628bf92fb353d0c2127f05852a3a9d285b32189f525338d464375c0",
+    "baseline_digest": "b152cbd40628bf92fb353d0c2127f05852a3a9d285b32189f525338d464375c0"
   }
 ]
