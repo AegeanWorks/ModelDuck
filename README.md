@@ -94,6 +94,9 @@ device. It is off by default so a missing driver never prevents local inference 
 
 - **Model library** — scan a folder, import a GGUF by path, or download a curated
   Hugging Face model, checked against a pinned SHA-256, with resumable `.part` downloads.
+  **Discover → Add from Hugging Face** takes one `hf:owner/repo/file.gguf` reference or
+  resolve link (optional pin); a name already used by another source is refused, never
+  overwritten.
 - **Model controls** - context size (16K floor or higher), CPU threads and thread pool, batch size,
   context sequences, GPU backend/layers, KV cache, checkpoint interval (a pre-load
   fallback), max and memory budget,

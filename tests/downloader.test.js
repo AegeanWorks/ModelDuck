@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -273,6 +273,66 @@ test("two starts for one source file share a job instead of one .part file", asy
   assert.equal(second.id, first.id);
   await manager.cancel(first.id);
   release();
+});
+
+test("a source whose file name is already taken is refused, never overwritten", async (t) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "modelduck-source-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const existing = path.join(directory, "tiny.gguf");
+  await writeFile(existing, Buffer.from("GGUFdifferent-model"));
+  const manager = new DownloadManager({
+    modelsDir: directory,
+    logger,
+    fetchImpl: async () => new Response(TINY_BYTES, { status: 200, headers: { "content-length": String(TINY_BYTES.length) } }),
+  });
+  await assert.rejects(
+    () => manager.startSource({ url: SOURCE_URL, file: "tiny.gguf", name: "tiny", size: TINY_BYTES.length }),
+    (error) => error.code === "source_name_conflict" && error.status === 409,
+  );
+  assert.equal(await readFile(existing, "utf8"), "GGUFdifferent-model", "the existing file was replaced");
+  assert.deepEqual(manager.list(), []);
+});
+
+test("re-adding a source whose receipt matches is idempotent and fetches nothing", async (t) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "modelduck-source-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  await writeFile(path.join(directory, "tiny.gguf"), TINY_BYTES);
+  await writeFile(
+    path.join(directory, "tiny.gguf.receipt.json"),
+    JSON.stringify({ catalogId: null, file: "tiny.gguf", size: TINY_BYTES.length, sha256: TINY.sha256, digest: TINY.sha256, url: SOURCE_URL, downloadedAt: "2026-11-15T10:00:00.000Z" }),
+  );
+  let fetched = 0;
+  const manager = new DownloadManager({
+    modelsDir: directory,
+    logger,
+    fetchImpl: async () => {
+      fetched += 1;
+      return new Response(TINY_BYTES, { status: 200 });
+    },
+  });
+  const job = await manager.startSource({ url: SOURCE_URL, file: "tiny.gguf", name: "tiny", size: TINY_BYTES.length, sha256: TINY.sha256 });
+  assert.equal(job.status, "complete");
+  assert.equal(job.received, TINY_BYTES.length);
+  assert.equal(fetched, 0, "an idempotent add went to the network");
+});
+
+test("a receipt naming another URL is a conflict, not a silent reuse", async (t) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "modelduck-source-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  await writeFile(path.join(directory, "tiny.gguf"), TINY_BYTES);
+  await writeFile(
+    path.join(directory, "tiny.gguf.receipt.json"),
+    JSON.stringify({ catalogId: "catalog", file: "tiny.gguf", size: TINY_BYTES.length, url: SOURCE_URL.replace("duck/tiny", "other/repo") }),
+  );
+  const manager = new DownloadManager({
+    modelsDir: directory,
+    logger,
+    fetchImpl: async () => new Response(TINY_BYTES, { status: 200 }),
+  });
+  await assert.rejects(
+    () => manager.startSource({ url: SOURCE_URL, file: "tiny.gguf", name: "tiny", size: TINY_BYTES.length }),
+    (error) => error.code === "source_name_conflict",
+  );
 });
 
 test("a download whose bytes match the catalog SHA-256 is promoted", async (t) => {

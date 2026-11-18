@@ -136,6 +136,38 @@ export class DownloadManager {
         fix: "Paste the Hugging Face file link again.",
       });
     }
+    // IDEA-0995: a user-chosen file has no catalog identity, so its name is the
+    // only local key. Never overwrite a file that this URL did not install, and
+    // never report success for a file whose receipt names another source.
+    const finalPath = path.join(this.#modelsDir, fileName);
+    const existing = await fs.promises.stat(finalPath).catch(() => null);
+    if (existing?.isFile()) {
+      const receipt = await readInstallReceipt(this.#modelsDir, fileName);
+      const sameSource = receipt?.url === url && Number(receipt?.size) === size && existing.size === size;
+      if (!sameSource) {
+        throw new AppError("A different file already uses this name", {
+          code: "source_name_conflict",
+          status: 409,
+          why: `${fileName} is already in your library, and it did not come from ${url}.`,
+          fix: "Rename the file on Hugging Face, or remove the existing file from your library first.",
+        });
+      }
+      const job = this.#newJob({
+        id: null,
+        name: String(name ?? fileName.replace(/\.gguf$/i, "")),
+        file: fileName,
+        size,
+        sha256: expected,
+        url,
+        quant: quant ?? null,
+      });
+      moveTo(job, DOWNLOAD_MACHINE, "complete");
+      job.received = size;
+      job.total = size;
+      job.finishedAt = new Date().toISOString();
+      this.#jobs.set(job.id, job);
+      return this.#publicJob(job);
+    }
     return this.#startModel({
       id: null,
       name: String(name ?? fileName.replace(/\.gguf$/i, "")),
