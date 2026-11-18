@@ -1439,5 +1439,26 @@
     "final_snapshot_entries": 0,
     "surface_digest": "5050bd45af85f6af927f6f16cd57b09d6fe24e41bb5c15fff346357e3a6aad53",
     "baseline_digest": "5050bd45af85f6af927f6f16cd57b09d6fe24e41bb5c15fff346357e3a6aad53"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [],
+    "no_visual_reason": "",
+    "no_change_reason": "Re-recorded against the final files: since the screenshot review (engine views at 1440px and 390px, see the previous entry) only README, docs/ENGINES.md, hygiene comments in src/external-engines.js and persisted state paths changed; no rendered view changed and ui:smoke passes.",
+    "baseline_commit": "b43b54351f22ce0fe0a3175e5b8cd7eb675784d9",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1795041565.1283913,
+    "finished_at": 1795041589.7345014,
+    "strikes": 0,
+    "reviewer": "claude:sonnet-5.5",
+    "allowed_removals": [],
+    "allowed_tests": [],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "b7af2879637df3ec49e0ca09dfff5be7b14db76973ca09ce06466d39f6c40ab5",
+    "baseline_digest": "b7af2879637df3ec49e0ca09dfff5be7b14db76973ca09ce06466d39f6c40ab5"
   }
 ]

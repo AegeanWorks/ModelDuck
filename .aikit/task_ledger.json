@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "docs-test-counts",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795030142.092441,
-    "owner": "kilo:1",
-    "started_by": "kilo:1",
+    "task_id": "inference-engines",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795041528.6093333,
+    "owner": "claude:sonnet-5.5",
+    "started_by": "claude:sonnet-5.5",
     "continuations": [],
     "workspaces": [
       {
@@ -15,29 +15,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795030142.8699458,
-    "completed_head": "41482e0c6ae87d70b65ef25534f8292253718b85",
-    "completed_tree": "b5d013aaf0d77a8175fad4d0c72b85397194c595"
+    "impact_assessment": {
+      "why": "The user asked that tuning and serving use the best token-generation engine, assess each engine's speed, ship the engines, and make adding engines cheap.",
+      "benefits": "Measured on this machine: the tune picked llama-server on Vulkan (89 ms vs 205 ms per speed item) and serving was 386 tok/s against 149 in-process; four concurrent clients answered in 364 ms.",
+      "risks": "contract: a profile now names an engine and the app starts it, so loads can fail on another machine; dependency: a downloaded llama.cpp build and optional Ollama or attached servers; concurrency: an engine process per load, crash and restart paths; state: the profile records the engine and its build.",
+      "mitigation": "In-process fallback with a status notice; checksum-pinned installer; LlamaEngine refuses a load that names another engine; one guarded restart before any output; engine build recorded and compared on load; 1040 tests, tune:gate unchanged on all nine baselines, UI reviewed at 1440 and 390px; README, ADR-155..163 and docs/ENGINES.md updated."
+    }
   },
   "checkpoints": [
-    {
-      "task_id": "context-cap",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[2/2] npm test 922/923 pass, 1 skipped; ui:smoke passes three times with the clamp fixture and assertions; live review on SmolLM2 (8K, note shown) and Qwen2.5 0.5B (32K, note hidden) at 1440/390 in both themes; aikit check 4/4; ADR-145; README updated; UI review recorded; G-001 not applicable (no engine/settings-application change)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795017788.5115547,
-      "timestamp_str": "2026-11-18 19:03:08",
-      "agent": "kilo:1",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "context-cap",
       "phase": "completed",
@@ -408,6 +393,36 @@
         ],
         "forced": false
       }
+    },
+    {
+      "task_id": "inference-engines",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/1] Inference engines (ADR-155..163): assess every engine's token speed and version at the start of the device stage; ship llama.cpp through a pinned installer; let external engines (llama-server, Ollama, OpenAI-compatible servers) answer the tuner's items; tune on the fastest accurate engine and serve through it with an in-process fallback; one engine catalog with plugins; engine version tracking; crash recovery; cache-off serving. Recorded after the work was committed (bf2127e..b43b543).",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795041528.6093333,
+      "timestamp_str": "2026-11-19 01:38:48",
+      "agent": "claude:sonnet-5.5",
+      "impact_assessment": {
+        "why": "The user asked that tuning and serving use the best token-generation engine, assess each engine's speed, ship the engines, and make adding engines cheap.",
+        "benefits": "Measured on this machine: the tune picked llama-server on Vulkan (89 ms vs 205 ms per speed item) and serving was 386 tok/s against 149 in-process; four concurrent clients answered in 364 ms.",
+        "risks": "contract: a profile now names an engine and the app starts it, so loads can fail on another machine; dependency: a downloaded llama.cpp build and optional Ollama or attached servers; concurrency: an engine process per load, crash and restart paths; state: the profile records the engine and its build.",
+        "mitigation": "In-process fallback with a status notice; checksum-pinned installer; LlamaEngine refuses a load that names another engine; one guarded restart before any output; engine build recorded and compared on load; 1040 tests, tune:gate unchanged on all nine baselines, UI reviewed at 1440 and 390px; README, ADR-155..163 and docs/ENGINES.md updated."
+      },
+      "plan_digest": "9e4f21ffb6606bacb74ce99b98bff3f3d9a4dae7ce4316e5c6d5a4a12e053e04",
+      "handoff": {
+        "state": "committed locally, not pushed",
+        "next": "serving through an attached OpenAI-compatible server needs a profile that can start it",
+        "open": "CUDA, Metal and Ollama never ran on real hardware or servers here",
+        "evidence": "tune:gate pass, 4/4 gates, ADR-159..163"
+      },
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }
