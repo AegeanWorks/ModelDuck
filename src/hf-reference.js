@@ -14,6 +14,9 @@ const MAX_REFERENCE_CHARS = 2048;
 const NAME = /^[A-Za-z0-9][A-Za-z0-9._-]{0,95}$/;
 const FOLDER = /^[A-Za-z0-9._-][A-Za-z0-9._ -]{0,127}$/;
 const FILE = /^[A-Za-z0-9][A-Za-z0-9._ -]{0,190}\.gguf$/i;
+// Hugging Face split GGUFs are named model-00001-of-00002.gguf; one part alone
+// cannot load, so it is refused before a multi-GB download (ADR-143).
+const SPLIT_PART = /-\d{5}-of-\d{5}\.gguf$/i;
 const REVISION = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 const FIX = "Paste a link like hf:org/repo/file.gguf, or the file's resolve link from Hugging Face.";
 
@@ -87,6 +90,13 @@ export function resolveHuggingFaceReference(reference) {
     }
   }
   const fileName = files.at(-1);
+  if (SPLIT_PART.test(fileName)) {
+    refuse(
+      "That is one part of a split model",
+      `"${fileName}" is a shard, and ModelDuck loads a model from a single .gguf file.`,
+      "Open the repository's Files tab and pick a single-file quantization (one .gguf without -00001-of-...), or use ModelDuck's catalog.",
+    );
+  }
   if (!FILE.test(fileName)) {
     const endsWithGguf = /\.gguf$/i.test(fileName);
     refuse(

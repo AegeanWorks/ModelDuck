@@ -60,6 +60,18 @@ test("percent-encoded text is decoded once and the URL re-encoded", () => {
   assert.equal(parsed.url, `${HF}/org/repo/resolve/main/folder/a%20b.gguf`);
 });
 
+test("one part of a split GGUF is refused before any download", () => {
+  refuse("hf:org/repo/model-00001-of-00002.gguf", /split/);
+  refuse(`${HF}/org/repo/resolve/main/folder/model.Q4_K_M-00003-of-00004.gguf`, /split/);
+});
+
+test("a name that merely contains of or digits is still one file", () => {
+  const parsed = resolveHuggingFaceReference("hf:org/repo/proof-of-work-v2.gguf");
+  assert.equal(parsed.fileName, "proof-of-work-v2.gguf");
+  const numbered = resolveHuggingFaceReference("hf:org/repo/model-00001.gguf");
+  assert.equal(numbered.fileName, "model-00001.gguf");
+});
+
 test("anything that is not one plain GGUF on Hugging Face is refused", () => {
   refuse("", /empty/);
   refuse("   ", /empty/);
