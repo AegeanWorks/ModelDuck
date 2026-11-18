@@ -2,10 +2,10 @@
   "version": 1,
   "active_task": {
     "task_id": "inference-engines",
-    "last_phase": "phase 2",
-    "active_phase": 2,
+    "last_phase": "phase 4",
+    "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1795041528.6093333,
+    "updated_at": 1795041623.4672835,
     "owner": "claude:sonnet-5.5",
     "started_by": "claude:sonnet-5.5",
     "continuations": [],
@@ -14,32 +14,9 @@
         "name": "modelduck",
         "path": "projects/modelduck"
       }
-    ],
-    "impact_assessment": {
-      "why": "The user asked that tuning and serving use the best token-generation engine, assess each engine's speed, ship the engines, and make adding engines cheap.",
-      "benefits": "Measured on this machine: the tune picked llama-server on Vulkan (89 ms vs 205 ms per speed item) and serving was 386 tok/s against 149 in-process; four concurrent clients answered in 364 ms.",
-      "risks": "contract: a profile now names an engine and the app starts it, so loads can fail on another machine; dependency: a downloaded llama.cpp build and optional Ollama or attached servers; concurrency: an engine process per load, crash and restart paths; state: the profile records the engine and its build.",
-      "mitigation": "In-process fallback with a status notice; checksum-pinned installer; LlamaEngine refuses a load that names another engine; one guarded restart before any output; engine build recorded and compared on load; 1040 tests, tune:gate unchanged on all nine baselines, UI reviewed at 1440 and 390px; README, ADR-155..163 and docs/ENGINES.md updated."
-    }
+    ]
   },
   "checkpoints": [
-    {
-      "task_id": "context-cap",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'context-cap' completed successfully.",
-      "status": "completed",
-      "timestamp": 1795017789.553886,
-      "timestamp_str": "2026-11-18 19:03:09",
-      "agent": "kilo:1",
-      "head": "19ef58999e3e7f4fe1bfe8291d0aed6b4ea24656",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
     {
       "task_id": "already-installed-add",
       "phase": "phase 2",
@@ -417,6 +394,24 @@
         "open": "CUDA, Metal and Ollama never ran on real hardware or servers here",
         "evidence": "tune:gate pass, 4/4 gates, ADR-159..163"
       },
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "inference-engines",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "Phase 4 verification: 1040 tests pass (1 environmental skip); 4/4 project gates (hygiene, guidelines, secrets, test); tune:gate passed on all nine baselines at 45b3e0b and linked; UI reviewed from screenshots at 1440px and 390px and recorded; real runs: device tune adopted llama-server:vulkan, resumed tune stayed on it, app served and recovered from a killed engine, four concurrent clients answered in 364 ms.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795041623.4672835,
+      "timestamp_str": "2026-11-19 01:40:23",
+      "agent": "claude:sonnet-5.5",
+      "checklists": "passed",
       "workspaces": [
         {
           "name": "modelduck",
