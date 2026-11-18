@@ -149,6 +149,20 @@
             </div>
             <span class="offline-note">Downloads need internet. Local inference does not.</span>
           </div>
+          <div class="import-box hf-box">
+            <div>
+              <h3>Add from Hugging Face</h3>
+              <p>One plain <code>.gguf</code> file: paste <code>hf:owner/repo/file.gguf</code> or the file's resolve link. A pinned SHA-256 is optional.</p>
+            </div>
+            <div class="hf-controls">
+              <div class="import-row hf-row">
+                <input id="hf-reference" type="text" placeholder="hf:bartowski/…/model.gguf" autocomplete="off" aria-label="Hugging Face GGUF reference" />
+                <input id="hf-sha256" class="hf-sha" type="text" placeholder="SHA-256 (optional)" autocomplete="off" aria-label="Expected SHA-256, optional" />
+                <button class="primary-btn" id="hf-add" type="button">Add</button>
+              </div>
+              <div class="hf-jobs" id="hf-jobs"></div>
+            </div>
+          </div>
           <div class="catalog-grid" id="catalog-grid"></div>
         </section>
 

@@ -1396,6 +1396,66 @@ label.small-btn {
   font-size: 11px;
 }
 
+/* IDEA-0995: one Hugging Face reference, an optional pin, and the running job. */
+.hf-box {
+  margin-top: 16px;
+  align-items: start;
+}
+
+.hf-controls {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.hf-row {
+  display: flex;
+  gap: 7px;
+}
+
+.hf-row input {
+  min-width: 0;
+  flex: 1;
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.hf-row .hf-sha {
+  flex: 0 1 30%;
+}
+
+.hf-jobs {
+  display: grid;
+  gap: 6px;
+}
+
+.hf-job {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 10px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.hf-job .progress {
+  grid-column: 1 / -1;
+}
+
+.hf-job-error {
+  color: var(--danger);
+}
+
+@media (max-width: 640px) {
+  .hf-row {
+    flex-wrap: wrap;
+  }
+
+  .hf-row .hf-sha {
+    flex-basis: 100%;
+  }
+}
+
 .key-panel {
   display: flex;
   flex-direction: column;

@@ -38,6 +38,10 @@ const els = {
   modelsDir: $("models-dir"),
   importPath: $("import-path"),
   importBtn: $("import-btn"),
+  hfReference: $("hf-reference"),
+  hfSha256: $("hf-sha256"),
+  hfAdd: $("hf-add"),
+  hfJobs: $("hf-jobs"),
   settingsDialog: $("settings-dialog"),
   settingsForm: $("settings-form"),
   settingTuned: $("setting-tuned"),
@@ -350,6 +354,7 @@ const state = {
   settingsDirty: false,
   restartRequired: null,
   completedDownloads: new Set(),
+  hiddenHfJobs: new Set(),
 };
 
 /* API ---------------------------------------------------------------------- */
@@ -876,6 +881,34 @@ function latestDownload(catalogId) {
     .sort((left, right) => String(right.startedAt).localeCompare(String(left.startedAt)))[0];
 }
 
+/** IDEA-0995: downloads started from a pasted Hugging Face link have no catalog id. */
+function customDownloads() {
+  return state.downloads
+    .filter((job) => job.catalogId == null && !state.hiddenHfJobs.has(job.id))
+    .sort((left, right) => String(right.startedAt).localeCompare(String(left.startedAt)));
+}
+
+function renderHfJobs() {
+  if (!els.hfJobs) return;
+  els.hfJobs.replaceChildren();
+  for (const job of customDownloads()) {
+    if (job.status === "complete" || job.status === "canceled") continue;
+    const row = document.createElement("div");
+    row.className = "hf-job";
+    if (job.status === "error") {
+      row.innerHTML = `
+        <span class="hf-job-error">${escapeHtml(job.name)}: ${escapeHtml(job.error?.why || job.error?.message || "The download failed.")}</span>
+        <button class="msg-action" type="button" data-dismiss-hf-job="${escapeAttribute(job.id)}">Dismiss</button>`;
+    } else {
+      row.innerHTML = `
+        <span><strong>${escapeHtml(job.name)}</strong> · ${job.percent}% · ${escapeHtml(formatBytes(job.received))} of ${escapeHtml(formatBytes(job.size))}</span>
+        <button class="msg-action" type="button" data-cancel-download="${escapeAttribute(job.id)}">Cancel</button>
+        <div class="progress"><span style="width:${job.percent}%"></span></div>`;
+    }
+    els.hfJobs.appendChild(row);
+  }
+}
+
 function renderCatalog() {
   if (!els.catalogGrid) return;
   els.catalogGrid.replaceChildren();
@@ -928,6 +961,7 @@ function renderCatalog() {
       </div>`;
     els.catalogGrid.appendChild(card);
   }
+  renderHfJobs();
 }
 
 function renderInstalled() {
@@ -1170,6 +1204,35 @@ async function importModel() {
   } finally {
     els.importBtn.disabled = false;
     els.importBtn.textContent = "Import";
+  }
+}
+
+async function addHuggingFace() {
+  const reference = els.hfReference.value.trim();
+  const sha256 = els.hfSha256.value.trim();
+  if (!reference) {
+    showToast("Paste a Hugging Face link first", {
+      message: "Use hf:owner/repo/file.gguf or the file's resolve link on huggingface.co.",
+    });
+    return;
+  }
+  els.hfAdd.disabled = true;
+  els.hfAdd.textContent = "Adding...";
+  try {
+    const data = await request("/api/models/add-hf", { method: "POST", body: { reference, sha256 } });
+    state.downloads = [data.job, ...state.downloads.filter((job) => job.id !== data.job.id)];
+    els.hfReference.value = "";
+    els.hfSha256.value = "";
+    renderHfJobs();
+    startDownloadPolling();
+    showToast("Download started", {
+      message: `${data.reference.repo} · ${formatBytes(data.job.size)}`,
+    });
+  } catch (error) {
+    showError(error);
+  } finally {
+    els.hfAdd.disabled = false;
+    els.hfAdd.textContent = "Add";
   }
 }
 
@@ -3800,6 +3863,12 @@ function bindEvents() {
       cancelDownload(cancel.dataset.cancelDownload);
       return;
     }
+    const dismissHf = event.target.closest("[data-dismiss-hf-job]");
+    if (dismissHf) {
+      state.hiddenHfJobs.add(dismissHf.dataset.dismissHfJob);
+      renderHfJobs();
+      return;
+    }
     const load = event.target.closest("[data-load]");
     if (load) {
       loadModel(load.dataset.load);
@@ -3841,6 +3910,15 @@ function bindEvents() {
       importModel();
     }
   });
+  els.hfAdd.addEventListener("click", addHuggingFace);
+  for (const input of [els.hfReference, els.hfSha256]) {
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        void addHuggingFace();
+      }
+    });
+  }
 
   els.settingsForm.addEventListener("submit", saveSettings);
   els.settingTemp.addEventListener("input", updateSettingsOutputs);

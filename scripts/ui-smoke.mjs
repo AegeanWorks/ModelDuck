@@ -143,6 +143,17 @@ async function main() {
         if (url.pathname === "/api/catalog") return json({ catalog: [], models: fixture.state.models, modelsDir: "C:/models", downloads: [] });
         if (url.pathname === "/api/tune/overview") return json(fixture.overview);
         if (url.pathname === "/api/tune/status") return json({ job: null });
+        if (url.pathname === "/api/models/add-hf" && method === "POST") {
+          const body = JSON.parse(init.body ?? "{}");
+          window.__uiSmokeRequests.push({ path: url.pathname, body });
+          if (!String(body.reference ?? "").startsWith("hf:")) {
+            return json({ error: { message: "Hugging Face refused the link", code: "invalid_hf_reference", why: "The address is empty.", fix: "Paste a link like hf:org/repo/file.gguf." } }, 400);
+          }
+          const job = { id: "hf-job-1", catalogId: null, modelId: null, name: "fixture-model", fileName: "fixture.gguf", size: 1024, received: 0, total: 1024, percent: 0, status: "downloading", startedAt: new Date().toISOString(), finishedAt: null, error: null };
+          window.__uiSmokeDownloads = [job];
+          return json({ job, reference: { repo: "org/repo", revision: "main", fileName: "fixture.gguf", url: "https://huggingface.co/org/repo/resolve/main/fixture.gguf" } }, 202);
+        }
+        if (url.pathname === "/api/downloads" && method === "GET") return json({ downloads: window.__uiSmokeDownloads ?? [] });
         if (url.pathname === "/api/tune/start" && method === "POST") {
           window.__uiSmokeRequests.push({ path: url.pathname, body: JSON.parse(init.body ?? "{}") });
           return json({ job: { status: "running", items: [{ profileId: "fixture-model", name: "Fixture model", status: "running", lane: "cpu", live: { answers: 0, expectedAnswers: 10 } }] } });
@@ -288,6 +299,48 @@ async function main() {
     })()`);
     assert.notEqual(receiptStyle.color, receiptStyle.danger, "the receipt line uses the danger colour reserved for unreadable models");
     assert.equal(receiptStyle.dotWidth, "6px", "the verified dot is missing");
+    await evaluate('document.getElementById("models-dialog").close(), true');
+
+    // IDEA-0995: the Discover tab adds one Hugging Face GGUF and shows its job.
+    await evaluate('document.getElementById("open-models").click(), true');
+    assert.ok(await waitFor(() => evaluate('document.getElementById("models-dialog").open'), 3_000), "the Models dialog did not reopen for the Hugging Face form");
+    await evaluate(`document.querySelector('#models-dialog [data-tab="discover"]').click(), true`);
+    const hfForm = await evaluate(`(() => {
+      const reference = document.getElementById("hf-reference");
+      const sha = document.getElementById("hf-sha256");
+      const add = document.getElementById("hf-add");
+      return {
+        fields: Boolean(reference && sha && add),
+        labels: [reference?.getAttribute("aria-label"), sha?.getAttribute("aria-label")],
+      };
+    })()`);
+    assert.equal(hfForm.fields, true, "the Hugging Face form is missing an input or the Add button");
+    assert.match(hfForm.labels.join(" "), /Hugging Face GGUF reference/, "the reference input has no label");
+    await evaluate(`(() => { document.getElementById("hf-reference").value = "hf:org/repo/fixture.gguf"; document.getElementById("hf-add").click(); return true; })()`);
+    assert.ok(
+      await waitFor(() => evaluate('(window.__uiSmokeRequests ?? []).some((item) => item.path === "/api/models/add-hf" && item.body.reference === "hf:org/repo/fixture.gguf")'), 3_000),
+      "the form did not post the reference to /api/models/add-hf",
+    );
+    assert.ok(
+      await waitFor(() => evaluate('[...document.querySelectorAll("#hf-jobs .hf-job")].some((row) => /fixture-model/.test(row.textContent) && /Cancel/.test(row.textContent))'), 3_000),
+      "the running custom download is not shown under the form",
+    );
+    assert.equal(await evaluate('document.getElementById("hf-reference").value'), "", "the form did not clear after a start");
+    await evaluate(`(() => { document.getElementById("hf-reference").value = "not a link"; document.getElementById("hf-add").click(); return true; })()`);
+    assert.ok(
+      await waitFor(() => evaluate('[...document.querySelectorAll(".toast.error")].some((toast) => /Hugging Face refused the link/.test(toast.textContent))'), 3_000),
+      "a refused reference did not show the server message",
+    );
+    assert.match(
+      await evaluate('[...document.querySelectorAll(".toast.error")].at(-1)?.textContent ?? ""'),
+      /Paste a link like hf:/,
+      "the refusal does not carry the server's Fix",
+    );
+    await evaluate('[...document.querySelectorAll(".toast.error .toast-close")].at(-1)?.click(), true');
+    assert.ok(
+      await waitFor(() => evaluate('[...document.querySelectorAll(".toast.error")].length === 0'), 2_000),
+      "the refusal toast did not close and would leak into the next section",
+    );
     await evaluate('document.getElementById("models-dialog").close(), true');
 
     await evaluate('document.getElementById("open-settings").click(), true');
@@ -472,6 +525,29 @@ async function main() {
     assert.ok(receiptFit, "the receipt line is missing at 390px");
     assert.ok(receiptFit.noteRight <= receiptFit.cardRight + 1, "the receipt line leaves its card at 390px");
     assert.equal(receiptFit.clipped, false, `the receipt line is clipped at 390px (${JSON.stringify(receiptFit)})`);
+    await evaluate(`document.querySelector('#models-dialog [data-tab="discover"]').click(), true`);
+    const hfFit = await evaluate(`(() => {
+      const box = document.querySelector("#models-dialog .hf-box");
+      const reference = document.getElementById("hf-reference");
+      const add = document.getElementById("hf-add");
+      const row = document.querySelector("#models-dialog .hf-job");
+      const boxRect = box.getBoundingClientRect();
+      const inside = (element) => {
+        const rect = element.getBoundingClientRect();
+        return rect.left >= boxRect.left - 1 && rect.right <= boxRect.right + 1;
+      };
+      return {
+        referenceInside: inside(reference),
+        addInside: inside(add),
+        addVisible: add.getBoundingClientRect().width > 0,
+        jobInside: row ? inside(row) : null,
+        pageOverflow: document.documentElement.scrollWidth > window.innerWidth + 1,
+      };
+    })()`);
+    assert.equal(hfFit.referenceInside, true, `the reference input leaves the box at 390px (${JSON.stringify(hfFit)})`);
+    assert.equal(hfFit.addInside, true, `the Add button leaves the box at 390px (${JSON.stringify(hfFit)})`);
+    assert.equal(hfFit.addVisible, true, "the Add button is hidden at 390px");
+    assert.equal(hfFit.pageOverflow, false, "the Hugging Face form makes the page scroll sideways at 390px");
     await evaluate('document.getElementById("models-dialog").close(), true');
     await evaluate('document.getElementById("open-benchmarks").click(), true');
     assert.ok(
