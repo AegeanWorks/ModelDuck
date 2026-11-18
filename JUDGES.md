@@ -153,10 +153,11 @@ cd C:\ModelDuck
 npm test
 ```
 
-This runs several hundred hermetic unit and integration tests (about 840 at the
+This runs several hundred hermetic unit and integration tests (about 930 at the
 time of writing, so the exact figure moves). No model
-files required. Expected output: all tests pass. It takes about 8 to 12 seconds
-on a modern CPU; `npm run test:parallel` splits it into shards.
+files required. Expected output: all tests pass. It takes about 12 to 25 seconds
+on a modern CPU; `npm run test:parallel` splits it into shards (about 13 seconds
+on the development machine).
 
 ---
 
