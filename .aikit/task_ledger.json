@@ -1,11 +1,11 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "hf-resolver",
+    "task_id": "hf-ui",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794992242.2327197,
+    "updated_at": 1794995061.80704,
     "owner": "kilo:1",
     "started_by": "kilo:1",
     "continuations": [],
@@ -15,70 +15,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1794992251.589984,
-    "completed_head": "ec803119d9c20caa282651a88b65d69514ea2662",
-    "completed_tree": "535ec61b45380e411336e18ef73616ccb54eb0a0"
+    "completed_at": 1794995062.8126879,
+    "completed_head": "ddf15068e7986dace7ab10aed881a92baeb00db2",
+    "completed_tree": "0251a37fcb03d2733c3cbdf2635ad68152e3ae70"
   },
   "checkpoints": [
-    {
-      "task_id": "recommend-memory-seam",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[2/2] npm test 894/895 pass, 1 skipped; ADR-129 test repeated 10x without a failure after the fixed machine; new seam test failed before the change; aikit check 4/4; ADR-134; UI review recorded; G-001 not applicable (no generation path changed)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794951196.9816809,
-      "timestamp_str": "2026-11-18 00:33:16",
-      "agent": "kilo:1",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "task_id": "recommend-memory-seam",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'recommend-memory-seam' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794951197.9581332,
-      "timestamp_str": "2026-11-18 00:33:17",
-      "agent": "kilo:1",
-      "head": "c603d56e4c315fba0a3ec539af519c2b7ee49a48",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
-    {
-      "task_id": "forged-judge-tests",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/1] Repair the two stale forgery tests from reforge run-1 stage 2: the exit-line test used the retired TEST_RESULTS marker and ok/detail array, and the stdout-patch test patched process.stdout.write while the child writes through a captured fs.writeSync, so both passed without exercising the judge. Rewrite them to forge the real per-run marker recovered from process._eval, assert the value rejection (detail got 0, not no results), and prove the captured writer defeats a late fs.writeSync patch. ADR-135",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794951680.7851827,
-      "timestamp_str": "2026-11-18 00:41:20",
-      "agent": "kilo:1",
-      "impact_assessment": {
-        "why": "Two tests guarding the judge anti-forgery property passed for the wrong reason, so a regression that accepted a well-formed forged line would not be caught",
-        "benefits": "The anti-forgery property is exercised end to end against the current marker format and captured writer",
-        "risks": "contract: tests only; dependency: none; concurrency: none; state: none",
-        "mitigation": "production judge untouched; the rewritten tests assert both the failing count and the value-mismatch detail so they cannot pass as no-results"
-      },
-      "plan_digest": "14afc79695a09643c761660a894a65385df8362ae7ad93be685baa03a81027db",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "forged-judge-tests",
       "phase": "phase 4",
@@ -402,6 +343,65 @@
       "timestamp_str": "2026-11-18 11:57:32",
       "agent": "kilo:1",
       "head": "ec803119d9c20caa282651a88b65d69514ea2662",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
+    },
+    {
+      "task_id": "hf-ui",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/2] Models UI for IDEA-0995: a compact Add from Hugging Face box in Discover (reference, optional SHA-256, Add), submits POST /api/models/add-hf, shows the running custom download with percent and Cancel, reports the server Why/Fix on refusal, and refreshes the library when the existing poll sees completion; ui-smoke fixture + assertions at 1440 and 390; [2/2] npm test, ui:smoke, G-007 DOM/geometry review in both themes, ADR-141, ui begin/verify/finish --reviewed, commit (G-001 not applicable: download UI only)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794992987.9208455,
+      "timestamp_str": "2026-11-18 12:09:47",
+      "agent": "kilo:1",
+      "impact_assessment": {
+        "why": "The IDEA-0995 backend is in place but no user can reach it; the review item asked for the biggest user unlock",
+        "benefits": "A user can add one exact HF GGUF from the app, see it download, cancel it, and get a specific refusal for a bad link",
+        "risks": "contract: Discover gains a form and custom-job rows; dependency: none; concurrency: reuses the existing 1s /api/downloads poll; state: none new on disk",
+        "mitigation": "the form reuses the import-box pattern; server remains the validator; tests drive the fixture route; 390px layout checked both by ui:smoke and the review"
+      },
+      "plan_digest": "a27930f0234fc42df187e0edfa08070bff53d5b92874dc430fb6378f2964fcd1",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "hf-ui",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[2/2] npm test 915/916 pass, 1 skipped; ui:smoke passes with the form, running row, cleared input, refusal toast and 390px fit; live review at 1440/390 in both themes plus a real 3% download and cancel; aikit check 4/4; ADR-141; UI review recorded; G-001 not applicable (download UI only)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794995061.80704,
+      "timestamp_str": "2026-11-18 12:44:21",
+      "agent": "kilo:1",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "hf-ui",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'hf-ui' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794995062.9442253,
+      "timestamp_str": "2026-11-18 12:44:22",
+      "agent": "kilo:1",
+      "head": "ddf15068e7986dace7ab10aed881a92baeb00db2",
       "delivery": {
         "roots": [
           "."
