@@ -1334,5 +1334,26 @@
     "final_snapshot_entries": 0,
     "surface_digest": "d0109ff89d7c8b68e51f79575b8dc4bc633ab714eb1c39d0aa3539e10d5694e2",
     "baseline_digest": "d0109ff89d7c8b68e51f79575b8dc4bc633ab714eb1c39d0aa3539e10d5694e2"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [],
+    "no_visual_reason": "",
+    "no_change_reason": "Review of committed work (d5986df): the clamp note now reads the engine's requestedContextSize, machine-checked by ui:smoke with a saved 32,768 and a reported 16,384 (the note names 16,384 and not 32,768). No other view changed; the engine test pins requested/trained/served. No image input, so no pixel inspection was possible.",
+    "baseline_commit": "d5986df04cbca9ad0a89b74b06740dee3ce8d4eb",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1795022960.5534663,
+    "finished_at": 1795022975.614025,
+    "strikes": 0,
+    "reviewer": "kilo:1",
+    "allowed_removals": [],
+    "allowed_tests": [],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "741b8f04ebe555ae8c4d2cb322d9084f3a4cb3e12055ddfff618c651a27f42f6",
+    "baseline_digest": "741b8f04ebe555ae8c4d2cb322d9084f3a4cb3e12055ddfff618c651a27f42f6"
   }
 ]
