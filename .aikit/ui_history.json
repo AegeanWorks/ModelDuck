@@ -1355,5 +1355,26 @@
     "final_snapshot_entries": 0,
     "surface_digest": "741b8f04ebe555ae8c4d2cb322d9084f3a4cb3e12055ddfff618c651a27f42f6",
     "baseline_digest": "741b8f04ebe555ae8c4d2cb322d9084f3a4cb3e12055ddfff618c651a27f42f6"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [],
+    "no_visual_reason": "",
+    "no_change_reason": "Backend-only MCP change (ADR-148): schema validation and protocol tests; no public/ file or rendered view changed. Reviewed the committed diff (original ten tests preserved), the seventeen invalid argument shapes and the forwarding allowlist.",
+    "baseline_commit": "11212f093d4b797417228fd93a6a23840f40d723",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1795026266.5462468,
+    "finished_at": 1795026310.0250964,
+    "strikes": 0,
+    "reviewer": "kilo:1",
+    "allowed_removals": [],
+    "allowed_tests": [],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "b152cbd40628bf92fb353d0c2127f05852a3a9d285b32189f525338d464375c0",
+    "baseline_digest": "b152cbd40628bf92fb353d0c2127f05852a3a9d285b32189f525338d464375c0"
   }
 ]
