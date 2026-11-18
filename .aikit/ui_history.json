@@ -1187,5 +1187,26 @@
     "final_snapshot_entries": 0,
     "surface_digest": "8afbb140e9a6f66b7699cd5b0ea991902d36a494f6c74d5eeb10a8571a8f405a",
     "baseline_digest": "8afbb140e9a6f66b7699cd5b0ea991902d36a494f6c74d5eeb10a8571a8f405a"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [],
+    "no_visual_reason": "",
+    "no_change_reason": "Backend-only IDEA-0995 step (resolver, downloader source path, route; ADR-140); no public/ file or rendered view changed, and the Models UI still has no control for this route, so there is nothing visual to inspect; reviewed the committed diff, the 12 tests and the live HEAD result.",
+    "baseline_commit": "b152cfca6806ff0e74214f64a55aa57ed9318df4",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1794992141.1791866,
+    "finished_at": 1794992217.8640316,
+    "strikes": 0,
+    "reviewer": "kilo:1",
+    "allowed_removals": [],
+    "allowed_tests": [],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "f558f3e1910dcdbd6216b9668eb0eaa04d3c4b232307009ea7d034579651c2ea",
+    "baseline_digest": "f558f3e1910dcdbd6216b9668eb0eaa04d3c4b232307009ea7d034579651c2ea"
   }
 ]
