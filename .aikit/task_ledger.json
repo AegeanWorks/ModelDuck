@@ -1,11 +1,11 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "openai-body-refusals",
+    "task_id": "openai-body-reader-shape",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794984044.9599242,
+    "updated_at": 1794984778.0019715,
     "owner": "kilo:1",
     "started_by": "kilo:1",
     "continuations": [],
@@ -15,70 +15,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1794984046.3342462,
-    "completed_head": "411ede9be5bf015b54d8a33d97f01a85a0dec6c4",
-    "completed_tree": "f02767424a1381456d01f62fbdc36d8929162726"
+    "completed_at": 1794984778.9036882,
+    "completed_head": "83524f13f49ab22d03b073e1268d5b8909c32aac",
+    "completed_tree": "76090409a7885c787de99fc469efbdc2623ba584"
   },
   "checkpoints": [
-    {
-      "task_id": "response-format",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[2/2] npm test 882/883 pass, 1 skipped; G-001 tune:gate passed 9/9 with every task rate unchanged (b=0 c=0), run 2f4a5a25 linked to e70a584; live check on Qwen2.5 0.5B (json_object, json_schema, xml 400); aikit check 4/4; ADR-131; README updated",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794944943.2670126,
-      "timestamp_str": "2026-11-17 22:49:03",
-      "agent": "kilo:1",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "task_id": "response-format",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'response-format' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794944962.6283658,
-      "timestamp_str": "2026-11-17 22:49:22",
-      "agent": "kilo:1",
-      "head": "c8fb5f947f4b4ad9066571c53a2120063f26dc4c",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
-    {
-      "task_id": "openai-param-refusals",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/2] Extend the OpenAI unsupported-parameter refusal (IDEA-1264 class): n>1, best_of>1, non-zero presence_penalty/frequency_penalty, logprobs/top_logprobs, echo, suffix, audio, non-text modalities and prediction are refused with 400 unsupported_parameter naming the param, instead of silently ignored; defaults (n=1, 0 penalties, false flags) stay accepted. Failing-first unit and route tests, README note, ADR-132; [2/2] npm test, G-001 tune:gate (cached answers expected), aikit check, commit",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794946529.4843957,
-      "timestamp_str": "2026-11-17 23:15:29",
-      "agent": "kilo:1",
-      "impact_assessment": {
-        "why": "The OpenAI routes refuse logit_bias/tools/functions but silently ignore other standard params, so a client asking for two choices or token probabilities gets one choice and null logprobs with a 200",
-        "benefits": "OpenAI clients get an honest 400 for params this server cannot honour; supported requests are unchanged",
-        "risks": "contract: more requests are refused (only ones whose params were already ignored); dependency: none; concurrency: none; state: none",
-        "mitigation": "defaults (n=1, penalties 0, flags false) remain accepted; failing-first tests for each refusal and each default; the accepted response_format path is re-tested"
-      },
-      "plan_digest": "1143833a956dc158c57350a427be19f8d2f9b0dd36ca63c3f9b7c34e10962378",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "openai-param-refusals",
       "phase": "phase 4",
@@ -402,6 +343,65 @@
       "timestamp_str": "2026-11-18 09:40:46",
       "agent": "kilo:1",
       "head": "411ede9be5bf015b54d8a33d97f01a85a0dec6c4",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
+    },
+    {
+      "task_id": "openai-body-reader-shape",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/1] Wrap readJsonBody in handleOpenAI so invalid JSON (400) and oversized bodies (413) answer with the OpenAI error shape and code instead of escaping to the UI error handler; two failing-first tests (invalid JSON, 8 MB + 16 byte body) assert status, type, code and that the engine was not asked; ADR-138; dummy checkpoint to satisfy the lifecycle before the Phase 4 record",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794984601.1049397,
+      "timestamp_str": "2026-11-18 09:50:01",
+      "agent": "kilo:1",
+      "impact_assessment": {
+        "why": "ADR-137 closed the parse refusals but the body reader's two refusals still escaped",
+        "benefits": "No OpenAI refusal path can answer with the UI shape",
+        "risks": "contract: error body shape only; dependency: none; concurrency: none; state: none",
+        "mitigation": "the catch runs before any model or session work; tests pin both statuses and that the engine is untouched"
+      },
+      "plan_digest": "4c5758c051e3d31d88e30775252e49449407ff6063b98337f475bbf07feb9c8e",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "openai-body-reader-shape",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[1/1] npm test 900/901 pass, 1 skipped; invalid JSON (400 invalid_json) and an 8 MB + 16 byte body (413 body_too_large) now answer with error.type invalid_request_error and never reach the engine; aikit check 4/4; ADR-138; UI review recorded; G-001 not applicable (refusal path only)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794984778.0019715,
+      "timestamp_str": "2026-11-18 09:52:58",
+      "agent": "kilo:1",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "openai-body-reader-shape",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'openai-body-reader-shape' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794984778.971466,
+      "timestamp_str": "2026-11-18 09:52:58",
+      "agent": "kilo:1",
+      "head": "83524f13f49ab22d03b073e1268d5b8909c32aac",
       "delivery": {
         "roots": [
           "."
