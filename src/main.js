@@ -8,6 +8,9 @@ import { TunedSettings } from "./tuned-settings.js";
 import { TuneScheduler } from "./tune-scheduler.js";
 import { DownloadManager } from "./downloader.js";
 import { drainServer } from "./drain.js";
+import { BUILTIN_DESCRIPTORS, createEngineCatalog, loadEnginePlugin } from "./engine-catalog.js";
+import { RoutedEngine } from "./external-engines.js";
+import { externalEngineFor } from "./inference-engines.js";
 import { LlamaEngine } from "./engine.js";
 import { AppError } from "./errors.js";
 import { acquireHomeLock, ensureDirectory } from "./fs-atomic.js";
@@ -31,6 +34,8 @@ Options:
   --host <address>   Address to bind (default: loopback; LAN requires Serve on Local Network)
   --home <folder>    Data folder (default: ~/.modelduck)
   --models <folder>  Model folder (default: <home>/models)
+  --engine-plugin <file>  Add an inference engine from a JS module that exports its descriptor
+                     (see src/engine-catalog.js); repeat for several
   --no-open          Do not open the browser automatically
   -h, --help         Show this help
   -v, --version      Show the version
@@ -114,12 +119,19 @@ async function main() {
 
   const registry = createModelRegistry({ modelsDir: paths.models });
   const downloads = new DownloadManager({ modelsDir: paths.models });
-  const engine = new LlamaEngine({ registry });
+  // Every engine comes from the catalog (ADR-160). A tuned profile may name one; it is started on load, and if this
+  // machine cannot provide it the in-process engine serves and the status says why.
+  const catalog = createEngineCatalog({ descriptors: [...BUILTIN_DESCRIPTORS, ...await Promise.all((options.enginePlugins ?? []).map(loadEnginePlugin))] });
+  const engine = new RoutedEngine({
+    inProcess: new LlamaEngine({ registry }),
+    resolve: (id) => externalEngineFor(id, { catalog, registry, cachePrompt: true }),
+    fallback: true,
+  });
   await registry.scan();
   const tuned = new TunedSettings({ profilesDir: paths.profiles, registry, settings });
   const jit = new JitManager({ engine, registry, settings, serverSettings, tuned });
   const benchmarks = new BenchmarkRunner({ modelsDir: paths.models, homeDir: paths.home });
-  const tunes = new TuneScheduler({ homeDir: paths.home, modelsDir: paths.models, profilesDir: paths.profiles, tuneStepsFile: paths.tuneGrid, queueFile: path.join(paths.home, "tune-queue.json") });
+  const tunes = new TuneScheduler({ homeDir: paths.home, modelsDir: paths.models, profilesDir: paths.profiles, tuneStepsFile: paths.tuneGrid, queueFile: path.join(paths.home, "tune-queue.json"), enginePlugins: options.enginePlugins ?? [] });
   await tunes.restore();
 
   const instanceInfo = {};

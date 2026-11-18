@@ -171,6 +171,8 @@ export class EngineRebuildLease {
         deferred = true;
         return;
       }
+      // A settings change rebuilds the model on the engine that was serving it, not on the default one.
+      const engineId = this.#engine.engineId ?? null;
       this.#phase = "unload";
       await this.#bounded(() => this.#engine.unload());
       if (fingerprint !== this.#pendingFingerprint) {
@@ -178,7 +180,7 @@ export class EngineRebuildLease {
         return;
       }
       this.#phase = "load";
-      await this.#engine.load(loadArguments(modelId, this.#pendingSettings));
+      await this.#engine.load({ ...loadArguments(modelId, this.#pendingSettings), ...(engineId && { engine: engineId }) });
       this.lastError = null;
     } catch (error) {
       if (error?.code === "generation_in_progress" || this.#engine.busy) {

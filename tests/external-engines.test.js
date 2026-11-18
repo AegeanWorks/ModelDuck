@@ -22,6 +22,12 @@ function serve(handler) {
         const parsed = body ? JSON.parse(body) : null;
         requests.push({ method: req.method, url: req.url, body: parsed });
         const out = handler({ method: req.method, url: req.url, body: parsed, count: requests.length });
+        if (out.ndjson) {
+          res.writeHead(200, { "content-type": "application/x-ndjson" });
+          res.end(out.ndjson.map((event) => `${JSON.stringify(event)}
+`).join(""));
+          return;
+        }
         res.writeHead(out.status ?? 200, { "content-type": "application/json" });
         res.end(JSON.stringify(out.json ?? {}));
       });
@@ -65,9 +71,17 @@ function fakeLlamaServer({ healthyAfter = 1, exitWith = null, reply } = {}) {
           res.writeHead(health >= healthyAfter ? 200 : 503).end("{}");
           return;
         }
-        record.requests.push(JSON.parse(body));
-        res.writeHead(200, { "content-type": "application/json" });
-        res.end(JSON.stringify(reply ?? { choices: [{ message: { content: "Four." }, finish_reason: "stop" }], usage: { prompt_tokens: 12, completion_tokens: 3 }, timings: { prompt_n: 12, prompt_ms: 24, predicted_n: 3, predicted_per_second: 41.234 } }));
+        record.requests.push({ url: req.url, ...JSON.parse(body) });
+        // The real server streams: content pieces, then a finish chunk carrying usage and timings, then [DONE].
+        const answer = reply ?? { text: "Four.", finish: "stop", usage: { prompt_tokens: 12, completion_tokens: 3 }, timings: { prompt_n: 12, prompt_ms: 24, predicted_n: 3, predicted_per_second: 41.234 } };
+        const chat = req.url.includes("chat");
+        res.writeHead(200, { "content-type": "text/event-stream" });
+        for (let at = 0; at < answer.text.length; at += 2) {
+          const piece = answer.text.slice(at, at + 2);
+          res.write(`data: ${JSON.stringify({ choices: [chat ? { delta: { content: piece }, finish_reason: null } : { text: piece, finish_reason: null }] })}\n\n`);
+        }
+        res.write(`data: ${JSON.stringify({ choices: [{ ...(chat ? { delta: {} } : { text: "" }), finish_reason: answer.finish }], usage: answer.usage, timings: answer.timings })}\n\n`);
+        res.end("data: [DONE]\n\n");
       });
     });
     server.listen(port, "127.0.0.1");
@@ -112,7 +126,7 @@ test("llama-server is started, waited for until healthy, asked, and stopped", as
 });
 
 test("a length finish is reported as the token cap, and a restart replaces the server", async () => {
-  const { spawnImpl, spawned } = fakeLlamaServer({ reply: { choices: [{ message: { content: "cut" }, finish_reason: "length" }], usage: {}, timings: {} } });
+  const { spawnImpl, spawned } = fakeLlamaServer({ reply: { text: "cut", finish: "length", usage: {}, timings: {} } });
   const backend = new LlamaServerBackend({ binary: "b", spawnImpl });
   await backend.start({ entry: ENTRY, load: LOAD });
   assert.equal((await backend.generate({ messages: [], settings: {} })).stopReason, "maxTokens");
@@ -141,7 +155,7 @@ function ollamaServer({ models = [{ name: "tiny:latest" }], version = "0.5.1" } 
     if (url === "/api/tags") return { json: { models } };
     if (url === "/api/generate") return { json: { done: true } };
     if (url === "/api/chat") {
-      return { json: { message: { content: `echo ${body.options.num_predict}` }, done_reason: "length", prompt_eval_count: 30, prompt_eval_duration: 60_000_000, eval_count: 20, eval_duration: 400_000_000 } };
+      return { ndjson: [{ message: { content: "echo " }, done: false }, { message: { content: String(body.options.num_predict) }, done: false }, { done: true, done_reason: "length", prompt_eval_count: 30, prompt_eval_duration: 60_000_000, eval_count: 20, eval_duration: 400_000_000 }] };
     }
     return { status: 404, json: {} };
   });
@@ -208,7 +222,7 @@ test("a server engine speaks the evaluator's interface: load, chat with a system
   const starts = log.filter((entry) => entry[0] === "start");
   assert.equal(starts.length, 2);
   assert.equal(starts[1][1].threads, 2);
-  assert.equal(starts[1][1].contextSize, 4096, "a reconfigure keeps what it did not change");
+  assert.equal(starts[1][1].contextSize, 16384, "a reconfigure keeps what it did not change (and the 16K floor)");
   await engine.unload();
   assert.equal(engine.loadedId, null);
   assert.equal(log.at(-1)[0], "stop");
@@ -340,13 +354,13 @@ test("an external engine that cannot run is a result for that candidate, not a f
 test("the tuner's external engines come from what an assessment measured, and llama-bench only times", () => {
   const assessment = {
     results: [
-      { id: "llama.cpp:llama-bench", ok: true, location: null },
-      { id: "llama.cpp:llama-server", ok: true, location: "C:\\llama-server.exe", backends: ["cpu", "vulkan"] },
+      { id: "llama-bench", ok: true, location: null },
+      { id: "llama-server", ok: true, location: "C:\\llama-server.exe", backends: ["cpu", "vulkan"] },
       { id: "ollama", ok: true },
       { id: "node-llama-cpp:cpu", ok: true },
     ],
   };
-  const { engines, candidates } = externalSetFrom(assessment, { registry: REGISTRY });
+  const { engines, candidates, servable } = externalSetFrom(assessment, { registry: REGISTRY, roots: [], llamaServer: "llama-server-binary" });
   assert.deepEqual(Object.keys(engines).sort(), ["llama-server", "ollama"], "llama-bench cannot generate text");
   assert.deepEqual(candidates, [
     { engine: "llama-server", gpuBackend: "cpu", gpuLayers: 0 },
@@ -354,5 +368,124 @@ test("the tuner's external engines come from what an assessment measured, and ll
     { engine: "ollama", gpuBackend: "cpu", gpuLayers: 0 },
     { engine: "ollama", gpuBackend: "auto", gpuLayers: "max" },
   ]);
-  assert.deepEqual(externalSetFrom({ results: [{ id: "llama.cpp:llama-server", ok: false }] }, { registry: REGISTRY }), { engines: {}, candidates: [] }, "an engine that did not measure is not offered");
+  assert.deepEqual(servable, ["ollama"], "the app can start Ollama from a saved profile, but not a binary passed on one command line");
+  assert.deepEqual(externalSetFrom({ results: [{ id: "llama-server", ok: false }] }, { registry: REGISTRY }), { engines: {}, candidates: [], servable: [] }, "an engine that did not measure is not offered");
+});
+
+// ADR-159: tuning is based on the best token-generation engine. The device stage picks the fastest accurate
+// engine the app can serve, external ones included, and every later stage then runs on it.
+const idsOf = (prefix, count) => Array.from({ length: count }, (_, index) => `${prefix}-${index + 1}`);
+
+async function pick({ ms, passed = {}, servable = ["llama-server:cpu"], stages = ["device"], qualityAxes = [], gpu = false }) {
+  const calls = [];
+  const evaluate = async (settings, itemIds) => {
+    calls.push(settings);
+    const key = settings.engine ?? (settings.gpuBackend === "vulkan" ? "vulkan" : "cpu");
+    return { prompts: itemIds.map((id, index) => ({ id, passed: index < (passed[key] ?? 6) ? 1 : 0, total: 1, ms: ms[key] * (1 + index / 20), tokensPerSecond: 1000 / ms[key], digest: id })) };
+  };
+  const result = await tune({
+    evaluate, base: { threads: 4, kvCache: "f16" }, tasks: [], stages, modelLayers: 28,
+    deviceBackends: gpu ? ["cpu", "vulkan"] : ["cpu"],
+    externalEngines: [{ engine: "llama-server:cpu", gpuBackend: "cpu", gpuLayers: 0 }],
+    servableEngines: servable,
+    rungs: { load: [idsOf("mix", 6)], speed: [idsOf("speed", 6)] },
+    qualityAxes, speedAxes: [],
+  });
+  return { result, calls };
+}
+
+test("a servable engine that is clearly faster and as accurate becomes the device: the profile is built on it", async () => {
+  const { result } = await pick({ ms: { cpu: 1000, "llama-server:cpu": 400 } });
+  assert.deepEqual(result.load.settings, { engine: "llama-server:cpu", gpuBackend: "cpu", gpuLayers: 0 });
+  const row = result.device.probe.find((entry) => entry.patch.engine);
+  assert.equal(row.verdict, "chosen");
+  assert.match(result.device.reason, /^llama-server:cpu \(cpu with 0 layers\): 2\.5 tok\/s vs 1 tok\/s on the CPU/);
+  assert.doesNotMatch(result.device.reason, /not adopted/);
+});
+
+test("an engine only slightly faster than the best in-process device does not displace it", async () => {
+  const { result } = await pick({ ms: { cpu: 1000, vulkan: 400, "llama-server:cpu": 380 }, gpu: true });
+  assert.deepEqual(result.load.settings, { gpuBackend: "vulkan", gpuLayers: "max" }, "5% is noise, not a reason to run a second process");
+  assert.match(result.device.probe.find((entry) => entry.patch.engine).verdict, /kept the in-process vulkan: .* only 5% faster/);
+});
+
+test("an engine clearly faster than the in-process GPU does displace it", async () => {
+  const { result } = await pick({ ms: { cpu: 1000, vulkan: 400, "llama-server:cpu": 200 }, gpu: true });
+  assert.equal(result.load.settings.engine, "llama-server:cpu");
+});
+
+test("a faster engine that answers fewer items correctly is not adopted", async () => {
+  const { result } = await pick({ ms: { cpu: 1000, "llama-server:cpu": 200 }, passed: { cpu: 6, "llama-server:cpu": 4 } });
+  assert.equal("engine" in result.load.settings, false);
+  assert.match(result.device.probe.find((entry) => entry.patch.engine).verdict, /answered 4 of 6 correctly vs 6 on the CPU/);
+});
+
+test("an engine the app cannot serve is measured, not adopted, however fast", async () => {
+  const { result } = await pick({ ms: { cpu: 1000, "llama-server:cpu": 100 }, servable: [] });
+  assert.equal("engine" in result.load.settings, false);
+  assert.match(result.device.probe.find((entry) => entry.patch.engine).verdict, /not adopted/);
+});
+
+test("every stage after the device stage runs on the adopted engine, so the whole profile is measured on it", async () => {
+  const { result, calls } = await pick({
+    ms: { cpu: 1000, "llama-server:cpu": 300 },
+    stages: ["device", "quality"],
+    qualityAxes: [{ name: "kvCache", patches: ["f16", "q8_0"].map((kvCache) => ({ kvCache })) }],
+  });
+  assert.equal(result.load.settings.engine, "llama-server:cpu");
+  const qualityCalls = calls.filter((settings) => settings.kvCache === "q8_0");
+  assert.ok(qualityCalls.length > 0, "the quality stage ran");
+  assert.ok(qualityCalls.every((settings) => settings.engine === "llama-server:cpu"), "no quality answer came from another engine");
+});
+
+// The speed items are mostly prompt, so an engine that reads prompts twice as fast answers twice as fast even when
+// its decode speed is the same. The choice follows the time to answer, not decode tokens/s alone.
+test("the best engine is the one that answers the same items fastest end to end, not the one with the higher decode speed", async () => {
+  const evaluate = async (settings, itemIds) => {
+    const external = Boolean(settings.engine);
+    return {
+      prompts: itemIds.map((id) => ({
+        id, passed: 1, total: 1, digest: id,
+        promptTokens: 1000, outputTokens: 20,
+        ms: external ? 100 : 200,
+        // Decode speed is the same on both, as measured in the real run.
+        tokensPerSecond: 100,
+        firstTokenMs: external ? 50 : 150,
+      })),
+    };
+  };
+  const ids = (prefix, count) => Array.from({ length: count }, (_, index) => `${prefix}-${index + 1}`);
+  const result = await tune({
+    evaluate, base: { threads: 4 }, tasks: [], stages: ["device"], modelLayers: 28, deviceBackends: ["cpu", "vulkan"],
+    externalEngines: [{ engine: "llama-server:vulkan", gpuBackend: "vulkan", gpuLayers: "max" }], servableEngines: ["llama-server:vulkan"],
+    rungs: { load: [ids("mix", 6)], speed: [ids("speed", 6)] }, qualityAxes: [], speedAxes: [],
+  });
+  assert.equal(result.load.settings.engine, "llama-server:vulkan", "twice as fast to answer, so it wins although decode tokens/s are equal");
+});
+
+// The in-process engine never serves a context longer than the model was trained for (and keeps a 16K floor for
+// models that were trained for more). An external engine must do the same, so a profile means the same thing on both.
+test("an external engine clamps the context to what the model was trained for and reports both numbers", async () => {
+  const log = [];
+  const trained = { findById: () => ({ ...ENTRY, contextLength: 8192 }) };
+  const engine = new ServerEngine({ id: "fake", registry: trained, backend: recordingBackend(log) });
+  await engine.load({ modelId: "m1", contextSize: 32768, threads: 4 });
+  assert.equal(log.find((entry) => entry[0] === "start")[1].contextSize, 8192, "the server is started at the trained size");
+  const status = await engine.status();
+  assert.deepEqual([status.requestedContextSize, status.contextSize, status.trainContextSize], [32768, 8192, 8192]);
+  await engine.reconfigure({ threads: 2 });
+  assert.equal(log.filter((entry) => entry[0] === "start").at(-1)[1].contextSize, 8192, "a restart keeps the clamp");
+});
+
+test("a model trained for more keeps at least the 16K floor, and one with no known size is not clamped", async () => {
+  const sizes = async (contextLength, requested) => {
+    const log = [];
+    const engine = new ServerEngine({ id: "fake", registry: { findById: () => ({ ...ENTRY, contextLength }) }, backend: recordingBackend(log) });
+    await engine.load({ modelId: "m1", contextSize: requested });
+    return log.find((entry) => entry[0] === "start")[1].contextSize;
+  };
+  assert.equal(await sizes(131072, 2048), 16384, "a small request still gets the floor");
+  assert.equal(await sizes(131072, 65536), 65536);
+  assert.equal(await sizes(undefined, 4096), 16384);
+  assert.equal(await sizes(2048, 16384), 2048, "a model trained for less is never given more");
 });

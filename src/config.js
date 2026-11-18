@@ -467,6 +467,9 @@ export function parseArgs(argv = [], env = process.env) {
       case "--models":
         options.models = take();
         break;
+      case "--engine-plugin":
+        (options.enginePlugins ??= []).push(take());
+        break;
       default:
         throw new AppError(`Unknown option: ${flag}`, {
           code: "cli_unknown_option",

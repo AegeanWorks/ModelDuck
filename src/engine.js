@@ -26,7 +26,7 @@ const KV_CACHE_TYPES = {
   q4_0: "Q4_0",
 };
 
-function publicModel(entry) {
+export function publicModel(entry) {
   if (!entry) return null;
   return {
     id: entry.id,
@@ -586,7 +586,17 @@ export class LlamaEngine {
     // keeps the 32 floor; only a deterministic repro run passes true.
     deterministicRepro = false,
     force = false,
+    // Only the routed engine may send a load that names another engine; this one never runs it quietly.
+    engine = null,
   }) {
+    if (engine) {
+      throw new AppError("This load names another engine", {
+        code: "engine_not_in_process",
+        status: 400,
+        why: `The load asks for ${engine}, but the in-process engine cannot run it; running it here would give different speed and answers than the settings were measured with.`,
+        fix: "Load through the routed engine (the app does), or remove the engine setting to use node-llama-cpp.",
+      });
+    }
     if (this.#running > 0) {
       throw new AppError("Stop the current reply first", {
         code: "generation_in_progress",

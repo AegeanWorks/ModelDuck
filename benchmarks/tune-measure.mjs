@@ -192,6 +192,8 @@ export async function score(measurements, settings, itemIds, seeds) {
   const itemTokens = new Map();
   const itemPrompt = new Map();
   const itemSpeed = new Map();
+  // Work per second of wall time, prompt plus answer: what an engine that reads prompts faster is worth (ADR-159).
+  const itemThroughput = new Map();
   const digests = new Map();
   const latencies = [];
   const tokens = [];
@@ -248,6 +250,9 @@ export async function score(measurements, settings, itemIds, seeds) {
       if (Number.isFinite(prompt.outputTokens) && Number.isFinite(prompt.ms) && Number.isFinite(prompt.firstTokenMs) && prompt.ms > prompt.firstTokenMs && prompt.outputTokens > 1) {
         decodeSpeeds.push(((prompt.outputTokens - 1) / ((prompt.ms - prompt.firstTokenMs) / 1000)) || 0);
       }
+      if (Number.isFinite(prompt.promptTokens) && Number.isFinite(prompt.outputTokens) && Number.isFinite(prompt.ms) && prompt.ms > 0) {
+        itemThroughput.set(prompt.id, (itemThroughput.get(prompt.id) ?? 0) + (((prompt.promptTokens + prompt.outputTokens) / (prompt.ms / 1000)) / used.length));
+      }
       if (Number.isFinite(prompt.promptTokens)) {
         promptTokenCounts.push(prompt.promptTokens);
         itemPrompt.set(prompt.id, (itemPrompt.get(prompt.id) ?? 0) + prompt.promptTokens / used.length);
@@ -297,11 +302,12 @@ export async function score(measurements, settings, itemIds, seeds) {
     itemTokens,
     itemPrompt,
     itemSpeed,
+    itemThroughput,
     digests,
   };
 }
 
-export const publicStats = ({ majority: _majority, itemLatency: _latency, itemTokens: _tokens, itemPrompt: _prompt, itemSpeed: _speed, digests: _digests, ...stats }) => stats;
+export const publicStats = ({ majority: _majority, itemLatency: _latency, itemTokens: _tokens, itemPrompt: _prompt, itemSpeed: _speed, itemThroughput: _throughput, digests: _digests, ...stats }) => stats;
 
 /**
  * Per-item paired differences (after − before) from the richest signal both

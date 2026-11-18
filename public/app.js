@@ -566,6 +566,9 @@ function renderStatus() {
     if (loaded.threads) details.push(`${loaded.threads} threads`);
     if (loaded.kvCache && loaded.kvCache !== "f16") details.push(`KV ${loaded.kvCache}`);
     if (loaded.gpuBackend && loaded.gpuBackend !== "cpu") details.push(`GPU ${loaded.gpuBackend}`);
+    // The engine serving the model: the tuned one, or the in-process one standing in for it.
+    if (loaded.engine) details.push(`engine ${loaded.engine}`);
+    if (loaded.engineFallback) details.push(`${loaded.engineFallback.wanted} unavailable, served in-process`);
     els.statusDetail.textContent = details.join(" · ") || "Ready";
     els.contextNote.textContent = `${loaded.model.name} · ${loaded.contextSize || "?"} context`;
   } else if (loaded.status === "loading") {
@@ -2871,7 +2874,7 @@ function renderTuneModels() {
     }
     row.appendChild(nameCell);
     const device = profile?.device?.settings;
-    row.appendChild(tuneCell(device ? (device.gpuBackend === "cpu" ? "CPU" : `${device.gpuBackend} GPU`) : "–", profile?.device?.reason ?? ""));
+    row.appendChild(tuneCell(device ? `${device.gpuBackend === "cpu" ? "CPU" : `${device.gpuBackend} GPU`}${device.engine ? ` · ${device.engine}` : ""}` : "–", profile?.device?.reason ?? ""));
     const progress = document.createElement("td");
     progress.appendChild(tuneStageChips(profile?.stages, model.staleParts ?? [], { modelId: model.id, running, current: item && running ? item.progress?.stage : null, deviceParts: model.deviceParts ?? [] }));
     // After the device changed, the later stages were measured on the old one: offer to run them again.
@@ -2938,7 +2941,10 @@ function renderTuneBest(models, repeated) {
   els.tuneBest.replaceChildren();
   const label = (model) => (repeated.has(model.name) ? `${model.name} (${model.fileName})` : model.name);
   const percent = (rate) => `${Number(Number(rate).toFixed(1))}%`;
-  const device = (model) => (model.profile?.load?.settings?.gpuBackend ?? "cpu") === "cpu" ? "CPU" : `${model.profile.load.settings.gpuBackend} GPU`;
+  const device = (model) => {
+    const load = model.profile?.load?.settings;
+    return `${(load?.gpuBackend ?? "cpu") === "cpu" ? "CPU" : `${load.gpuBackend} GPU`}${load?.engine ? ` · ${load.engine}` : ""}`;
+  };
   const rated = (task) => models
     .filter((model) => Number.isFinite(model.profile?.tasks?.[task]?.stats?.rate))
     .map((model) => ({ model, stats: model.profile.tasks[task].stats, current: !model.stale?.length }))

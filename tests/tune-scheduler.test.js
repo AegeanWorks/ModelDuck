@@ -645,15 +645,15 @@ test("the engine speed test that opens the device stage shows what is being time
   await settle();
   const child = spawn.children[0];
   const line = (event) => child.stdout.write(`${JSON.stringify(event)}\n`);
-  line({ type: "engines-progress", engine: "llama.cpp:llama-server:vulkan", stage: "measure" });
+  line({ type: "engines-progress", engine: "llama-server:vulkan", stage: "measure" });
   await settle();
-  assert.deepEqual(runner.get().items[0].live.enginesNow, { engine: "llama.cpp:llama-server:vulkan", stage: "measure" });
+  assert.deepEqual(runner.get().items[0].live.enginesNow, { engine: "llama-server:vulkan", stage: "measure" });
   line({
     type: "engines",
-    fastest: "llama.cpp:llama-server:vulkan",
+    fastest: "llama-server:vulkan",
     results: [
       { id: "node-llama-cpp:cpu", label: "node-llama-cpp (cpu)", ok: true, genTps: 132.1, promptTps: 665.5, version: "node-llama-cpp 3.22.2", detail: "x", location: "C:\private\path" },
-      { id: "llama.cpp:llama-server:vulkan", label: "llama.cpp b12521 llama-server (vulkan)", ok: true, genTps: 406.1, promptTps: 18919, version: "1.0.0-dev (6f311d7ad)" },
+      { id: "llama-server:vulkan", label: "llama.cpp b12521 llama-server (vulkan)", ok: true, genTps: 406.1, promptTps: 18919, version: "1.0.0-dev (6f311d7ad)" },
       { id: "ollama", label: "Ollama", ok: false, available: false, reason: "No Ollama server answered at http://127.0.0.1:11434." },
       { id: "node-llama-cpp:cuda", label: "node-llama-cpp (cuda)", ok: false, available: true, error: "boom" },
     ],
@@ -661,7 +661,7 @@ test("the engine speed test that opens the device stage shows what is being time
   await settle();
   const live = runner.get().items[0].live;
   assert.equal(live.enginesNow, null, "the marker clears when the table arrives");
-  assert.deepEqual(live.engines.map((engine) => [engine.id, engine.ok, engine.genTps]), [["node-llama-cpp:cpu", true, 132.1], ["llama.cpp:llama-server:vulkan", true, 406.1], ["ollama", false, null], ["node-llama-cpp:cuda", false, null]]);
+  assert.deepEqual(live.engines.map((engine) => [engine.id, engine.ok, engine.genTps]), [["node-llama-cpp:cpu", true, 132.1], ["llama-server:vulkan", true, 406.1], ["ollama", false, null], ["node-llama-cpp:cuda", false, null]]);
   assert.equal(live.engines[2].note, "No Ollama server answered at http://127.0.0.1:11434.", "why an engine is missing reaches the panel");
   assert.equal(live.engines[3].note, "boom", "a failure beats a reason");
   assert.equal("location" in live.engines[0], false, "file paths stay out of the live state");

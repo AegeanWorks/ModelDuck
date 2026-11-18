@@ -25,8 +25,8 @@ test("the registry looks engines up by id and names the known ones on a miss", (
 
 test("with nothing installed the default engines still list every engine, and the missing server says how to install it", async () => {
   const ids = createEngineRegistry({ engines: defaultEngines({ roots: [] }) }).ids();
-  assert.deepEqual(ids, ["node-llama-cpp:cpu", "node-llama-cpp:vulkan", "node-llama-cpp:cuda", "node-llama-cpp:metal", "llama.cpp:llama-bench", "llama.cpp:llama-server", "ollama"]);
-  const server = createEngineRegistry({ engines: defaultEngines({ roots: [] }) }).get("llama.cpp:llama-server");
+  assert.deepEqual(ids, ["node-llama-cpp:cpu", "node-llama-cpp:vulkan", "node-llama-cpp:cuda", "node-llama-cpp:metal", "llama-bench", "llama-server", "ollama"]);
+  const server = createEngineRegistry({ engines: defaultEngines({ roots: [] }) }).get("llama-server");
   const found = await server.detect();
   assert.equal(found.available, false);
   assert.match(found.reason, /npm run engines:install/);
@@ -285,7 +285,7 @@ test("the device stage tries every in-process backend that measured, cpu first, 
       { id: "node-llama-cpp:cpu", ok: true },
       { id: "node-llama-cpp:cuda", ok: false, available: false },
       { id: "node-llama-cpp:metal", ok: false, available: true, error: "boom" },
-      { id: "llama.cpp:llama-bench", ok: true },
+      { id: "llama-bench", ok: true },
       { id: "ollama", ok: true },
     ],
   };
@@ -322,8 +322,8 @@ function installedRoot(t, variants) {
 test("each installed variant becomes its own engine, and a binary passed by hand is kept apart", (t) => {
   const root = installedRoot(t, ["cpu", "vulkan"]);
   const ids = (options) => createEngineRegistry({ engines: defaultEngines({ roots: [root], platform: "win32", ...options }) }).ids();
-  assert.deepEqual(ids().filter((id) => id.startsWith("llama.cpp")), ["llama.cpp:llama-bench", "llama.cpp:llama-server:cpu", "llama.cpp:llama-server:vulkan"]);
-  assert.ok(ids({ llamaServer: "C:\mine\llama-server.exe" }).includes("llama.cpp:llama-server"), "a hand-passed build has its own id");
+  assert.deepEqual(ids().filter((id) => id.startsWith("llama-")), ["llama-bench", "llama-server:cpu", "llama-server:vulkan"]);
+  assert.ok(ids({ llamaServer: "C:\mine\llama-server.exe" }).includes("llama-server"), "a hand-passed build has its own id");
   assert.ok(ids({ openai: ["vllm=http://127.0.0.1:8000/v1"] }).includes("openai:vllm"));
   assert.throws(() => ids({ openai: ["not-an-address"] }), (error) => error.code === "bad_option" && /name=url/.test(error.why));
 });
@@ -334,7 +334,7 @@ test("a GPU build on a machine without that GPU is unavailable, not a silent CPU
   const ok = await withGpu.detect();
   assert.equal(ok.available, true);
   assert.deepEqual(ok.backends, ["vulkan"]);
-  assert.equal(withGpu.id, "llama.cpp:llama-server:vulkan");
+  assert.equal(withGpu.id, "llama-server:vulkan");
   assert.equal(withGpu.label, "llama.cpp b9 llama-server (vulkan)");
   const without = await new LlamaServerAdapter({ binary: "b", variant: "vulkan", run: run("Available devices:\n  (none)") }).detect();
   assert.equal(without.available, false);

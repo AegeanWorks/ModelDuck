@@ -11,12 +11,17 @@ import { costDelta, publicStats, score } from "./tune-measure.mjs";
 
 const CPU = Object.freeze({ gpuBackend: "cpu", gpuLayers: 0 });
 
-// Answers differ slightly between devices, so compare throughput, not time per answer.
-const speedOf = (entry) => entry.stats.tokensPerSecond ?? 0;
+// Answers differ slightly between devices, so compare throughput, not time per answer. Throughput is the work done per
+// second of wall time, prompt plus answer: the speed items are mostly prompt, so an engine that reads prompts twice as
+// fast answers twice as fast even when its decode speed is the same (ADR-159). Without token counts, decode speed.
+function speedOf(entry) {
+  const { promptTokens, outputTokens, latencyMs, tokensPerSecond } = entry.stats;
+  return promptTokens > 0 && outputTokens > 0 && latencyMs > 0 ? ((promptTokens + outputTokens) / latencyMs) * 1000 : tokensPerSecond ?? 0;
+}
 const passedOf = (entry) => Math.round((entry.stats.rate / 100) * entry.stats.items);
 
-// Only a device the app itself can serve may be saved into a profile (ADR-156).
-const adoptable = (entry) => !entry.patch.engine;
+// An external engine must beat the best in-process device by this much to be worth a second process (ADR-159).
+const EXTERNAL_MARGIN = 1.1;
 
 function candidatePatches(backends, layers, external = []) {
   const gpus = backends.filter((backend) => backend !== "cpu");
@@ -40,7 +45,9 @@ function summarise(entry, verdict) {
  */
 const LOAD_RECHECK_MIN = 8;
 
-export async function deviceStage(context, { backends, layers = 0, start, items, forced, loadItems = null, externalEngines = [] }) {
+export async function deviceStage(context, { backends, layers = 0, start, items, forced, loadItems = null, externalEngines = [], servable = () => false }) {
+  // Only a device the app can serve may be saved into a profile: in-process, or an engine it can start itself (ADR-156, ADR-159).
+  const adoptable = (entry) => !entry.patch.engine || servable(entry.patch.engine);
   const { measurements, options } = context;
   const seeds = options.seeds.slice(0, 1);
   const { first, fallback } = candidatePatches(backends, layers, externalEngines);
@@ -70,7 +77,7 @@ export async function deviceStage(context, { backends, layers = 0, start, items,
   const judge = (entry) => {
     if (entry.stats.failed) return `did not run: ${entry.stats.error}`;
     if (!cpu.stats.failed && passedOf(entry) < passedOf(cpu)) return `answered ${passedOf(entry)} of ${entry.stats.items} correctly vs ${passedOf(cpu)} on the CPU`;
-    const delta = cpu.stats.failed ? { significant: true, meanDelta: 1 } : costDelta(cpu.stats, entry.stats, options.speedTie, "itemSpeed");
+    const delta = cpu.stats.failed ? { significant: true, meanDelta: 1 } : costDelta(cpu.stats, entry.stats, options.speedTie, cpu.stats.itemThroughput?.size && entry.stats.itemThroughput?.size ? "itemThroughput" : "itemSpeed");
     return delta.significant && delta.meanDelta > 0 ? "faster than the CPU" : "not measurably faster than the CPU";
   };
   for (const entry of entries.slice(1)) verdicts.set(entry, judge(entry));
@@ -113,9 +120,19 @@ export async function deviceStage(context, { backends, layers = 0, start, items,
       }
     }
   }
-  const chosen = winners.sort((left, right) => speedOf(right) - speedOf(left))[0] ?? cpu;
-  verdicts.set(cpu, cpu.stats.failed ? `did not run: ${cpu.stats.error}` : chosen === cpu ? "chosen" : "slower than the chosen GPU");
+  let chosen = winners.sort((left, right) => speedOf(right) - speedOf(left))[0] ?? cpu;
+  // The tuning is built on the best token-generation engine, but a second process has to earn its place.
+  if (chosen.patch.engine) {
+    const inProcess = [cpu, ...winners.filter((entry) => !entry.patch.engine)].filter((entry) => !entry.stats.failed).sort((left, right) => speedOf(right) - speedOf(left))[0];
+    if (inProcess && speedOf(chosen) < speedOf(inProcess) * EXTERNAL_MARGIN) {
+      const percent = Math.round((speedOf(chosen) / (speedOf(inProcess) || 1) - 1) * 100);
+      verdicts.set(chosen, `kept the in-process ${inProcess.patch.gpuBackend}: ${chosen.patch.engine} is only ${percent}% faster (it must be at least ${Math.round((EXTERNAL_MARGIN - 1) * 100)}% faster to be worth a second process)`);
+      chosen = inProcess;
+    }
+  }
+  verdicts.set(cpu, cpu.stats.failed ? `did not run: ${cpu.stats.error}` : chosen === cpu ? "chosen" : chosen.patch.engine ? "slower than the chosen engine" : "slower than the chosen GPU");
   if (chosen !== cpu && !verdicts.get(chosen)?.includes("non-inferiority")) verdicts.set(chosen, "chosen");
+  const deviceLabel = (entry) => (entry.patch.engine ? `${entry.patch.engine} (${entry.patch.gpuBackend} with ${entry.patch.gpuLayers} layers)` : `${entry.patch.gpuBackend} with ${entry.patch.gpuLayers} layers`);
   const tokS = (entry) => (entry.stats.tokensPerSecond ? `${entry.stats.tokensPerSecond} tok/s` : `${entry.stats.latencyMs} ms/answer`);
   // An external engine that beat the CPU is reported, not adopted: the app serves in-process only.
   const skipped = fasterThanCpu.filter((entry) => !adoptable(entry));
@@ -123,7 +140,7 @@ export async function deviceStage(context, { backends, layers = 0, start, items,
   const note = skipped.length ? ` Also measured faster than the CPU but not adopted (the app serves in-process only): ${skipped.map((entry) => `${entry.patch.engine} ${tokS(entry)}, ${passedOf(entry)}/${entry.stats.items}`).join("; ")}.` : "";
   const reason = (chosen === cpu
     ? `CPU kept (${tokS(cpu)}): no GPU option was both faster and as accurate.`
-    : `${chosen.patch.gpuBackend} with ${chosen.patch.gpuLayers} layers: ${tokS(chosen)} vs ${cpu.stats.failed ? `the CPU could not run it (${cpu.stats.error})` : `${tokS(cpu)} on the CPU`}, ${passedOf(chosen)}/${chosen.stats.items} correct.`) + note;
+    : `${deviceLabel(chosen)}: ${tokS(chosen)} vs ${cpu.stats.failed ? `the CPU could not run it (${cpu.stats.error})` : `${tokS(cpu)} on the CPU`}, ${passedOf(chosen)}/${chosen.stats.items} correct.`) + note;
   return {
     settings: { ...chosen.patch },
     probe: entries.map((entry) => summarise(entry, verdicts.get(entry))),

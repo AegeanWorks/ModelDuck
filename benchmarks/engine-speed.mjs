@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { resolvePaths } from "../src/config.js";
 import { AppError } from "../src/errors.js";
 import { writeJsonAtomic } from "../src/fs-atomic.js";
+import { BUILTIN_DESCRIPTORS, createEngineCatalog, loadEnginePlugin } from "../src/engine-catalog.js";
 import { assessEngines, createEngineRegistry, defaultEngines, formatAssessment } from "../src/inference-engines.js";
 import { createModelRegistry } from "../src/model-registry.js";
 
@@ -24,6 +25,7 @@ installed or will not start are listed with the reason.
   --llama-bench <file>  a native llama.cpp llama-bench binary to include
   --llama-server <file> a llama.cpp llama-server binary of your own (installed variants are found on their own;
                         install them with: npm run engines:install)
+  --engine-plugin <file>  add an engine from a JS module that exports its descriptor (src/engine-catalog.js)
   --openai-engine <name=url[#model]>  attach a running OpenAI-compatible server (vLLM, SGLang, TGI,
                         mistral.rs, koboldcpp, llamafile, LM Studio...); repeat for several; a key, if
                         needed, is read from MODELDUCK_ENGINE_KEY
@@ -51,6 +53,7 @@ function parseArgs(argv) {
     else if (arg === "--only") options.only = take(index++, arg).split(",").map((id) => id.trim()).filter(Boolean);
     else if (arg === "--llama-bench") options.llamaBench = take(index++, arg);
     else if (arg === "--llama-server") options.llamaServer = take(index++, arg);
+    else if (arg === "--engine-plugin") (options.enginePlugins ??= []).push(take(index++, arg));
     else if (arg === "--openai-engine") (options.openai ??= []).push(take(index++, arg));
     else if (arg === "--ollama-model") options.ollamaModel = take(index++, arg);
     else if (arg === "--ollama-url") options.ollamaUrl = take(index++, arg);
@@ -87,7 +90,7 @@ export async function main(argv = process.argv.slice(2), out = process.stdout) {
   if (!entry) {
     throw new AppError("Model not found", { code: "model_not_found", status: 404, why: `${options.model} is not in ${paths.models}.`, fix: "Use an installed file name, or pass --models-dir." });
   }
-  const registry = createEngineRegistry({ engines: defaultEngines({ llamaBench: options.llamaBench ?? null, llamaServer: options.llamaServer ?? null, ollamaModel: options.ollamaModel ?? null, ollamaUrl: options.ollamaUrl, openai: options.openai ?? [], openaiKey: process.env.MODELDUCK_ENGINE_KEY ?? null }) });
+  const registry = createEngineRegistry({ engines: defaultEngines({ catalog: createEngineCatalog({ descriptors: [...BUILTIN_DESCRIPTORS, ...await Promise.all((options.enginePlugins ?? []).map(loadEnginePlugin))] }), llamaBench: options.llamaBench ?? null, llamaServer: options.llamaServer ?? null, ollamaModel: options.ollamaModel ?? null, ollamaUrl: options.ollamaUrl, openai: options.openai ?? [], openaiKey: process.env.MODELDUCK_ENGINE_KEY ?? null }) });
   if (options.only) {
     const unknown = options.only.filter((id) => !registry.ids().includes(id));
     if (unknown.length) {

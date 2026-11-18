@@ -122,9 +122,9 @@ test("the attached server's version and speed are assessed, and the key is sent 
 test("the tuner uses each installed llama-server variant and each attached server as its own engine", () => {
   const assessment = {
     results: [
-      { id: "llama.cpp:llama-server:cpu", ok: true, location: "C:\\e\\cpu\\llama-server.exe", backends: ["cpu"] },
-      { id: "llama.cpp:llama-server:vulkan", ok: true, location: "C:\\e\\vk\\llama-server.exe", backends: ["vulkan"] },
-      { id: "llama.cpp:llama-server:cuda", ok: false, location: "C:\\e\\cu\\llama-server.exe", backends: ["cuda"] },
+      { id: "llama-server:cpu", ok: true, location: "C:\\e\\cpu\\llama-server.exe", backends: ["cpu"] },
+      { id: "llama-server:vulkan", ok: true, location: "C:\\e\\vk\\llama-server.exe", backends: ["vulkan"] },
+      { id: "llama-server:cuda", ok: false, location: "C:\\e\\cu\\llama-server.exe", backends: ["cuda"] },
       { id: "openai:vllm", ok: true, location: "http://h:8000/v1" },
       { id: "openai:unlisted", ok: true, location: "http://h:9/v1" },
     ],

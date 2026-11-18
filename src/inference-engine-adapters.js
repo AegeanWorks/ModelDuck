@@ -166,7 +166,7 @@ export class LlamaBenchAdapter {
   }
 
   get id() {
-    return "llama.cpp:llama-bench";
+    return "llama-bench";
   }
 
   get label() {
@@ -243,7 +243,7 @@ export class LlamaServerAdapter {
   }
 
   get id() {
-    return `llama.cpp:llama-server${this.#variant ? `:${this.#variant}` : ""}`;
+    return `llama-server${this.#variant ? `:${this.#variant}` : ""}`;
   }
 
   get label() {

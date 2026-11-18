@@ -26,6 +26,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 export class TuneScheduler {
   #homeDir;
   #modelsDir;
+  #enginePlugins;
   #scriptPath;
   #spawn;
   #readLanes;
@@ -38,10 +39,11 @@ export class TuneScheduler {
   #listeners = new Set();
   #clock;
 
-  constructor({ homeDir, modelsDir, profilesDir = null, tuneStepsFile = null, queueFile = null, scriptPath = SCRIPT, spawnImpl = spawn, readLanes = null, readLane = null, logger = console, clock = Date.now }) {
+  constructor({ homeDir, modelsDir, profilesDir = null, tuneStepsFile = null, queueFile = null, scriptPath = SCRIPT, spawnImpl = spawn, readLanes = null, readLane = null, logger = console, clock = Date.now, enginePlugins = [] }) {
     this.#clock = clock;
     this.#homeDir = homeDir;
     this.#modelsDir = modelsDir;
+    this.#enginePlugins = enginePlugins;
     this.#scriptPath = scriptPath;
     this.#spawn = spawnImpl;
     this.#readLanes = readLanes ?? (async () => (await readSteps(tuneStepsFile)).steps.lanes);
@@ -360,6 +362,7 @@ export class TuneScheduler {
     return new Promise((resolve) => {
       const args = [this.#scriptPath, "--events", "--model", model.fileName, "--stages", stages.join(","), "--home", this.#homeDir];
       if (this.#modelsDir) args.push("--models-dir", this.#modelsDir);
+      for (const plugin of this.#enginePlugins) args.push("--engine-plugin", plugin);
       if (job.tasks) args.push("--tasks", job.tasks.join(","));
       if (job.settings) args.push("--settings", job.settings.join(","));
       if (force) args.push("--force");

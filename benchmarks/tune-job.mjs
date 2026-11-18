@@ -46,10 +46,9 @@ export async function openTarget({ model, home, modelsDir }) {
 /** Run `fn(engine)` on a fresh engine and always release the model. */
 export async function withEngine(target, fn) {
   const inProcess = new LlamaEngine({ registry: target.registry });
-  // External engines (ADR-156) are only present when the tune was asked to use them.
-  const engine = target.externalEngines && Object.keys(target.externalEngines).length
-    ? new RoutedEngine({ inProcess, external: target.externalEngines })
-    : inProcess;
+  // Always routed (ADR-159): a saved profile may name an engine even when this run never tested one, and that
+  // engine must be started or fail loudly, never be quietly replaced by the in-process one.
+  const engine = new RoutedEngine({ inProcess, external: target.externalEngines ?? {}, resolve: target.resolveEngine ?? null });
   try {
     return await fn(engine);
   } finally {
@@ -238,6 +237,7 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
       hardware: { logicalCores },
       deviceBackends: used.device.backends,
       externalEngines: target.externalCandidates ?? [],
+      servableEngines: target.servableEngines ?? [],
       modelLayers: target.entry.kvShape?.layers ?? 0,
       qualityAxes: qualityAxes(used.load),
       speedAxes: speedAxes({ logicalCores }, used.load),

@@ -126,3 +126,16 @@ test("a load started while a reconfigure is still planning is refused", async ()
   assert.equal(results[1].reason.code, "model_loading");
   assert.equal(engine.phase, "ready");
 });
+
+// A profile can name another engine (ADR-159). The in-process engine must never quietly run such a load itself.
+test("the in-process engine refuses a load that names another engine instead of ignoring it", async () => {
+  const registry = { findById: () => ENTRY };
+  const engine = new LlamaEngine({ registry, logger: quiet, availableMemory: () => 8 * GIB, loadRuntime: loadRuntime() });
+  await assert.rejects(
+    () => engine.load({ modelId: "m1", engine: "llama-server:vulkan" }),
+    (error) => error.code === "engine_not_in_process" && /llama-server:vulkan/.test(error.why) && Boolean(error.fix),
+  );
+  assert.equal(engine.phase, "idle", "nothing was loaded");
+  await engine.load({ modelId: "m1", engine: null });
+  assert.equal(engine.phase, "ready", "no engine named means this one");
+});
