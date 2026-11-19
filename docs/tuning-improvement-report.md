@@ -817,7 +817,7 @@ Evidence comes from three small models (SmolLM2 135M, Qwen2.5 0.5B, Qwen2.5 Code
 | F6 | CPU engines are timed at different thread counts | in-process 4 threads (default), `llama-server` 8; the verdict's 18.8 tok/s (12.6–21.5) vs 25–28 at 4 and 28–34 at 8 threads | Medium | S |
 | F7 | The one-pass budget grew past the target | upper bound 18,714 answers (was 17,532; target ≤ 12,000) | Medium | follows F1–F3 |
 
-### F1. The prompt screen no longer prunes — *High, S*
+### F1. The prompt screen no longer prunes — *High, S* — fixed in tuner v12 (ADR-180)
 
 ADR-049 screened a fully scored axis on a quarter of its items and dropped a candidate 3 items behind the leader,
 expecting about 6 survivors of 22. ADR-063 replaced the gap with a sequential one-sided McNemar stop, `changeAlpha`
@@ -832,7 +832,7 @@ about 8 of 22 and still carries a truly +10-point prompt forward 76% of the time
 keeps it less often (top-4 57%, top-6 69%). Replayed on the recorded rungs, a top-6 screen would have saved 26,412
 of the axis's 49,282 answers without losing its one change; the one-SE rule's saving is of the same order.
 
-### F2. The system-prompt axis has not moved a profile — *High, S–M*
+### F2. The system-prompt axis has not moved a profile — *High, S–M* — done: off by default in tuner v12 (ADR-179)
 
 Every task of every saved profile uses `SYSTEM_PROMPT`, the starting value. Nineteen of twenty sweeps ended with no
 discordant items between the winner and the incumbent (b = 0, c = 0). The one change (Qwen2.5 Coder 1.5B,
@@ -843,7 +843,7 @@ comprehension, pass 1, b = 2, c = 12, p = 0.0085) was undone by pass 2. On these
 changed it; or shorten the comprehension and recall lists (22 each) to the prompts that ever led a rung. A list
 change is a G-003 change (suite bump, CHANGELOG row, baseline update).
 
-### F3. Four axes never changed anything — *Medium, S*
+### F3. Four axes never changed anything — *Medium, S* — not built (ADR-180)
 
 | Axis | Sweeps | Answers | Changes |
 |---|---|---|---|
@@ -854,6 +854,11 @@ change is a G-003 change (suite bump, CHANGELOG row, baseline update).
 
 **Change.** Not removal: three small models are too few to retire an axis. Skip an axis in a later pass when the
 same model's earlier pass kept the current value with b = c = 0 on the full rung, and record the skip in the sweep.
+
+**Decision, 2026-11-19.** Not built. A second pass runs only when the first changed something, and in the 30 recorded
+runs pass 2 holds 13% of all sweep answers (16,870 of 130,096), so the saving is a fraction of that. Against it, an
+axis that tied at b = c = 0 can matter once another axis moves (reasoning needs the token budget the sampling stage
+may change), so skipping it risks the interaction the second pass exists to catch.
 
 ### F4. No saved profile has been through the engine stage — *High, no code*
 
@@ -872,7 +877,7 @@ against 1.47 s: the in-process engine wins long context by about 18% (estimates 
 **Change.** Rank engines per task by expected time per answer, using each task's recorded prompt and output token
 counts (already in every profile's task stats), and say which task each engine wins.
 
-### F6. CPU engines are timed at different thread counts — *Medium, S*
+### F6. CPU engines are timed at different thread counts — *Medium, S* — fixed (ADR-180)
 
 `NodeBackendAdapter.measure` loads with no `threads`, so the engine's default of 4 applies; `LlamaServerAdapter`
 starts the server with `threads: 8`. On the 6P+4E i5-14400F, `llama-server` CPU measured 25–28 tok/s at 4 threads,

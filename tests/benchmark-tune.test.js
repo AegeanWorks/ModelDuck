@@ -1005,6 +1005,35 @@ test("with the system prompt not tuned, the preset still records the prompt it w
   assert.equal(tasks.math.settings.systemPrompt, "Be precise.", "served with the prompt it was measured with, not the app default");
 });
 
+test("the prompt screen keeps the incumbent and what is near the leader, and drops the middle of the field (F1, ADR-180)", async () => {
+  const items = ids("math", 48);
+  const asked = new Map();
+  // Items each prompt solves, counted from the first; none is far enough behind to be stopped by the paired tests, so
+  // only the screen's halving can drop one.
+  const solved = { "Be precise.": 10, "Lead A.": 10, "Lead B.": 9, "Lead C.": 9, "Near.": 8, "Mid 1.": 7, "Mid 2.": 6, "Mid 3.": 5 };
+  const { sweeps } = await tune({
+    evaluate: async (settings, itemIds) => {
+      asked.set(settings.systemPrompt, [...(asked.get(settings.systemPrompt) ?? []), ...itemIds]);
+      return { prompts: itemIds.map((id) => ({ id, passed: Number(id.split("-")[1]) < solved[settings.systemPrompt] ? 1 : 0, total: 1, ms: 10, outputTokens: 10, digest: id })) };
+    },
+    base: { ...BASE, temperature: 0 },
+    tasks: ["math"],
+    stages: ["prompt"],
+    rungs: { ...RUNGS, math: [items] },
+    hardware: { logicalCores: 12 },
+    ...AXES,
+    promptAxes: [{ name: "systemPrompt", patches: Object.keys(solved).map((systemPrompt) => ({ systemPrompt })), full: true }],
+    options: { seeds: [42], passes: 1 },
+  });
+  const sweep = sweeps.find((entry) => entry.axis === "systemPrompt");
+  const full = (prompt) => new Set(asked.get(prompt)).size === 48;
+  // Eight values keep the top half (four) and anything within one standard error of the leader (10.8 points: 9 of 12 and up).
+  for (const prompt of ["Be precise.", "Lead A.", "Lead B.", "Lead C."]) assert.ok(full(prompt), `${prompt} is within reach of the leader and is measured on everything`);
+  for (const prompt of ["Near.", "Mid 1.", "Mid 2.", "Mid 3."]) assert.equal(new Set(asked.get(prompt)).size, 12, `${prompt} answers only the screen`);
+  assert.deepEqual(sweep.dropped.map((entry) => [entry.patch.systemPrompt, entry.solved, entry.behind, entry.screened]), [["Near.", 8, 2, true], ["Mid 1.", 7, 3, true], ["Mid 2.", 6, 4, true], ["Mid 3.", 5, 5, true]], "each cut value is recorded with its score and gap");
+  assert.deepEqual(sweep.rungs.map((rung) => rung.size), [12, 48]);
+});
+
 test("system prompts are screened on a quarter of the items, and only clear losers stop early", async () => {
   const items = ids("math", 48);
   const asked = new Map();

@@ -262,7 +262,8 @@ async function sweep(context, { stage, task, axis, current, rungs, forced, cost,
       record.endedEarly = "only the current setting is left";
       break;
     }
-    if (axis.full) continue;
+    // A fully scored axis halves after its screen too (F1, ADR-180): the sequential stop above almost never fires at 12
+    // items (358 of 362 recorded prompts answered the full set), so without this the screen pruned nothing.
     const keep = Math.max(2, Math.ceil(survivors.length * options.keepFraction));
     const ranked = [...survivors].sort(byQuality(cost));
     // Tolerant halving (S1): cutting on rank at 12 items drops the true best
@@ -271,7 +272,14 @@ async function sweep(context, { stage, task, axis, current, rungs, forced, cost,
     const leader = ranked.find((entry) => !entry.stats.failed) ?? ranked[0];
     const share = (leader?.stats?.rate ?? 0) / 100;
     const sePoints = 100 * Math.sqrt(Math.max(share * (1 - share), 0.01) / Math.max(leader?.stats?.items ?? 1, 1));
-    survivors = ranked.filter((entry, index) => index < keep || entry.incumbent || (!entry.stats.failed && entry.stats.rate >= leader.stats.rate - sePoints)).sort((left, right) => left.index - right.index);
+    const kept = ranked.filter((entry, index) => index < keep || entry.incumbent || (!entry.stats.failed && entry.stats.rate >= leader.stats.rate - sePoints));
+    // A fully scored axis records what its screen cut like what a test stopped, so the sweep still shows every value
+    // that did not reach the full set, with its score and how far behind the leader it was.
+    if (axis.full) {
+      const cut = ranked.filter((entry) => !kept.includes(entry));
+      if (cut.length) record.dropped = [...(record.dropped ?? []), ...cut.map((entry) => ({ patch: entry.patch, solved: solvedCount(entry.stats), of: entry.stats.items, behind: solvedCount(leader.stats) - solvedCount(entry.stats), p: null, screened: true }))];
+    }
+    survivors = kept.sort((left, right) => left.index - right.index);
   }
   const solvedList = survivors.filter((entry) => !entry.stats.failed).map((entry) => solvedOf(entry.stats));
   const topSolved = solvedList.length ? Math.max(...solvedList) : 0;

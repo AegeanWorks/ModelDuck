@@ -4,7 +4,7 @@ import test from "node:test";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { LlamaBenchAdapter, LlamaServerAdapter, NodeBackendAdapter, OllamaAdapter, OpenAICompatAdapter, WORKLOAD, cleanPath, parseDevices, parseLlamaVersion } from "../src/inference-engine-adapters.js";
+import { LlamaBenchAdapter, LlamaServerAdapter, NodeBackendAdapter, OllamaAdapter, OpenAICompatAdapter, WORKLOAD, cleanPath, cpuTimingThreads, parseDevices, parseLlamaVersion } from "../src/inference-engine-adapters.js";
 import { assessEngines, createEngineRegistry, defaultEngines, expandOnly, fastestEngine, formatAssessment, usableNodeBackends } from "../src/inference-engines.js";
 
 const ENTRY = { id: "m1", fileName: "tiny-q4_k_m.gguf", path: "C:\\models\\tiny-q4_k_m.gguf" };
@@ -85,13 +85,14 @@ test("llama-bench is found, run with the shared workload, and its rows become th
       calls.push([file, args]);
       return `warming up\n${BENCH_JSON}`;
     },
+    threads: 6,
   });
   assert.equal((await adapter.detect()).available, true);
   const measured = await adapter.measure({ entry: ENTRY, runs: 2 });
   assert.equal(measured.promptTps, 779.68);
   assert.equal(measured.genTps, 28.86);
   assert.match(measured.detail, /CPU build cd8427d/);
-  assert.deepEqual(calls.at(-1)[1], ["-m", ENTRY.path, "-p", String(WORKLOAD.promptTokens), "-n", String(WORKLOAD.genTokens), "-r", "2", "-o", "json"]);
+  assert.deepEqual(calls.at(-1)[1], ["-m", ENTRY.path, "-p", String(WORKLOAD.promptTokens), "-n", String(WORKLOAD.genTokens), "-t", "6", "-r", "2", "-o", "json"]);
 });
 
 test("a missing llama-bench says how to point at one, and empty output is an error", async () => {
@@ -366,4 +367,22 @@ test("--only accepts an exact id or a whole engine family, and names what matche
   assert.deepEqual(expandOnly(["llama-server"], ids), { ids: ["llama-server:cpu", "llama-server:vulkan"], unknown: [] });
   assert.deepEqual(expandOnly(["ollama", "llama-server:cpu"], ids), { ids: ["llama-server:cpu", "ollama"], unknown: [] });
   assert.deepEqual(expandOnly(["llama", "nope"], ids), { ids: [], unknown: ["llama", "nope"] }, "a half-typed name is not a family");
+});
+
+test("every engine is timed at one thread count, so a CPU ranking compares engines and not thread settings (ADR-180)", async () => {
+  assert.equal(cpuTimingThreads(16), 8, "three quarters of 16 threads, capped at 8");
+  assert.equal(cpuTimingThreads(8), 6);
+  assert.equal(cpuTimingThreads(4), 3);
+  assert.equal(cpuTimingThreads(1), 1);
+  const { create, log } = fakeLlamaEngine({ stats: [1, 2, 3, 4].map((tokensPerSecond) => ({ promptTokens: 256, firstTokenMs: 100, tokensPerSecond })) });
+  await new NodeBackendAdapter({ backend: "cpu", createEngine: create, threads: 6 }).measure({ entry: ENTRY, runs: 3 });
+  assert.equal(log[0].threads, 6, "the in-process engine gets the thread count instead of its own default of 4");
+  const loads = [];
+  const backend = { start: async ({ load }) => { loads.push(load); }, generate: async () => ({ firstTokenMs: 100, promptTokens: 256, tokensPerSecond: 20 }), stop: async () => {} };
+  await new LlamaServerAdapter({ binary: "b", threads: 6, makeBackend: () => backend }).measure({ entry: ENTRY, runs: 1 });
+  assert.equal(loads[0].threads, 6, "llama-server gets the same count");
+  const runs = [];
+  const bench = new LlamaBenchAdapter({ binary: "b", exists: () => true, run: async (file, args) => { runs.push(args); return { stdout: BENCH_JSON, stderr: "" }; }, threads: 6 });
+  await bench.measure({ entry: ENTRY, runs: 1 });
+  assert.deepEqual(runs[0].slice(runs[0].indexOf("-t"), runs[0].indexOf("-t") + 2), ["-t", "6"], "llama-bench is told too");
 });

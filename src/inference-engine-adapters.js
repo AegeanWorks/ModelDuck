@@ -20,6 +20,15 @@ export { cleanPath, parseLlamaVersion };
 
 const execFileAsync = promisify(execFile);
 
+/**
+ * One thread count for every engine's timing (ADR-180): three quarters of the logical threads, as the tuner's own cap,
+ * and at most 8. Without it the in-process engine ran its default of 4 and llama-server 8, so a CPU ranking compared
+ * thread settings, and a measured 18.8 tok/s (one noisy run) ranked llama-server below an engine it beats at equal threads.
+ */
+export function cpuTimingThreads(logicalThreads = os.availableParallelism?.() ?? os.cpus().length) {
+  return Math.max(1, Math.min(8, Math.floor(Number(logicalThreads) * 0.75) || 1));
+}
+
 /** The fixed workload every engine is timed on: a prompt of about 256 tokens, 64 tokens out. */
 export const WORKLOAD = Object.freeze({
   prompt: `${"The quick brown fox jumps over the lazy dog. ".repeat(24)}Continue the story:`,
@@ -57,8 +66,10 @@ export class NodeBackendAdapter {
   #backend;
   #createEngine;
   #describe;
+  #threads;
 
-  constructor({ backend, createEngine = (entry) => new LlamaEngine({ registry: { findById: () => entry } }), describe = describeNodeRuntime }) {
+  constructor({ backend, createEngine = (entry) => new LlamaEngine({ registry: { findById: () => entry } }), describe = describeNodeRuntime, threads = cpuTimingThreads() }) {
+    this.#threads = threads;
     this.#backend = backend;
     this.#createEngine = createEngine;
     this.#describe = describe;
@@ -106,6 +117,7 @@ export class NodeBackendAdapter {
         gpuBackend: this.#backend,
         gpuLayers: this.#backend === "cpu" ? 0 : "max",
         contextSize: 4096,
+        threads: this.#threads,
       });
       if (this.#backend !== "cpu" && state.gpuBackend && state.gpuBackend !== this.#backend) {
         throw new Error(`ran on ${state.gpuBackend}, not ${this.#backend}; the result would not describe ${this.#backend}`);
@@ -151,8 +163,10 @@ export class LlamaBenchAdapter {
   #binary;
   #run;
   #exists;
+  #threads;
 
   constructor({
+    threads = cpuTimingThreads(),
     binary = null,
     home = os.homedir(),
     platform = process.platform,
@@ -160,6 +174,7 @@ export class LlamaBenchAdapter {
     run = (file, args, timeoutMs) => execFileAsync(file, args, { timeout: timeoutMs, maxBuffer: 16 * 1024 * 1024, windowsHide: true, env: { ...process.env, PATH: cleanPath(process.env.PATH, platform) } }).then(({ stdout, stderr }) => ({ stdout, stderr })),
   } = {}) {
     const name = platform === "win32" ? "llama-bench.exe" : "llama-bench";
+    this.#threads = threads;
     this.#exists = exists;
     this.#run = run;
     this.#binary = locateBinary([binary, path.join(home, ".llama-bench", "build-release", "bin", name), path.join(home, ".llama-bench", "build", "bin", name)], exists);
@@ -186,7 +201,7 @@ export class LlamaBenchAdapter {
   }
 
   async measure({ entry, runs = 3 }) {
-    const stdout = outputText(await this.#run(this.#binary, ["-m", entry.path, "-p", String(WORKLOAD.promptTokens), "-n", String(WORKLOAD.genTokens), "-r", String(runs), "-o", "json"], 300_000), "stdout");
+    const stdout = outputText(await this.#run(this.#binary, ["-m", entry.path, "-p", String(WORKLOAD.promptTokens), "-n", String(WORKLOAD.genTokens), "-t", String(this.#threads), "-r", String(runs), "-o", "json"], 300_000), "stdout");
     const rows = JSON.parse(stdout.slice(stdout.indexOf("[")));
     const prompt = rows.find((row) => row.n_prompt > 0 && !(row.n_gen > 0));
     const gen = rows.find((row) => row.n_gen > 0);
@@ -222,6 +237,7 @@ export class LlamaServerAdapter {
   #label;
   #run;
   #makeBackend;
+  #threads;
   #gpu = null;
 
   /**
@@ -238,7 +254,9 @@ export class LlamaServerAdapter {
     platform = process.platform,
     run = (file, args, timeoutMs) => execFileAsync(file, args, { timeout: timeoutMs, maxBuffer: 16 * 1024 * 1024, windowsHide: true, env: { ...process.env, PATH: cleanPath(process.env.PATH, platform) } }).then(({ stdout, stderr }) => ({ stdout, stderr })),
     makeBackend = (file) => new LlamaServerBackend({ binary: file }),
+    threads = cpuTimingThreads(),
   } = {}) {
+    this.#threads = threads;
     this.#backend = backend;
     this.#label = label;
     this.#run = run;
@@ -280,7 +298,7 @@ export class LlamaServerAdapter {
     const backend = this.#makeBackend(this.#binary);
     const gpu = this.#gpu;
     try {
-      await backend.start({ entry, load: { contextSize: 4096, threads: 8, batchSize: 512, sequences: 1, gpuBackend: gpu ?? "cpu", gpuLayers: gpu ? "max" : 0 } });
+      await backend.start({ entry, load: { contextSize: 4096, threads: this.#threads, batchSize: 512, sequences: 1, gpuBackend: gpu ?? "cpu", gpuLayers: gpu ? "max" : 0 } });
       const prompts = [];
       const gens = [];
       for (let run = 0; run <= runs; run += 1) {

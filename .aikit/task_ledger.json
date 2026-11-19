@@ -5,11 +5,17 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1795105975.3552332,
-    "owner": "claude:opus-5.5",
-    "lease_until": 1795113175.3552332,
+    "updated_at": 1795109966.8790858,
+    "owner": "claude:sonnet-5.5",
+    "lease_until": 1795117166.8790858,
     "started_by": "claude:opus-5.5",
-    "continuations": [],
+    "continuations": [
+      {
+        "agent": "claude:sonnet-5.5",
+        "from": "claude:opus-5.5",
+        "at": 1795109966.8790858
+      }
+    ],
     "workspaces": [
       {
         "name": "modelduck",
@@ -18,24 +24,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "task_id": "inference-engines",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "Phase 4 verification: 1040 tests pass (1 environmental skip); 4/4 project gates (hygiene, guidelines, secrets, test); tune:gate passed on all nine baselines at 45b3e0b and linked; UI reviewed from screenshots at 1440px and 390px and recorded; real runs: device tune adopted llama-server:vulkan, resumed tune stayed on it, app served and recovered from a killed engine, four concurrent clients answered in 364 ms.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795041623.4672835,
-      "timestamp_str": "2026-11-19 01:40:23",
-      "agent": "claude:sonnet-5.5",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "inference-engines",
       "phase": "completed",
@@ -366,6 +354,25 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "task_id": "tune-system-prompt-optional",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "F1 screen halving and F6 shared engine timing threads folded into tuner v12 (ADR-180); same session, model switched",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795109966.8790858,
+      "timestamp_str": "2026-11-19 20:39:26",
+      "agent": "claude:sonnet-5.5",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ],
+      "continued_from": "claude:opus-5.5"
     }
   ]
 }
