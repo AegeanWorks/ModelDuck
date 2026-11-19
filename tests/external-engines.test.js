@@ -5,7 +5,9 @@ import test from "node:test";
 
 import { createEvaluator } from "../benchmarks/tune-evaluate.mjs";
 import { tune } from "../benchmarks/tune.mjs";
-import { LlamaServerBackend, OllamaBackend, RoutedEngine, ServerEngine } from "../src/external-engines.js";
+import { RoutedEngine } from "../src/engine-router.js";
+import { LlamaServerBackend, OllamaBackend } from "../src/external-engines.js";
+import { ServerEngine } from "../src/server-engine.js";
 import { PROMPTS } from "../benchmarks/suite.mjs";
 import { externalSetFrom } from "../src/inference-engines.js";
 

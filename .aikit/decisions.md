@@ -1249,3 +1249,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: `downloadVerified` aborted after 30 minutes in total (ADR-167 listed it as a longer limit, not an idle one), so a slow but moving link could be cut off and a stalled one waited the full half hour; any network error ended the install.
 - **Decision**: the limit is 60 s without a byte (reset on every chunk), `timeoutMs` is gone. A stall, a dropped connection (`fetch failed`, ECONNRESET, ETIMEDOUT, EPIPE, undici socket codes) and an HTTP 5xx or 429 are tried again up to twice with 1 s then 2 s back-off; a 4xx and a checksum mismatch are final. The partial file is removed before each try. No `--retry` flag: retrying is the default and the installer can simply be run again.
 - **Verified**: two unit tests (a body that trickles for longer than the idle limit succeeds, a stalled one is refused with the seconds in its Why and leaves no `.part`; one reset is retried, a 404 is not, a 503 is tried three times). Not run against GitHub's servers.
+
+### ADR-174: external-engines.js is split into backends, ServerEngine and RoutedEngine
+- **Date**: 2026-11-19
+- **Status**: Accepted (implemented; Wave 3 phase 8)
+- **Context**: one 826-line file held three backends, the `ServerEngine` that adapts a backend to the engine interface, and the `RoutedEngine` that picks an engine per load; adding an engine meant editing it.
+- **Decision**: `ServerEngine` moves to `src/server-engine.js` and `RoutedEngine` to `src/engine-router.js`, unchanged. `external-engines.js` (499 lines) keeps the backends and exports the two helpers the others share (`refusal`, `conversation`); it imports neither new file, so there is no cycle. Importers and tests use the new paths; no re-export is left behind. `src/engine-env.js`, which no test named, gets `tests/engine-env.test.js` (PATH cleaning on and off Windows, the version line, binary lookup).
+- **Verified**: the 72 engine tests pass unchanged apart from their import lines; four new tests.

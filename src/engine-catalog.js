@@ -5,7 +5,8 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { discoverInstalled, findBinary } from "./engine-install.js";
 import { AppError } from "./errors.js";
-import { LlamaServerBackend, OllamaBackend, OpenAICompatBackend, ServerEngine, parseOpenAiSpec } from "./external-engines.js";
+import { LlamaServerBackend, OllamaBackend, OpenAICompatBackend, parseOpenAiSpec } from "./external-engines.js";
+import { ServerEngine } from "./server-engine.js";
 import { LlamaBenchAdapter, LlamaServerAdapter, NodeBackendAdapter, OllamaAdapter, OpenAICompatAdapter } from "./inference-engine-adapters.js";
 
 /**

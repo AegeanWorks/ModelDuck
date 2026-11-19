@@ -10,7 +10,7 @@ import { DownloadManager } from "./downloader.js";
 import { drainServer } from "./drain.js";
 import { BUILTIN_DESCRIPTORS, createEngineCatalog, engineContext, loadEnginePlugin } from "./engine-catalog.js";
 import { createEngineListing } from "./engine-listing.js";
-import { RoutedEngine } from "./external-engines.js";
+import { RoutedEngine } from "./engine-router.js";
 import { servingResolver } from "./inference-engines.js";
 import { LlamaEngine } from "./engine.js";
 import { AppError } from "./errors.js";

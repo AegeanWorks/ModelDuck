@@ -488,7 +488,9 @@ modelduck/
 │   ├── engine-listing.js <- engines the API lists and a load may name
 │   ├── engine-env.js
 │   ├── engine-install.js <- engine installer
-│   ├── external-engines.js <- engines outside the process
+│   ├── external-engines.js <- backends for engines outside the process
+│   ├── server-engine.js <- the engine interface over one backend
+│   ├── engine-router.js <- in-process or external, by load
 │   ├── inference-engine-adapters.js <- engine detection and timing
 │   ├── inference-engines.js <- engine speed assessment
 │   ├── thinking.js <- <think> block splitter
@@ -664,6 +666,7 @@ modelduck/
 │   ├── jit-tuned.test.js
 │   ├── engine-catalog.test.js
 │   ├── engine-listing.test.js
+│   ├── engine-env.test.js
 │   ├── engine-contract.js <- engine backend check
 │   ├── engine-install.test.js
 │   ├── external-engines.test.js

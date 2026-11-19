@@ -2,7 +2,7 @@ import path from "node:path";
 
 import { DEFAULT_SETTINGS, resolvePaths } from "../src/config.js";
 import { LlamaEngine } from "../src/engine.js";
-import { RoutedEngine } from "../src/external-engines.js";
+import { RoutedEngine } from "../src/engine-router.js";
 import { AppError } from "../src/errors.js";
 import { getCatalogModel } from "../src/model-catalog.js";
 import { currentFingerprint, loadProfile, measuredOnAfter, measuredUnderAfter, planTune, profileFromTune, profileIdFor, saveProfile } from "../src/model-profiles.js";

@@ -7,7 +7,9 @@ import test from "node:test";
 
 import { tune } from "../benchmarks/tune.mjs";
 import { BUILTIN_DESCRIPTORS, assertDescriptor, createEngineCatalog, engineContext, loadEnginePlugin } from "../src/engine-catalog.js";
-import { OllamaBackend, OpenAICompatBackend, RoutedEngine, ServerEngine } from "../src/external-engines.js";
+import { RoutedEngine } from "../src/engine-router.js";
+import { OllamaBackend, OpenAICompatBackend } from "../src/external-engines.js";
+import { ServerEngine } from "../src/server-engine.js";
 import { assessEngines, createEngineRegistry, defaultEngines, externalEngineFor, externalSetFrom } from "../src/inference-engines.js";
 import { LlamaServerAdapter } from "../src/inference-engine-adapters.js";
 import { checkBackendContract } from "./engine-contract.js";
