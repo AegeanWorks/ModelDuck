@@ -87,6 +87,55 @@ export async function verifyRestore(groups, evaluate, { sample = VERIFY_SAMPLE }
   return { ok: mismatched.length === 0, checked: count, mismatched };
 }
 
+/**
+ * The same live spot-check, kept per family of items (ADR-185): a few of the cheapest saved answers of each family
+ * are re-asked, a family with a difference is dropped, and the families that came out identical keep every saved
+ * answer. The all-or-nothing check above threw away tens of thousands of answers because one cheap family (recall,
+ * code reading) had changed, and the hours of code answers with them. Only when no family verifies is nothing reused.
+ * `familyOf(itemId)` names the family (the suite's category); an item it does not know belongs to "other".
+ */
+export async function verifyRestoreByFamily(groups, evaluate, { familyOf = () => null, perFamily = 3 } = {}) {
+  const byFamily = new Map();
+  for (const group of groups ?? []) {
+    if (!group?.settings || group.settings.timed === true) continue;
+    for (const row of group.rows ?? []) {
+      const id = row?.item ?? row?.id;
+      if (typeof row?.text !== "string" || id === undefined) continue;
+      const family = familyOf(id) ?? "other";
+      if (!byFamily.has(family)) byFamily.set(family, []);
+      byFamily.get(family).push({ group, row, id });
+    }
+  }
+  if (!byFamily.size) return { ok: true, checked: 0, mismatched: [], stale: [], groups: [] };
+  const stale = [];
+  const mismatched = [];
+  let checked = 0;
+  for (const [family, list] of byFamily) {
+    // The cheapest half, spread evenly: a re-ask of a long answer costs seconds, and the cheap ones are as telling.
+    const cheap = [...list].sort((left, right) => (Number(left.row.ms) || Infinity) - (Number(right.row.ms) || Infinity)).slice(0, Math.max(1, Math.ceil(list.length / 2)));
+    const count = Math.min(perFamily, cheap.length);
+    let differs = false;
+    for (let index = 0; index < count; index += 1) {
+      const { group, row, id } = cheap[Math.floor(((index + 0.5) * cheap.length) / count)];
+      let settings = group.settings;
+      if (index % 2 === 1 && !threadsShapeText(settings) && Number.isFinite(settings.threads)) {
+        settings = { ...settings, threads: settings.threads > 1 ? Math.max(1, Math.floor(settings.threads / 2)) : 2 };
+      }
+      const live = (await evaluate(settings, [id], group.seed))?.prompts?.[0];
+      checked += 1;
+      if (!live || live.text !== row.text || live.passed !== row.passed) {
+        differs = true;
+        mismatched.push(id);
+      }
+    }
+    if (differs) stale.push(family);
+  }
+  const kept = stale.length < byFamily.size
+    ? (groups ?? []).map((group) => ({ ...group, rows: (group.rows ?? []).filter((row) => !stale.includes(familyOf(row.item ?? row.id) ?? "other")) })).filter((group) => group.rows.length)
+    : [];
+  return { ok: kept.length > 0, checked, mismatched, stale, groups: kept };
+}
+
 /** Fixed-budget quota default: no cap unless the caller sets one (IDEA-1580). */
 export const QUOTA_DEFAULT = Infinity;
 

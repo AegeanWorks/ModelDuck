@@ -20,7 +20,7 @@ import { budgetDeadline } from "./tune-budget.mjs";
 import { summarizeFailures } from "./tune-failures.mjs";
 import { PROBE_ITEMS, chooseParallel, probeItemIds, probeParallel } from "./tune-parallel.mjs";
 import { createPhaseTimer } from "./tune-timing.mjs";
-import { verifyRestore } from "./tune-measure.mjs";
+import { verifyRestoreByFamily } from "./tune-measure.mjs";
 
 /** One installed model, ready to tune or measure: where it is, its profile name and what it runs on. */
 export async function openTarget({ model, home, modelsDir }) {
@@ -200,12 +200,19 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
     // An explicit reuse folder is read whole (still capped by rows): a few short
     // recent runs must not hide the long run that holds most saved answers.
     restore = await cachedAnswers([target.paths.tuneRuns, ...reuseFrom], { profileId: target.profileId, fingerprint: target.fingerprint, parallel: width, ...(reuseFrom.length && { limitRuns: Infinity }) }).catch(() => []);
-    // Saved answers are reused only after a few are re-asked live and match (ADR-123).
+    // Saved answers are reused only after a few of each family of items are re-asked live and match (ADR-123, ADR-185):
+    // a family that came out different is measured again, the others keep their saved answers.
     if (restore.length) {
-      const check = await verifyRestore(restore, evaluate);
-      const saved = restore.reduce((sum, group) => sum + group.rows.length, 0);
-      if (check.ok) {
+      const check = await verifyRestoreByFamily(restore, evaluate, { familyOf: (id) => CATEGORY_OF.get(id) ?? null });
+      const rowsIn = (groups) => groups.reduce((sum, group) => sum + group.rows.length, 0);
+      const saved = rowsIn(restore);
+      if (check.checked === 0) {
+        onNote(`Reuse: ${saved} saved answers are available; none could be re-asked live, so none was checked.`);
+      } else if (check.stale.length === 0) {
         onNote(`Reuse: ${saved} saved answers are available; ${check.checked} re-asked live came out identical.`);
+      } else if (check.ok) {
+        onNote(`Reuse: ${rowsIn(check.groups)} of ${saved} saved answers are kept. ${check.stale.length === 1 ? "One family" : `${check.stale.length} families`} re-asked live came out different (${check.stale.join(", ")}; ${check.mismatched.slice(0, 4).join(", ")}) and ${check.stale.length === 1 ? "is" : "are"} measured again.`);
+        restore = check.groups;
       } else {
         onNote(`Reuse: off. ${check.mismatched.length} of ${check.checked} saved answers re-asked live came out different (${check.mismatched.slice(0, 4).join(", ")}), so every answer is measured.`);
         restore = [];

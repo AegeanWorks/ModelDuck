@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { Measurements, verifyRestore } from "../benchmarks/tune-measure.mjs";
+import { Measurements, verifyRestore, verifyRestoreByFamily } from "../benchmarks/tune-measure.mjs";
 import { cachedAnswers, startRun } from "../src/tune-runs.js";
 
 const WORLD = { suiteVersion: 18, taskHash: "h", nodeLlamaCpp: "3.22.2", modelFile: "m.gguf", modelSize: 100, cpu: "CPU", platform: "win32", arch: "x64" };
@@ -104,4 +104,31 @@ test("a spot-check re-asks a few stored answers live and refuses reuse on any di
   assert.equal(bad.ok, false);
   assert.deepEqual(bad.mismatched, ["c"]);
   assert.deepEqual(await verifyRestore([], same), { ok: true, checked: 0, mismatched: [] });
+});
+
+test("the check by family keeps the families that re-ask identically and drops only the stale one (ADR-185)", async () => {
+  const rows = (prefix, count) => Array.from({ length: count }, (_v, i) => ({ item: `${prefix}-${i}`, passed: 1, total: 1, text: `text ${prefix}-${i}`, ms: 100 + i }));
+  const groups = [{ settings: GPU, seed: 42, rows: [...rows("code", 10), ...rows("recall", 10), ...rows("read", 10)] }];
+  const familyOf = (id) => id.split("-")[0];
+  const asked = [];
+  // The recall family changed under the current engine; the others did not.
+  const evaluate = async (_settings, ids) => { asked.push(...ids); return { prompts: ids.map((id) => ({ id, passed: 1, total: 1, text: id.startsWith("recall") ? "different" : `text ${id}` })) }; };
+  const check = await verifyRestoreByFamily(groups, evaluate, { familyOf, perFamily: 2 });
+  assert.equal(check.ok, true, "two of three families verified");
+  assert.deepEqual(check.stale, ["recall"]);
+  assert.equal(check.checked, 6, "two answers per family");
+  assert.deepEqual(items(check.groups).filter((id) => id.startsWith("recall")), [], "the stale family is not replayed");
+  assert.equal(items(check.groups).length, 20, "the verified families keep every saved answer");
+  assert.ok(asked.every((id) => Number(id.split("-")[1]) < 5), "the cheapest half of each family is what gets re-asked");
+  // Every family stale: nothing is reused, as with the all-or-nothing check.
+  const allDiffer = async (_s, ids) => ({ prompts: ids.map((id) => ({ id, passed: 1, total: 1, text: "x" })) });
+  const none = await verifyRestoreByFamily(groups, allDiffer, { familyOf, perFamily: 2 });
+  assert.equal(none.ok, false);
+  assert.deepEqual(none.groups, []);
+  // A changed verdict counts like a changed text, timed rows are never the evidence, and an empty store is fine.
+  const flips = async (_s, ids) => ({ prompts: ids.map((id) => ({ id, passed: id.startsWith("read") ? 0 : 1, total: 1, text: `text ${id}` })) });
+  assert.deepEqual((await verifyRestoreByFamily(groups, flips, { familyOf, perFamily: 2 })).stale, ["read"]);
+  const timedOnly = [{ settings: { ...GPU, timed: true }, seed: 42, rows: rows("code", 3) }];
+  assert.deepEqual(await verifyRestoreByFamily(timedOnly, evaluate, { familyOf }), { ok: true, checked: 0, mismatched: [], stale: [], groups: [] });
+  assert.deepEqual((await verifyRestoreByFamily([], evaluate, { familyOf })).groups, []);
 });
