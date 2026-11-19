@@ -2,10 +2,10 @@
   "version": 1,
   "active_task": {
     "task_id": "engine-start-hardening",
-    "last_phase": "phase 1",
-    "active_phase": 1,
+    "last_phase": "phase 4",
+    "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1795068388.3122902,
+    "updated_at": 1795068479.9202962,
     "owner": "claude:sonnet-5.5",
     "started_by": "claude:sonnet-5.5",
     "continuations": [],
@@ -14,33 +14,9 @@
         "name": "modelduck",
         "path": "projects/modelduck"
       }
-    ],
-    "impact_assessment": {
-      "why": "An unrunnable binary raised an unhandled child error event that ends the app; failed starts leaked an exit listener",
-      "benefits": "A missing or broken engine build is a normal refusal with a Fix and the app falls back; no listener leak across tune candidates",
-      "risks": "contract: engine_start_failed gains a new why text; dependency: none; concurrency: stop() now runs on the failure path; state: none",
-      "mitigation": "stop() is idempotent and already used by the timeout path; two failing-first tests"
-    }
+    ]
   },
   "checkpoints": [
-    {
-      "task_id": "requested-context-field",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[2/2] npm test 923/924 pass, 1 skipped; the engine test asserts requested 16384 / trained 4096 / served 4096; ui:smoke uses a saved 32768 with a reported 16384 and asserts the note names 16384, not 32768; aikit check 4/4; ADR-147; UI review recorded; G-001 not applicable (additive status field, no generation change)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795023002.7321024,
-      "timestamp_str": "2026-11-18 20:30:02",
-      "agent": "kilo:1",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "requested-context-field",
       "phase": "completed",
@@ -414,6 +390,23 @@
       "timestamp": 1795068388.3122902,
       "timestamp_str": "2026-11-19 09:06:28",
       "agent": "claude:sonnet-5.5"
+    },
+    {
+      "task_id": "engine-start-hardening",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "--only accepts an engine family (ADR-166)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795068479.9202962,
+      "timestamp_str": "2026-11-19 09:07:59",
+      "agent": "claude:sonnet-5.5",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }
