@@ -216,3 +216,18 @@ test("registering a build records where it lives and removing it forgets it", (t
   assert.equal(discoverInstalled([root]).length, 0);
   assert.equal(unregisterBuild({ root, name: "ik-llama" }), false);
 });
+
+test("a cached file that already matches its hash is reused, and a corrupt one is fetched again", async (t) => {
+  const dir = tempDir(t);
+  const dest = path.join(dir, "cpu.zip");
+  fs.writeFileSync(dest, "cpu-bytes");
+  const noNetwork = () => { throw new Error("must not download"); };
+  // hygiene: allow a fixture address: fetch is injected, nothing is loaded
+  const reused = await downloadVerified({ url: "https://x/cpu.zip", sha256: sha("cpu-bytes"), dest, fetchImpl: noNetwork });
+  assert.deepEqual(reused, { bytes: 9, sha256: sha("cpu-bytes"), cached: true });
+  fs.writeFileSync(dest, "half a fi");
+  // hygiene: allow a fixture address: fetch is injected, nothing is loaded
+  const fresh = await downloadVerified({ url: "https://x/cpu.zip", sha256: sha("cpu-bytes"), dest, fetchImpl: respond("cpu-bytes") });
+  assert.equal(fresh.cached, undefined);
+  assert.equal(fs.readFileSync(dest, "utf8"), "cpu-bytes");
+});

@@ -55,9 +55,29 @@ export function planInstall(manifest, { engine = "llama.cpp", platform = process
   });
 }
 
-/** Stream `url` to `dest`, hashing as it arrives; a wrong hash deletes the file and refuses. */
-export async function downloadVerified({ url, sha256, dest, fetchImpl = globalThis.fetch, timeoutMs = 600_000 }) {
+/** The SHA-256 of a file on disk, streamed; null when it is not there. */
+async function hashOf(file) {
+  try {
+    const hash = createHash("sha256");
+    let bytes = 0;
+    for await (const chunk of fs.createReadStream(file)) {
+      hash.update(chunk);
+      bytes += chunk.length;
+    }
+    return { sha256: hash.digest("hex"), bytes };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Stream `url` to `dest`, hashing as it arrives; a wrong hash deletes the file and refuses.
+ * A copy already at `dest` whose hash matches is reused (a failed unpack must not cost the download again).
+ */
+export async function downloadVerified({ url, sha256, dest, fetchImpl = globalThis.fetch, timeoutMs = 1_800_000 }) {
   await fs.promises.mkdir(path.dirname(dest), { recursive: true });
+  const have = await hashOf(dest);
+  if (have?.sha256 === sha256) return { bytes: have.bytes, sha256, cached: true };
   const part = `${dest}.part`;
   const response = await fetchImpl(url, { signal: AbortSignal.timeout(timeoutMs), redirect: "follow" });
   if (!response.ok || !response.body) {
