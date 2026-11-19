@@ -5,9 +5,9 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1795109966.8790858,
+    "updated_at": 1795112347.1348636,
     "owner": "claude:sonnet-5.5",
-    "lease_until": 1795117166.8790858,
+    "lease_until": 1795119547.1348636,
     "started_by": "claude:opus-5.5",
     "continuations": [
       {
@@ -24,29 +24,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "task_id": "engines-add",
-      "phase": "phase 1",
-      "phase_num": 1,
-      "description": "[1/1] Register llama.cpp-family builds (ik_llama.cpp, BitNet) as engines; best-speed-engine line; GitHub candidate list",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795066956.4324257,
-      "timestamp_str": "2026-11-19 08:42:36",
-      "agent": "claude:sonnet-5.5",
-      "impact_assessment": {
-        "why": "A GitHub search found llama.cpp forks that share llama-server's arguments but could only be timed once per tune, never served",
-        "benefits": "Any fork becomes a first-class, servable, versioned engine with one command; the report names the best engine per model",
-        "risks": "contract: install.json gains optional fields; dependency: none; concurrency: none; state: engines/bin records only",
-        "mitigation": "Fields optional so existing installs read unchanged; tests for register, find, serve, device; nothing copied or deleted besides its own record"
-      },
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "engine-start-hardening",
       "phase": "phase 1",
@@ -367,6 +344,24 @@
       "timestamp": 1795110551.5653658,
       "timestamp_str": "2026-11-19 20:49:11",
       "agent": "claude-code:bba617e6"
+    },
+    {
+      "task_id": "tune-system-prompt-optional",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "engine tie note and per-task ranking (ADR-181)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795112347.1348636,
+      "timestamp_str": "2026-11-19 21:19:07",
+      "agent": "claude:sonnet-5.5",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }

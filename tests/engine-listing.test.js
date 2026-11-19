@@ -5,7 +5,7 @@ import path from "node:path";
 import test from "node:test";
 
 import { createEngineCatalog } from "../src/engine-catalog.js";
-import { createEngineListing } from "../src/engine-listing.js";
+import { createEngineListing, fastestPerTask } from "../src/engine-listing.js";
 import { profileIdFor } from "../src/model-profiles.js";
 import { makeHarness } from "./helpers.js";
 
@@ -25,7 +25,7 @@ const CATALOG = createEngineCatalog({
   ],
 });
 
-async function listing(t, { measured = null } = {}) {
+async function listing(t, { measured = null, profile = null } = {}) {
   const dir = await mkdtemp(path.join(os.tmpdir(), "modelduck-engines-"));
   t.after(() => rm(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 20 }));
   const entry = { id: "m1", fileName: "tiny-model.gguf" };
@@ -33,6 +33,7 @@ async function listing(t, { measured = null } = {}) {
     await mkdir(dir, { recursive: true });
     await writeFile(path.join(dir, `${profileIdFor(entry.fileName)}.engines.json`), JSON.stringify(measured));
   }
+  if (profile) await writeFile(path.join(dir, `${profileIdFor(entry.fileName)}.json`), JSON.stringify(profile));
   return createEngineListing({ catalog: CATALOG, registry: { findById: (id) => (id === "m1" ? entry : null) }, profilesDir: dir, context: () => ({}) });
 }
 
@@ -104,4 +105,37 @@ test("an engine whose probe fails is not offered, with its reason, and the probe
   now = 61_000;
   await engines.list();
   assert.equal(probes, 2, "after a minute it is asked again");
+});
+
+test("engines are ranked per task by expected seconds per answer, not by generation speed alone (F5, ADR-181)", () => {
+  const engines = [
+    { id: "gen", servable: true, measured: { ok: true, genTps: 200, promptTps: 4000 } },
+    { id: "prefill", servable: true, measured: { ok: true, genTps: 160, promptTps: 6000 } },
+    { id: "gone", servable: false, measured: { ok: true, genTps: 999, promptTps: 99999 } },
+    { id: "unmeasured", servable: true, measured: null },
+  ];
+  const tasks = {
+    code: { promptTokens: 100, outputTokens: 150 },
+    recall: { promptTokens: 8000, outputTokens: 20 },
+    empty: { promptTokens: 0, outputTokens: 0 },
+    missing: null,
+  };
+  const ranked = fastestPerTask(engines, tasks);
+  assert.equal(ranked.code.fastest, "gen", "a long answer favours generation speed");
+  assert.equal(ranked.recall.fastest, "prefill", "a long prompt favours prompt speed: 8000/6000+20/160 beats 8000/4000+20/200");
+  assert.ok(Math.abs(ranked.recall.seconds.prefill - (8000 / 6000 + 20 / 160)) < 1e-9);
+  assert.deepEqual(Object.keys(ranked.recall.seconds).sort(), ["gen", "prefill"], "only servable, measured engines are ranked");
+  assert.equal(ranked.empty, undefined, "a task with no recorded tokens says nothing");
+  assert.equal(ranked.missing, undefined);
+  assert.deepEqual(fastestPerTask([], tasks), {});
+});
+
+test("the listing ranks engines per task from the model's profile and its engine measurements (F5, ADR-181)", async (t) => {
+  const results = [{ id: "srv:fast", ok: true, genTps: 200, promptTps: 4000 }, { id: "inproc", ok: true, genTps: 100, promptTps: 9000 }];
+  const profile = { tasks: { code: { stats: { promptTokens: 100, outputTokens: 150 } }, recall: { stats: { promptTokens: 8000, outputTokens: 5 } } } };
+  const both = await (await listing(t, { measured: { results }, profile })).list("m1");
+  assert.equal(both.byTask.code.fastest, "srv:fast");
+  assert.deepEqual(Object.keys(both.byTask.code.seconds), ["srv:fast"], "inproc is measure-only in this catalog, so only srv:fast is ranked");
+  assert.equal(both.byTask.recall.fastest, "srv:fast");
+  assert.deepEqual((await (await listing(t, { measured: { results } })).list("m1")).byTask, {}, "no profile, no per-task ranking");
 });

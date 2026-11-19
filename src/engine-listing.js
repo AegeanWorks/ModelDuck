@@ -21,6 +21,27 @@ export async function prebuiltNotice({ platform = process.platform, arch = proce
 }
 
 /**
+ * Which engine answers fastest for each task (F5, ADR-181): expected seconds per answer from the engine's measured
+ * prompt and generation speed and the task's recorded prompt and output token counts. Generation speed alone favours
+ * an engine that reads prompts slowly on long-context tasks. Only servable, measured engines are ranked, and a task
+ * with no recorded tokens is left out. The engine speeds come from one fixed 256-token workload, so this is an
+ * estimate of the ranking, not of the seconds.
+ */
+export function fastestPerTask(engines, tasks) {
+  const ranked = {};
+  const candidates = engines.filter((engine) => engine.servable && engine.measured?.ok && engine.measured.genTps > 0 && engine.measured.promptTps > 0);
+  for (const [task, stats] of Object.entries(tasks ?? {})) {
+    const prompt = Number(stats?.promptTokens);
+    const output = Number(stats?.outputTokens);
+    if (!(prompt > 0 || output > 0) || !candidates.length) continue;
+    const seconds = Object.fromEntries(candidates.map((engine) => [engine.id, (prompt > 0 ? prompt : 0) / engine.measured.promptTps + (output > 0 ? output : 0) / engine.measured.genTps]));
+    const [fastest] = Object.entries(seconds).sort((a, b) => a[1] - b[1])[0];
+    ranked[task] = { fastest, seconds };
+  }
+  return ranked;
+}
+
+/**
  * The engines this machine can serve a model with, asked of the catalog (ADR-160), for the API and the UI (ADR-170).
  * `canServe(id)` is the check the load route makes before it hands an engine id to the router, so an unknown or
  * measure-only engine is refused with a Why and a Fix instead of silently falling back to the in-process one.
@@ -57,6 +78,18 @@ export function createEngineListing({ catalog, registry, profilesDir = null, con
     }
   }
 
+  /** The per-task prompt and output token counts the model's profile recorded, or {} when it has none. */
+  async function taskTokens(modelId) {
+    const entry = modelId ? registry?.findById(modelId) : null;
+    if (!entry || !profilesDir) return {};
+    try {
+      const saved = JSON.parse(await fs.readFile(path.join(profilesDir, `${profileIdFor(entry.fileName)}.json`), "utf8"));
+      return Object.fromEntries(Object.entries(saved.tasks ?? {}).map(([task, value]) => [task, { promptTokens: value?.stats?.promptTokens, outputTokens: value?.stats?.outputTokens }]));
+    } catch {
+      return {};
+    }
+  }
+
   return Object.freeze({
     canServe: servable,
     /** Every engine the catalog offers; `servable` ones may be chosen on load. `fastest` is the measured best for `modelId`, if any. */
@@ -68,7 +101,7 @@ export function createEngineListing({ catalog, registry, profilesDir = null, con
         return { id, label, servable: servable(id) && live.available, reason: live.reason, version: catalog.version(id, context()), measured: speeds.get(id) ?? null };
       }));
       const ranked = engines.filter((engine) => engine.servable && engine.measured?.ok && Number.isFinite(engine.measured.genTps)).sort((a, b) => b.measured.genTps - a.measured.genTps);
-      return { engines, fastest: ranked[0]?.id ?? null, notice: await notice() };
+      return { engines, fastest: ranked[0]?.id ?? null, byTask: fastestPerTask(engines, await taskTokens(modelId)), notice: await notice() };
     },
     /** Throws a refusal naming the engines that can be chosen when `id` cannot be served here. */
     assertServable(id) {

@@ -96,6 +96,19 @@ export function fastestEngine(results) {
   return measured.reduce((best, result) => (result.genTps > best.genTps ? result : best)).id;
 }
 
+/**
+ * The measured engines, other than the fastest, whose generation range reaches the fastest one's lower end (ADR-181):
+ * their difference from it is inside what repeated runs of one engine already vary by, so the verdict between them is
+ * not a measurement. A single reading counts as a range of one value.
+ */
+export function tiedWithFastest(results) {
+  const measured = results.filter((result) => result.ok);
+  const fastest = measured.length ? measured.reduce((best, result) => (result.genTps > best.genTps ? result : best)) : null;
+  if (!fastest) return [];
+  const floor = fastest.genRange ? fastest.genRange[0] : fastest.genTps;
+  return measured.filter((result) => result !== fastest && (result.genRange ? result.genRange[1] : result.genTps) >= floor).map((result) => result.id);
+}
+
 /** The in-process backends that start on this machine, for the tuner's device stage. */
 export async function usableNodeBackends({ registry = createEngineRegistry() } = {}) {
   const usable = [];
@@ -145,9 +158,11 @@ function bestEngineLine({ model, results, fastest }) {
   const best = results.find((result) => result.id === fastest && result.ok);
   if (!best) return null;
   const inProcess = results.filter((result) => result.ok && result.id !== best.id && result.id.startsWith("node-llama-cpp")).sort((a, b) => b.genTps - a.genTps)[0];
+  const tied = tiedWithFastest(results);
+  const note = tied.length ? `; within the measured spread of ${tied.join(", ")}, so not a clear win` : "";
   const head = `Best speed engine for ${model}: ${best.id}, ${best.genTps} tok/s`;
-  if (inProcess) return `${head}, ${Math.round((best.genTps / inProcess.genTps - 1) * 100)}% faster than ${inProcess.id}`;
-  return results.filter((result) => result.ok).length > 1 ? head : `${head} (no other engine measured)`;
+  if (inProcess) return `${head}, ${Math.round((best.genTps / inProcess.genTps - 1) * 100)}% faster than ${inProcess.id}${note}`;
+  return results.filter((result) => result.ok).length > 1 ? `${head}${note}` : `${head} (no other engine measured)`;
 }
 
 export function formatAssessment({ model, results, fastest }) {

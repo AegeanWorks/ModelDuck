@@ -76,5 +76,10 @@ chosen. Leave `engine` out for the profile's engine, or the in-process one when 
 
 `GET /api/engines` also carries `notice`: one sentence when the installer has no prebuilt llama.cpp for this
 machine (the manifest has no `<platform>-<arch>` entry), else `null`. Models > Installed shows it above the list.
+`byTask` ranks the servable, measured engines for each task the model's profile recorded tokens for, by expected seconds
+per answer (prompt tokens over measured prompt speed plus output tokens over generation speed), so a long-context task
+can prefer an engine that reads prompts faster than the one with the best `fastest`. `npm run engines` adds "within the
+measured spread of ..." to its verdict when another engine's measured range reaches the fastest one's.
+
 Each servable engine is also probed (`detect`: a server that does not answer, a GPU build with no such GPU) and
 listed with `servable: false` and a `reason` when it would not start; probes are cached for a minute.

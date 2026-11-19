@@ -867,7 +867,7 @@ The tuner adopts the fastest accurate engine at the device stage (ADR-156 onward
 164 tok/s. Re-running the device stage (12 answers plus the engine timing) on each model would let a profile adopt
 it; the later stages then re-measure on that engine, so a full re-tune is the honest path (G-001 baseline update).
 
-### F5. The engine verdict ranks by generation speed only — *Medium, S–M*
+### F5. The engine verdict ranks by generation speed only — *Medium, S–M* — API ranking added (ADR-181)
 
 `fastest` and the "best speed engine" line use generation tok/s. `llama-server` vulkan generates 20% faster but reads
 prompts 18% slower. With these rates, a 1,200-token prompt and 100-token answer takes about 0.76 s on
@@ -876,6 +876,11 @@ against 1.47 s: the in-process engine wins long context by about 18% (estimates 
 
 **Change.** Rank engines per task by expected time per answer, using each task's recorded prompt and output token
 counts (already in every profile's task stats), and say which task each engine wins.
+
+**Done, 2026-11-19 (ADR-181).** `GET /api/engines?model=` returns `byTask`, computed that way. The tuner still adopts the
+engine by generation speed at its device stage, and the Models list still marks `fastest` by it; moving either to the
+per-task ranking is a decision about what a profile means and is not made here. The engine timings come from one
+fixed 256-token workload, so `byTask` estimates the ranking, not the seconds.
 
 ### F6. CPU engines are timed at different thread counts — *Medium, S* — fixed (ADR-180)
 
@@ -888,13 +893,14 @@ noisy timing decides it.
 **Change.** Time every CPU engine at the same thread count (the profile's tuned `threads`, else the machine's
 measured best), and treat two engines whose ranges overlap as tied, as the speed stage does with its A/A band (M2).
 
-**Done, 2026-11-19 (ADR-180).** All three CPU adapters now get `cpuTimingThreads()`: three quarters of the logical
+**Done, 2026-11-19 (ADR-180), tie note added (ADR-181).** All three CPU adapters now get `cpuTimingThreads()`: three quarters of the logical
 threads, at most 8 (8 on this PC). Measured afterwards on Qwen2.5 Coder 1.5B, in-process CPU at 4, 6 and 8 threads:
 25.0, 29.5 and 32.0 tok/s; `llama-server` CPU at 8: 20.6 in the full table (17.9-25.1) against 28-34 timed alone. At
-equal threads the two engines are close, so the earlier ranking (24.9 over 18.8) was a thread-count artifact. Not
-done: the tie rule. The `engines` table still marks the highest median as fastest, and on this shared machine another
-process can halve one engine's number mid-run (in-process CPU read 5.5 tok/s in one table, 32 when timed alone), so
-a verdict between engines within about 20% of each other should not be trusted from a single table.
+equal threads the two engines are close, so the earlier ranking (24.9 over 18.8) was a thread-count artifact. The
+`engines` table still marks the highest median as fastest, but its verdict line now adds "within the measured spread
+of ..." when another engine's range reaches the leader's. On this shared machine another process can halve one
+engine's number mid-run (in-process CPU read 5.5 tok/s in one table, 32 when timed alone), so a verdict between close
+engines should not be trusted from a single table.
 
 ### F7. The one-pass budget grew past the target
 

@@ -5,7 +5,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { LlamaBenchAdapter, LlamaServerAdapter, NodeBackendAdapter, OllamaAdapter, OpenAICompatAdapter, WORKLOAD, cleanPath, cpuTimingThreads, parseDevices, parseLlamaVersion } from "../src/inference-engine-adapters.js";
-import { assessEngines, createEngineRegistry, defaultEngines, expandOnly, fastestEngine, formatAssessment, usableNodeBackends } from "../src/inference-engines.js";
+import { assessEngines, createEngineRegistry, defaultEngines, expandOnly, fastestEngine, formatAssessment, tiedWithFastest, usableNodeBackends } from "../src/inference-engines.js";
 
 const ENTRY = { id: "m1", fileName: "tiny-q4_k_m.gguf", path: "C:\\models\\tiny-q4_k_m.gguf" };
 
@@ -385,4 +385,22 @@ test("every engine is timed at one thread count, so a CPU ranking compares engin
   const bench = new LlamaBenchAdapter({ binary: "b", exists: () => true, run: async (file, args) => { runs.push(args); return { stdout: BENCH_JSON, stderr: "" }; }, threads: 6 });
   await bench.measure({ entry: ENTRY, runs: 1 });
   assert.deepEqual(runs[0].slice(runs[0].indexOf("-t"), runs[0].indexOf("-t") + 2), ["-t", "6"], "llama-bench is told too");
+});
+
+test("engines whose measured ranges overlap the fastest one's are named as tied with it (ADR-181)", () => {
+  const row = (id, genTps, genRange) => ({ id, label: id, available: true, ok: true, genTps, genRange, promptTps: 100, detail: "d" });
+  const results = [
+    row("a", 34, [28, 34]),
+    row("b", 31, [29, 33]),
+    row("c", 20, [18, 25]),
+    row("d", 27, undefined),
+    { id: "e", label: "e", available: false, ok: false, reason: "no GPU" },
+  ];
+  assert.deepEqual(tiedWithFastest(results), ["b"], "b's range reaches into a's; c and the single-reading d do not");
+  assert.deepEqual(tiedWithFastest([row("a", 34, [28, 34]), row("d", 29, undefined)]), ["d"], "a single reading inside the leader's range counts");
+  assert.deepEqual(tiedWithFastest([row("only", 10, [9, 11])]), []);
+  assert.deepEqual(tiedWithFastest([]), []);
+  const text = formatAssessment({ model: "m", fastest: "a", results });
+  assert.match(text, /within the measured spread of b/);
+  assert.doesNotMatch(formatAssessment({ model: "m", fastest: "a", results: [row("a", 34, [33, 35]), row("c", 20, [18, 25])] }), /within the measured spread/);
 });
