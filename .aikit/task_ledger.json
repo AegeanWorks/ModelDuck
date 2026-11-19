@@ -1,11 +1,11 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "inference-engines",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795041623.4672835,
+    "task_id": "engines-add",
+    "last_phase": "phase 1",
+    "active_phase": 1,
+    "status": "in_progress",
+    "updated_at": 1795066956.4324257,
     "owner": "claude:sonnet-5.5",
     "started_by": "claude:sonnet-5.5",
     "continuations": [],
@@ -15,29 +15,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795041661.7398329,
-    "completed_head": "4a713c6495ead6c370acdf551dd35c0b8714b780",
-    "completed_tree": "b1075c2422737e5688148d1336d0a490b0c80974"
+    "impact_assessment": {
+      "why": "A GitHub search found llama.cpp forks that share llama-server's arguments but could only be timed once per tune, never served",
+      "benefits": "Any fork becomes a first-class, servable, versioned engine with one command; the report names the best engine per model",
+      "risks": "contract: install.json gains optional fields; dependency: none; concurrency: none; state: engines/bin records only",
+      "mitigation": "Fields optional so existing installs read unchanged; tests for register, find, serve, device; nothing copied or deleted besides its own record"
+    }
   },
   "checkpoints": [
-    {
-      "task_id": "already-installed-add",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[2/2] npm test 922/923 pass, 1 skipped; ui:smoke returns a complete job for installed.gguf and asserts the Already in your library toast, the cleared form and no progress row; aikit check 4/4; ADR-146; UI review recorded; G-001 not applicable (UI wording only)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795019114.338418,
-      "timestamp_str": "2026-11-18 19:25:14",
-      "agent": "kilo:1",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "already-installed-add",
       "phase": "completed",
@@ -414,6 +399,29 @@
         ],
         "forced": false
       }
+    },
+    {
+      "task_id": "engines-add",
+      "phase": "phase 1",
+      "phase_num": 1,
+      "description": "[1/1] Register llama.cpp-family builds (ik_llama.cpp, BitNet) as engines; best-speed-engine line; GitHub candidate list",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795066956.4324257,
+      "timestamp_str": "2026-11-19 08:42:36",
+      "agent": "claude:sonnet-5.5",
+      "impact_assessment": {
+        "why": "A GitHub search found llama.cpp forks that share llama-server's arguments but could only be timed once per tune, never served",
+        "benefits": "Any fork becomes a first-class, servable, versioned engine with one command; the report names the best engine per model",
+        "risks": "contract: install.json gains optional fields; dependency: none; concurrency: none; state: engines/bin records only",
+        "mitigation": "Fields optional so existing installs read unchanged; tests for register, find, serve, device; nothing copied or deleted besides its own record"
+      },
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }
