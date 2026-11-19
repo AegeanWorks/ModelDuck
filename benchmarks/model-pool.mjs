@@ -23,3 +23,24 @@ export async function runPool(items, worker, width = 1) {
   await Promise.all(Array.from({ length: lanes }, lane));
   return results;
 }
+
+/**
+ * Measure each model through `measure(model)` on up to `width` lanes and return the values in input order (ADR-184).
+ * A lane's failure never poisons the others: every lane settles, then the first failure in model order is thrown,
+ * so a run of hours is not abandoned halfway because a sibling model failed.
+ */
+export async function runModelsInOrder(models, measure, width = 1) {
+  const settled = await runPool(
+    models,
+    async (model) => {
+      try {
+        return { model, error: null, value: await measure(model) };
+      } catch (error) {
+        return { model, error, value: null };
+      }
+    },
+    width,
+  );
+  for (const item of settled) if (item.error) throw item.error;
+  return settled.map((item) => item.value);
+}

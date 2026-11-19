@@ -5,9 +5,9 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1795119378.236677,
+    "updated_at": 1795120019.7106678,
     "owner": "claude:sonnet-5.5",
-    "lease_until": 1795126578.236677,
+    "lease_until": 1795127219.7106678,
     "started_by": "claude:opus-5.5",
     "continuations": [
       {
@@ -24,23 +24,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "task_id": "engine-start-hardening",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "installer reuses a verified cached download (ADR-167)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795085542.2598183,
-      "timestamp_str": "2026-11-19 13:52:22",
-      "agent": "claude:sonnet-5.5",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "engine-start-hardening",
       "phase": "phase 4",
@@ -352,6 +335,24 @@
       "timestamp": 1795119820.59777,
       "timestamp_str": "2026-11-19 23:23:40",
       "agent": "claude-code:bba617e6"
+    },
+    {
+      "task_id": "tune-system-prompt-optional",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "baseline update can run models side by side (ADR-184)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795120019.7106678,
+      "timestamp_str": "2026-11-19 23:26:59",
+      "agent": "claude:sonnet-5.5",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }

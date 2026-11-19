@@ -12,7 +12,7 @@ import { CORE_MODEL_IDS } from "./matrix.mjs";
 import { BENCHMARK_MODELS } from "./suite.mjs";
 import { TASKS, taskParaphrase, tuneRungs } from "./tasks.mjs";
 import { measurePresets } from "./tune.mjs";
-import { runPool } from "./model-pool.mjs";
+import { runModelsInOrder, runPool } from "./model-pool.mjs";
 import { BASELINE_SCHEMA, TUNER_VERSION, baselineEntry, comparability, compareToBaseline, hardwareWarning, presetSettings, requireBaselineModels } from "./tune-baseline.mjs";
 import { createEvaluator } from "./tune-evaluate.mjs";
 import { openTarget, runTune, tuneBase, withEngine } from "./tune-job.mjs";
@@ -46,7 +46,10 @@ re-measures everything.
 --fresh ignores and overwrites the cache.
 --models-parallel <n> measures up to n models at once (default: all core models,
 up to 3). Answers are unchanged; under contention the latency column reads
-noisier, so pass 1 for strict sequential latency readings.
+noisier, so pass 1 for strict sequential latency readings. With --update-baseline
+the default is 1, since the speed and device stages time their answers and compete
+for the machine; pass 2 or 3 to tune the core models side by side (output lines then
+carry the model id), at the cost of timing decisions made under shared load.
 `;
 
 function parseArgs(argv) {
@@ -72,16 +75,19 @@ const fileOf = (catalogId) => BENCHMARK_MODELS.find((model) => model.catalogId =
 const identityOf = (fingerprint) => ({ suiteVersion: fingerprint.suiteVersion, taskHash: fingerprint.taskHash, nodeLlamaCpp: fingerprint.nodeLlamaCpp, tunerVersion: fingerprint.tunerVersion });
 
 async function updateBaseline(options, home, { savedRuns = null } = {}) {
-  const models = {};
-  let identity = null;
   const chosen = options.models?.length ? options.models : CORE_MODEL_IDS;
   const unknown = chosen.filter((catalogId) => !CORE_MODEL_IDS.includes(catalogId));
   if (unknown.length) {
     throw new AppError("Not a core model", { code: "bad_option", why: `${unknown.join(", ")} is not one of the core models.`, fix: `Use any of: ${CORE_MODEL_IDS.join(", ")}.` });
   }
-  for (const catalogId of chosen) {
+  // The models are independent measurements (own engine, own profile, own run record), so with --models-parallel
+  // they are tuned side by side (ADR-184); one lane, the default, is the strictly sequential run. Output lines carry
+  // the model's id when lanes share the screen.
+  const lanes = Math.max(1, Math.min(options.modelsParallel ?? 1, chosen.length));
+  const measureOne = async (catalogId) => {
+    const say = (text) => process.stdout.write(lanes > 1 ? text.replace(/^(\s*)(?=\S)/gm, `$1[${catalogId}] `) : text);
     const target = await openTarget({ model: fileOf(catalogId), home, modelsDir: options.modelsDir });
-    identity = identityOf(target.fingerprint);
+    const identity = identityOf(target.fingerprint);
     if (options.fromProfile) {
       const file = path.join(options.fromProfile, "profiles", `${catalogId}.json`);
       let profile = null;
@@ -99,9 +105,9 @@ async function updateBaseline(options, home, { savedRuns = null } = {}) {
             fix: "Re-tune that model, or choose a profile measured under the current suite, runtime and tuner version.",
           });
         }
-        process.stdout.write(`Re-measuring ${catalogId} from ${file}…\n`);
+        say(`Re-measuring ${catalogId} from ${file}…\n`);
       } else {
-        process.stdout.write(`No profile at ${file}; measuring ${catalogId} defaults…\n`);
+        say(`No profile at ${file}; measuring ${catalogId} defaults…\n`);
       }
       const preset = presetSettings(profile, TASK_IDS);
       // A profile carries the load it was tuned on. With none, measure on the
@@ -116,26 +122,32 @@ async function updateBaseline(options, home, { savedRuns = null } = {}) {
       }));
       for (const task of TASK_IDS) {
         const stats = measured[task];
-        process.stdout.write(`  ${task}: ${stats.rate}% · ${stats.items} items · ${stats.latencyMs} ms\n`);
+        say(`  ${task}: ${stats.rate}% · ${stats.items} items · ${stats.latencyMs} ms\n`);
       }
-      models[catalogId] = baselineEntry({
-        load: { settings: load },
-        tasks: Object.fromEntries(TASK_IDS.map((task) => [task, { settings: presets[task], stats: measured[task] }])),
-      }, { hardware: { cpu: target.system.cpu, threads: target.system.parallelism } });
-      continue;
+      return {
+        catalogId,
+        identity,
+        entry: baselineEntry({
+          load: { settings: load },
+          tasks: Object.fromEntries(TASK_IDS.map((task) => [task, { settings: presets[task], stats: measured[task] }])),
+        }, { hardware: { cpu: target.system.cpu, threads: target.system.parallelism } }),
+      };
     }
-    process.stdout.write(`Tuning ${catalogId} for the baseline…\n`);
+    say(`Tuning ${catalogId} for the baseline…\n`);
     // One line per finished setting, so a run of hours shows where it is.
     const onEvent = (event) => {
-      if (event.type === "sweep") process.stdout.write(`  ${event.stage}${event.task ? `:${event.task}` : ""} ${event.axis} -> ${JSON.stringify(event.winner)} · ${event.runs} answers\n`);
+      if (event.type === "sweep") say(`  ${event.stage}${event.task ? `:${event.task}` : ""} ${event.axis} -> ${JSON.stringify(event.winner)} · ${event.runs} answers\n`);
     };
     // --reuse-from replays answers saved in another home's tune runs (ADR-123); the
     // temp home starts empty, so without it every answer is asked again.
     const reuseFrom = [...(savedRuns ? [savedRuns] : []), ...(options.reuseFrom ? [path.join(options.reuseFrom, "tune-runs")] : [])];
-    const onNote = (note) => process.stdout.write(`  ${note}\n`);
+    const onNote = (note) => say(`  ${note}\n`);
     const { profile } = await runTune(target, { tasks: TASK_IDS, force: true, maxRuns: options.maxRuns, passes: options.passes, reuseFrom, onEvent, onNote });
-    models[catalogId] = baselineEntry(profile, { hardware: { cpu: target.system.cpu, threads: target.system.parallelism } });
-  }
+    return { catalogId, identity, entry: baselineEntry(profile, { hardware: { cpu: target.system.cpu, threads: target.system.parallelism } }) };
+  };
+  const results = await runModelsInOrder(chosen, measureOne, lanes);
+  const models = Object.fromEntries(results.map((item) => [item.catalogId, item.entry]));
+  const identity = results[0]?.identity ?? null;
   const note = options.fromProfile
     ? `Deliberate baseline update: tuned task presets were re-measured from ${options.fromProfile}; missing profiles were measured as defaults. Do not replace this to make a change pass.`
     : "Deliberate baseline update: each core model was re-tuned by tune:gate --update-baseline. Do not replace this to make a change pass.";

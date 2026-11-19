@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { runPool } from "../benchmarks/model-pool.mjs";
+import { runModelsInOrder, runPool } from "../benchmarks/model-pool.mjs";
 
 // The gate measures its independent models through a bounded pool. Each model
 // keeps its own engine and its own cache write, so the pool only bounds
@@ -72,4 +72,30 @@ test("runPool clamps a non-numeric width back to one lane", async () => {
   const gate = [];
   await runPool([1, 2], async (item) => { gate.push(item); return item; }, "nan");
   assert.deepEqual(gate, [1, 2]); // one lane: strict order despite width garbage
+});
+
+test("runModelsInOrder gives every model's value in input order, one lane or several (ADR-184)", async () => {
+  const order = [];
+  const measure = async (id) => {
+    await new Promise((resolve) => setTimeout(resolve, id === "slow" ? 20 : 1));
+    order.push(id);
+    return `${id}!`;
+  };
+  assert.deepEqual(await runModelsInOrder(["slow", "fast", "mid"], measure, 1), ["slow!", "fast!", "mid!"]);
+  assert.deepEqual(order, ["slow", "fast", "mid"], "one lane is strictly sequential");
+  order.length = 0;
+  assert.deepEqual(await runModelsInOrder(["slow", "fast", "mid"], measure, 3), ["slow!", "fast!", "mid!"], "results keep input order");
+  assert.deepEqual(order, ["fast", "mid", "slow"], "while the lanes finish in their own order");
+});
+
+test("runModelsInOrder lets every lane settle, then throws the first failure in model order (ADR-184)", async () => {
+  const finished = [];
+  const measure = async (id) => {
+    await new Promise((resolve) => setTimeout(resolve, id === "late" ? 15 : 1));
+    finished.push(id);
+    if (id === "first-bad" || id === "second-bad") throw new Error(id);
+    return id;
+  };
+  await assert.rejects(() => runModelsInOrder(["ok", "first-bad", "second-bad", "late"], measure, 4), /first-bad/);
+  assert.deepEqual(finished.sort(), ["first-bad", "late", "ok", "second-bad"], "the lane that was still working was not abandoned");
 });
