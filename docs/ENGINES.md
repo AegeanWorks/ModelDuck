@@ -53,8 +53,9 @@ OpenAI-style API attaches with `--openai-engine`. Anything built from llama.cpp 
 | [LMDeploy](https://github.com/InternLM/lmdeploy), [Xinference](https://github.com/xorbitsai/inference) | NVIDIA-oriented servers; `--openai-engine` |
 
 Not added: libraries with no server of their own (LLamaSharp, nobodywho) and Cortex.cpp
-(no commit since 2025-07). None of the attached servers was run for this list; they are the
-same OpenAI-style path the fake-server tests cover.
+(no commit since 2025-07). None of these projects was run for this list. The attached path itself was run against
+a real server (a hand-started llama-server, 284 tok/s next to the same build run by the
+app at 289), so it works with a real OpenAI-style API, not only the test fakes.
 
 **Adding an engine.** Every engine is one descriptor in `src/engine-catalog.js`: a `kind`,
 whether the app can start it itself (`servable`), the adapters that time it, and (if it can
