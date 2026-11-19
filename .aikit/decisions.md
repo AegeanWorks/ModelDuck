@@ -1200,3 +1200,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: `npm run engines -- --only llama-server` was refused as "not an engine id" because the ids are `llama-server:cpu`, `llama-server:vulkan` and any registered build; the user had to know every variant.
 - **Decision**: `expandOnly` treats a value as an exact id or as a family (`llama-server` is every `llama-server:*`); a half-typed name such as `llama` still matches nothing and is named in the error.
 - **Verified**: a unit test; for real, `--only ollama,llama-server` timed both llama-server builds and reported Ollama as unavailable (SmolLM2-135M: Vulkan 433 tok/s, CPU 55, the CPU figure low because the machine was busy).
+
+### ADR-167: The installer reuses a verified cached download
+- **Date**: 2026-11-19
+- **Status**: Accepted (implemented; engine-start-hardening)
+- **Context**: Reading the installer: `downloadVerified` always fetched, so a failed unpack of the 650 MB CUDA build (or a re-run after an interrupted install) downloaded it again, and its 10-minute total timeout is close to the transfer time of that file on a 10 Mbit/s link.
+- **Decision**: a file already at the cache path whose SHA-256 equals the pin is reused (`cached: true`); a corrupt or partial one is fetched again as before. The total timeout is 30 minutes. The hash is the same pinned one, so reuse is exactly as trusted as a fresh download.
+- **Verified**: a unit test (matching copy reused with no fetch; corrupt copy replaced). The timeout is a longer limit, not an idle timeout; a stalled connection still waits out the 30 minutes.
