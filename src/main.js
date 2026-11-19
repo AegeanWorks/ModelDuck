@@ -9,6 +9,7 @@ import { TuneScheduler } from "./tune-scheduler.js";
 import { DownloadManager } from "./downloader.js";
 import { drainServer } from "./drain.js";
 import { BUILTIN_DESCRIPTORS, createEngineCatalog, engineContext, loadEnginePlugin } from "./engine-catalog.js";
+import { createEngineListing } from "./engine-listing.js";
 import { RoutedEngine } from "./external-engines.js";
 import { servingResolver } from "./inference-engines.js";
 import { LlamaEngine } from "./engine.js";
@@ -144,6 +145,7 @@ async function main() {
     jit,
     benchmarks,
     tunes,
+    engines: createEngineListing({ catalog, registry, profilesDir: paths.profiles }),
     profilesDir: paths.profiles,
     tuneRunsDir: paths.tuneRuns,
     tuneStepsFile: paths.tuneGrid,

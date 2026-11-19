@@ -468,14 +468,7 @@ npm test
 npm run test:parallel       # same gate, sharded across CPU cores
 ```
 
-`npm test` also checks the control-panel wiring: every element the app looks up
-exists, every ARIA reference resolves, the four control-panel dialogs are present,
-and no chat shell or deleted chat route remains. `npm run ui:smoke` starts a
-temporary ModelDuck and a headless Edge or Chrome, opens Models, Bench & Tune,
-Settings and Server, checks all six Bench sections and 390px reflow, and fails on
-a missing dialog or console exception. It needs Node 22+ and a Chromium browser;
-without them it exits 1 unless you pass `-- --allow-skip`. The server, browser and
-temporary data folder are cleaned up.
+What the tests and `npm run ui:smoke` check: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
 The benchmark needs the installed benchmark models. Use
 `npm run bench -- --download` once, then run both phases for every
@@ -492,6 +485,7 @@ modelduck/
 │   ├── server.js
 │   ├── engine.js
 │   ├── engine-catalog.js <- engine descriptors
+│   ├── engine-listing.js <- engines the API lists and a load may name
 │   ├── engine-env.js
 │   ├── engine-install.js <- engine installer
 │   ├── external-engines.js <- engines outside the process
@@ -536,6 +530,7 @@ modelduck/
 ├── docs/
 │   ├── THREAT-MODEL.md <- local-inference threat model
 │   ├── ENGINES.md <- inference engines
+│   ├── DEVELOPMENT.md <- what the tests check
 │   ├── state-machines.md <- the 25-machine inventory and verified gaps
 │   ├── state-machines.json <- machine inventory checked by tests
 │   ├── state-machine-proposals.md <- judged proposals
@@ -668,6 +663,7 @@ modelduck/
 │   ├── tuned-settings.test.js
 │   ├── jit-tuned.test.js
 │   ├── engine-catalog.test.js
+│   ├── engine-listing.test.js
 │   ├── engine-contract.js <- engine backend check
 │   ├── engine-install.test.js
 │   ├── external-engines.test.js

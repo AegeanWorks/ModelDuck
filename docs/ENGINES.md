@@ -65,3 +65,11 @@ in the code names an engine. A descriptor can live in your own file and be added
 must pass the conformance check in `tests/engine-contract.js`; `tests/engine-catalog.test.js` adds a
 made-up engine end to end (assessment, tuner adoption, serving, fallback) without touching any
 other source file.
+
+**Choosing an engine over the API (ADR-170).** `GET /api/engines[?model=<id>]` lists every engine the
+catalog offers: `id`, `label`, `servable` (the app can start it here), `version`, and `measured` (the
+generation and prompt speed saved beside that model's profile by `npm run tune` or `npm run engines`,
+else `null`). `fastest` is the quickest measured engine that can be served. `POST /api/models/<id>/load`
+accepts `engine`: it wins over the engine a tuned profile names, and an id that is unknown, not
+installed or measure-only is refused with `engine_unknown` (HTTP 400) and the list of ids that can be
+chosen. Leave `engine` out for the profile's engine, or the in-process one when the model is untuned.

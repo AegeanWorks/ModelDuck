@@ -1221,3 +1221,17 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: stderr was kept only to explain a failed start; a later `engine_crashed` said "it exited with N" and nothing else, so an out-of-memory or driver abort left no trace for the user.
 - **Decision**: the backend keeps the last 4,000 characters of stderr for the life of the process and `engine_crashed` appends the last three lines (at most 400 characters) after the exit code. Nothing else about the crash path changes.
 - **Verified**: a unit test (a server that writes an out-of-memory line and exits is reported with that line in the Why). Not run against the real binary.
+
+### ADR-170: The API lists the engines and a load may name one
+- **Date**: 2026-11-19
+- **Status**: Accepted (implemented; Wave 3 phase 2)
+- **Context**: the load route ignored `body.engine`, so an untuned model always ran in-process even where llama-server is faster, and what engines exist, whether they run here and what they measured was visible only in `npm run engines`.
+- **Decision**: `src/engine-listing.js` asks the catalog (ADR-160) for every engine and reads `<model>.engines.json`; `GET /api/engines` returns it with the quickest servable measured engine as `fastest`. The load route accepts `engine`, checks it with `assertServable` (400 `engine_unknown` with the choices) and lets it override the profile's engine. The router's fallback still applies if a valid engine fails to start, and the status says so. No UI yet (phase 3).
+- **Verified**: four unit/route tests with a made-up catalog (listing, no measurements, refusals, the two routes). Not exercised against a real llama-server build.
+
+### ADR-171: The README's test-wiring paragraph moves to docs/DEVELOPMENT.md
+- **Date**: 2026-11-19
+- **Status**: Accepted (implemented; Wave 3 phase 9)
+- **Context**: the README stood at 37,490 of its 37,500 characters, so the tree lines for ADR-170's new files could not be added.
+- **Decision**: the paragraph on what `npm test` and `npm run ui:smoke` check moves word for word to `docs/DEVELOPMENT.md` and the README links it. The README now has 375 characters of headroom.
+- **Verified**: `update_knowledge_base.py --check` passes (tree lists every new file, size under the cap).

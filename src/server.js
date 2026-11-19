@@ -127,6 +127,8 @@ export function createHttpServer({
   tuneStepsFile = null,
   instance = null,
   reloadLease = null,
+  // The engines the app can serve with and the check a load makes on a named one (ADR-170).
+  engines = null,
 }) {
   const tuned = new TunedSettings({ profilesDir, registry, settings, fingerprint: profileFingerprint });
   // IDEA-1098: the release-barriered rebuild lease; off unless the user turns
@@ -1130,6 +1132,12 @@ export function createHttpServer({
       return;
     }
 
+    if (pathname === "/api/engines" && method === "GET") {
+      const model = url.searchParams.get("model");
+      sendJson(res, 200, engines ? await engines.list(model) : { engines: [], fastest: null });
+      return;
+    }
+
     const loadMatch = pathname.match(/^\/api\/models\/([^/]+)\/load$/);
     if (loadMatch && method === "POST") {
       requireLocalAction(req, {
@@ -1142,6 +1150,11 @@ export function createHttpServer({
       const body = await readJsonBody(req);
       const modelId = decodeRouteId(loadMatch[1]);
       const applied = await tuned.resolve(modelId);
+      const chosen = typeof body.engine === "string" && body.engine !== "" ? body.engine : null;
+      if (chosen) {
+        if (!engines) throw new AppError("Engine choice unavailable", { status: 503, code: "engine_unknown", why: "This server was started without an engine catalog.", fix: "Leave engine out to use the default engine." });
+        engines.assertServable(chosen);
+      }
       const loaded = await engine.load({
         modelId,
         contextSize: body.contextSize ?? settings.value.contextSize,
@@ -1158,6 +1171,7 @@ export function createHttpServer({
         checkpointMax: body.checkpointMax ?? settings.value.checkpointMax,
         kvCache: body.kvCache ?? settings.value.kvCache,
         ...(applied?.settings ?? {}),
+        ...(chosen ? { engine: chosen } : {}),
         force: body.force === true,
       });
       jit?.clear();

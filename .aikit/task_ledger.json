@@ -5,9 +5,9 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1795090560.198126,
+    "updated_at": 1795090767.469837,
     "owner": "claude:sonnet-5.5",
-    "lease_until": 1795097760.198126,
+    "lease_until": 1795097967.469837,
     "started_by": "claude:sonnet-5.5",
     "continuations": [],
     "workspaces": [
@@ -18,23 +18,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "task_id": "mcp-protocol-tests",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'mcp-protocol-tests' completed successfully.",
-      "status": "completed",
-      "timestamp": 1795026348.439382,
-      "timestamp_str": "2026-11-18 21:25:48",
-      "agent": "kilo:1",
-      "head": "11212f093d4b797417228fd93a6a23840f40d723",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
     {
       "task_id": "add-hf-local-action",
       "phase": "phase 2",
@@ -394,6 +377,24 @@
       "timestamp": 1795090560.198126,
       "timestamp_str": "2026-11-19 15:16:00",
       "agent": "claude:sonnet-5.5",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "engine-start-hardening",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "GET /api/engines and engine on load (ADR-170)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795090767.469837,
+      "timestamp_str": "2026-11-19 15:19:27",
+      "agent": "claude:sonnet-5.5",
+      "checklists": "passed",
       "workspaces": [
         {
           "name": "modelduck",
