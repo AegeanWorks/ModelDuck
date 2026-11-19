@@ -6,13 +6,13 @@
 <!-- aegean:media:end -->
 
 
-A local GGUF model server and coding-model tuner: load a model, serve an OpenAI-compatible API, tune it for code.
-Runs on the CPU or a Vulkan GPU; no cloud account, no telemetry. Weights, prompts and settings stay on your
+**Finds the best inference engine for your model, on your machine, and serves with it.** A local GGUF model
+server and coding-model tuner with an OpenAI-compatible API. Runs on the CPU or a GPU; no cloud account, no telemetry. Weights, prompts and settings stay on your
 computer; the only network requests are model downloads you start (the inference
 runtime is never downloaded or built on demand). The tuner measures quality per
 second and per GB on your machine, so a preset is evidence, not a guess.
 
-It also races every inference engine on your hardware (node-llama-cpp, llama.cpp `llama-server`, Ollama, vLLM-style servers), tunes on the fastest and serves with it: 2.6x the end-to-end speed of the in-process default on the author's machine.
+Each model is timed on every engine (node-llama-cpp, llama.cpp `llama-server`, Ollama, vLLM-style servers); the winner is saved in that model's profile, used to tune and to serve (2.6x the in-process default here).
 
 ModelDuck has no chat UI: its page is a control panel for Models, Bench & Tune,
 Settings and Server. Chat or code with any OpenAI-compatible client pointed at

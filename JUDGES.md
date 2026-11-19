@@ -71,7 +71,8 @@ multistep evaluation that says how well the model keeps state across steps.
    passed them, or with the best try and the failing cases. The local model
    writes the code and the tests run on this computer; the result goes back to
    Kiro like any other tool result.
-8. **Which inference engine is fastest on this PC?** (from `master`) ModelDuck
+8. **What is the best inference engine for this model?** (from `master`) The
+   answer depends on the model and the hardware, so ModelDuck measures it: it
    times every engine it can find on your model and serves with the winner:
    ```powershell
    npm run engines:install
