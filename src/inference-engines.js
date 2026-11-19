@@ -167,3 +167,9 @@ export function formatAssessment({ model, results, fastest }) {
   if (verdict) lines.push(verdict);
   return lines.join("\n");
 }
+
+/** `--only` values: an exact engine id, or an engine family (`llama-server` is every `llama-server:*`). */
+export function expandOnly(wanted, ids) {
+  const matches = (entry, id) => id === entry || id.startsWith(`${entry}:`);
+  return { ids: ids.filter((id) => wanted.some((entry) => matches(entry, id))), unknown: wanted.filter((entry) => !ids.some((id) => matches(entry, id))) };
+}

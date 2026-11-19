@@ -5,7 +5,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { LlamaBenchAdapter, LlamaServerAdapter, NodeBackendAdapter, OllamaAdapter, OpenAICompatAdapter, WORKLOAD, cleanPath, parseDevices, parseLlamaVersion } from "../src/inference-engine-adapters.js";
-import { assessEngines, createEngineRegistry, defaultEngines, fastestEngine, formatAssessment, usableNodeBackends } from "../src/inference-engines.js";
+import { assessEngines, createEngineRegistry, defaultEngines, expandOnly, fastestEngine, formatAssessment, usableNodeBackends } from "../src/inference-engines.js";
 
 const ENTRY = { id: "m1", fileName: "tiny-q4_k_m.gguf", path: "C:\\models\\tiny-q4_k_m.gguf" };
 
@@ -359,4 +359,11 @@ test("the report ends with the best speed engine for this model and what it gain
   const alone = formatAssessment({ model: "m", fastest: "node-llama-cpp:cpu", results: [row("node-llama-cpp:cpu", 100)] });
   assert.match(alone, /Best speed engine for m: node-llama-cpp:cpu, 100 tok\/s \(no other engine measured\)/);
   assert.doesNotMatch(formatAssessment({ model: "m", fastest: null, results: [] }), /Best speed engine/);
+});
+
+test("--only accepts an exact id or a whole engine family, and names what matched nothing", () => {
+  const ids = ["node-llama-cpp:cpu", "node-llama-cpp:vulkan", "llama-server:cpu", "llama-server:vulkan", "llama-bench", "ollama"];
+  assert.deepEqual(expandOnly(["llama-server"], ids), { ids: ["llama-server:cpu", "llama-server:vulkan"], unknown: [] });
+  assert.deepEqual(expandOnly(["ollama", "llama-server:cpu"], ids), { ids: ["llama-server:cpu", "ollama"], unknown: [] });
+  assert.deepEqual(expandOnly(["llama", "nope"], ids), { ids: [], unknown: ["llama", "nope"] }, "a half-typed name is not a family");
 });

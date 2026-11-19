@@ -1193,3 +1193,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: `start` listens for `error`, stops the child, and refuses with `engine_start_failed` naming the file, the error code and a Fix. Every failed start now goes through `stop()`, which removes the hook.
 - **Verified**: two tests that failed before the change (a spawn that emits `ENOENT`; a server that exits while loading, with the `exit` listener count compared before and after).
 - **Not done**: the port is chosen and released before llama-server binds it, so another process could take it in between; that surfaces as an ordinary start failure and is not retried.
+
+### ADR-166: `engines --only` accepts an engine family
+- **Date**: 2026-11-19
+- **Status**: Accepted (implemented; engine-start-hardening)
+- **Context**: `npm run engines -- --only llama-server` was refused as "not an engine id" because the ids are `llama-server:cpu`, `llama-server:vulkan` and any registered build; the user had to know every variant.
+- **Decision**: `expandOnly` treats a value as an exact id or as a family (`llama-server` is every `llama-server:*`); a half-typed name such as `llama` still matches nothing and is named in the error.
+- **Verified**: a unit test; for real, `--only ollama,llama-server` timed both llama-server builds and reported Ollama as unavailable (SmolLM2-135M: Vulkan 433 tok/s, CPU 55, the CPU figure low because the machine was busy).

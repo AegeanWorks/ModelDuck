@@ -7,7 +7,7 @@ import { resolvePaths } from "../src/config.js";
 import { AppError } from "../src/errors.js";
 import { writeJsonAtomic } from "../src/fs-atomic.js";
 import { BUILTIN_DESCRIPTORS, createEngineCatalog, loadEnginePlugin } from "../src/engine-catalog.js";
-import { assessEngines, createEngineRegistry, defaultEngines, formatAssessment } from "../src/inference-engines.js";
+import { assessEngines, createEngineRegistry, defaultEngines, expandOnly, formatAssessment } from "../src/inference-engines.js";
 import { createModelRegistry } from "../src/model-registry.js";
 
 const USAGE = `Usage: npm run engines -- --model <file.gguf|id> [options]
@@ -21,7 +21,7 @@ installed or will not start are listed with the reason.
   --models-dir <dir>    models folder (default: <home>/models)
   --home <folder>       data folder (default: ~/.modelduck)
   --runs <n>            counted runs per engine after one warm-up (default 3)
-  --only <ids>          comma-separated engine ids (see the table; default: all)
+  --only <ids>          comma-separated engine ids or families, e.g. llama-server (default: all)
   --llama-bench <file>  a native llama.cpp llama-bench binary to include
   --llama-server <file> a llama.cpp llama-server binary of your own (installed variants are found on their own;
                         install them with: npm run engines:install)
@@ -92,7 +92,8 @@ export async function main(argv = process.argv.slice(2), out = process.stdout) {
   }
   const registry = createEngineRegistry({ engines: defaultEngines({ catalog: createEngineCatalog({ descriptors: [...BUILTIN_DESCRIPTORS, ...await Promise.all((options.enginePlugins ?? []).map(loadEnginePlugin))] }), llamaBench: options.llamaBench ?? null, llamaServer: options.llamaServer ?? null, ollamaModel: options.ollamaModel ?? null, ollamaUrl: options.ollamaUrl, openai: options.openai ?? [], openaiKey: process.env.MODELDUCK_ENGINE_KEY ?? null }) });
   if (options.only) {
-    const unknown = options.only.filter((id) => !registry.ids().includes(id));
+    const { ids, unknown } = expandOnly(options.only, registry.ids());
+    options.only = ids;
     if (unknown.length) {
       throw new AppError("Unknown engine", { code: "bad_option", why: `${unknown.join(", ")} is not an engine id.`, fix: `Use any of: ${registry.ids().join(", ")}.` });
     }
