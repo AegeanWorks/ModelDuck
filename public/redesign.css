@@ -1765,6 +1765,30 @@ label.small-btn {
   gap: 4px;
 }
 
+.engine-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted, inherit);
+  font-size: 10.5px;
+}
+
+.engine-choice select {
+  max-width: 190px;
+  min-height: 30px;
+  font-size: 10.5px;
+}
+
+@media (max-width: 480px) {
+  .installed-actions {
+    flex-wrap: wrap;
+  }
+
+  .engine-choice select {
+    max-width: 150px;
+  }
+}
+
 .installed-actions .small-btn {
   min-height: 30px;
   padding-inline: 9px;

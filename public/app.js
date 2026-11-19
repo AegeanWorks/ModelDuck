@@ -326,6 +326,9 @@ function markSettingHelp() {
 }
 
 const state = {
+  // Engines that can serve each model (GET /api/engines) and the one chosen on its row; null = automatic.
+  engines: new Map(),
+  engineChoice: new Map(),
   // Models whose tune details are expanded in the Bench dialog, and their sweep logs once loaded.
   tuneOpen: new Set(),
   tuneSweeps: new Map(),
@@ -1038,7 +1041,7 @@ function renderInstalled() {
     const actions = loaded
       ? `<button class="small-btn" type="button" data-unload="true">Unload</button>`
       : canLoad
-        ? `<button class="small-btn" type="button" data-load="${escapeAttribute(model.id)}" ${loading ? "disabled" : ""}>${loading ? "Loading…" : "Load"}</button>`
+        ? `${engineChooser(model)}<button class="small-btn" type="button" data-load="${escapeAttribute(model.id)}" ${loading ? "disabled" : ""}>${loading ? "Loading…" : "Load"}</button>`
         : "";
     row.innerHTML = `
       <div class="installed-icon"><img src="/brand/duck.svg" alt="" /></div>
@@ -1088,10 +1091,34 @@ async function refreshCatalog() {
     renderCatalog();
     renderInstalled();
     renderDashboard();
+    void refreshEngines();
     if (hasActiveDownloads()) startDownloadPolling();
   } catch (error) {
     showError(error);
   }
+}
+
+/** Ask which engines can serve each installed model and what each measured; a failure leaves the row without a chooser. */
+async function refreshEngines() {
+  try {
+    await Promise.all(state.models.map(async (model) => {
+      state.engines.set(model.id, await request(`/api/engines?model=${encodeURIComponent(model.id)}`));
+    }));
+    if (els.modelsDialog.open) renderInstalled();
+  } catch {
+    state.engines.clear();
+  }
+}
+
+/** The engine chooser for one installed model: only engines this machine can start, the quickest measured one marked. */
+function engineChooser(model) {
+  const info = state.engines.get(model.id);
+  const choices = (info?.engines ?? []).filter((engine) => engine.servable);
+  if (!choices.length) return "";
+  const chosen = state.engineChoice.get(model.id) ?? "";
+  const speed = (engine) => (Number.isFinite(engine.measured?.genTps) ? ` · ${engine.measured.genTps} tok/s` : "");
+  const options = choices.map((engine) => `<option value="${escapeAttribute(engine.id)}" ${engine.id === chosen ? "selected" : ""}>${escapeHtml(engine.label)}${escapeHtml(speed(engine))}${engine.id === info.fastest ? " · fastest here" : ""}</option>`).join("");
+  return `<label class="engine-choice">Engine <select data-engine-for="${escapeAttribute(model.id)}"><option value="">Automatic</option>${options}</select></label>`;
 }
 
 async function loadModel(id, { force = false } = {}) {
@@ -1118,6 +1145,7 @@ async function loadModel(id, { force = false } = {}) {
         checkpointInterval: state.settings?.checkpointInterval,
         checkpointMax: state.settings?.checkpointMax,
         kvCache: state.settings?.kvCache,
+        ...(state.engineChoice.get(id) ? { engine: state.engineChoice.get(id) } : {}),
         force,
       },
     });
@@ -3817,6 +3845,10 @@ function bindEvents() {
   bindArrowTabs(els.benchTabs, "[data-bench-tab]", (tab) => showBenchTab(tab.dataset.benchTab));
   els.benchmarkStart.addEventListener("click", startBenchmark);
   els.benchmarkCancel.addEventListener("click", cancelBenchmark);
+  els.installedList.addEventListener("change", (event) => {
+    const pick = event.target.closest?.("[data-engine-for]");
+    if (pick) state.engineChoice.set(pick.dataset.engineFor, pick.value || null);
+  });
   els.benchmarkPhase.addEventListener("change", syncBenchmarkPhase);
   syncBenchmarkPhase();
   $("tune-presets-details")?.addEventListener("toggle", (event) => {

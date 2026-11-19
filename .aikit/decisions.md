@@ -1235,3 +1235,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: the README stood at 37,490 of its 37,500 characters, so the tree lines for ADR-170's new files could not be added.
 - **Decision**: the paragraph on what `npm test` and `npm run ui:smoke` check moves word for word to `docs/DEVELOPMENT.md` and the README links it. The README now has 375 characters of headroom.
 - **Verified**: `update_knowledge_base.py --check` passes (tree lists every new file, size under the cap).
+
+### ADR-172: The Installed list offers an engine chooser per model
+- **Date**: 2026-11-19
+- **Status**: Accepted (implemented; Wave 3 phase 3; `ui finish` not recorded, see Verified)
+- **Context**: ADR-170 made the engine choosable over the API; nothing in the app used it.
+- **Decision**: each loadable row in Models > Installed shows an Engine select (Automatic, then every servable engine with its measured tok/s and "fastest here" on the quickest). The choice is kept per model for the session and sent as `engine` on load; with no servable engine the select is not drawn. The list comes from `GET /api/engines?model=` when the dialog opens.
+- **Verified**: screenshots at 1440px and 390px against the real library (21 models) with a faked engine list: the select fits the row and wraps under the title on mobile, no horizontal overflow. `ui verify` passed. `ui finish --reviewed` was denied by the permission classifier, so the UI contract for this surface is not recorded. No UI test was added.
