@@ -591,3 +591,27 @@ test("llama-server reports a dead process as a crash with a Why and a Fix, not a
   );
   await backend.stop();
 });
+
+// A binary that cannot be started (deleted after it was registered, or not executable) used to emit an
+// unhandled "error" event, which ends the whole process; it must be a refusal with a Why and a Fix instead.
+test("a binary that cannot be started is a refusal, not a crash, and leaves no listener behind", async () => {
+  const before = process.listenerCount("exit");
+  const spawnImpl = () => {
+    const child = new EventEmitter();
+    child.stderr = new EventEmitter();
+    child.exitCode = null;
+    child.kill = () => {};
+    setImmediate(() => child.emit("error", Object.assign(new Error("spawn llama-server.exe ENOENT"), { code: "ENOENT" })));
+    return child;
+  };
+  const backend = new LlamaServerBackend({ binary: "llama-server.exe", spawnImpl, startTimeoutMs: 5000 });
+  await assert.rejects(() => backend.start({ entry: ENTRY, load: LOAD }), (error) => error.code === "engine_start_failed" && /ENOENT/.test(error.why) && Boolean(error.fix));
+  assert.equal(process.listenerCount("exit"), before, "the exit hook is removed when the start fails");
+});
+
+test("a server that exits while loading leaves no exit listener behind", async () => {
+  const before = process.listenerCount("exit");
+  const { spawnImpl } = fakeLlamaServer({ exitWith: 1 });
+  await assert.rejects(() => new LlamaServerBackend({ binary: "x", spawnImpl }).start({ entry: ENTRY, load: LOAD }), (error) => error.code === "engine_start_failed");
+  assert.equal(process.listenerCount("exit"), before);
+});

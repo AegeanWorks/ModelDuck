@@ -217,6 +217,9 @@ export class LlamaServerBackend {
     child.stderr?.on("data", (chunk) => { stderr = (stderr + chunk).slice(-4000); });
     let exited = null;
     child.once("exit", (code) => { exited = code ?? "signal"; this.#exitedWith = exited; });
+    // A binary that is missing or not executable reports through "error"; unhandled, that ends the whole process.
+    let spawnError = null;
+    child.once("error", (error) => { spawnError = error; exited = error?.code ?? "error"; this.#exitedWith = exited; });
     this.#exitedWith = null;
     // A tune or app that dies must not leave a server holding the model.
     const reap = () => child.kill();
@@ -226,6 +229,8 @@ export class LlamaServerBackend {
     const deadline = Date.now() + this.#startTimeoutMs;
     for (;;) {
       if (exited !== null) {
+        await this.stop();
+        if (spawnError) throw refusal("llama-server could not be started", "engine_start_failed", `${this.#binary} did not run: ${spawnError.code ?? spawnError.message} (${spawnError.message}).`, "Check that the file still exists and is executable, or run: npm run engines:install (or engines:add --remove <name>).");
         throw refusal("llama-server did not start", "engine_start_failed", `It exited with ${exited} while loading ${entry.fileName}: ${stderr.trim().split("\n").slice(-3).join(" | ") || "no output"}`, "Check the settings (context size, GPU layers) against this build, or use another engine.");
       }
       try {
