@@ -11,8 +11,12 @@
  * outcomes, so within a sweep the item order is fixed before the data and the sequential test stays valid.
  */
 
-/** Warm-up sweeps at full cost, the share of the rung's cost kept, the random share of the rest, the escalation bar and the floor. */
-export const DEFAULT_ADAPTIVE = Object.freeze({ warmup: 2, budget: 0.25, tripwire: 0.1, trigger: 0.3, minItems: 16 });
+/**
+ * Warm-up sweeps at full cost, the share of the rung's cost kept, the random share of the rest, the escalation bar and
+ * the floor. One warm-up sweep is as safe as two in the replay (149 of 149 decisions the same, all 4 real changes
+ * found) and also covers the costly `maxTokens` axis, which is the second sweep of the code task.
+ */
+export const DEFAULT_ADAPTIVE = Object.freeze({ warmup: 1, budget: 0.25, tripwire: 0.1, trigger: 0.3, minItems: 16 });
 
 /** Prior flip rate of an item nobody has seen flip: optimism that keeps new items in play (as the replay in F10 used). */
 const PRIOR_FLIP = 0.15;
@@ -115,7 +119,7 @@ export class ItemInformation {
    * that began to flip is noticed.
    */
   subset(task, items, options = DEFAULT_ADAPTIVE) {
-    const { warmup = 2, budget = 0.25, tripwire = 0.1, minItems = 16, typeOf = null } = options ?? {};
+    const { warmup = DEFAULT_ADAPTIVE.warmup, budget = 0.25, tripwire = 0.1, minItems = 16, typeOf = null } = options ?? {};
     const state = this.#tasks.get(task);
     if (!state || state.sweeps < warmup || items.length < minItems) return null;
     const known = [...state.items.values()].filter((stats) => stats.msN > 0).map((stats) => stats.msSum / stats.msN);

@@ -5,9 +5,9 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1795124614.0759442,
+    "updated_at": 1795124844.617486,
     "owner": "claude:sonnet-5.5",
-    "lease_until": 1795131814.0759442,
+    "lease_until": 1795132044.617486,
     "started_by": "claude:opus-5.5",
     "continuations": [
       {
@@ -24,24 +24,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "task_id": "engine-start-hardening",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "split external-engines.js; engine-env test (ADR-174)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795092253.6347322,
-      "timestamp_str": "2026-11-19 15:44:13",
-      "agent": "claude:sonnet-5.5",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "engine-start-hardening",
       "phase": "phase 4",
@@ -347,6 +329,24 @@
       "status": "in_progress",
       "timestamp": 1795124614.0759442,
       "timestamp_str": "2026-11-20 00:43:34",
+      "agent": "claude:sonnet-5.5",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "tune-system-prompt-optional",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "adaptive warm-up default one sweep (replay: as safe as two)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795124844.617486,
+      "timestamp_str": "2026-11-20 00:47:24",
       "agent": "claude:sonnet-5.5",
       "checklists": "passed",
       "workspaces": [

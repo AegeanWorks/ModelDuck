@@ -1498,7 +1498,7 @@ test("adaptive rungs ask far fewer answers, reach the same settings and still fi
         { name: "minP", patches: [0, 0.1].map((minP) => ({ minP })) },
       ],
       promptAxes: [],
-      options: { seeds: [42], passes: 1, ...(adaptive && { adaptive: { warmup: 2, budget: 0.25, tripwire: 0.1, trigger: 0.3, minItems: 16 } }) },
+      options: { seeds: [42], passes: 1, ...(adaptive && { adaptive: { warmup: 2, budget: 0.25, tripwire: 0.1, trigger: 0.3, minItems: 16 } /* a stricter warm-up than the default of one */ }) },
     });
     return { ...result, asked: asked.length };
   };

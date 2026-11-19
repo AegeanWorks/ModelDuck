@@ -39,9 +39,9 @@ test("nothing is cut before the warm-up sweeps are in, and nothing without enoug
   assert.equal(info.subset("code", items, { ...DEFAULT_ADAPTIVE }), null, "no sweeps yet");
   info.learn("code", items, [candidate(Object.fromEntries(items.map((id) => [id, 1]))), candidate(Object.fromEntries(items.map((id) => [id, 1])))]);
   assert.equal(info.sweeps("code"), 1);
-  assert.equal(info.subset("code", items, { ...DEFAULT_ADAPTIVE }), null, "one sweep of two");
-  info.learn("code", items, [candidate(Object.fromEntries(items.map((id) => [id, 1]))), candidate(Object.fromEntries(items.map((id) => [id, 1])))]);
-  assert.ok(info.subset("code", items, { ...DEFAULT_ADAPTIVE }), "two sweeps are in");
+  assert.equal(info.subset("code", items, { ...DEFAULT_ADAPTIVE, warmup: 2 }), null, "one sweep of the two a stricter warm-up asks for");
+  assert.ok(info.subset("code", items, { ...DEFAULT_ADAPTIVE }), "the default warm-up is one sweep");
+  assert.equal(DEFAULT_ADAPTIVE.warmup, 1);
   assert.equal(info.subset("code", ids("a", 10), { ...DEFAULT_ADAPTIVE }), null, "a rung smaller than minItems stays whole");
   assert.equal(info.subset("recall", items, { ...DEFAULT_ADAPTIVE }), null, "another task has no sweeps");
   // A sweep with a single candidate says nothing about disagreement.
