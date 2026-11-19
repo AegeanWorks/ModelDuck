@@ -25,29 +25,6 @@
   },
   "checkpoints": [
     {
-      "task_id": "engine-start-hardening",
-      "phase": "phase 1",
-      "phase_num": 1,
-      "description": "[1/1] llama-server start: handle spawn error, clean up the exit hook on a failed start",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795068388.3122902,
-      "timestamp_str": "2026-11-19 09:06:28",
-      "agent": "claude:sonnet-5.5",
-      "impact_assessment": {
-        "why": "An unrunnable binary raised an unhandled child error event that ends the app; failed starts leaked an exit listener",
-        "benefits": "A missing or broken engine build is a normal refusal with a Fix and the app falls back; no listener leak across tune candidates",
-        "risks": "contract: engine_start_failed gains a new why text; dependency: none; concurrency: stop() now runs on the failure path; state: none",
-        "mitigation": "stop() is idempotent and already used by the timeout path; two failing-first tests"
-      },
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
       "task_id": "engines-add",
       "phase": "superseded",
       "phase_num": 1,
@@ -362,6 +339,17 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "task_id": "chore-1795112470",
+      "phase": "chore",
+      "phase_num": 1,
+      "description": "tuning report: F8 code presets",
+      "status": "completed",
+      "chore": true,
+      "timestamp": 1795112470.3329015,
+      "timestamp_str": "2026-11-19 21:21:10",
+      "agent": "claude-code:bba617e6"
     }
   ]
 }

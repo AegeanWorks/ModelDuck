@@ -31,7 +31,7 @@ rules behave, given the stated assumptions about the items.
 7. [Validation and governance](#7-validation-and-governance): V1 to V4
 8. [Roadmap](#8-roadmap)
 9. [How to tell the tuner got better](#9-how-to-tell-the-tuner-got-better)
-10. [Follow-up, 2026-11-19: what recorded runs say](#10-follow-up-2026-11-19-what-recorded-runs-say): F1 to F7
+10. [Follow-up, 2026-11-19: what recorded runs say](#10-follow-up-2026-11-19-what-recorded-runs-say): F1 to F8
 - [Appendix A: Reproduction](#appendix-a-reproduction)
 - [Appendix B: node-llama-cpp 3.22.2 options checked](#appendix-b-node-llama-cpp-3222-options-checked)
 
@@ -816,6 +816,7 @@ Evidence comes from three small models (SmolLM2 135M, Qwen2.5 0.5B, Qwen2.5 Code
 | F5 | The engine verdict ranks by generation speed only | `llama-server` vulkan: +20% generation, −18% prompt (4,875 vs 5,951 tok/s) | Medium | S–M |
 | F6 | CPU engines are timed at different thread counts | in-process 4 threads (default), `llama-server` 8; the verdict's 18.8 tok/s (12.6–21.5) vs 25–28 at 4 and 28–34 at 8 threads | Medium | S |
 | F7 | The one-pass budget grew past the target | upper bound 18,714 answers (was 17,532; target ≤ 12,000) | Medium | follows F1–F3 |
+| F8 | All three code presets are the same, and the app default for code is not it | held-back code items: tuned beats default on 3 of 3 models (+9.7, +2.4, +3.2 points); only Coder 1.5B is significant alone (p = 0.03) | Medium | S (G-001) |
 
 ### F1. The prompt screen no longer prunes — *High, S* — fixed in tuner v12 (ADR-180)
 
@@ -908,6 +909,22 @@ engines should not be trusted from a single table.
 check 5,868). F1 to F3 together remove roughly a third of the sweep answers recorded so far. Its "seconds do not
 follow the selection" line is stale: the script computes seconds once without the stages, while `estimateTune`
 honours them (D3 stays fixed).
+
+### F8. All three code presets are the same, and the app default for code is not it — *Medium, S (G-001)*
+
+The tuned code preset of SmolLM2 135M, Qwen2.5 0.5B and Qwen2.5 Coder 1.5B is identical: temperature 0, repeat
+penalty 1, DRY 0, newline penalty off, top-k 40, min-p 0.05, top-p 0.9, 512 tokens. The app's default for a model
+nobody tuned is temperature 0.7, repeat penalty 1.1 and the newline penalty on. On the 41 held-back code items the
+tuned preset against that default scored 14.6 vs 4.9, 39.0 vs 36.6 and 63.4 vs 60.2, and in the paired comparison
+the tuned preset won more items on every model (13 against 7, 11 against 8, 11 against 5). Only the last is
+significant by itself (p = 0.03); the three models share the same 41 items, so they are not independent evidence.
+Comprehension and recall differ little (changes of 0 to 1.6 points, one of them downward), and their presets vary
+by model.
+
+**Change.** For a model with no profile, serve code requests (`/api/code/verify` and the code task's route) with that
+preset instead of the general default. It is a serving default, so it needs the G-001 gate and a decision from the
+owner: it changes answers for every untuned model. Tuning a model would still override it. The held-back evidence
+is for three small models only, so a fourth, larger model should be checked before a default is changed.
 
 ### Reviewed and left as is
 
