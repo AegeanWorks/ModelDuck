@@ -12,6 +12,8 @@ computer; the only network requests are model downloads you start (the inference
 runtime is never downloaded or built on demand). The tuner measures quality per
 second and per GB on your machine, so a preset is evidence, not a guess.
 
+It also races every inference engine on your hardware (node-llama-cpp, llama.cpp `llama-server`, Ollama, vLLM-style servers), tunes on the fastest and serves with it: 2.6x the end-to-end speed of the in-process default on the author's machine.
+
 ModelDuck has no chat UI: its page is a control panel for Models, Bench & Tune,
 Settings and Server. Chat or code with any OpenAI-compatible client pointed at
 `http://127.0.0.1:4141/v1` (ChatDuck, the former companion client, is archived).

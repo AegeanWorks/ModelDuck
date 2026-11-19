@@ -71,6 +71,20 @@ multistep evaluation that says how well the model keeps state across steps.
    passed them, or with the best try and the failing cases. The local model
    writes the code and the tests run on this computer; the result goes back to
    Kiro like any other tool result.
+8. **Which inference engine is fastest on this PC?** (from `master`) ModelDuck
+   times every engine it can find on your model and serves with the winner:
+   ```powershell
+   npm run engines:install
+   npm run engines -- --model <path to a .gguf>
+   ```
+   It prints each engine's version and its prompt and generation speed:
+   node-llama-cpp (CPU/Vulkan), llama.cpp `llama-server`, Ollama if running, and
+   any OpenAI-compatible server you name (vLLM, SGLang, ...). Engines that cannot
+   run here say why instead of failing. A tune does the same at its device
+   stage and saves the winner in the profile. Measured on an i5-14400F with a
+   Vulkan GPU, Llama 3.2 3B: `llama-server` on Vulkan answered in 220 ms against
+   385 ms in-process, and served 386 tok/s end to end against 149. Details:
+   [docs/ENGINES.md](docs/ENGINES.md).
 
 ---
 
