@@ -28,23 +28,6 @@
       "task_id": "engine-start-hardening",
       "phase": "phase 4",
       "phase_num": 4,
-      "description": "--only accepts an engine family (ADR-166)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795068479.9202962,
-      "timestamp_str": "2026-11-19 09:07:59",
-      "agent": "claude:sonnet-5.5",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "task_id": "engine-start-hardening",
-      "phase": "phase 4",
-      "phase_num": 4,
       "description": "installer reuses a verified cached download (ADR-167)",
       "files_affected": [],
       "status": "in_progress",
@@ -358,6 +341,17 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "task_id": "chore-1795119820",
+      "phase": "chore",
+      "phase_num": 1,
+      "description": "docs: fast-branded engine candidates (ADR-183)",
+      "status": "completed",
+      "chore": true,
+      "timestamp": 1795119820.59777,
+      "timestamp_str": "2026-11-19 23:23:40",
+      "agent": "claude-code:bba617e6"
     }
   ]
 }

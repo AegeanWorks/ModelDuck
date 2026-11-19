@@ -57,6 +57,30 @@ Not added: libraries with no server of their own (LLamaSharp, nobodywho) and Cor
 a real server (a hand-started llama-server, 284 tok/s next to the same build run by the
 app at 289), so it works with a real OpenAI-style API, not only the test fakes.
 
+**Engines that call themselves fast** (second GitHub search, 2026-11-19: 10 phrase queries, 12 topic queries and 8
+targeted ones, 800 repositories, filtered to active since May 2026 with a speed claim in the description). The claims
+below are the projects' own README claims, on their own hardware; none of these was run here, and the checksum below
+shows the download is intact, not that its publisher is trusted. This PC is Windows with an AMD Radeon RX 9060 XT
+(Vulkan) and a 16-thread Intel CPU, which rules out most of the list.
+
+| Project | What it claims | Fit for this PC |
+|---|---|---|
+| [kinetic](https://github.com/Veloresearch/kinetic) (Apache-2.0, Rust, Beta 1, 2026-11-10) | GGUF, a drop-in for `llama-server` (copy the binary to that name), OpenAI API, Windows x64 builds, Vulkan on any GPU. Against llama.cpp b12001 on a Ryzen 5 6600H + RTX 3060 laptop: up to 1.4x on plain generation, 4.5x on repeated file rewrites (its edit mode) | **Best candidate:** `engines:add` registers it like a llama.cpp build. Its own notes list NVIDIA from RTX 20 as the supported GPUs and a crash report on the AMD RX 9070 (same generation as this GPU), so the GPU path may fall back to the CPU. The 4.5x is for repeated edits, not the tuner's fresh answers |
+| [magnitude](https://github.com/magnitudedev/magnitude) (Apache-2.0, Rust, 7.9k stars) | tunes its kernels on your hardware per model; "over 2x faster than Ollama" (average of 11 models, measured on Mac and NVIDIA); AMD, Intel and CPU "supported"; Windows x64; OpenAI API | `--openai-engine`, measured only. The comparison is against Ollama, not llama.cpp, and part of the gain is bundled speculative-decoding drafters; it serves its own model list |
+| [ghost-infer](https://github.com/affifuddin-hazam/ghost-infer) (Rust, GGUF, OpenAI API) | 2x llama.cpp on models bigger than the GPU, on an RTX 2060 SUPER | No: it runs on NVIDIA through CUDA graphs |
+| [xinfer](https://github.com/guoqingbao/xinfer) (MIT, Rust) | "blazing-fast LLM inference in pure Rust", GGUF | No: CUDA and Metal only |
+| [Tessera](https://github.com/Quackster/tessera) (Apache-2.0, C++, 3 stars) | AMD ROCm and Vulkan, speculative decoding on 27B models | Not yet: "heavy development, not production", tested on Linux (RADV) with large models |
+| [PowerInfer](https://github.com/Tiiny-AI/PowerInfer), [eLLM](https://github.com/lucienhuangfu/eLLM) (Rust, CPU), [krasis](https://github.com/brontoguana/krasis) | sparse-activation serving; CPU-only; CUDA hybrid for big models | No release builds for Windows (PowerInfer, eLLM) or CUDA only (krasis) |
+
+Left out because they cannot run on this PC: Apple Silicon engines (Rapid-MLX, baseRT, kapitsa, MTPLX, vllm-mlx, pmetal),
+data-centre and accelerator stacks (xllm, rtp-llm, chitu, FastDeploy, gpustack, LMDeploy), cluster engines
+(distributed-llama) and mobile runtimes (LiteRT-LM, react-native-executorch).
+
+To try kinetic: extract `kinetic-0.1.0-windows-x86_64-cuda.zip` (33.7 MB, SHA-256 `3fb128a3...ba43e4`, checked against
+the release's `SHA256SUMS`; one `kinetic.exe`, one DLL, no installer) into its own folder, copy `kinetic.exe` to
+`llama-server.exe` there, `npm run engines:add -- --name kinetic --binary <that file> --backend vulkan`, then
+`npm run engines -- --model <file.gguf>`. Time it on the same model next to `llama-server:vulkan`, alone on the machine.
+
 **Adding an engine.** Every engine is one descriptor in `src/engine-catalog.js`: a `kind`,
 whether the app can start it itself (`servable`), the adapters that time it, and (if it can
 generate) how to resolve it into an engine and which device candidates it offers. Nothing else
