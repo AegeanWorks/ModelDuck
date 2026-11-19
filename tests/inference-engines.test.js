@@ -351,3 +351,12 @@ test("device lines name the GPU backends a llama.cpp build found", () => {
   assert.deepEqual(parseDevices("Available devices:\n  (none)"), []);
   assert.deepEqual(parseDevices(undefined), []);
 });
+
+test("the report ends with the best speed engine for this model and what it gains over in-process", () => {
+  const row = (id, genTps) => ({ id, label: id, available: true, ok: true, genTps, promptTps: 1 });
+  const text = formatAssessment({ model: "m.gguf", fastest: "llama-server:vulkan", results: [row("node-llama-cpp:cpu", 100), row("node-llama-cpp:vulkan", 200), row("llama-server:vulkan", 300)] });
+  assert.match(text, /Best speed engine for m\.gguf: llama-server:vulkan, 300 tok\/s, 50% faster than node-llama-cpp:vulkan/);
+  const alone = formatAssessment({ model: "m", fastest: "node-llama-cpp:cpu", results: [row("node-llama-cpp:cpu", 100)] });
+  assert.match(alone, /Best speed engine for m: node-llama-cpp:cpu, 100 tok\/s \(no other engine measured\)/);
+  assert.doesNotMatch(formatAssessment({ model: "m", fastest: null, results: [] }), /Best speed engine/);
+});

@@ -140,6 +140,16 @@ export function externalSetFrom({ results }, { catalog = createEngineCatalog(), 
 }
 
 /** A plain-text table of an assessment, fastest generation first. */
+// The one-line answer: the best speed engine for this model, and what it gains over the best in-process engine.
+function bestEngineLine({ model, results, fastest }) {
+  const best = results.find((result) => result.id === fastest && result.ok);
+  if (!best) return null;
+  const inProcess = results.filter((result) => result.ok && result.id !== best.id && result.id.startsWith("node-llama-cpp")).sort((a, b) => b.genTps - a.genTps)[0];
+  const head = `Best speed engine for ${model}: ${best.id}, ${best.genTps} tok/s`;
+  if (inProcess) return `${head}, ${Math.round((best.genTps / inProcess.genTps - 1) * 100)}% faster than ${inProcess.id}`;
+  return results.filter((result) => result.ok).length > 1 ? head : `${head} (no other engine measured)`;
+}
+
 export function formatAssessment({ model, results, fastest }) {
   const pad = (value, width) => String(value).padEnd(width);
   const lines = [`Token speed on ${model} (${results.filter((r) => r.ok).length} of ${results.length} engines measured):`];
@@ -153,5 +163,7 @@ export function formatAssessment({ model, results, fastest }) {
     lines.push(`  ${result.id === fastest ? "*" : " "} ${pad(result.label, 32)} ${speed}`);
   }
   if (fastest) lines.push("  * fastest generation");
+  const verdict = bestEngineLine({ model, results, fastest });
+  if (verdict) lines.push(verdict);
   return lines.join("\n");
 }
