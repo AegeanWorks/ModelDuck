@@ -31,6 +31,7 @@ rules behave, given the stated assumptions about the items.
 7. [Validation and governance](#7-validation-and-governance): V1 to V4
 8. [Roadmap](#8-roadmap)
 9. [How to tell the tuner got better](#9-how-to-tell-the-tuner-got-better)
+10. [Follow-up, 2026-11-19: what recorded runs say](#10-follow-up-2026-11-19-what-recorded-runs-say): F1 to F7
 - [Appendix A: Reproduction](#appendix-a-reproduction)
 - [Appendix B: node-llama-cpp 3.22.2 options checked](#appendix-b-node-llama-cpp-3222-options-checked)
 
@@ -796,6 +797,105 @@ profile was measured on, so do each in one suite bump with a regenerated baselin
 | Equal but cheaper preset discarded by the held-back check | 46–48% | ≤ 10% | `stats-micro.mjs` (S5) |
 | Gate runs on every generation change | never (no baseline) | always, with a stated noise floor | V1 |
 | Full tune of one model (one pass) | 17,532 answers | ≤ 12,000 with higher power | `budget-and-preflight.mjs` |
+
+---
+
+## 10. Follow-up, 2026-11-19: what recorded runs say
+
+Method: read the 30 runs in `~/.modelduck/tune-runs` (136,836 sweep answers) and the 8 saved profiles on the
+i5-14400F / RX 9060 XT machine, replayed screening rules against the recorded rung data, simulated the screen under
+the assumptions of Appendix A, and timed the engines with `npm run engines` and `LlamaServerBackend` directly.
+Evidence comes from three small models (SmolLM2 135M, Qwen2.5 0.5B, Qwen2.5 Coder 1.5B); larger models may differ.
+
+| ID | Finding | Evidence | Severity | Effort |
+|---|---|---|---|---|
+| F1 | The prompt screen no longer prunes | 18.1 prompts enter the screen, 17.9 leave it; ADR-049 expected about 6 | High | S |
+| F2 | The system-prompt axis has not moved a profile | 20 sweeps, 49,282 answers (36%), 1 change, undone on the next pass | High | S–M |
+| F3 | Four axes never changed anything | reasoning 0/21, `penalizeNewLine` 0/22, KV cache 0/7, DRY 0/8: about 13,600 answers | Medium | S |
+| F4 | No saved profile has been through the engine stage | all 8 profiles dated 2026-11-14, before ADR-156; no `.engines.json`; `llama-server` (vulkan) is 20% faster on Qwen2.5 Coder 1.5B | High | none (a re-tune) |
+| F5 | The engine verdict ranks by generation speed only | `llama-server` vulkan: +20% generation, −18% prompt (4,875 vs 5,951 tok/s) | Medium | S–M |
+| F6 | CPU engines are timed at different thread counts | in-process 4 threads (default), `llama-server` 8; the verdict's 18.8 tok/s (12.6–21.5) vs 25–28 at 4 and 28–34 at 8 threads | Medium | S |
+| F7 | The one-pass budget grew past the target | upper bound 18,714 answers (was 17,532; target ≤ 12,000) | Medium | follows F1–F3 |
+
+### F1. The prompt screen no longer prunes — *High, S*
+
+ADR-049 screened a fully scored axis on a quarter of its items and dropped a candidate 3 items behind the leader,
+expecting about 6 survivors of 22. ADR-063 replaced the gap with a sequential one-sided McNemar stop, `changeAlpha`
+spread over the axis's looks (about 0.025 per look). System prompts mostly agree item by item, so at 12 items a
+prompt rarely collects enough one-sided losses to stop: in the recorded runs 362 prompts entered the screen and 358
+answered the full 48 items. The halving rule (one standard error of the leader, S1) does not apply, because the axis
+is `full`. ADR-063's "22 prompts screened to 9 survivors" no longer describes what happens.
+
+**Change.** Give a full axis's screen the same tolerant rule the halving rungs use: keep the current setting, the
+top half, and anything within one standard error of the leader. Simulated on Appendix A's item mix, that rule keeps
+about 8 of 22 and still carries a truly +10-point prompt forward 76% of the time (+5 points: 58%); a fixed top-k
+keeps it less often (top-4 57%, top-6 69%). Replayed on the recorded rungs, a top-6 screen would have saved 26,412
+of the axis's 49,282 answers without losing its one change; the one-SE rule's saving is of the same order.
+
+### F2. The system-prompt axis has not moved a profile — *High, S–M*
+
+Every task of every saved profile uses `SYSTEM_PROMPT`, the starting value. Nineteen of twenty sweeps ended with no
+discordant items between the winner and the incumbent (b = 0, c = 0). The one change (Qwen2.5 Coder 1.5B,
+comprehension, pass 1, b = 2, c = 12, p = 0.0085) was undone by pass 2. On these models the axis buys nothing for
+36% of a tune.
+
+**Change.** After F1, decide with data: run the axis in pass 1 only and skip it in later passes unless pass 1
+changed it; or shorten the comprehension and recall lists (22 each) to the prompts that ever led a rung. A list
+change is a G-003 change (suite bump, CHANGELOG row, baseline update).
+
+### F3. Four axes never changed anything — *Medium, S*
+
+| Axis | Sweeps | Answers | Changes |
+|---|---|---|---|
+| reasoning | 21 | 5,788 | 0 |
+| `penalizeNewLine` | 22 | 4,512 | 0 |
+| KV cache | 7 | 2,196 | 0 |
+| DRY | 8 | 1,112 | 0 |
+
+**Change.** Not removal: three small models are too few to retire an axis. Skip an axis in a later pass when the
+same model's earlier pass kept the current value with b = c = 0 on the full rung, and record the skip in the sweep.
+
+### F4. No saved profile has been through the engine stage — *High, no code*
+
+The tuner adopts the fastest accurate engine at the device stage (ADR-156 onwards), but every profile predates it.
+`npm run engines` on Qwen2.5 Coder 1.5B Q4_K_M: `llama-server` vulkan 196 tok/s against node-llama-cpp vulkan
+164 tok/s. Re-running the device stage (12 answers plus the engine timing) on each model would let a profile adopt
+it; the later stages then re-measure on that engine, so a full re-tune is the honest path (G-001 baseline update).
+
+### F5. The engine verdict ranks by generation speed only — *Medium, S–M*
+
+`fastest` and the "best speed engine" line use generation tok/s. `llama-server` vulkan generates 20% faster but reads
+prompts 18% slower. With these rates, a 1,200-token prompt and 100-token answer takes about 0.76 s on
+`llama-server` and 0.81 s in process, but an 8,000-token recall prompt with a 20-token answer takes about 1.74 s
+against 1.47 s: the in-process engine wins long context by about 18% (estimates from the measured rates, not timed).
+
+**Change.** Rank engines per task by expected time per answer, using each task's recorded prompt and output token
+counts (already in every profile's task stats), and say which task each engine wins.
+
+### F6. CPU engines are timed at different thread counts — *Medium, S*
+
+`NodeBackendAdapter.measure` loads with no `threads`, so the engine's default of 4 applies; `LlamaServerAdapter`
+starts the server with `threads: 8`. On the 6P+4E i5-14400F, `llama-server` CPU measured 25–28 tok/s at 4 threads,
+23–24 at 6 and 28–34 at 8 (three runs each, after a warm-up), while the verdict reported 18.8 tok/s with a spread
+of 12.6–21.5 and ranked it below the in-process engine (24.9). The CPU ranking compares thread counts, and a single
+noisy timing decides it.
+
+**Change.** Time every CPU engine at the same thread count (the profile's tuned `threads`, else the machine's
+measured best), and treat two engines whose ranges overlap as tied, as the speed stage does with its A/A band (M2).
+
+### F7. The one-pass budget grew past the target
+
+`budget-and-preflight.mjs` now gives 18,714 answers for one full pass (the system-prompt axis 7,500, the held-back
+check 5,868). F1 to F3 together remove roughly a third of the sweep answers recorded so far. Its "seconds do not
+follow the selection" line is stale: the script computes seconds once without the stages, while `estimateTune`
+honours them (D3 stays fixed).
+
+### Reviewed and left as is
+
+The gate (`tune:gate`) checks a rotating 12-item window per task and re-measures the full rung when any checked item
+flips; the other answers come from a cache keyed by the generation-path files, so a generation change invalidates
+them. Its latency deltas (+245 ms, +262 ms on 2026-11-19) come from running three models in parallel, which the code
+documents as lower-fidelity latency.
 
 ---
 

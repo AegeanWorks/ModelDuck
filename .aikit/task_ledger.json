@@ -29,24 +29,6 @@
   "checkpoints": [
     {
       "task_id": "docs-test-counts",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[1/1] Track B complete: JUDGES.md now says about 930 hermetic tests and 12-25 seconds (about 13 with test:parallel); aikit check 4/4 (hygiene, guidelines, secrets, tests 927/928); docs-only, so no ADR was required; no UI change",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795030142.092441,
-      "timestamp_str": "2026-11-18 22:29:02",
-      "agent": "kilo:1",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "task_id": "docs-test-counts",
       "phase": "completed",
       "phase_num": 5,
       "description": "Task 'docs-test-counts' completed successfully.",
@@ -387,6 +369,17 @@
         ],
         "forced": false
       }
+    },
+    {
+      "task_id": "chore-1795105375",
+      "phase": "chore",
+      "phase_num": 1,
+      "description": "tuning report follow-up F1-F7 from recorded runs",
+      "status": "completed",
+      "chore": true,
+      "timestamp": 1795105375.3897734,
+      "timestamp_str": "2026-11-19 19:22:55",
+      "agent": "claude-code:bba617e6"
     }
   ]
 }
