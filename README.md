@@ -7,12 +7,12 @@
 
 
 **Finds the best inference engine for your model, on your machine, and serves with it.** A local GGUF model
-server and coding-model tuner with an OpenAI-compatible API. Runs on the CPU or a GPU; no cloud account, no telemetry. Weights, prompts and settings stay on your
-computer; the only network requests are model downloads you start (the inference
-runtime is never downloaded or built on demand). The tuner measures quality per
+server and coding-model tuner with an OpenAI-compatible API. Runs on the CPU or a GPU; no cloud account, no telemetry. Weights and prompts stay on your
+computer; the only network requests are model downloads you start and the one-time,
+checksum-verified llama.cpp engine download. The tuner measures quality per
 second and per GB on your machine, so a preset is evidence, not a guess.
 
-Each model is timed on every engine (node-llama-cpp, llama.cpp `llama-server`, Ollama, vLLM-style servers); the winner is saved in that model's profile, used to tune and to serve (2.6x the in-process default here).
+Each model is timed on every engine (node-llama-cpp, llama-server, Ollama, vLLM...); the winner is saved in that model's profile, used to tune and to serve (2.6x the in-process default here).
 
 ModelDuck has no chat UI: its page is a control panel for Models, Bench & Tune,
 Settings and Server. Chat or code with any OpenAI-compatible client pointed at
@@ -61,7 +61,7 @@ best shipped preset: 54.2% on code), or **Qwen2.5 0.5B Instruct** (469 MB) to st
 
 ### Inference engines
 
-ModelDuck tunes and serves on the fastest inference engine it can find. The device (CPU/GPU) stage of every tune first times each engine on your model (token speed and version, shown in the Bench panel and saved as `<model>.engines.json`), then judges them on the tune's own items. The fastest one that answers as well as the CPU is used for every later stage, named in the profile, and used when the model is loaded; if it cannot start, the in-process engine serves and the status says so.
+ModelDuck tunes and serves on the fastest inference engine it can find. The device (CPU/GPU) stage of every tune first times each engine on your model (speed and version, shown in the Bench panel), then judges them on the tune's own items. The fastest one that answers as well as the CPU is used for every later stage, named in the profile, and used when the model is loaded; if it cannot start, the in-process engine serves and the status says so.
 
 | Engine | Where it comes from |
 |---|---|
@@ -69,7 +69,7 @@ ModelDuck tunes and serves on the fastest inference engine it can find. The devi
 | llama.cpp `llama-server`: cpu, vulkan, cuda | `npm run engines:install` (official builds, checksum-verified; `start.bat` runs it on first launch) |
 | Ollama | a running server |
 | vLLM, SGLang, TGI, mistral.rs, koboldcpp, llamafile, LM Studio | `--openai-engine name=url`, measured only |
-| Your own | `--engine-plugin <file>` |
+| Your own | `engines:add` (llama.cpp forks), `--engine-plugin <file>` |
 
 `npm run engines -- --model <file.gguf>` times them without tuning. The decision rules, what each engine can and cannot do, measurements, and how to add an engine: [docs/ENGINES.md](docs/ENGINES.md).
 
@@ -553,6 +553,7 @@ modelduck/
 ├── scripts/
 │   ├── capture-screenshots.mjs <- screenshot gallery
 │   ├── install-engines.mjs <- npm run engines:install
+│   ├── add-engine.mjs <- npm run engines:add
 │   ├── test-parallel.mjs <- sharded parallel `npm test` runner
 │   └── ui-smoke.mjs <- control-panel check
 ├── benchmarks/ <- seeded quality, speed and history gate

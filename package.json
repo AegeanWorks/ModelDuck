@@ -24,6 +24,7 @@
     "bench:update:full": "node benchmarks/run.mjs --phase model --update-baseline --full-matrix",
     "engines": "node benchmarks/engine-speed.mjs",
     "engines:install": "node scripts/install-engines.mjs",
+    "engines:add": "node scripts/add-engine.mjs",
     "tune": "node benchmarks/tune-run.mjs",
     "tune:gate": "node benchmarks/tune-gate.mjs",
     "mcp": "node src/mcp-server.js",

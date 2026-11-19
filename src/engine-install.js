@@ -176,3 +176,37 @@ export function discoverInstalled(roots, { read = (file) => JSON.parse(fs.readFi
   }
   return found;
 }
+
+const SHIPPED_VARIANTS = new Set(["cpu", "vulkan", "cuda", "metal", "hip", "sycl", "opencl"]);
+
+/**
+ * Registers a llama.cpp-family `llama-server` build that lives elsewhere (ik_llama.cpp, BitNet, a
+ * llamafile server...) as its own engine. Nothing is copied: the record names the file, so the
+ * build is assessed, tuned on, and served like an installed one.
+ */
+export function registerBuild({ root, name, binary, backend = null, label = null }) {
+  if (!/^[a-z0-9][a-z0-9._-]{0,39}$/.test(name ?? "") || SHIPPED_VARIANTS.has(name)) {
+    throw new AppError("Bad engine name", { code: "bad_engine_name", why: `"${name}" must be 1-40 lowercase letters, digits, dots or dashes and not one of ${[...SHIPPED_VARIANTS].join(", ")}.`, fix: "Pick a name such as ik-llama." });
+  }
+  const file = path.resolve(binary ?? "");
+  if (!binary || !fs.statSync(file, { throwIfNoEntry: false })?.isFile()) {
+    throw new AppError("Build not found", { code: "build_not_found", why: `${binary ?? "(no file)"} is not a file.`, fix: "Pass the llama-server executable of the build with --binary." });
+  }
+  const record = { engine: "llama.cpp", variant: name, release: label ?? name, binary: file, backend, label, registered: true };
+  const dir = path.join(root, "bin", `llama.cpp-${name}`);
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, "install.json"), `${JSON.stringify(record, null, 2)}\n`);
+  return record;
+}
+
+/** Forgets a registered build; the build's own files are never touched. Returns whether one was registered. */
+export function unregisterBuild({ root, name }) {
+  const dir = path.join(root, "bin", `llama.cpp-${name}`);
+  try {
+    if (!JSON.parse(fs.readFileSync(path.join(dir, "install.json"), "utf8")).registered) return false;
+  } catch {
+    return false;
+  }
+  fs.rmSync(dir, { recursive: true, force: true });
+  return true;
+}

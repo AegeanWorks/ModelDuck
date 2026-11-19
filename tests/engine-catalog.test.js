@@ -9,6 +9,7 @@ import { tune } from "../benchmarks/tune.mjs";
 import { BUILTIN_DESCRIPTORS, assertDescriptor, createEngineCatalog, engineContext, loadEnginePlugin } from "../src/engine-catalog.js";
 import { OllamaBackend, OpenAICompatBackend, RoutedEngine, ServerEngine } from "../src/external-engines.js";
 import { assessEngines, createEngineRegistry, defaultEngines, externalEngineFor, externalSetFrom } from "../src/inference-engines.js";
+import { LlamaServerAdapter } from "../src/inference-engine-adapters.js";
 import { checkBackendContract } from "./engine-contract.js";
 
 const ENTRY = { id: "m1", name: "Tiny", fileName: "tiny.gguf", path: "tiny.gguf" };
@@ -255,4 +256,35 @@ test("the app resolves a profile's engine with the prompt cache off, however the
   assert.equal(typeof resolve("fastduck")?.load, "function");
   assert.deepEqual(seen, [false]);
   assert.equal(resolve("nope"), null, "an engine this machine does not have is null, so the router can fall back");
+});
+
+// A llama.cpp-family build kept elsewhere (ik_llama.cpp, BitNet, a llamafile server) is registered, not copied.
+test("a registered llama.cpp-family build is its own servable engine, found by its recorded path", (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duck-fork-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const outside = path.join(root, "elsewhere");
+  fs.mkdirSync(outside, { recursive: true });
+  const exe = path.join(outside, process.platform === "win32" ? "llama-server.exe" : "llama-server");
+  fs.writeFileSync(exe, "");
+  const dir = path.join(root, "bin", "llama.cpp-ik-llama");
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, "install.json"), JSON.stringify({ engine: "llama.cpp", variant: "ik-llama", release: "ik_llama.cpp 2026-11", binary: exe, backend: "cpu", label: "ik_llama.cpp" }));
+  const catalog = createEngineCatalog();
+  const ctx = engineContext({ roots: [root], registry: MODELS });
+  const adapter = catalog.adapters(ctx).find((candidate) => candidate.id === "llama-server:ik-llama");
+  assert.ok(adapter, "the registered build is assessed under its own id");
+  assert.equal(adapter.label, "ik_llama.cpp (ik-llama)");
+  assert.equal(catalog.isServable("llama-server:ik-llama"), true);
+  assert.equal(catalog.version("llama-server:ik-llama", ctx), "ik_llama.cpp 2026-11");
+  assert.ok(catalog.resolve("llama-server:ik-llama", ctx), "a saved profile can start it again");
+});
+
+test("a registered build says which device it runs on, whatever its name", async () => {
+  const run = async (_file, args) => ({ stdout: args[0] === "--version" ? "version: 1 (build 1, commit abc1234)" : "Available devices:\n  (none)", stderr: "" });
+  const cpu = await new LlamaServerAdapter({ binary: "b", variant: "ik-llama", backend: "cpu", run }).detect();
+  assert.equal(cpu.available, true);
+  assert.deepEqual(cpu.backends, ["cpu"]);
+  const gpu = await new LlamaServerAdapter({ binary: "b", variant: "ik-cuda", backend: "cuda", run }).detect();
+  assert.equal(gpu.available, false);
+  assert.match(gpu.reason, /cuda/);
 });

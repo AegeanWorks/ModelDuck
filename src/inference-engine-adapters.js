@@ -218,6 +218,8 @@ export class LlamaServerAdapter {
   #binary;
   #variant;
   #release;
+  #backend;
+  #label;
   #run;
   #makeBackend;
   #gpu = null;
@@ -231,10 +233,14 @@ export class LlamaServerAdapter {
     binary = null,
     variant = null,
     release = null,
+    backend = null,
+    label = null,
     platform = process.platform,
     run = (file, args, timeoutMs) => execFileAsync(file, args, { timeout: timeoutMs, maxBuffer: 16 * 1024 * 1024, windowsHide: true, env: { ...process.env, PATH: cleanPath(process.env.PATH, platform) } }).then(({ stdout, stderr }) => ({ stdout, stderr })),
     makeBackend = (file) => new LlamaServerBackend({ binary: file }),
   } = {}) {
+    this.#backend = backend;
+    this.#label = label;
     this.#run = run;
     this.#makeBackend = makeBackend;
     this.#binary = binary;
@@ -247,6 +253,7 @@ export class LlamaServerAdapter {
   }
 
   get label() {
+    if (this.#label) return `${this.#label}${this.#variant ? ` (${this.#variant})` : ""}`;
     return `llama.cpp${this.#release ? ` ${this.#release}` : ""} llama-server${this.#variant ? ` (${this.#variant})` : ""}`;
   }
 
@@ -257,13 +264,13 @@ export class LlamaServerAdapter {
     try {
       const version = parseLlamaVersion(outputText(await this.#run(this.#binary, ["--version"], 20_000)));
       const devices = parseDevices(outputText(await this.#run(this.#binary, ["--list-devices"], 20_000)));
-      const wanted = this.#variant ?? devices[0] ?? "cpu";
+      const wanted = this.#backend ?? this.#variant ?? devices[0] ?? "cpu";
       // A GPU build on a machine without that GPU would quietly run on the CPU; say so instead.
       if (wanted !== "cpu" && !devices.includes(wanted)) {
         return { available: false, reason: `this build uses ${wanted} but ${this.#binary} found no ${wanted} device on this machine.`, version };
       }
       this.#gpu = wanted === "cpu" ? null : wanted;
-      return { available: true, reason: null, version, backends: this.#variant ? [wanted] : ["cpu", ...devices], location: this.#binary };
+      return { available: true, reason: null, version, backends: this.#variant || this.#backend ? [wanted] : ["cpu", ...devices], location: this.#binary };
     } catch (error) {
       return { available: false, reason: `${this.#binary} did not start (${error?.code ?? error?.message}); a DLL on PATH usually conflicts with it.`, version: null };
     }

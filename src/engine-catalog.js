@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -45,6 +46,8 @@ export function engineContext({ registry = null, roots = engineRoots(), platform
 }
 
 const installed = (ctx) => discoverInstalled(ctx.roots).filter((install) => install.engine === "llama.cpp");
+// A build registered with `engines:add` lives where the user keeps it; its record names the file.
+const serverBinary = (install, ctx) => (install.binary && fs.existsSync(install.binary) ? install.binary : findBinary(install.dir, [exeName("llama-server", ctx.platform)]));
 
 const nodeLlamaCpp = {
   kind: "node-llama-cpp",
@@ -69,11 +72,10 @@ const llamaServer = {
   servable: (id) => id !== "llama-server",
   owns: ownsKind("llama-server"),
   adapters(ctx) {
-    const exe = exeName("llama-server", ctx.platform);
     const found = installed(ctx)
-      .map((install) => ({ install, binary: findBinary(install.dir, [exe]) }))
+      .map((install) => ({ install, binary: serverBinary(install, ctx) }))
       .filter((entry) => entry.binary)
-      .map(({ install, binary }) => new LlamaServerAdapter({ binary, variant: install.variant, release: install.release, platform: ctx.platform }));
+      .map(({ install, binary }) => new LlamaServerAdapter({ binary, variant: install.variant, release: install.release, backend: install.backend ?? null, label: install.label ?? null, platform: ctx.platform }));
     // A build passed by hand keeps its own id, so it is never mistaken for an installed variant.
     if (ctx.options.llamaServer) found.push(new LlamaServerAdapter({ binary: ctx.options.llamaServer, variant: null, platform: ctx.platform }));
     return found.length ? found : [new LlamaServerAdapter({ binary: null, platform: ctx.platform })];
@@ -83,7 +85,7 @@ const llamaServer = {
     if (id === "llama-server") binary = ctx.options.llamaServer;
     else {
       const install = installed(ctx).find((entry) => entry.variant === id.slice("llama-server:".length));
-      binary = install ? findBinary(install.dir, [exeName("llama-server", ctx.platform)]) : null;
+      binary = install ? serverBinary(install, ctx) : null;
     }
     return binary ? new ServerEngine({ id, registry: ctx.registry, backend: new LlamaServerBackend({ binary, cachePrompt: ctx.cachePrompt }) }) : null;
   },

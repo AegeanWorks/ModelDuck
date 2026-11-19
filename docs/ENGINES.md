@@ -17,7 +17,8 @@ alone with `npm run engines -- --model <file.gguf>`; skip it in a tune with `--n
 | llama.cpp `llama-bench` | the same install | yes | no (it times, it does not generate) |
 | Ollama | a running server | yes | yes, and the app can serve through it |
 | vLLM, SGLang, TGI, mistral.rs, koboldcpp, llamafile, LM Studio, LocalAI | `--openai-engine name=http://host:port/v1[#model]` on a running server | yes | yes, measured only: someone else's process, so a saved profile cannot start it |
-| Your own llama.cpp build (for example ik_llama.cpp) | `--llama-server <file>` | yes | yes, in a tune, measured only: a saved profile cannot start a binary passed on one command line (install it as a variant to serve through it) |
+| A llama.cpp-family build you keep elsewhere (ik_llama.cpp, BitNet, a custom llama.cpp) | `npm run engines:add -- --name ik-llama --binary <llama-server>` | yes | yes, and the app serves through it (the record names the file; nothing is copied) |
+| The same, for one run only | `--llama-server <file>` | yes | yes, in a tune, measured only: a saved profile cannot start a binary passed on one command line |
 | An engine of your own | `--engine-plugin <file>` (see below) | as the plugin says | as the plugin says |
 
 `npm run engines:install -- --variants cpu,vulkan,cuda` chooses what to download (CUDA is
@@ -36,6 +37,24 @@ refuses, with a Why and a Fix, the settings it cannot honour (`responsePrefix`, 
 simply fails during a tune. On this machine, with SmolLM2-135M, the same 5 x 100-token
 workload through `/v1/chat/completions` served 386 tok/s end to end on llama-server (Vulkan)
 against 149 on the in-process engine (Vulkan), and four concurrent clients were all answered in 364 ms.
+
+**Candidates found on GitHub** (searched 2026-11-19) and where each fits. Anything that serves an
+OpenAI-style API attaches with `--openai-engine`. Anything built from llama.cpp registers with `engines:add`.
+
+| Project | Fit |
+|---|---|
+| [ik_llama.cpp](https://github.com/ikawrakow/ik_llama.cpp) (MIT) | a llama.cpp fork with extra quantizations and faster CPU paths; `engines:add` |
+| [BitNet](https://github.com/microsoft/BitNet) (MIT) | llama.cpp fork for 1-bit models; `engines:add` (only BitNet-format GGUFs run on it) |
+| [shimmy](https://github.com/Michael-A-Kuykendall/shimmy) (Apache-2.0) | Rust, WebGPU, GGUF, OpenAI API; `--openai-engine` |
+| [Lemonade](https://github.com/lemonade-sdk/lemonade) (Apache-2.0) | AMD and Ryzen AI oriented server, OpenAI API; `--openai-engine` |
+| [mlx-lm](https://github.com/ml-explore/mlx-lm) and [mlx-serve](https://github.com/ddalcu/mlx-serve) | Apple Silicon, MLX models rather than GGUF; `--openai-engine` |
+| [mistral.rs](https://github.com/EricLBuehler/mistral.rs) (MIT) | Rust, OpenAI API; `--openai-engine` |
+| [llama-swap](https://github.com/mostlygeek/llama-swap) (MIT) | a proxy that starts other servers on demand, so it fronts any of the above; `--openai-engine` |
+| [LMDeploy](https://github.com/InternLM/lmdeploy), [Xinference](https://github.com/xorbitsai/inference) | NVIDIA-oriented servers; `--openai-engine` |
+
+Not added: libraries with no server of their own (LLamaSharp, nobodywho) and Cortex.cpp
+(no commit since 2025-07). None of the attached servers was run for this list; they are the
+same OpenAI-style path the fake-server tests cover.
 
 **Adding an engine.** Every engine is one descriptor in `src/engine-catalog.js`: a `kind`,
 whether the app can start it itself (`servable`), the adapters that time it, and (if it can

@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { discoverInstalled, downloadVerified, extractArchive, findBinary, installVariant, planInstall, readManifest } from "../src/engine-install.js";
+import { discoverInstalled, downloadVerified, extractArchive, findBinary, installVariant, planInstall, readManifest, registerBuild, unregisterBuild } from "../src/engine-install.js";
 
 const sha = (text) => createHash("sha256").update(text).digest("hex");
 
@@ -196,4 +196,23 @@ test("the install command lists the plan and refuses bad options with a Why and 
   await assert.rejects(() => main(["--variants"], out), (error) => error.code === "bad_option");
   await assert.rejects(() => main(["--bogus"], out), (error) => /--bogus/.test(error.why));
   await assert.rejects(() => main(["--list", "--variants", "tpu"], out), (error) => error.code === "engine_variant");
+});
+
+test("registering a build records where it lives and removing it forgets it", (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duck-reg-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const exe = path.join(root, "llama-server.exe");
+  fs.writeFileSync(exe, "");
+  const record = registerBuild({ root, name: "ik-llama", binary: exe, backend: "cpu", label: "ik_llama.cpp" });
+  assert.equal(record.variant, "ik-llama");
+  const found = discoverInstalled([root]);
+  assert.equal(found.length, 1);
+  assert.equal(found[0].binary, path.resolve(exe));
+  assert.equal(found[0].backend, "cpu");
+  assert.throws(() => registerBuild({ root, name: "x", binary: path.join(root, "missing.exe") }), (error) => error.code === "build_not_found");
+  assert.throws(() => registerBuild({ root, name: "Bad Name!", binary: exe }), (error) => error.code === "bad_engine_name");
+  assert.throws(() => registerBuild({ root, name: "vulkan", binary: exe }), (error) => error.code === "bad_engine_name", "a shipped variant name is taken");
+  assert.equal(unregisterBuild({ root, name: "ik-llama" }), true);
+  assert.equal(discoverInstalled([root]).length, 0);
+  assert.equal(unregisterBuild({ root, name: "ik-llama" }), false);
 });
