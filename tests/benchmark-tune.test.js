@@ -983,6 +983,28 @@ test("reasoning on is tried with room to answer, and the preset keeps that room"
   assert.equal(tasks.math.settings.maxTokens, 1024, "the preset keeps the room deep needs");
 });
 
+test("with the system prompt not tuned, the preset still records the prompt it was measured with (ADR-179)", async () => {
+  const items = ids("math", 12);
+  const asked = new Set();
+  const { tasks, sweeps } = await tune({
+    evaluate: async (settings, itemIds) => {
+      asked.add(settings.systemPrompt);
+      return { prompts: itemIds.map((id, index) => ({ id, passed: index < 6 ? 1 : 0, total: 1, ms: 10, outputTokens: 10, digest: id })) };
+    },
+    base: { ...BASE, temperature: 0 },
+    tasks: ["math"],
+    stages: ["prompt"],
+    rungs: { ...RUNGS, math: [items] },
+    hardware: { logicalCores: 12 },
+    ...AXES,
+    promptAxes: promptAxes({ systemPrompt: ["Be precise.", "Other."], reasoning: ["off"], promptRepeat: [1, 2], tuneSystemPrompt: false }),
+    options: { seeds: [42], passes: 1 },
+  });
+  assert.ok(!sweeps.some((sweep) => sweep.axis === "systemPrompt"), "no system-prompt sweep");
+  assert.deepEqual([...asked], ["Be precise."], "every answer used the base prompt");
+  assert.equal(tasks.math.settings.systemPrompt, "Be precise.", "served with the prompt it was measured with, not the app default");
+});
+
 test("system prompts are screened on a quarter of the items, and only clear losers stop early", async () => {
   const items = ids("math", 48);
   const asked = new Map();

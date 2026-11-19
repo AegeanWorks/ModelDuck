@@ -24,7 +24,7 @@ import { speedStage } from "./tune-speed.mjs";
  * profiles go stale automatically instead of relying on a note. Part of
  * every fingerprint and gate identity.
  */
-export const TUNER_VERSION = 11;
+export const TUNER_VERSION = 12;
 
 export const DEFAULT_TUNE_OPTIONS = Object.freeze({
   seeds: Object.freeze([42, 7, 1234]),
@@ -719,9 +719,12 @@ export async function tune({
       const outcome = await descend(context, { stage: "prompt", task, axes: chosen(prompts), start, rungs: taskRungs, cost: "tokens", confirmItems, quick, ...progressFor(entry, keys) });
       if (!outcome.aborted) {
         const done = finished(entry, prompts);
+        // Not searched, the system prompt is still what every answer here used; the preset keeps it, or the app
+        // would serve its own default prompt with settings measured under another (ADR-179).
+        const pinned = keys.includes("systemPrompt") || outcome.current.systemPrompt === undefined ? {} : { systemPrompt: outcome.current.systemPrompt };
         Object.assign(entry, {
           status: done ? "done" : "partial",
-          settings: pick(outcome.current, keys),
+          settings: { ...pinned, ...pick(outcome.current, keys) },
           stats: done ? await taskStats(context, outcome.current, untuned, items) : entry.stats,
           ...(done ? { sampledWith } : {}),
         });

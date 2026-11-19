@@ -1,79 +1,23 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "engine-start-hardening",
+    "task_id": "tune-system-prompt-optional",
     "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795104681.2444222,
+    "active_phase": 4,
+    "status": "in_progress",
+    "updated_at": 1795105975.3552332,
     "owner": "claude:opus-5.5",
-    "lease_until": 1795111881.2444222,
-    "started_by": "claude:sonnet-5.5",
-    "continuations": [
-      {
-        "agent": "claude:opus-5.5",
-        "from": "claude:sonnet-5.5",
-        "at": 1795104681.2444222
-      }
-    ],
+    "lease_until": 1795113175.3552332,
+    "started_by": "claude:opus-5.5",
+    "continuations": [],
     "workspaces": [
       {
         "name": "modelduck",
         "path": "projects/modelduck"
       }
-    ],
-    "completed_at": 1795104709.6042295,
-    "completed_head": "b9b36634741556eec303d0a82bb29e3122f9b2fd",
-    "completed_tree": "d528b7cdeb08dce63011773ea2f5da01143f50ae"
+    ]
   },
   "checkpoints": [
-    {
-      "task_id": "docs-test-counts",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'docs-test-counts' completed successfully.",
-      "status": "completed",
-      "timestamp": 1795030142.931415,
-      "timestamp_str": "2026-11-18 22:29:02",
-      "agent": "kilo:1",
-      "head": "41482e0c6ae87d70b65ef25534f8292253718b85",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
-    {
-      "task_id": "inference-engines",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/1] Inference engines (ADR-155..163): assess every engine's token speed and version at the start of the device stage; ship llama.cpp through a pinned installer; let external engines (llama-server, Ollama, OpenAI-compatible servers) answer the tuner's items; tune on the fastest accurate engine and serve through it with an in-process fallback; one engine catalog with plugins; engine version tracking; crash recovery; cache-off serving. Recorded after the work was committed (bf2127e..b43b543).",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795041528.6093333,
-      "timestamp_str": "2026-11-19 01:38:48",
-      "agent": "claude:sonnet-5.5",
-      "impact_assessment": {
-        "why": "The user asked that tuning and serving use the best token-generation engine, assess each engine's speed, ship the engines, and make adding engines cheap.",
-        "benefits": "Measured on this machine: the tune picked llama-server on Vulkan (89 ms vs 205 ms per speed item) and serving was 386 tok/s against 149 in-process; four concurrent clients answered in 364 ms.",
-        "risks": "contract: a profile now names an engine and the app starts it, so loads can fail on another machine; dependency: a downloaded llama.cpp build and optional Ollama or attached servers; concurrency: an engine process per load, crash and restart paths; state: the profile records the engine and its build.",
-        "mitigation": "In-process fallback with a status notice; checksum-pinned installer; LlamaEngine refuses a load that names another engine; one guarded restart before any output; engine build recorded and compared on load; 1040 tests, tune:gate unchanged on all nine baselines, UI reviewed at 1440 and 390px; README, ADR-155..163 and docs/ENGINES.md updated."
-      },
-      "plan_digest": "9e4f21ffb6606bacb74ce99b98bff3f3d9a4dae7ce4316e5c6d5a4a12e053e04",
-      "handoff": {
-        "state": "committed locally, not pushed",
-        "next": "serving through an attached OpenAI-compatible server needs a profile that can start it",
-        "open": "CUDA, Metal and Ollama never ran on real hardware or servers here",
-        "evidence": "tune:gate pass, 4/4 gates, ADR-159..163"
-      },
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "inference-engines",
       "phase": "phase 4",
@@ -380,6 +324,48 @@
       "timestamp": 1795105375.3897734,
       "timestamp_str": "2026-11-19 19:22:55",
       "agent": "claude-code:bba617e6"
+    },
+    {
+      "task_id": "tune-system-prompt-optional",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/2] system-prompt axis off by default (prompt.tuneSystemPrompt step, pinned measured prompt, UI checkbox, tuner v12); [2/2] baseline regenerated with --reuse-from, gate, CHANGELOG, ADR",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795105757.5532358,
+      "timestamp_str": "2026-11-19 19:29:17",
+      "agent": "claude:opus-5.5",
+      "impact_assessment": {
+        "why": "the axis took 36% of recorded tune answers (49,282) and never changed a saved profile (report F2)",
+        "benefits": "about a third fewer answers per tune; the opt-in restores the old search",
+        "risks": "contract: profiles stale at tuner v12; state: a preset without the measured prompt would serve the app default prompt; dependency: none; concurrency: none",
+        "mitigation": "pin systemPrompt in the prompt-stage preset; custom prompt lists stay opted in; baseline regenerated deliberately"
+      },
+      "plan_digest": "360f082869887c854eae91f7340be56ea7b19963f31444056ee315e0dad3ec4f",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "tune-system-prompt-optional",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[1/2] system prompt off by default in tuning, tuner v12 (ADR-179); gates pass",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795105975.3552332,
+      "timestamp_str": "2026-11-19 19:32:55",
+      "agent": "claude:opus-5.5",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }

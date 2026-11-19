@@ -114,6 +114,9 @@ export const DEFAULT_STEPS = freezeDeep({
     penalizeNewLine: [true, false],
   },
   prompt: {
+    // Off by default (ADR-179): over 30 recorded runs the axis took 36% of the answers and never changed a saved
+    // profile. Opted in, the list below is tried; a saved custom list counts as opted in.
+    tuneSystemPrompt: false,
     // The prompt the earlier stages answered with comes first, as the reference.
     systemPrompt: [SYSTEM_PROMPT, ...DIRECTIVE_PROMPTS],
     // Off against fully on: "deep" asks the model to think before answering; "auto" is only a nudge.
@@ -212,12 +215,25 @@ export function normalizeSteps(input = {}) {
       penalizeNewLine: list("penalizeNewLine", sampling.penalizeNewLine, defaults.sampling.penalizeNewLine, (value) => typeof value === "boolean"),
     },
     prompt: {
+      tuneSystemPrompt: systemPromptOptIn(prompt, defaults.prompt, problems),
       systemPrompt: list("systemPrompt", prompt.systemPrompt, defaults.prompt.systemPrompt),
       reasoning: list("reasoning", prompt.reasoning, defaults.prompt.reasoning),
       promptRepeat: list("promptRepeat", prompt.promptRepeat, defaults.prompt.promptRepeat),
     },
   };
   return { steps, problems };
+}
+
+/**
+ * Whether the system prompt is tuned (ADR-179): an explicit boolean wins; with none, a prompt list that differs from
+ * the default shows the user wants it tuned; anything else is reported and the default (off) used.
+ */
+function systemPromptOptIn(prompt, defaults, problems = null) {
+  const value = prompt?.tuneSystemPrompt;
+  if (typeof value === "boolean") return value;
+  if (value !== undefined) problems?.push(`prompt.tuneSystemPrompt ${JSON.stringify(value)} is not true or false; the default ${defaults.tuneSystemPrompt} is used`);
+  if (value === undefined && Array.isArray(prompt?.systemPrompt) && JSON.stringify(prompt.systemPrompt) !== JSON.stringify(defaults.systemPrompt)) return true;
+  return defaults.tuneSystemPrompt;
 }
 
 /** Thread steps that leave a quarter of the logical threads free, so a tune never takes the whole computer. */
@@ -328,15 +344,20 @@ export function samplingAxes(taskId, steps = DEFAULT_STEPS.sampling) {
   return Object.freeze(axes);
 }
 
-/** Stage 4: prompt wording for one task. Every system prompt gets a full score on the task's whole set; code uses its own directives and also tries reasoning "auto" (ADR-070). */
-export function promptAxes(steps = DEFAULT_STEPS.prompt, task = null) {
+/**
+ * Stage 4: prompt wording for one task. The system prompt is tried only when opted in (ADR-179); then every one gets a
+ * full score on the task's whole set. Code uses its own directives and also tries reasoning "auto" (ADR-070).
+ */
+export function promptAxes(steps = DEFAULT_STEPS.prompt, task = null, { only = null } = {}) {
   const systemPrompts = Array.isArray(steps.systemPrompt) ? steps.systemPrompt : DEFAULT_STEPS.prompt.systemPrompt;
   const reasoningSteps = Array.isArray(steps.reasoning) ? steps.reasoning : DEFAULT_STEPS.prompt.reasoning;
   const promptRepeats = Array.isArray(steps.promptRepeat) ? steps.promptRepeat : DEFAULT_STEPS.prompt.promptRepeat;
   const customPrompts = JSON.stringify(systemPrompts) !== JSON.stringify(DEFAULT_STEPS.prompt.systemPrompt);
   const customReasoning = JSON.stringify(reasoningSteps) !== JSON.stringify(DEFAULT_STEPS.prompt.reasoning);
+  // A run that names the system prompt in `only` asks for it, whatever the steps say.
+  const tunePrompts = systemPromptOptIn(steps, DEFAULT_STEPS.prompt) || Boolean(only?.includes("systemPrompt"));
   return Object.freeze([
-    axis("systemPrompt", "systemPrompt", task === "code" && !customPrompts ? [SYSTEM_PROMPT, ...CODE_PROMPTS] : systemPrompts, { full: true }),
+    ...(tunePrompts ? [axis("systemPrompt", "systemPrompt", task === "code" && !customPrompts ? [SYSTEM_PROMPT, ...CODE_PROMPTS] : systemPrompts, { full: true })] : []),
     // Thinking first needs room: a reasoning candidate gets at least REASONING_TOKENS, and the preset keeps them (ADR-046).
     axis("reasoning", "reasoning", task === "code" && !customReasoning ? ["off", "auto", "deep"] : reasoningSteps, {
       extraKeys: ["maxTokens"],
@@ -351,7 +372,7 @@ export function promptAxes(steps = DEFAULT_STEPS.prompt, task = null) {
 /** Every setting name a tune can run on its own (`--settings`), in stage order. */
 export function settingNames() {
   const load = { ...DEFAULT_STEPS.load, checkpointing: { ...DEFAULT_STEPS.load.checkpointing, enabled: true } };
-  return ["device", ...qualityAxes(load), ...speedAxes({ logicalCores: 64 }, load), ...samplingAxes("code"), ...promptAxes()].map((axis) => axis.name ?? axis);
+  return ["device", ...qualityAxes(load), ...speedAxes({ logicalCores: 64 }, load), ...samplingAxes("code"), ...promptAxes(DEFAULT_STEPS.prompt, null, { only: ["systemPrompt"] })].map((axis) => axis.name ?? axis);
 }
 
 /** Answers one axis costs under successive halving: every value on the first rung, the better half on each next one. */
@@ -426,7 +447,7 @@ export function estimateTune(steps, { logicalCores = 8, tasks = ["code", "compre
   for (const task of tasks) {
     const sizes = rungs[task].map((rung) => rung.length);
     const samplingAxesFor = samplingAxes(task, steps.sampling);
-    const promptAxesFor = promptAxes(steps.prompt, task);
+    const promptAxesFor = promptAxes(steps.prompt, task, { only });
     const samplingWanted = wanted("sampling", samplingAxesFor) ? samplingAxesFor.filter((axis) => !only || only.includes(axis.name)) : [];
     const promptWanted = wanted("prompt", promptAxesFor) ? promptAxesFor.filter((axis) => !only || only.includes(axis.name)) : [];
     sampling[task] = samplingWanted.length
@@ -466,7 +487,7 @@ export function expectedAnswers(steps, { logicalCores = 8, tasks = ["code", "com
       axesCount += axes.length;
     }
     if (stages.includes("prompt")) {
-      const axes = chosen(promptAxes(steps.prompt, task));
+      const axes = chosen(promptAxes(steps.prompt, task, { only }));
       total += axes.reduce((sum, axis) => sum + axisAnswers(axis.patches.length, sizes, seeds, axis.full), 0);
       axesCount += axes.length;
     }

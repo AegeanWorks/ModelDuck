@@ -243,7 +243,7 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
       qualityAxes: qualityAxes(used.load),
       speedAxes: speedAxes({ logicalCores }, used.load),
       samplingAxes: (task) => samplingAxes(task, used.sampling),
-      promptAxes: (task) => promptAxes(used.prompt, task),
+      promptAxes: (task) => promptAxes(used.prompt, task, { only }),
       options: { ...(maxRuns > 0 && { maxRuns }), ...(passes > 0 && { passes }), ...(Number.isFinite(deadline) && { deadline }), ...(escalate && { escalate: true }) },
       onEvent,
       onAnswers,

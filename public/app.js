@@ -233,7 +233,8 @@ const TUNE_STEP_HELP = {
   "sampling.minP": "Min-p values to try.",
   "sampling.topP": "Top-p values to try.",
   "sampling.topK": "Top-k values to try; 0 disables top-k.",
-  "prompt.systemPrompt": "System prompts to try, one per line. The first is the reference.",
+  "prompt.tuneSystemPrompt": "Off by default: over 30 recorded tunes the system prompt took a third of the answers and never beat the reference. On, the prompts below are tried; the preset always keeps the prompt it was measured with.",
+  "prompt.systemPrompt": "System prompts to try when the box above is on, one per line. The first is the reference.",
   "prompt.reasoning": "Reasoning modes to try: off, auto or deep.",
   "prompt.promptRepeat": "Prompt-repeat counts to try: 1, 2 or 3.",
 };
@@ -3441,6 +3442,7 @@ const TUNE_STEP_FIELDS = [
     ["sampling.minP", "Min-p"], ["sampling.topP", "Top-p"], ["sampling.topK", "Top-k (0 = off)"],
   ]],
   ["Stage 4 · prompt, per task", [
+    ["prompt.tuneSystemPrompt", "Tune the system prompt (slow; off by default)", "checkbox"],
     ["prompt.systemPrompt", "System prompts, one per line (the first is the reference)", "lines"],
     ["prompt.reasoning", "Reasoning"], ["prompt.promptRepeat", "Prompt repeats"],
   ]],

@@ -80,12 +80,18 @@ test("the code task tries DRY but not the code fence", () => {
   assert.ok(!axes.some((axis) => axis.name === "codeFence"), "the fence amputates code (39 vs 1, p≈7e-12): evidence-against, not searched");
 });
 
-test("the prompt stage tries the baseline and all 21 directives, fully scored, then reasoning and repetition", () => {
+test("by default the prompt stage tunes reasoning and repetition, not the system prompt (ADR-179)", () => {
+  assert.equal(DEFAULT_STEPS.prompt.tuneSystemPrompt, false);
+  assert.deepEqual(promptAxes().map((axis) => axis.name), ["reasoning", "promptRepeat"]);
+  assert.deepEqual(promptAxes(DEFAULT_STEPS.prompt, "code").map((axis) => axis.name), ["reasoning", "promptRepeat"]);
+});
+
+test("opted in, the prompt stage tries the baseline and all 21 directives, fully scored, then reasoning and repetition", () => {
   assert.equal(DIRECTIVE_PROMPTS.length, 21);
   assert.equal(new Set(DIRECTIVE_PROMPTS).size, 21, "no directive twice");
   assert.ok(!DIRECTIVE_PROMPTS.includes(SYSTEM_PROMPT), "the baseline is not repeated");
   assert.equal(THINKING_PROMPTS.length, 21, "the earlier prompts stay available for a saved grid");
-  const axes = promptAxes();
+  const axes = promptAxes({ ...DEFAULT_STEPS.prompt, tuneSystemPrompt: true });
   assert.deepEqual(axes.map((axis) => axis.name), ["systemPrompt", "reasoning", "promptRepeat"]);
   const prompts = values(axes, "systemPrompt");
   assert.equal(prompts[0], SYSTEM_PROMPT);
@@ -96,15 +102,15 @@ test("the prompt stage tries the baseline and all 21 directives, fully scored, t
   assert.deepEqual(values(promptAxes(DEFAULT_STEPS.prompt, "code"), "promptRepeat"), [1, 2, 3], "code tests the same repeat counts");
 });
 
-test("the code task tries coding directives and reasoning auto, and respects a custom list", () => {
-  const axes = promptAxes(DEFAULT_STEPS.prompt, "code");
+test("opted in, the code task tries coding directives and reasoning auto, and respects a custom list", () => {
+  const axes = promptAxes({ ...DEFAULT_STEPS.prompt, tuneSystemPrompt: true }, "code");
   const prompts = values(axes, "systemPrompt");
   assert.equal(prompts[0], SYSTEM_PROMPT);
   assert.deepEqual(prompts.slice(1), CODE_PROMPTS);
   assert.equal(CODE_PROMPTS.length, 8);
   assert.equal(new Set(CODE_PROMPTS).size, 8, "no coding directive twice");
   assert.deepEqual(values(axes, "reasoning"), ["off", "auto", "deep"]);
-  const custom = promptAxes({ ...DEFAULT_STEPS.prompt, systemPrompt: ["Custom."], reasoning: ["off"] }, "code");
+  const custom = promptAxes({ ...DEFAULT_STEPS.prompt, tuneSystemPrompt: true, systemPrompt: ["Custom."], reasoning: ["off"] }, "code");
   assert.deepEqual(values(custom, "systemPrompt"), ["Custom."], "a user's prompt list is not replaced");
   assert.deepEqual(values(custom, "reasoning"), ["off"], "a user's reasoning steps are not replaced");
 });
@@ -140,7 +146,9 @@ test("the estimate covers all four stages and the worst case of two passes", () 
   assert.equal(estimate.quality.configs, 3, "only the KV cache is measured; the context is a fixed 16K floor (ADR-089)");
   assert.equal(estimate.speed.configs, 2 + 2 + 6 + 7);
   assert.equal(estimate.sampling.comprehension.configs, 6 + 6 + 2 + 2 + 3, "sampler, tokens, repeat, newline, top-k (G2/G4)");
-  assert.equal(estimate.prompt.comprehension.configs, 22 + 2 + 3);
+  assert.equal(estimate.prompt.comprehension.configs, 2 + 3, "reasoning and repeats; the system prompt is opt-in (ADR-179)");
+  const optedIn = estimateTune({ ...DEFAULT_STEPS, prompt: { ...DEFAULT_STEPS.prompt, tuneSystemPrompt: true } }, { logicalCores: 16, tasks: ["comprehension"], secondsPerAnswer: 3, reloadSeconds: 5 });
+  assert.equal(optedIn.prompt.comprehension.configs, 22 + 2 + 3);
   assert.ok(estimate.onePassSeconds > 0);
   assert.equal(estimate.worstCaseSeconds, estimate.onePassSeconds * 2);
 });
@@ -207,4 +215,21 @@ test("time left comes from the measured pace, and never invents a number past th
   assert.equal(timeLeft({ answers: 100, expected: 1000, elapsedMs: 10 * 60_000 }), "about 1 h 30 min left");
   assert.equal(timeLeft({ answers: 395, expected: 400, elapsedMs: 10 * 60_000 }), "less than a minute left");
   assert.equal(timeLeft({ answers: 450, expected: 400, elapsedMs: 10 * 60_000 }), "finishing up (a second pass)");
+});
+
+test("the system-prompt opt-in is a boolean step; a saved custom prompt list counts as opted in (ADR-179)", () => {
+  assert.equal(normalizeSteps({}).steps.prompt.tuneSystemPrompt, false);
+  assert.equal(normalizeSteps({ prompt: { tuneSystemPrompt: true } }).steps.prompt.tuneSystemPrompt, true);
+  assert.equal(normalizeSteps({ prompt: { systemPrompt: ["Mine."] } }).steps.prompt.tuneSystemPrompt, true, "a list the user wrote shows the intent");
+  assert.equal(normalizeSteps({ prompt: { systemPrompt: ["Mine."], tuneSystemPrompt: false } }).steps.prompt.tuneSystemPrompt, false, "an explicit off wins");
+  const bad = normalizeSteps({ prompt: { tuneSystemPrompt: "yes" } });
+  assert.equal(bad.steps.prompt.tuneSystemPrompt, false);
+  assert.ok(bad.problems.some((problem) => /tuneSystemPrompt/.test(problem)), "a non-boolean is reported, not guessed");
+  assert.equal(promptAxes({ systemPrompt: ["Mine."], reasoning: ["off"], promptRepeat: [1] })[0].name, "systemPrompt", "an unnormalized custom list still runs");
+});
+
+test("leaving the system prompt out cuts the prompt stage's answers (ADR-179)", () => {
+  const off = expectedAnswers(DEFAULT_STEPS, { stages: ["prompt"] });
+  const on = expectedAnswers({ ...DEFAULT_STEPS, prompt: { ...DEFAULT_STEPS.prompt, tuneSystemPrompt: true } }, { stages: ["prompt"] });
+  assert.ok(off < on / 2, `${off} answers without the axis, ${on} with it`);
 });
