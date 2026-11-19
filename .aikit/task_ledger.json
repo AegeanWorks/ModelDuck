@@ -1,11 +1,11 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "engines-add",
+    "task_id": "engine-start-hardening",
     "last_phase": "phase 1",
     "active_phase": 1,
     "status": "in_progress",
-    "updated_at": 1795066956.4324257,
+    "updated_at": 1795068388.3122902,
     "owner": "claude:sonnet-5.5",
     "started_by": "claude:sonnet-5.5",
     "continuations": [],
@@ -16,54 +16,13 @@
       }
     ],
     "impact_assessment": {
-      "why": "A GitHub search found llama.cpp forks that share llama-server's arguments but could only be timed once per tune, never served",
-      "benefits": "Any fork becomes a first-class, servable, versioned engine with one command; the report names the best engine per model",
-      "risks": "contract: install.json gains optional fields; dependency: none; concurrency: none; state: engines/bin records only",
-      "mitigation": "Fields optional so existing installs read unchanged; tests for register, find, serve, device; nothing copied or deleted besides its own record"
+      "why": "An unrunnable binary raised an unhandled child error event that ends the app; failed starts leaked an exit listener",
+      "benefits": "A missing or broken engine build is a normal refusal with a Fix and the app falls back; no listener leak across tune candidates",
+      "risks": "contract: engine_start_failed gains a new why text; dependency: none; concurrency: stop() now runs on the failure path; state: none",
+      "mitigation": "stop() is idempotent and already used by the timeout path; two failing-first tests"
     }
   },
   "checkpoints": [
-    {
-      "task_id": "already-installed-add",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'already-installed-add' completed successfully.",
-      "status": "completed",
-      "timestamp": 1795019115.1686656,
-      "timestamp_str": "2026-11-18 19:25:15",
-      "agent": "kilo:1",
-      "head": "526edd2178c1e983ac29510207bd8692c5d6ba41",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
-    {
-      "task_id": "requested-context-field",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/2] Engine ready states report requestedContextSize (the effective request after the 16K floor and before the trained cap) in load and context-rebuild, and idle reports null; the UI clamp note reads it instead of guessing from the saved setting, which can differ under a tuned profile. Failing-first engine test with a 4096-trained fake runtime; [2/2] npm test, ui:smoke, aikit check, ADR-147, UI review, commit (G-001 not applicable: additive status field, no generation change)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795022469.2525802,
-      "timestamp_str": "2026-11-18 20:21:09",
-      "agent": "kilo:1",
-      "impact_assessment": {
-        "why": "ADR-145 compared the served context with the saved setting, but a tuned load can request a different context; the note could name the wrong requested value or hide a clamp",
-        "benefits": "The status is self-describing and the note is correct whatever applied the load",
-        "risks": "contract: additive status field; dependency: none; concurrency: none; state: none",
-        "mitigation": "the field is the same requested value the load already computes; a test pins requested/trained/served on a clamp"
-      },
-      "plan_digest": "4988b236a1a94b5ecdd953db5d1d7259ad06ccf8e2d01b9f7662e401f9e62d7c",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "requested-context-field",
       "phase": "phase 4",
@@ -422,6 +381,39 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "task_id": "engine-start-hardening",
+      "phase": "phase 1",
+      "phase_num": 1,
+      "description": "[1/1] llama-server start: handle spawn error, clean up the exit hook on a failed start",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795068388.3122902,
+      "timestamp_str": "2026-11-19 09:06:28",
+      "agent": "claude:sonnet-5.5",
+      "impact_assessment": {
+        "why": "An unrunnable binary raised an unhandled child error event that ends the app; failed starts leaked an exit listener",
+        "benefits": "A missing or broken engine build is a normal refusal with a Fix and the app falls back; no listener leak across tune candidates",
+        "risks": "contract: engine_start_failed gains a new why text; dependency: none; concurrency: stop() now runs on the failure path; state: none",
+        "mitigation": "stop() is idempotent and already used by the timeout path; two failing-first tests"
+      },
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "engines-add",
+      "phase": "superseded",
+      "phase_num": 1,
+      "description": "Superseded by 'engine-start-hardening' without --complete or --reset",
+      "status": "superseded",
+      "timestamp": 1795068388.3122902,
+      "timestamp_str": "2026-11-19 09:06:28",
+      "agent": "claude:sonnet-5.5"
     }
   ]
 }
