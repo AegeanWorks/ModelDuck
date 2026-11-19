@@ -5,9 +5,9 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1795122111.9951031,
+    "updated_at": 1795123333.0284173,
     "owner": "claude:sonnet-5.5",
-    "lease_until": 1795129311.9951031,
+    "lease_until": 1795130533.0284173,
     "started_by": "claude:opus-5.5",
     "continuations": [
       {
@@ -24,23 +24,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "task_id": "engine-start-hardening",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "keep llama-server stderr tail in engine_crashed (ADR-169)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795090560.198126,
-      "timestamp_str": "2026-11-19 15:16:00",
-      "agent": "claude:sonnet-5.5",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "engine-start-hardening",
       "phase": "phase 4",
@@ -346,6 +329,24 @@
       "status": "in_progress",
       "timestamp": 1795122111.9951031,
       "timestamp_str": "2026-11-20 00:01:51",
+      "agent": "claude:sonnet-5.5",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "tune-system-prompt-optional",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "F10 analysis, repro scripts, ADR-186 proposal",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795123333.0284173,
+      "timestamp_str": "2026-11-20 00:22:13",
       "agent": "claude:sonnet-5.5",
       "checklists": "passed",
       "workspaces": [

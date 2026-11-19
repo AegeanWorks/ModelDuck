@@ -31,7 +31,7 @@ rules behave, given the stated assumptions about the items.
 7. [Validation and governance](#7-validation-and-governance): V1 to V4
 8. [Roadmap](#8-roadmap)
 9. [How to tell the tuner got better](#9-how-to-tell-the-tuner-got-better)
-10. [Follow-up, 2026-11-19: what recorded runs say](#10-follow-up-2026-11-19-what-recorded-runs-say): F1 to F8
+10. [Follow-up, 2026-11-19: what recorded runs say](#10-follow-up-2026-11-19-what-recorded-runs-say): F1 to F10
 - [Appendix A: Reproduction](#appendix-a-reproduction)
 - [Appendix B: node-llama-cpp 3.22.2 options checked](#appendix-b-node-llama-cpp-3222-options-checked)
 
@@ -817,6 +817,7 @@ Evidence comes from three small models (SmolLM2 135M, Qwen2.5 0.5B, Qwen2.5 Code
 | F6 | CPU engines are timed at different thread counts | in-process 4 threads (default), `llama-server` 8; the verdict's 18.8 tok/s (12.6–21.5) vs 25–28 at 4 and 28–34 at 8 threads | Medium | S |
 | F7 | The one-pass budget grew past the target | upper bound 18,714 answers (was 17,532; target ≤ 12,000) | Medium | follows F1–F3 |
 | F8 | All three code presets are the same, and the app default for code is not it | held-back code items: tuned beats default on 3 of 3 models (+9.7, +2.4, +3.2 points); only Coder 1.5B is significant alone (p = 0.03) | Medium | S (G-001) |
+| F10 | About 90% of the answer time goes to items on which every candidate agreed | 90.3% of code time, 85.8% comprehension, 86.8% recall; a learned ranking holds 94% of the later disagreement in 25% of the rung cost; replayed decisions identical at 44% of the cost | High | M-L (G-003) |
 
 ### F1. The prompt screen no longer prunes — *High, S* — fixed in tuner v12 (ADR-180)
 
@@ -954,6 +955,66 @@ Measured 2026-11-19 from the recorded runs and the live gate baseline (SmolLM2 1
   upper bound overstates it.
 - **The preflight is pessimistic.** The Tune settings text says one pass is "up to 8.7 h" at 3 s per answer, which is
   a CPU figure; full tunes recorded on this PC took 19 to 81 minutes on the GPU.
+
+### F10. About 90% of the answer time goes to items that cannot change a choice — *High, M–L (G-003)*
+
+Measured 2026-11-20 from the 30 recorded runs on this PC (three small models), by stepping back from "how many
+answers" to "how much does each answer tell us". A tune is noisy black-box optimisation with an expensive evaluator;
+the question that matters is information per second, and the tuner currently spends it evenly.
+
+**What the data says.**
+
+- **Most answers are concordant.** In sampling and prompt sweeps, 90.3% of the code task's time, 85.8% of
+  comprehension's and 86.8% of recall's went to items on which every candidate got the same result. Such an item
+  contributes nothing to a paired comparison. The tuner's own exclusion (ADR-064, "saturated": never flipped in any
+  recorded sweep) removed 11 of 48 code items and none for comprehension or recall.
+- **Information is concentrated, and cheap to find.** Ranked by flips per second, trained on the earlier half of
+  the sweeps and tested on the later half, the best-ranked code items hold 83% of the later sweeps' disagreement in
+  25% of the item cost (a random order: 45%). Learned inside one tune, from only the earlier sweeps of that tune
+  (first two sweeps at full cost), the ranking captures 94% of the disagreement at 25% of the rung cost for code,
+  70% for recall and 53% for comprehension.
+- **It does not transfer between models.** Ranking items by the other two models' sweeps was worse than random for
+  the strongest model (10% of the information at any budget): which items sit on a model's decision boundary is
+  that model's own. So a fixed "informative item list" cannot ship; the ranking has to be learned per model, online,
+  which is what ADR-064 already assumes.
+- **Decisions survive it.** Replaying the 127 sampling and prompt sweeps that have complete outcomes (final rung,
+  paired exact test, Holm-style bar of 0.2 like the tuner's), measuring only the best 25% of the rung's cost plus a
+  10% random tripwire gives the same decision in 124 of them with no false change, but misses 3 of the 4 real
+  changes. Adding one rule, "test a challenger on the full rung when the subset shows it ahead with one-sided
+  p <= 0.25 to 0.35", gives the same decision in all 127 (all 4 changes found, none invented) at 44% of the full
+  rung cost. A stricter trigger (p <= 0.15) misses one change at 33%.
+
+**Proposed design (not built): adaptive informative rungs, tuner v13.**
+
+1. For each task, keep per-item counts of sweeps seen and sweeps on which the candidates disagreed, and the item's
+   measured answer time, from the sweeps of this tune (stored in the progress state so a resume keeps them).
+2. From the third sweep of a task on, order the search rung's items by `(flips + 0.15) / (seen + 1) / ms`, keep the
+   category pattern of the stratified order (ADR-070's code views), take items until a quarter of the rung's
+   estimated cost is reached, and add a random tenth of the rest as a tripwire.
+3. A challenger that is ahead on that subset (net wins, one-sided exact p <= 0.3) is tested on the whole rung before
+   it may win; every other challenger is judged on the subset. The held-back check (ADR-054) on unseen items stays
+   as it is and guards against any over-claim.
+4. The choice of items uses only earlier sweeps' outcomes, so within a sweep the order is fixed before the data and
+   the sequential test stays valid.
+
+**What would decide it.** An A/B on the three core models: one tune each with and without the option, comparing the
+settings chosen, the held-back rates against the defaults and the wall time; accept only if the held-back rates are
+not lower on any task and the code tune gets at least 30% faster. The replay is optimistic in three ways: it learns
+from the same run and starts at the third sweep, it ignores the nested rungs and early stopping, and it has only 4
+real changes to find. It is evidence for the experiment, not for shipping.
+
+**Ideas tried and set aside, with the reason.**
+
+| Idea | Result |
+|---|---|
+| Ask each candidate counterfactually (replay the sampler on recorded logits) | When one sampling setting changes, the answer is identical in 70% (repeat penalty), 92% (newline penalty) and 100% (DRY, 206 pairs) of the pairs, but those axes are about 4% of the time, so the saving is small for a very large change |
+| Stop an answer as soon as it loops (`detectLoop`) | 0.1% to 3% of the time across all runs; the 20% seen in one live baseline was a CPU run in which 41% of the answers hit the cap |
+| Skip no-change axes in the second pass (F3) | Pass 2 is 13% of the answers, and an axis can matter once another moves |
+| Run several answers at once inside one model | Measured earlier: no speedup on this PC (ADR-032, ADR-101, ADR-119) |
+| Reuse an answer across token caps | Built (ADR-182): 3.8% of the time, exact |
+| Verify saved answers per family instead of all or nothing | Built (ADR-185): kept 94%, 56% and 18% of the saved answers of the three models where all of them used to be discarded |
+| Tune the core models side by side | Built (ADR-184), opt-in |
+| Rust for the tuner | No: generation is 90% of the wall time and runs in native code already; the tuner's own code is under 1% |
 
 ### Reviewed and left as is
 
