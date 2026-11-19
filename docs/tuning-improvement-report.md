@@ -888,6 +888,14 @@ noisy timing decides it.
 **Change.** Time every CPU engine at the same thread count (the profile's tuned `threads`, else the machine's
 measured best), and treat two engines whose ranges overlap as tied, as the speed stage does with its A/A band (M2).
 
+**Done, 2026-11-19 (ADR-180).** All three CPU adapters now get `cpuTimingThreads()`: three quarters of the logical
+threads, at most 8 (8 on this PC). Measured afterwards on Qwen2.5 Coder 1.5B, in-process CPU at 4, 6 and 8 threads:
+25.0, 29.5 and 32.0 tok/s; `llama-server` CPU at 8: 20.6 in the full table (17.9-25.1) against 28-34 timed alone. At
+equal threads the two engines are close, so the earlier ranking (24.9 over 18.8) was a thread-count artifact. Not
+done: the tie rule. The `engines` table still marks the highest median as fastest, and on this shared machine another
+process can halve one engine's number mid-run (in-process CPU read 5.5 tok/s in one table, 32 when timed alone), so
+a verdict between engines within about 20% of each other should not be trusted from a single table.
+
 ### F7. The one-pass budget grew past the target
 
 `budget-and-preflight.mjs` now gives 18,714 answers for one full pass (the system-prompt axis 7,500, the held-back
