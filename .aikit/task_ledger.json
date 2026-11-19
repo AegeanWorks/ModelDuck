@@ -5,9 +5,9 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1795093236.9771583,
+    "updated_at": 1795093570.9357283,
     "owner": "claude:sonnet-5.5",
-    "lease_until": 1795100436.9771583,
+    "lease_until": 1795100770.9357283,
     "started_by": "claude:sonnet-5.5",
     "continuations": [],
     "workspaces": [
@@ -18,30 +18,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "task_id": "text-content-parts",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/2] Refuse a non-text content part (image_url, input_audio, or a text part without text) with a clear invalid_request_error instead of dropping it and treating the message as empty; keep text-part arrays joining as before. Failing-first tests for text parts, an image part and a mixed message, asserting the engine is never called; [2/2] npm test, aikit check, ADR-150, UI review, commit (G-001 not applicable: refusal path only)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795027886.4494202,
-      "timestamp_str": "2026-11-18 21:51:26",
-      "agent": "kilo:1",
-      "impact_assessment": {
-        "why": "contentText filtered non-text parts, so a client sending an image got either a silent partial prompt or the misleading last-message-must-be-user error; the project refuses audio/modalities but not content parts",
-        "benefits": "Vision or audio payloads get an honest 400 naming the limit; pure text-part arrays keep working",
-        "risks": "contract: one more 400 for payloads that were already unusable; dependency: none; concurrency: none; state: none",
-        "mitigation": "only non-text parts are refused; the existing string and text-part forms are unchanged and tested; the refusal runs before ensureReady"
-      },
-      "plan_digest": "da330ca46801d8e90348754f98efb4ea92dff5c23d028a55360987eaf151df55",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "text-content-parts",
       "phase": "phase 4",
@@ -388,6 +364,24 @@
       "status": "in_progress",
       "timestamp": 1795093236.9771583,
       "timestamp_str": "2026-11-19 16:00:36",
+      "agent": "claude:sonnet-5.5",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "engine-start-hardening",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "platform notice in /api/engines and Models (ADR-176)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795093570.9357283,
+      "timestamp_str": "2026-11-19 16:06:10",
       "agent": "claude:sonnet-5.5",
       "checklists": "passed",
       "workspaces": [

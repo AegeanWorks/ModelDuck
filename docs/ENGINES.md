@@ -73,3 +73,6 @@ else `null`). `fastest` is the quickest measured engine that can be served. `POS
 accepts `engine`: it wins over the engine a tuned profile names, and an id that is unknown, not
 installed or measure-only is refused with `engine_unknown` (HTTP 400) and the list of ids that can be
 chosen. Leave `engine` out for the profile's engine, or the in-process one when the model is untuned.
+
+`GET /api/engines` also carries `notice`: one sentence when the installer has no prebuilt llama.cpp for this
+machine (the manifest has no `<platform>-<arch>` entry), else `null`. Models > Installed shows it above the list.

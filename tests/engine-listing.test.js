@@ -70,3 +70,13 @@ test("GET /api/engines answers, and a load names an engine only when it can be s
   assert.equal((await refused.json()).error.code, "engine_unknown");
   assert.equal((await load("srv:fast")).status, 200);
 });
+
+test("a machine with no prebuilt llama.cpp is told so in one sentence, one with a build is not", async () => {
+  const { prebuiltNotice } = await import("../src/engine-listing.js");
+  const manifestFile = new URL("../engines/manifest.json", import.meta.url);
+  const note = await prebuiltNotice({ platform: "linux", arch: "riscv64", manifestFile });
+  assert.match(note, /linux-riscv64/);
+  assert.match(note, /engines:add/);
+  assert.equal(await prebuiltNotice({ platform: "win32", arch: "x64", manifestFile }), null);
+  assert.equal(await prebuiltNotice({ platform: "linux", arch: "riscv64", manifestFile: new URL("../engines/missing.json", import.meta.url) }), null, "an unreadable manifest is silence, not a false notice");
+});

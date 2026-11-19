@@ -1,16 +1,31 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { engineContext } from "./engine-catalog.js";
+import { planInstall, readManifest } from "./engine-install.js";
 import { AppError } from "./errors.js";
 import { profileIdFor } from "./model-profiles.js";
+
+const MANIFEST = fileURLToPath(new URL("../engines/manifest.json", import.meta.url));
+
+/** One plain sentence when the installer has no prebuilt llama.cpp for this machine (ADR-176), else null. */
+export async function prebuiltNotice({ platform = process.platform, arch = process.arch, manifestFile = MANIFEST } = {}) {
+  try {
+    planInstall(await readManifest(manifestFile), { platform, arch });
+    return null;
+  } catch (error) {
+    if (error?.code !== "engine_platform") return null;
+    return `There is no prebuilt llama.cpp for ${platform}-${arch}, so ModelDuck runs models in-process only. To use llama-server, build it yourself and register it with: npm run engines:add.`;
+  }
+}
 
 /**
  * The engines this machine can serve a model with, asked of the catalog (ADR-160), for the API and the UI (ADR-170).
  * `canServe(id)` is the check the load route makes before it hands an engine id to the router, so an unknown or
  * measure-only engine is refused with a Why and a Fix instead of silently falling back to the in-process one.
  */
-export function createEngineListing({ catalog, registry, profilesDir = null, context = () => engineContext({ registry }) }) {
+export function createEngineListing({ catalog, registry, profilesDir = null, context = () => engineContext({ registry }), notice = prebuiltNotice }) {
   const listed = () => catalog.descriptors().flatMap((descriptor) => descriptor.adapters(context()).map((adapter) => ({ id: adapter.id, label: adapter.label })));
 
   const servable = (id) => catalog.isServable(id) && catalog.resolve(id, context()) !== null;
@@ -40,7 +55,7 @@ export function createEngineListing({ catalog, registry, profilesDir = null, con
         measured: speeds.get(id) ?? null,
       }));
       const ranked = engines.filter((engine) => engine.servable && engine.measured?.ok && Number.isFinite(engine.measured.genTps)).sort((a, b) => b.measured.genTps - a.measured.genTps);
-      return { engines, fastest: ranked[0]?.id ?? null };
+      return { engines, fastest: ranked[0]?.id ?? null, notice: await notice() };
     },
     /** Throws a refusal naming the engines that can be chosen when `id` cannot be served here. */
     assertServable(id) {

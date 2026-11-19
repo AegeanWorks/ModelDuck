@@ -1021,6 +1021,14 @@ function renderInstalled() {
     return;
   }
 
+  const notice = [...state.engines.values()].find((info) => info?.notice)?.notice;
+  if (notice) {
+    const note = document.createElement("p");
+    note.className = "engine-notice";
+    note.textContent = notice;
+    els.installedList.appendChild(note);
+  }
+
   for (const model of state.models) {
     const row = document.createElement("div");
     row.className = "installed-card";

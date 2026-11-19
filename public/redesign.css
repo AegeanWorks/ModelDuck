@@ -1765,6 +1765,15 @@ label.small-btn {
   gap: 4px;
 }
 
+.engine-notice {
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
 .engine-choice {
   display: inline-flex;
   align-items: center;

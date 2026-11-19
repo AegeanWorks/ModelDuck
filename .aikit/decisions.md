@@ -1263,3 +1263,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: `ui:smoke` failed once in five runs with "the Bench suite did not render three tasks" after a 15 s wait while `/api/benchmarks/suite` answered in ~0.2 s by hand. Eight later runs (three alone, two beside the full test suite, three more in the gates) all passed, so it did not reproduce.
 - **Decision**: no change to the wait or to the app. When the wait expires, the failure reports the elapsed time, the task count, the first 160 characters of the suite panel and the suite request's duration, so the next occurrence points at a slow fetch, an error panel or a render that never ran.
 - **Verified**: the script still passes; the failure path itself was not provoked.
+
+### ADR-176: A machine with no prebuilt llama.cpp is told so in the app
+- **Date**: 2026-11-19
+- **Status**: Accepted (implemented; Wave 3 phase 4, first half)
+- **Context**: Windows-on-ARM and Linux-on-ARM have no pinned build; the installer refuses with a Why and a Fix, but a user who never runs it only ever saw the in-process engine with no word that faster ones exist.
+- **Decision**: `prebuiltNotice` (engine-listing.js) asks the manifest through `planInstall` and returns one sentence on `engine_platform`, else null; any other failure (an unreadable manifest) is also null so a fault never shows as a false notice. `GET /api/engines` returns it as `notice` and Models > Installed shows it above the list. Auto-running the installer on first launch for macOS and Linux is not done: it downloads hundreds of MB, so it stays the user's decision.
+- **Verified**: a unit test (unsupported pair gets the sentence, win32-x64 gets null, a missing manifest gets null); screenshots at 1440px and 390px with the notice injected show no overflow. `ui finish` is still unrecorded (ADR-172).
