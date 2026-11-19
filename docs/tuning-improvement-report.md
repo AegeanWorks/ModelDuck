@@ -903,9 +903,13 @@ of ..." when another engine's range reaches the leader's. On this shared machine
 engine's number mid-run (in-process CPU read 5.5 tok/s in one table, 32 when timed alone), so a verdict between close
 engines should not be trusted from a single table.
 
-### F7. The one-pass budget grew past the target
+### F7. The one-pass budget grew past the target — back under it (ADR-179)
 
-`budget-and-preflight.mjs` now gives 18,714 answers for one full pass (the system-prompt axis 7,500, the held-back
+With the system prompt off by default, one full pass is 10,878 answers at the defaults (18,696 with it on; the
+target was 12,000). The script's "held-back check" line is stale and prints a negative number now; it assumes the
+old step shape.
+
+`budget-and-preflight.mjs` gave 18,714 answers for one full pass (the system-prompt axis 7,500, the held-back
 check 5,868). F1 to F3 together remove roughly a third of the sweep answers recorded so far. Its "seconds do not
 follow the selection" line is stale: the script computes seconds once without the stages, while `estimateTune`
 honours them (D3 stays fixed).
@@ -925,6 +929,31 @@ by model.
 preset instead of the general default. It is a serving default, so it needs the G-001 gate and a decision from the
 owner: it changes answers for every untuned model. Tuning a model would still override it. The held-back evidence
 is for three small models only, so a fourth, larger model should be checked before a default is changed.
+
+### F9. Where tuning time goes, and what was done about it (ADR-182)
+
+Measured 2026-11-19 from the recorded runs and the live gate baseline (SmolLM2 135M).
+
+- **Generation is the time.** In the one recorded long run with timing, 90% of the wall time was generation, 3.7%
+  judging and 5.7% model loads. Running several answers at once within one model did not help on this PC (ADR-032,
+  ADR-101, ADR-119), so the lever is how many tokens are generated, not how they are scheduled.
+- **The code task is the time.** Code, bug-fix and repository items are about 73% of the answers in the live baseline
+  and 91% of its answer time; comprehension and recall emit 1 to 3 tokens. A full pass at the defaults is about
+  5,300 code answers and 4,800 others.
+- **By time, not by answers, the token budget is the costly axis.** `maxTokens` was 16% of the sweep answers and 47% of
+  their time (about 1 s per answer against about 0.2 s elsewhere); the system-prompt axis was 36% of the answers and
+  19% of the time. Higher caps do win sometimes (1024 won 3 of 10 code sweeps), so the grid is not pruned.
+- **What was done.** (1) The system prompt is not tuned by default (ADR-179): 42% fewer answers per pass. (2) An answer
+  that ended by itself under a cap is reused under every larger one (ADR-182): 3.8% of the recorded answer time. An
+  earlier estimate of 22.8% was wrong: it counted aborted answers as finished ones and ignored the order the caps
+  were measured in; the strict rule in the recorded order gives 3.8%, and 7,313 of 7,359 reusable answers were
+  byte-identical to the finished one (all 6,388 sampled ones).
+- **Not worth doing.** Stopping a looping answer as soon as `detectLoop` sees it saves 0.1% to 3% of time across all
+  recorded runs (the 20% seen in the live baseline is one unusual CPU run: 41% of its answers hit the cap).
+  Skipping confirmation saves almost nothing: it ran 7 times in 212 sampling and prompt sweeps, so the preflight's
+  upper bound overstates it.
+- **The preflight is pessimistic.** The Tune settings text says one pass is "up to 8.7 h" at 3 s per answer, which is
+  a CPU figure; full tunes recorded on this PC took 19 to 81 minutes on the GPU.
 
 ### Reviewed and left as is
 

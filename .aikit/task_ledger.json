@@ -5,9 +5,9 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1795112347.1348636,
+    "updated_at": 1795119378.236677,
     "owner": "claude:sonnet-5.5",
-    "lease_until": 1795119547.1348636,
+    "lease_until": 1795126578.236677,
     "started_by": "claude:opus-5.5",
     "continuations": [
       {
@@ -24,16 +24,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "task_id": "engines-add",
-      "phase": "superseded",
-      "phase_num": 1,
-      "description": "Superseded by 'engine-start-hardening' without --complete or --reset",
-      "status": "superseded",
-      "timestamp": 1795068388.3122902,
-      "timestamp_str": "2026-11-19 09:06:28",
-      "agent": "claude:sonnet-5.5"
-    },
     {
       "task_id": "engine-start-hardening",
       "phase": "phase 4",
@@ -350,6 +340,24 @@
       "timestamp": 1795112470.3329015,
       "timestamp_str": "2026-11-19 21:21:10",
       "agent": "claude-code:bba617e6"
+    },
+    {
+      "task_id": "tune-system-prompt-optional",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "answers shared across token caps (ADR-182), time analysis F9",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795119378.236677,
+      "timestamp_str": "2026-11-19 23:16:18",
+      "agent": "claude:sonnet-5.5",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }

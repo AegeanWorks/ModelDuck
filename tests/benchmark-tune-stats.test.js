@@ -164,3 +164,57 @@ test("score on no items is a zero rate, not NaN", async () => {
   assert.equal(stats.rate, 0, `empty input must not poison rate comparisons (got ${stats.rate})`);
   assert.equal(stats.solved, 0);
 });
+
+test("an answer that finished under a smaller token cap is reused under a larger one, and only that (ADR-182)", async () => {
+  const asked = [];
+  // "short" ends by itself after 40 tokens; "long" is cut at every cap; "odd" is cut by an abort.
+  const answer = (id, cap) => {
+    if (id === "short") return { id, passed: 1, total: 1, ms: 400, outputTokens: 40, stopReason: "eogToken", text: "done", digest: "s" };
+    if (id === "odd") return { id, passed: 0, total: 1, ms: 5, outputTokens: 3, stopReason: "abort", digest: "o" };
+    if (id === "bad") return { id, passed: 0, total: 1, ms: 5, outputTokens: 0, error: "load failed", digest: "b" };
+    return { id, passed: cap >= 512 ? 1 : 0, total: 1, ms: cap * 10, outputTokens: cap, stopReason: "maxTokens", text: "x".repeat(cap), digest: `l${cap}` };
+  };
+  const recorded = [];
+  const measurements = new Measurements(async (settings, itemIds, seed) => {
+    asked.push({ cap: settings.maxTokens, ids: [...itemIds], seed });
+    return { prompts: itemIds.map((id) => answer(id, settings.maxTokens)) };
+  }, 1000, (settings, seed, rows) => recorded.push({ cap: settings.maxTokens, ids: rows.map((row) => row.id) }));
+  const ids = ["short", "long", "odd", "bad"];
+  const base = { temperature: 0.7, topP: 0.9 };
+  await measurements.measure({ ...base, maxTokens: 64 }, ids, 42);
+  assert.deepEqual(asked.at(-1).ids, ids, "nothing to reuse yet");
+  const wide = await measurements.measure({ ...base, maxTokens: 512 }, ids, 42);
+  assert.deepEqual(asked.at(-1), { cap: 512, ids: ["long", "odd", "bad"], seed: 42 }, "only the answer that finished is not asked again");
+  assert.equal(wide.prompts[0].text, "done");
+  assert.equal(wide.prompts[0].outputTokens, 40);
+  assert.equal(wide.prompts[1].passed, 1, "the cut answer is measured at the new cap");
+  assert.equal(measurements.reusedRows, 1);
+  assert.equal(measurements.runs, 4 + 3, "a reused answer is not a measured one");
+  assert.deepEqual(recorded.at(-1), { cap: 512, ids: ["long", "odd", "bad"] }, "the run record keeps only what the model answered");
+  // A smaller or equal cap never reuses a larger one's answer; another seed or setting never reuses any.
+  await measurements.measure({ ...base, maxTokens: 32 }, ["short"], 42);
+  assert.deepEqual(asked.at(-1).ids, ["short"], "a smaller cap than the one that finished is measured");
+  await measurements.measure({ ...base, maxTokens: 1024 }, ["short"], 7);
+  assert.deepEqual(asked.at(-1), { cap: 1024, ids: ["short"], seed: 7 }, "another seed is another answer");
+  await measurements.measure({ ...base, topP: 0.8, maxTokens: 1024 }, ["short"], 42);
+  assert.deepEqual(asked.at(-1).ids, ["short"], "another sampler setting is another answer");
+  // No cap at all (null) is the largest of all: an answer that finished stands for it.
+  const before = asked.length;
+  await measurements.measure({ ...base, maxTokens: null }, ["short"], 42);
+  assert.equal(asked.length, before, "an answer that finished in 40 tokens also stands for no cap");
+});
+
+test("the order the caps are measured in does not matter: a finished answer serves every cap above its length (ADR-182)", async () => {
+  const asked = [];
+  const measurements = new Measurements(async (settings, itemIds) => {
+    asked.push({ cap: settings.maxTokens, ids: [...itemIds] });
+    return { prompts: itemIds.map((id) => ({ id, passed: 1, total: 1, ms: 10, outputTokens: 90, stopReason: "eogToken", digest: id })) };
+  }, 1000);
+  await measurements.measure({ temperature: 0, maxTokens: 512 }, ["a", "b"], 42);
+  await measurements.measure({ temperature: 0, maxTokens: 128 }, ["a", "b"], 42);
+  assert.equal(asked.length, 1, "90 tokens fit under 128: the 512 answer is also the 128 answer");
+  await measurements.measure({ temperature: 0, maxTokens: 64 }, ["a", "b"], 42);
+  assert.deepEqual(asked.at(-1), { cap: 64, ids: ["a", "b"] }, "under 64 the answer would have been cut, so it is measured");
+  await measurements.measure({ temperature: 0, maxTokens: 90 }, ["a"], 42);
+  assert.deepEqual(asked.at(-1), { cap: 90, ids: ["a"] }, "a cap equal to the length is not reused: the stop might have been the cap");
+});

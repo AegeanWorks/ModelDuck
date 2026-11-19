@@ -35,6 +35,21 @@ export function slotKeyOf(settings, seed) {
   return `${settingsKey(rest)}|${seed}`;
 }
 
+/**
+ * The token cap of a settings object: a number, or Infinity for none. An answer that ended by itself (`eogToken`)
+ * under a cap is the same answer under every larger one, so the cap is what separates slots that may share it (ADR-182).
+ */
+export const capOf = (settings) => (Number(settings.maxTokens) > 0 ? Number(settings.maxTokens) : Infinity);
+
+/** The slot key without the cap: slots with the same one differ only in `maxTokens`. */
+export function capFreeKeyOf(settings, seed) {
+  const { maxTokens: _cap, ...rest } = settings;
+  return slotKeyOf(rest, seed);
+}
+
+/** An answer that stopped on its own (cut, aborted and failed ones never do) and how many tokens it took. */
+const finishedByItself = (row) => Boolean(row) && !row.error && row.stopReason === "eogToken" && Number.isFinite(row.outputTokens);
+
 /** Live re-asks per spot-check before saved answers are reused (ADR-123). */
 export const VERIFY_SAMPLE = 8;
 
@@ -104,6 +119,8 @@ export class Measurements {
     // IDEA-1764: answers served by restore() instead of the model.
     this.reusedRows = 0;
     this.slots = new Map();
+    // Slots that differ only in their token cap, by the key without it (ADR-182).
+    this.capSlots = new Map();
     // Why measuring stopped early (the model cannot load at all), or null.
     this.stopped = null;
   }
@@ -125,18 +142,50 @@ export class Measurements {
     this.stopped ??= reason;
   }
 
+  /** The slot of one settings object and seed, made on first use and listed with its cap-only siblings. */
+  #slotFor(settings, seed) {
+    const slotKey = slotKeyOf(settings, seed);
+    if (!this.slots.has(slotKey)) {
+      const slot = { items: new Map(), memoryBytes: undefined, gpuVram: undefined };
+      this.slots.set(slotKey, slot);
+      const family = capFreeKeyOf(settings, seed);
+      if (!this.capSlots.has(family)) this.capSlots.set(family, []);
+      this.capSlots.get(family).push({ cap: capOf(settings), slot });
+    }
+    return this.slots.get(slotKey);
+  }
+
+  /**
+   * Fill the items of `slot` that a sibling slot, differing only in its token cap, already answered by itself
+   * (ADR-182). Same prompt, same sampler and seed, so the model produces the same tokens until the cap: an answer that
+   * ended after `n` tokens is the same answer under every cap above `n`, whichever cap it was asked under and in
+   * whichever order. Returns the ids still missing.
+   */
+  #reuseFromSiblingCap(settings, seed, slot, missing) {
+    const cap = capOf(settings);
+    const donors = (this.capSlots.get(capFreeKeyOf(settings, seed)) ?? []).filter((donor) => donor.slot !== slot);
+    if (!donors.length) return missing;
+    return missing.filter((id) => {
+      const donor = donors.find((entry) => {
+        const row = entry.slot.items.get(id);
+        return finishedByItself(row) && row.outputTokens < cap;
+      });
+      if (!donor) return true;
+      slot.items.set(id, { ...donor.slot.items.get(id), reusedFromCap: donor.cap });
+      return false;
+    });
+  }
+
   /**
    * Prefill one slot from saved answers (G8): a continue or re-tune reuses an
    * exact settings/seed/item match instead of re-asking the model. Returns
    * false when the slot already has measurements (fresh answers win).
    */
   restore(settings, seed, rows) {
-    const slotKey = slotKeyOf(settings, seed);
     // Several saved groups can share one slot (runs at different thread counts on
     // full GPU offload, ADR-123), so each adds only the items the slot lacks: an
     // item already there, fresh or restored first, is never replaced.
-    if (!this.slots.has(slotKey)) this.slots.set(slotKey, { items: new Map(), memoryBytes: undefined, gpuVram: undefined });
-    const { items } = this.slots.get(slotKey);
+    const { items } = this.#slotFor(settings, seed);
     let added = false;
     for (const row of rows) {
       const id = row.item ?? row.id;
@@ -148,10 +197,8 @@ export class Measurements {
   }
 
   async measure(settings, itemIds, seed) {
-    const slotKey = slotKeyOf(settings, seed);
-    if (!this.slots.has(slotKey)) this.slots.set(slotKey, { items: new Map(), memoryBytes: undefined, gpuVram: undefined });
-    const slot = this.slots.get(slotKey);
-    const missing = itemIds.filter((id) => !slot.items.has(id));
+    const slot = this.#slotFor(settings, seed);
+    const missing = this.#reuseFromSiblingCap(settings, seed, slot, itemIds.filter((id) => !slot.items.has(id)));
     if (missing.length) {
       if (this.exhausted) return null;
       // With a time budget the items are asked a few at a time so the tune stops close to it,
