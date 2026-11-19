@@ -76,3 +76,5 @@ chosen. Leave `engine` out for the profile's engine, or the in-process one when 
 
 `GET /api/engines` also carries `notice`: one sentence when the installer has no prebuilt llama.cpp for this
 machine (the manifest has no `<platform>-<arch>` entry), else `null`. Models > Installed shows it above the list.
+Each servable engine is also probed (`detect`: a server that does not answer, a GPU build with no such GPU) and
+listed with `servable: false` and a `reason` when it would not start; probes are cached for a minute.

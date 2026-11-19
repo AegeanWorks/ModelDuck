@@ -80,3 +80,28 @@ test("a machine with no prebuilt llama.cpp is told so in one sentence, one with 
   assert.equal(await prebuiltNotice({ platform: "win32", arch: "x64", manifestFile }), null);
   assert.equal(await prebuiltNotice({ platform: "linux", arch: "riscv64", manifestFile: new URL("../engines/missing.json", import.meta.url) }), null, "an unreadable manifest is silence, not a false notice");
 });
+
+test("an engine whose probe fails is not offered, with its reason, and the probe is shared and cached", async (t) => {
+  let probes = 0;
+  const offline = { id: "srv:down", label: "Down", detect: async () => { probes += 1; return { available: false, reason: "No server answered." }; } };
+  const catalog = createEngineCatalog({
+    descriptors: [{ kind: "srv", servable: true, owns: kindOwns("srv"), adapters: () => [adapter("srv:fast", "Fast build"), offline], resolve: (id) => ({ id }) }],
+  });
+  const dir = await mkdtemp(path.join(os.tmpdir(), "modelduck-engines-"));
+  t.after(() => rm(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 20 }));
+  let now = 0;
+  const engines = createEngineListing({ catalog, registry: { findById: () => null }, profilesDir: dir, context: () => ({}), notice: async () => null, clock: () => now });
+  const [first, second] = await Promise.all([engines.list(), engines.list()]);
+  const down = first.engines.find((engine) => engine.id === "srv:down");
+  assert.equal(down.servable, false);
+  assert.equal(down.reason, "No server answered.");
+  assert.equal(first.engines.find((engine) => engine.id === "srv:fast").servable, true, "an adapter with no detect is not held back");
+  assert.deepEqual(second.engines.map((engine) => engine.servable), first.engines.map((engine) => engine.servable));
+  assert.equal(probes, 1, "two lists at once share one probe");
+  now = 30_000;
+  await engines.list();
+  assert.equal(probes, 1, "within a minute the probe is reused");
+  now = 61_000;
+  await engines.list();
+  assert.equal(probes, 2, "after a minute it is asked again");
+});

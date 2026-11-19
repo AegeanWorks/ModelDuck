@@ -5,11 +5,17 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1795093570.9357283,
-    "owner": "claude:sonnet-5.5",
-    "lease_until": 1795100770.9357283,
+    "updated_at": 1795104681.2444222,
+    "owner": "claude:opus-5.5",
+    "lease_until": 1795111881.2444222,
     "started_by": "claude:sonnet-5.5",
-    "continuations": [],
+    "continuations": [
+      {
+        "agent": "claude:opus-5.5",
+        "from": "claude:sonnet-5.5",
+        "at": 1795104681.2444222
+      }
+    ],
     "workspaces": [
       {
         "name": "modelduck",
@@ -18,23 +24,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "task_id": "text-content-parts",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'text-content-parts' completed successfully.",
-      "status": "completed",
-      "timestamp": 1795029438.6080973,
-      "timestamp_str": "2026-11-18 22:17:18",
-      "agent": "kilo:1",
-      "head": "2d504076d0fc88dc2432f24744f48eb5ba10b003",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
     {
       "task_id": "docs-test-counts",
       "phase": "phase 2",
@@ -383,6 +372,25 @@
       "timestamp": 1795104556.6557946,
       "timestamp_str": "2026-11-19 19:09:16",
       "agent": "claude-code:bba617e6"
+    },
+    {
+      "task_id": "engine-start-hardening",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "engine list probes liveness (ADR-178); same session continued on another model",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795104681.2444222,
+      "timestamp_str": "2026-11-19 19:11:21",
+      "agent": "claude:opus-5.5",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ],
+      "continued_from": "claude:sonnet-5.5"
     }
   ]
 }
