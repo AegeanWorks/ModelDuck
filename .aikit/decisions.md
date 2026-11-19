@@ -1214,3 +1214,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: ADR-165 listed this as not done: the port is chosen (and released) before llama-server binds it, so another program can take it in between and the load fails for no fault of the model or the settings.
 - **Decision**: when the server exits and its output says it could not bind, `start` tries once more with a fresh port. Any other exit, a spawn error and a timeout are not retried, so a bad setting still fails at once and a genuinely busy machine fails after two tries rather than looping.
 - **Verified**: two unit tests (a first attempt that fails to bind then a healthy second one on a different port; an unrelated exit is spawned once). The race itself was not provoked on the real binary.
+
+### ADR-169: A llama-server crash after start reports the last lines it wrote
+- **Date**: 2026-11-19
+- **Status**: Accepted (implemented; Wave 3 phase 1)
+- **Context**: stderr was kept only to explain a failed start; a later `engine_crashed` said "it exited with N" and nothing else, so an out-of-memory or driver abort left no trace for the user.
+- **Decision**: the backend keeps the last 4,000 characters of stderr for the life of the process and `engine_crashed` appends the last three lines (at most 400 characters) after the exit code. Nothing else about the crash path changes.
+- **Verified**: a unit test (a server that writes an out-of-memory line and exits is reported with that line in the Why). Not run against the real binary.

@@ -592,6 +592,19 @@ test("llama-server reports a dead process as a crash with a Why and a Fix, not a
   await backend.stop();
 });
 
+test("a crash after start carries the last lines llama-server wrote to stderr", async () => {
+  const { spawnImpl, spawned } = fakeLlamaServer();
+  const backend = new LlamaServerBackend({ binary: "b", spawnImpl });
+  await backend.start({ entry: ENTRY, load: LOAD });
+  spawned[0].child.stderr.emit("data", "slot 0 ok\nggml_cuda: out of memory\nabort: CUDA error\n");
+  spawned[0].child.kill();
+  await assert.rejects(
+    () => backend.generate({ messages: [{ role: "user", content: "hi" }], settings: {} }),
+    (error) => error.code === "engine_crashed" && /out of memory/.test(error.why) && /CUDA error/.test(error.why),
+  );
+  await backend.stop();
+});
+
 // A binary that cannot be started (deleted after it was registered, or not executable) used to emit an
 // unhandled "error" event, which ends the whole process; it must be a refusal with a Why and a Fix instead.
 test("a binary that cannot be started is a refusal, not a crash, and leaves no listener behind", async () => {

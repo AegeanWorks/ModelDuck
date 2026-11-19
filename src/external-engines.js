@@ -171,6 +171,7 @@ export class LlamaServerBackend {
   #child = null;
   #base = null;
   #exitedWith = null;
+  #stderrTail = "";
 
   /** `cachePrompt`: reuse the prompt cache between requests (serving); a tune sets it off so every answer pays for its own prompt. */
   constructor({ binary, spawnImpl = spawn, fetchImpl = globalThis.fetch, startTimeoutMs = 120_000, cachePrompt = false }) {
@@ -224,7 +225,8 @@ export class LlamaServerBackend {
       env: { ...process.env, PATH: cleanPath(process.env.PATH) },
     });
     let stderr = "";
-    child.stderr?.on("data", (chunk) => { stderr = (stderr + chunk).slice(-4000); });
+    this.#stderrTail = "";
+    child.stderr?.on("data", (chunk) => { stderr = (stderr + chunk).slice(-4000); this.#stderrTail = stderr; });
     let exited = null;
     child.once("exit", (code) => { exited = code ?? "signal"; this.#exitedWith = exited; });
     // A binary that is missing or not executable reports through "error"; unhandled, that ends the whole process.
@@ -263,7 +265,11 @@ export class LlamaServerBackend {
     return {
       signal,
       gone: () => this.#child === null || this.#child.exitCode !== null || this.#exitedWith !== null,
-      detail: () => (this.#exitedWith === null ? "" : "it exited with " + this.#exitedWith),
+      detail: () => {
+        if (this.#exitedWith === null) return "";
+        const last = this.#stderrTail.trim().split("\n").slice(-3).join(" | ").slice(0, 400);
+        return "it exited with " + this.#exitedWith + (last ? "; last output: " + last : "");
+      },
     };
   }
 
