@@ -5,9 +5,9 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1795090767.469837,
+    "updated_at": 1795092128.6305265,
     "owner": "claude:sonnet-5.5",
-    "lease_until": 1795097967.469837,
+    "lease_until": 1795099328.6305265,
     "started_by": "claude:sonnet-5.5",
     "continuations": [],
     "workspaces": [
@@ -18,30 +18,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "task_id": "add-hf-local-action",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/2] Add the new POST /api/models/add-hf route to the LAN mutation test so a remote client with a key is refused with a *_local_only code before any reference resolution or fetch; [2/2] run the suite and aikit check, record ADR-149 and the UI review, commit (G-001 not applicable: test coverage of an existing local-only rule)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795026834.9898689,
-      "timestamp_str": "2026-11-18 21:33:54",
-      "agent": "kilo:1",
-      "impact_assessment": {
-        "why": "Every other mutating model route is pinned as local-only in local-actions.test.js, but the Hugging Face add route was not, so a future middleware change could expose arbitrary downloads to a LAN client without a failing test",
-        "benefits": "The new route's local-only contract is machine-checked with the others",
-        "risks": "contract: test only; dependency: none; concurrency: none; state: none",
-        "mitigation": "the route's own 400/502 behavior is already covered in server.test.js; this adds only the 403 path"
-      },
-      "plan_digest": "600327dbbe153b348f0fc0b1d26acb1858c3d6c184341c4d60eb20ca0be0542f",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "add-hf-local-action",
       "phase": "phase 4",
@@ -393,6 +369,24 @@
       "status": "in_progress",
       "timestamp": 1795090767.469837,
       "timestamp_str": "2026-11-19 15:19:27",
+      "agent": "claude:sonnet-5.5",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "engine-start-hardening",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "idle-timeout engine download with retry (ADR-173)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795092128.6305265,
+      "timestamp_str": "2026-11-19 15:42:08",
       "agent": "claude:sonnet-5.5",
       "checklists": "passed",
       "workspaces": [

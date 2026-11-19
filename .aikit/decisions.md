@@ -1242,3 +1242,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: ADR-170 made the engine choosable over the API; nothing in the app used it.
 - **Decision**: each loadable row in Models > Installed shows an Engine select (Automatic, then every servable engine with its measured tok/s and "fastest here" on the quickest). The choice is kept per model for the session and sent as `engine` on load; with no servable engine the select is not drawn. The list comes from `GET /api/engines?model=` when the dialog opens.
 - **Verified**: screenshots at 1440px and 390px against the real library (21 models) with a faked engine list: the select fits the row and wraps under the title on mobile, no horizontal overflow. `ui verify` passed. `ui finish --reviewed` was denied by the permission classifier, so the UI contract for this surface is not recorded. No UI test was added.
+
+### ADR-173: The engine download has an idle limit and retries a dropped connection
+- **Date**: 2026-11-19
+- **Status**: Accepted (implemented; Wave 3 phase 5)
+- **Context**: `downloadVerified` aborted after 30 minutes in total (ADR-167 listed it as a longer limit, not an idle one), so a slow but moving link could be cut off and a stalled one waited the full half hour; any network error ended the install.
+- **Decision**: the limit is 60 s without a byte (reset on every chunk), `timeoutMs` is gone. A stall, a dropped connection (`fetch failed`, ECONNRESET, ETIMEDOUT, EPIPE, undici socket codes) and an HTTP 5xx or 429 are tried again up to twice with 1 s then 2 s back-off; a 4xx and a checksum mismatch are final. The partial file is removed before each try. No `--retry` flag: retrying is the default and the installer can simply be run again.
+- **Verified**: two unit tests (a body that trickles for longer than the idle limit succeeds, a stalled one is refused with the seconds in its Why and leaves no `.part`; one reset is retried, a 404 is not, a 503 is tried three times). Not run against GitHub's servers.

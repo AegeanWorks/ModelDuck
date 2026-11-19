@@ -109,6 +109,64 @@ test("a failed HTTP answer is a download error naming the URL", async (t) => {
   );
 });
 
+/** A body that sends `pieces` with `gapMs` between them, then (stall) never ends. */
+const slowBody = (pieces, gapMs, { stall = false } = {}) => async (_url, { signal }) => {
+  const encoder = new TextEncoder();
+  const body = new ReadableStream({
+    async start(controller) {
+      signal?.addEventListener("abort", () => controller.error(signal.reason ?? new Error("aborted")));
+      for (const piece of pieces) {
+        await new Promise((resolve) => setTimeout(resolve, gapMs));
+        if (signal?.aborted) return;
+        controller.enqueue(encoder.encode(piece));
+      }
+      if (!stall) controller.close();
+    },
+  });
+  return new Response(body, { status: 200 });
+};
+
+test("a download that keeps moving is not cut off by a short idle limit, one that stalls is", async (t) => {
+  const dir = tempDir(t);
+  // hygiene: allow a fixture address: fetch is injected, nothing is loaded
+  const moving = await downloadVerified({ url: "https://x/a.zip", sha256: sha("abcdef"), dest: path.join(dir, "a.zip"), fetchImpl: slowBody(["ab", "cd", "ef"], 30), idleMs: 120, retries: 0 });
+  assert.equal(moving.bytes, 6, "total time (90 ms) passed the idle limit's neighbour but no gap did");
+  await assert.rejects(
+    // hygiene: allow a fixture address: fetch is injected, nothing is loaded
+    () => downloadVerified({ url: "https://x/b.zip", sha256: sha("abcdef"), dest: path.join(dir, "b.zip"), fetchImpl: slowBody(["ab"], 10, { stall: true }), idleMs: 100, retries: 0 }),
+    (error) => error.code === "engine_download_failed" && /no data/i.test(error.why) && Boolean(error.fix),
+  );
+  assert.equal(fs.existsSync(path.join(dir, "b.zip.part")), false);
+});
+
+test("a transient failure is retried, a refusal or a bad hash is not", async (t) => {
+  const dir = tempDir(t);
+  let calls = 0;
+  const flaky = async (url, init) => {
+    calls += 1;
+    if (calls === 1) throw Object.assign(new TypeError("fetch failed"), { cause: { code: "ECONNRESET" } });
+    return respond("cpu-bytes")(url, init);
+  };
+  // hygiene: allow a fixture address: fetch is injected, nothing is loaded
+  const result = await downloadVerified({ url: "https://x/cpu.zip", sha256: sha("cpu-bytes"), dest: path.join(dir, "cpu.zip"), fetchImpl: flaky, retries: 2, backoffMs: 1 });
+  assert.equal(result.bytes, 9);
+  assert.equal(calls, 2);
+  let notFound = 0;
+  await assert.rejects(
+    // hygiene: allow a fixture address: fetch is injected, nothing is loaded
+    () => downloadVerified({ url: "https://x/m.zip", sha256: "0", dest: path.join(dir, "m.zip"), fetchImpl: async () => { notFound += 1; return new Response(null, { status: 404 }); }, retries: 2, backoffMs: 1 }),
+    (error) => error.code === "engine_download_failed",
+  );
+  assert.equal(notFound, 1, "a 404 is final");
+  let serverError = 0;
+  await assert.rejects(
+    // hygiene: allow a fixture address: fetch is injected, nothing is loaded
+    () => downloadVerified({ url: "https://x/s.zip", sha256: "0", dest: path.join(dir, "s.zip"), fetchImpl: async () => { serverError += 1; return new Response(null, { status: 503 }); }, retries: 2, backoffMs: 1 }),
+    (error) => error.code === "engine_download_failed",
+  );
+  assert.equal(serverError, 3, "a 503 is tried again, then given up");
+});
+
 function fetchByUrl(files) {
   return async (url) => new Response(files[url.split("/").pop()] ?? null, { status: files[url.split("/").pop()] === undefined ? 404 : 200 });
 }

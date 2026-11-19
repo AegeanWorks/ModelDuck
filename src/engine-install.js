@@ -70,45 +70,76 @@ async function hashOf(file) {
   }
 }
 
+/** A failure worth another try: the connection broke or stalled, or the server said it was busy (5xx, 429). A refusal or a bad hash is final. */
+const transient = (error) => error?.transient === true || (error instanceof TypeError && /fetch failed|terminated/i.test(error.message)) || ["ECONNRESET", "ETIMEDOUT", "EPIPE", "UND_ERR_SOCKET", "UND_ERR_CONNECT_TIMEOUT", "UND_ERR_BODY_TIMEOUT"].includes(error?.code ?? error?.cause?.code);
+
+/** One attempt: connect and stream to `part`, cancelling when no byte has arrived for `idleMs` (a slow link that keeps moving is never cut off). */
+async function fetchToPart({ url, part, fetchImpl, idleMs }) {
+  const controller = new AbortController();
+  let idle = false;
+  let timer = null;
+  const touch = () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => { idle = true; controller.abort(); }, idleMs);
+  };
+  const hash = createHash("sha256");
+  let bytes = 0;
+  try {
+    touch();
+    const response = await fetchImpl(url, { signal: controller.signal, redirect: "follow" });
+    if (!response.ok || !response.body) {
+      throw Object.assign(new AppError("The engine download failed", { code: "engine_download_failed", why: `${url} answered ${response.status}.`, fix: "Check the connection, or download the file by hand and put it in engines/.cache." }), { transient: response.status >= 500 || response.status === 429 });
+    }
+    const meter = new Transform({
+      transform(chunk, _encoding, done) {
+        touch();
+        hash.update(chunk);
+        bytes += chunk.length;
+        done(null, chunk);
+      },
+    });
+    await pipeline(Readable.fromWeb(response.body), meter, fs.createWriteStream(part));
+    const fd = await fs.promises.open(part, "r+");
+    await fd.sync();
+    await fd.close();
+    return { bytes, actual: hash.digest("hex") };
+  } catch (error) {
+    await fs.promises.rm(part, { force: true });
+    if (idle) {
+      throw Object.assign(new AppError("The engine download stalled", { code: "engine_download_failed", why: `No data arrived for ${Math.round(idleMs / 1000)} seconds from ${url}.`, fix: "Check the connection and run the installer again; a finished download is kept." }), { transient: true });
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /**
  * Stream `url` to `dest`, hashing as it arrives; a wrong hash deletes the file and refuses.
  * A copy already at `dest` whose hash matches is reused (a failed unpack must not cost the download again).
+ * The limit is idle time, not total time; a dropped, stalled or busy-server attempt is tried again (`retries` more times).
  */
-export async function downloadVerified({ url, sha256, dest, fetchImpl = globalThis.fetch, timeoutMs = 1_800_000 }) {
+export async function downloadVerified({ url, sha256, dest, fetchImpl = globalThis.fetch, idleMs = 60_000, retries = 2, backoffMs = 1000 }) {
   await fs.promises.mkdir(path.dirname(dest), { recursive: true });
   const have = await hashOf(dest);
   if (have?.sha256 === sha256) return { bytes: have.bytes, sha256, cached: true };
   const part = `${dest}.part`;
-  const response = await fetchImpl(url, { signal: AbortSignal.timeout(timeoutMs), redirect: "follow" });
-  if (!response.ok || !response.body) {
-    throw new AppError("The engine download failed", { code: "engine_download_failed", why: `${url} answered ${response.status}.`, fix: "Check the connection, or download the file by hand and put it in engines/.cache." });
+  let result;
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      result = await fetchToPart({ url, part, fetchImpl, idleMs });
+      break;
+    } catch (error) {
+      if (attempt >= retries || !transient(error)) throw error;
+      await new Promise((resolve) => setTimeout(resolve, backoffMs * 2 ** attempt));
+    }
   }
-  const hash = createHash("sha256");
-  let bytes = 0;
-  const meter = new Transform({
-    transform(chunk, _encoding, done) {
-      hash.update(chunk);
-      bytes += chunk.length;
-      done(null, chunk);
-    },
-  });
-  const out = fs.createWriteStream(part);
-  try {
-    await pipeline(Readable.fromWeb(response.body), meter, out);
-    const fd = await fs.promises.open(part, "r+");
-    await fd.sync();
-    await fd.close();
-  } catch (error) {
+  if (result.actual !== sha256) {
     await fs.promises.rm(part, { force: true });
-    throw error;
-  }
-  const actual = hash.digest("hex");
-  if (actual !== sha256) {
-    await fs.promises.rm(part, { force: true });
-    throw new AppError("The engine download does not match its checksum", { code: "engine_checksum_mismatch", why: `${path.basename(dest)} hashed to ${actual}, expected ${sha256}; the file was deleted.`, fix: "Try again; if it repeats, the release changed and the manifest needs a new pin." });
+    throw new AppError("The engine download does not match its checksum", { code: "engine_checksum_mismatch", why: `${path.basename(dest)} hashed to ${result.actual}, expected ${sha256}; the file was deleted.`, fix: "Try again; if it repeats, the release changed and the manifest needs a new pin." });
   }
   await fs.promises.rename(part, dest);
-  return { bytes, sha256: actual };
+  return { bytes: result.bytes, sha256: result.actual };
 }
 
 /** Unpack a .zip or .tar.gz into `dir`. */
