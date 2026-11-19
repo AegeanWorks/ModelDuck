@@ -5,7 +5,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { LlamaBenchAdapter, LlamaServerAdapter, NodeBackendAdapter, OllamaAdapter, OpenAICompatAdapter, WORKLOAD, cleanPath, cpuTimingThreads, parseDevices, parseLlamaVersion } from "../src/inference-engine-adapters.js";
-import { assessEngines, createEngineRegistry, defaultEngines, expandOnly, fastestEngine, formatAssessment, tiedWithFastest, usableNodeBackends } from "../src/inference-engines.js";
+import { assessEngines, createEngineRegistry, defaultEngines, expandOnly, fastestEngine, formatAssessment, tiedWithFastest, endToEndSeconds, usableNodeBackends } from "../src/inference-engines.js";
 
 const ENTRY = { id: "m1", fileName: "tiny-q4_k_m.gguf", path: "C:\\models\\tiny-q4_k_m.gguf" };
 
@@ -403,4 +403,19 @@ test("engines whose measured ranges overlap the fastest one's are named as tied 
   const text = formatAssessment({ model: "m", fastest: "a", results });
   assert.match(text, /within the measured spread of b/);
   assert.doesNotMatch(formatAssessment({ model: "m", fastest: "a", results: [row("a", 34, [33, 35]), row("c", 20, [18, 25])] }), /within the measured spread/);
+});
+
+test("an engine that decodes faster but reads prompts slowly is not called the best end to end (ADR-187)", () => {
+  const row = (id, genTps, promptTps) => ({ id, label: id, available: true, ok: true, genTps, genRange: [genTps, genTps], promptTps, detail: "d" });
+  // The shape of the 2026-11-20 measurement of kinetic against llama-server on one GPU.
+  const results = [row("llama-server:vulkan", 134, 1769), row("kinetic", 332, 211)];
+  assert.ok(Math.abs(endToEndSeconds(results[0]) - (256 / 1769 + 64 / 134)) < 1e-9, "the standard workload is a 256-token prompt and 64 tokens out");
+  assert.ok(endToEndSeconds(results[1]) > endToEndSeconds(results[0]), "reading the prompt at 211 tok/s costs more than the faster decode saves");
+  const text = formatAssessment({ model: "m", fastest: "kinetic", results });
+  assert.match(text, /kinetic generates fastest, but llama-server:vulkan answers the standard workload sooner/);
+  assert.match(text, /prompt speed/i);
+  // When one engine wins on both counts there is nothing to add.
+  const both = formatAssessment({ model: "m", fastest: "llama-server:vulkan", results: [row("llama-server:vulkan", 200, 2000), row("node", 100, 1000)] });
+  assert.doesNotMatch(both, /answers the standard workload sooner/);
+  assert.equal(endToEndSeconds({ ok: false }), Infinity);
 });

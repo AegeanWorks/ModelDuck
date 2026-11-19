@@ -65,7 +65,7 @@ shows the download is intact, not that its publisher is trusted. This PC is Wind
 
 | Project | What it claims | Fit for this PC |
 |---|---|---|
-| [kinetic](https://github.com/Veloresearch/kinetic) (Apache-2.0, Rust, Beta 1, 2026-11-10) | GGUF, a drop-in for `llama-server` (copy the binary to that name), OpenAI API, Windows x64 builds, Vulkan on any GPU. Against llama.cpp b12001 on a Ryzen 5 6600H + RTX 3060 laptop: up to 1.4x on plain generation, 4.5x on repeated file rewrites (its edit mode) | **Best candidate:** `engines:add` registers it like a llama.cpp build. Its own notes list NVIDIA from RTX 20 as the supported GPUs and a crash report on the AMD RX 9070 (same generation as this GPU), so the GPU path may fall back to the CPU. The 4.5x is for repeated edits, not the tuner's fresh answers |
+| [kinetic](https://github.com/Veloresearch/kinetic) (Apache-2.0, Rust, Beta 1, 2026-11-10) | GGUF, a drop-in for `llama-server` (copy the binary to that name), OpenAI API, Windows x64 builds, Vulkan on any GPU. Against llama.cpp b12001 on a Ryzen 5 6600H + RTX 3060 laptop: up to 1.4x on plain generation, 4.5x on repeated file rewrites (its edit mode) | **Tried here 2026-11-20, not faster for ModelDuck:** it starts as `llama-server` and answers like it, but takes 1.8x as long on the code items, 3.5x on comprehension and 8x on recall (details below). Re-test its Beta 2 |
 | [magnitude](https://github.com/magnitudedev/magnitude) (Apache-2.0, Rust, 7.9k stars) | tunes its kernels on your hardware per model; "over 2x faster than Ollama" (average of 11 models, measured on Mac and NVIDIA); AMD, Intel and CPU "supported"; Windows x64; OpenAI API | `--openai-engine`, measured only. The comparison is against Ollama, not llama.cpp, and part of the gain is bundled speculative-decoding drafters; it serves its own model list |
 | [ghost-infer](https://github.com/affifuddin-hazam/ghost-infer) (Rust, GGUF, OpenAI API) | 2x llama.cpp on models bigger than the GPU, on an RTX 2060 SUPER | No: it runs on NVIDIA through CUDA graphs |
 | [xinfer](https://github.com/guoqingbao/xinfer) (MIT, Rust) | "blazing-fast LLM inference in pure Rust", GGUF | No: CUDA and Metal only |
@@ -76,10 +76,27 @@ Left out because they cannot run on this PC: Apple Silicon engines (Rapid-MLX, b
 data-centre and accelerator stacks (xllm, rtp-llm, chitu, FastDeploy, gpustack, LMDeploy), cluster engines
 (distributed-llama) and mobile runtimes (LiteRT-LM, react-native-executorch).
 
-To try kinetic: extract `kinetic-0.1.0-windows-x86_64-cuda.zip` (33.7 MB, SHA-256 `3fb128a3...ba43e4`, checked against
-the release's `SHA256SUMS`; one `kinetic.exe`, one DLL, no installer) into its own folder, copy `kinetic.exe` to
-`llama-server.exe` there, `npm run engines:add -- --name kinetic --binary <that file> --backend vulkan`, then
-`npm run engines -- --model <file.gguf>`. Time it on the same model next to `llama-server:vulkan`, alone on the machine.
+**Kinetic, tried on this PC (2026-11-20).** kinetic 0.1.0 (the Windows `cuda` archive, SHA-256 `3fb128a3...ba43e4`, matched its release's
+`SHA256SUMS`) was extracted into its own folder, copied to `llama-server.exe` and registered with `engines:add`, then removed again.
+It was timed with the baseline regeneration still running, so every number is interleaved A, B, A, B on the same
+model (Qwen2.5 Coder 1.5B Q4_K_M, Vulkan, RX 9060 XT) and read as a ratio.
+
+| Check | Result |
+|---|---|
+| Starts with ModelDuck's own `llama-server` arguments | yes, healthy in 4 s, `/health` and streamed `/v1/chat/completions` with usage as ModelDuck reads them |
+| Models it can run on the GPU | the Coder 1.5B file; SmolLM2 135M and Qwen2.5 0.5B Q4_K_M stop with "no Vulkan GEMV kernel for Q5_0" |
+| Same answers as `llama-server` (greedy, 8 suite prompts) | 7 of 8 identical; the 8th diverges at character 176 with the same token count |
+| Raw speed, the engines workload (256-token prompt, 64 out) | generation 332 against 134 tok/s (2.5x), prompt 211 against 1,769 tok/s (0.12x) |
+| End to end, 128 tokens out after a short prompt | 547 against 930 ms: kinetic 1.7x faster |
+| End to end, 256-token prompt, 64 out | 655 against 560 ms: kinetic 1.2x slower |
+| End to end, 2,000-token prompt, 16 out | 1,080 against 608 ms: kinetic 1.8x slower |
+| The tuner's own items (20 per task, greedy, judged by the suite) | code 32.0 against 17.4 s (1.84x as long), comprehension 3.9 against 1.1 s (3.5x), recall 42.1 against 5.2 s (8.0x) |
+| Pass counts on those items | code 14 against 13 (one item differs), comprehension 17 against 17, recall 15 against 15; 56 of 60 answers identical text |
+
+So it decodes faster and reads prompts much more slowly, and the suite's items are prompt-heavy (repository code,
+long-context recall), which is why a generation-only ranking would have called it the winner. The tuner's device stage
+judges engines end to end (ADR-159), so it would not have adopted it. `npm run engines` now says so too (ADR-187).
+Its Beta 1 notes list prompt-processing and AMD work as coming; worth timing again with a newer release.
 
 **Adding an engine.** Every engine is one descriptor in `src/engine-catalog.js`: a `kind`,
 whether the app can start it itself (`servable`), the adapters that time it, and (if it can

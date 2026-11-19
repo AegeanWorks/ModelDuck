@@ -1,4 +1,5 @@
 import { BUILTIN_DESCRIPTORS, NODE_BACKENDS, createEngineCatalog, engineContext, engineRoots } from "./engine-catalog.js";
+import { WORKLOAD } from "./inference-engine-adapters.js";
 
 /**
  * Which inference engines can run a model here, and how fast each one is
@@ -109,6 +110,17 @@ export function tiedWithFastest(results) {
   return measured.filter((result) => result !== fastest && (result.genRange ? result.genRange[1] : result.genTps) >= floor).map((result) => result.id);
 }
 
+/**
+ * Seconds one answer of the standard workload (a 256-token prompt, 64 tokens out) takes on this engine, from its
+ * measured prompt and generation speeds; Infinity when it was not measured (ADR-187). Generation speed alone can
+ * mislead: kinetic 0.1.0 decoded 2.5x faster than llama-server on one GPU and read prompts 8x slower, and took 1.8x
+ * as long on the code items, 3.5x on comprehension and 8x on recall.
+ */
+export function endToEndSeconds(result) {
+  if (!result?.ok || !(result.genTps > 0) || !(result.promptTps > 0)) return Infinity;
+  return WORKLOAD.promptTokens / result.promptTps + WORKLOAD.genTokens / result.genTps;
+}
+
 /** The in-process backends that start on this machine, for the tuner's device stage. */
 export async function usableNodeBackends({ registry = createEngineRegistry() } = {}) {
   const usable = [];
@@ -180,6 +192,11 @@ export function formatAssessment({ model, results, fastest }) {
   if (fastest) lines.push("  * fastest generation");
   const verdict = bestEngineLine({ model, results, fastest });
   if (verdict) lines.push(verdict);
+  const sooner = results.filter((result) => result.ok).sort((left, right) => endToEndSeconds(left) - endToEndSeconds(right))[0];
+  const decoder = results.find((result) => result.id === fastest && result.ok);
+  if (decoder && sooner && sooner.id !== decoder.id && endToEndSeconds(sooner) < endToEndSeconds(decoder)) {
+    lines.push(`Note: ${decoder.id} generates fastest, but ${sooner.id} answers the standard workload sooner (${endToEndSeconds(sooner).toFixed(2)} s against ${endToEndSeconds(decoder).toFixed(2)} s): prompt speed counts as much as generation speed, and ${decoder.id} reads prompts at ${decoder.promptTps} tok/s.`);
+  }
   return lines.join("\n");
 }
 
