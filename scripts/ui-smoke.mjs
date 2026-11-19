@@ -486,7 +486,12 @@ async function main() {
     }
     await evaluate('document.querySelector(\'[data-bench-tab="tune"]\').click(), true');
     await evaluate('document.querySelector(\'[data-bench-tab="suite"]\').click(), true');
-    assert.ok(await waitFor(() => evaluate('document.querySelectorAll(".suite-task").length === 3'), 15_000), "the Bench suite did not render three tasks");
+    const suiteStart = Date.now();
+    if (!(await waitFor(() => evaluate('document.querySelectorAll(".suite-task").length === 3'), 15_000))) {
+      // The flake (1 run in 5) left no clue; say what the panel held and how the suite request went, so the next one does.
+      const seen = await evaluate('JSON.stringify({ tasks: document.querySelectorAll(".suite-task").length, panel: (document.querySelector("#bench-panel-suite, [data-bench-panel=suite]")?.textContent ?? "").replace(/\s+/g, " ").slice(0, 160), pending: performance.getEntriesByType("resource").filter((entry) => entry.name.includes("/api/benchmarks/suite")).map((entry) => `${Math.round(entry.duration)}ms`) })');
+      assert.fail(`the Bench suite did not render three tasks after ${Date.now() - suiteStart} ms: ${seen}`);
+    }
     assert.equal(await evaluate('document.querySelectorAll(".suite-optin").length'), 1, "the Bench suite does not describe the opt-in multistep chains");
     assert.equal(await evaluate('document.querySelectorAll(".suite-stat").length'), 4, "the Bench suite is missing its summary stats");
     assert.equal(await evaluate('document.querySelectorAll(".suite-details").length'), 3, "the Bench suite is missing its detail disclosures");

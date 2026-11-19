@@ -5,9 +5,9 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1795092253.6347322,
+    "updated_at": 1795093236.9771583,
     "owner": "claude:sonnet-5.5",
-    "lease_until": 1795099453.6347322,
+    "lease_until": 1795100436.9771583,
     "started_by": "claude:sonnet-5.5",
     "continuations": [],
     "workspaces": [
@@ -18,23 +18,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "task_id": "add-hf-local-action",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'add-hf-local-action' completed successfully.",
-      "status": "completed",
-      "timestamp": 1795027514.6436298,
-      "timestamp_str": "2026-11-18 21:45:14",
-      "agent": "kilo:1",
-      "head": "40ab33ca04e366da2a9625055baff604dd109c3a",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
     {
       "task_id": "text-content-parts",
       "phase": "phase 2",
@@ -387,6 +370,24 @@
       "status": "in_progress",
       "timestamp": 1795092253.6347322,
       "timestamp_str": "2026-11-19 15:44:13",
+      "agent": "claude:sonnet-5.5",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "engine-start-hardening",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "ui-smoke flake diagnostics (ADR-175)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795093236.9771583,
+      "timestamp_str": "2026-11-19 16:00:36",
       "agent": "claude:sonnet-5.5",
       "checklists": "passed",
       "workspaces": [

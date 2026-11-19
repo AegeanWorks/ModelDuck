@@ -1256,3 +1256,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: one 826-line file held three backends, the `ServerEngine` that adapts a backend to the engine interface, and the `RoutedEngine` that picks an engine per load; adding an engine meant editing it.
 - **Decision**: `ServerEngine` moves to `src/server-engine.js` and `RoutedEngine` to `src/engine-router.js`, unchanged. `external-engines.js` (499 lines) keeps the backends and exports the two helpers the others share (`refusal`, `conversation`); it imports neither new file, so there is no cycle. Importers and tests use the new paths; no re-export is left behind. `src/engine-env.js`, which no test named, gets `tests/engine-env.test.js` (PATH cleaning on and off Windows, the version line, binary lookup).
 - **Verified**: the 72 engine tests pass unchanged apart from their import lines; four new tests.
+
+### ADR-175: A ui:smoke failure on the Bench suite now says what the panel held
+- **Date**: 2026-11-19
+- **Status**: Accepted (implemented; Wave 3 phase 7; cause of the flake still not found)
+- **Context**: `ui:smoke` failed once in five runs with "the Bench suite did not render three tasks" after a 15 s wait while `/api/benchmarks/suite` answered in ~0.2 s by hand. Eight later runs (three alone, two beside the full test suite, three more in the gates) all passed, so it did not reproduce.
+- **Decision**: no change to the wait or to the app. When the wait expires, the failure reports the elapsed time, the task count, the first 160 characters of the suite panel and the suite request's duration, so the next occurrence points at a slow fetch, an error panel or a render that never ran.
+- **Verified**: the script still passes; the failure path itself was not provoked.
