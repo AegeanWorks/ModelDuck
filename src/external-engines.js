@@ -205,7 +205,17 @@ export class LlamaServerBackend {
     return reasons;
   }
 
+  /** The port is chosen before the server binds it, so another program can take it in between: once more, on a new port. */
   async start({ entry, load }) {
+    try {
+      return await this.#startOnce({ entry, load });
+    } catch (error) {
+      if (!error.portTaken) throw error;
+      return this.#startOnce({ entry, load });
+    }
+  }
+
+  async #startOnce({ entry, load }) {
     await this.stop();
     const port = await freePort();
     const child = this.#spawn(this.#binary, LlamaServerBackend.args({ entry, load, port }), {
@@ -230,6 +240,9 @@ export class LlamaServerBackend {
     for (;;) {
       if (exited !== null) {
         await this.stop();
+        if (!spawnError && /couldn't bind|address already in use|EADDRINUSE|failed to bind/i.test(stderr)) {
+          throw Object.assign(refusal("llama-server did not start", "engine_start_failed", `Port ${port} was taken by another program before the server could use it.`, "Try again."), { portTaken: true });
+        }
         if (spawnError) throw refusal("llama-server could not be started", "engine_start_failed", `${this.#binary} did not run: ${spawnError.code ?? spawnError.message} (${spawnError.message}).`, "Check that the file still exists and is executable, or run: npm run engines:install (or engines:add --remove <name>).");
         throw refusal("llama-server did not start", "engine_start_failed", `It exited with ${exited} while loading ${entry.fileName}: ${stderr.trim().split("\n").slice(-3).join(" | ") || "no output"}`, "Check the settings (context size, GPU layers) against this build, or use another engine.");
       }

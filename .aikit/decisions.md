@@ -1207,3 +1207,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: Reading the installer: `downloadVerified` always fetched, so a failed unpack of the 650 MB CUDA build (or a re-run after an interrupted install) downloaded it again, and its 10-minute total timeout is close to the transfer time of that file on a 10 Mbit/s link.
 - **Decision**: a file already at the cache path whose SHA-256 equals the pin is reused (`cached: true`); a corrupt or partial one is fetched again as before. The total timeout is 30 minutes. The hash is the same pinned one, so reuse is exactly as trusted as a fresh download.
 - **Verified**: a unit test (matching copy reused with no fetch; corrupt copy replaced). The timeout is a longer limit, not an idle timeout; a stalled connection still waits out the 30 minutes.
+
+### ADR-168: A llama-server that loses its port is started once more on a new port
+- **Date**: 2026-11-19
+- **Status**: Accepted (implemented; engine-start-hardening)
+- **Context**: ADR-165 listed this as not done: the port is chosen (and released) before llama-server binds it, so another program can take it in between and the load fails for no fault of the model or the settings.
+- **Decision**: when the server exits and its output says it could not bind, `start` tries once more with a fresh port. Any other exit, a spawn error and a timeout are not retried, so a bad setting still fails at once and a genuinely busy machine fails after two tries rather than looping.
+- **Verified**: two unit tests (a first attempt that fails to bind then a healthy second one on a different port; an unrelated exit is spawned once). The race itself was not provoked on the real binary.

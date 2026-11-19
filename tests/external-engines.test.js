@@ -615,3 +615,34 @@ test("a server that exits while loading leaves no exit listener behind", async (
   await assert.rejects(() => new LlamaServerBackend({ binary: "x", spawnImpl }).start({ entry: ENTRY, load: LOAD }), (error) => error.code === "engine_start_failed");
   assert.equal(process.listenerCount("exit"), before);
 });
+
+// The port is chosen before llama-server binds it; losing that race once must not fail the load.
+test("a server that loses its port to another program is started again on a new port, once", async () => {
+  const attempts = [];
+  const healthy = fakeLlamaServer({ healthyAfter: 1 });
+  const spawnImpl = (binary, args) => {
+    attempts.push(args[args.indexOf("--port") + 1]);
+    if (attempts.length > 1) return healthy.spawnImpl(binary, args);
+    const child = new EventEmitter();
+    child.stderr = new EventEmitter();
+    child.exitCode = null;
+    child.kill = () => {};
+    setImmediate(() => {
+      child.stderr.emit("data", "couldn't bind HTTP server socket, hostname: 127.0.0.1, port: 1\n");
+      child.exitCode = 1;
+      child.emit("exit", 1);
+    });
+    return child;
+  };
+  const backend = new LlamaServerBackend({ binary: "x", spawnImpl });
+  await backend.start({ entry: ENTRY, load: LOAD });
+  assert.equal(attempts.length, 2);
+  assert.notEqual(attempts[0], attempts[1], "the second try asks for a different port");
+  await backend.stop();
+});
+
+test("an exit that is not about the port is not retried", async () => {
+  const { spawnImpl, spawned } = fakeLlamaServer({ exitWith: 1 });
+  await assert.rejects(() => new LlamaServerBackend({ binary: "x", spawnImpl }).start({ entry: ENTRY, load: LOAD }), (error) => error.code === "engine_start_failed");
+  assert.equal(spawned.length, 1);
+});
