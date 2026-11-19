@@ -5,7 +5,7 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1795068479.9202962,
+    "updated_at": 1795085542.2598183,
     "owner": "claude:sonnet-5.5",
     "started_by": "claude:sonnet-5.5",
     "continuations": [],
@@ -17,23 +17,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "task_id": "requested-context-field",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'requested-context-field' completed successfully.",
-      "status": "completed",
-      "timestamp": 1795023003.5410914,
-      "timestamp_str": "2026-11-18 20:30:03",
-      "agent": "kilo:1",
-      "head": "94ae9f4153e7ae1b50ff6d71edc7933202fc2e98",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
     {
       "task_id": "mcp-protocol-tests",
       "phase": "phase 2",
@@ -400,6 +383,23 @@
       "status": "in_progress",
       "timestamp": 1795068479.9202962,
       "timestamp_str": "2026-11-19 09:07:59",
+      "agent": "claude:sonnet-5.5",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "engine-start-hardening",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "installer reuses a verified cached download (ADR-167)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795085542.2598183,
+      "timestamp_str": "2026-11-19 13:52:22",
       "agent": "claude:sonnet-5.5",
       "workspaces": [
         {
