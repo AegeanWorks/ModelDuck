@@ -73,6 +73,10 @@ older test, runtime, CPU or model file is kept with a warning until --force.
   --escalate         when a setting beats the current one on the search rung but misses the
                      gate, test it once more alone on pool items the search never used, and
                      keep it only if it wins there (one-sided paired test). More answers, more power.
+  --adaptive         experimental (ADR-188): after two warm-up sweeps per task, search each task on the
+                     items that told settings apart per second of answer time (plus a small random
+                     check), and test a setting that looks ahead on the whole rung before it may win.
+                     Aims at a much faster tune; check the result against a normal tune first.
 `;
 
 function parseArgs(argv) {
@@ -95,6 +99,7 @@ function parseArgs(argv) {
     else if (arg === "--parallel") options.parallel = parseParallel(take(index++, arg));
     else if (arg === "--budget") options.budget = parseBudget(take(index++, arg));
     else if (arg === "--escalate") options.escalate = true;
+    else if (arg === "--adaptive") options.adaptive = true;
     else if (arg === "--engines") options.engines = true;
     else if (arg === "--no-engines") options.engines = false;
     else if (arg === "--engine-plugin") (options.enginePlugins ??= []).push(take(index++, arg));
@@ -197,6 +202,7 @@ async function main() {
     parallel: options.parallel ?? 1,
     budgetMinutes: options.budget ?? null,
     escalate: Boolean(options.escalate),
+    adaptive: Boolean(options.adaptive),
     onNote: (message) => log(options, message),
     maxRuns: options.maxRuns,
     passes: options.passes,

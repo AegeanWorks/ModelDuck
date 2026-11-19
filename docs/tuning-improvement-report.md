@@ -984,7 +984,7 @@ the question that matters is information per second, and the tuner currently spe
   p <= 0.25 to 0.35", gives the same decision in all 127 (all 4 changes found, none invented) at 44% of the full
   rung cost. A stricter trigger (p <= 0.15) misses one change at 33%.
 
-**Proposed design (not built): adaptive informative rungs, tuner v13.**
+**Design: adaptive informative rungs. Built 2026-11-20 as the opt-in `--adaptive` (ADR-188), not yet validated by an A/B tune.**
 
 1. For each task, keep per-item counts of sweeps seen and sweeps on which the candidates disagreed, and the item's
    measured answer time, from the sweeps of this tune (stored in the progress state so a resume keeps them).

@@ -5,9 +5,9 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1795124134.3626077,
+    "updated_at": 1795124614.0759442,
     "owner": "claude:sonnet-5.5",
-    "lease_until": 1795131334.3626077,
+    "lease_until": 1795131814.0759442,
     "started_by": "claude:opus-5.5",
     "continuations": [
       {
@@ -24,24 +24,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "task_id": "engine-start-hardening",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "idle-timeout engine download with retry (ADR-173)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795092128.6305265,
-      "timestamp_str": "2026-11-19 15:42:08",
-      "agent": "claude:sonnet-5.5",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "engine-start-hardening",
       "phase": "phase 4",
@@ -347,6 +329,24 @@
       "status": "in_progress",
       "timestamp": 1795124134.3626077,
       "timestamp_str": "2026-11-20 00:35:34",
+      "agent": "claude:sonnet-5.5",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "tune-system-prompt-optional",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "adaptive informative rungs as an opt-in experiment (ADR-188)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795124614.0759442,
+      "timestamp_str": "2026-11-20 00:43:34",
       "agent": "claude:sonnet-5.5",
       "checklists": "passed",
       "workspaces": [

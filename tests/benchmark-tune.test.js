@@ -1456,3 +1456,64 @@ test("a tolerated loss-mix keeps both tails of the search guard honest", () => {
   assert.ok(Math.abs(evidence.pValue - 7 / 64) < 0.00006, `p=${evidence.pValue}`);
   assert.equal(evidence.b > evidence.c && evidence.pValue < 0.05, false);
 });
+
+test("adaptive rungs ask far fewer answers, reach the same settings and still find a real gain by escalating (ADR-188)", async () => {
+  const items = ids("m", 48);
+  // Items 0-9 are the only ones temperature touches (all pass at 0.2, 5 of them at 0.7); 10-19 are touched only by the
+  // fourth axis (minP 0.1 passes them all); the rest pass and fail the same under every setting.
+  const model = () => {
+    const asked = [];
+    const evaluate = async (settings, itemIds, seed) => {
+      asked.push(...itemIds.map((id) => `${seed}:${id}`));
+      return {
+        prompts: itemIds.map((id) => {
+          const index = Number(id.split("-")[1]);
+          let pass = index % 2 === 0;
+          if (index < 10) pass = settings.temperature <= 0.2 || index < 5;
+          if (index >= 10 && index < 20) pass = settings.minP >= 0.1 || index % 2 === 0;
+          return { id, passed: pass ? 1 : 0, total: 1, ms: index < 20 ? 20 : 400, tokensPerSecond: 1, outputTokens: 1, digest: id };
+        }),
+      };
+    };
+    return { evaluate, asked };
+  };
+  const run = async (adaptive) => {
+    const { evaluate, asked } = model();
+    const result = await tune({
+      evaluate,
+      base: { ...BASE, temperature: 0.7, minP: 0, topP: 0.9, repeatPenalty: 1 },
+      tasks: ["math"],
+      stages: ["sampling"],
+      rungs: { ...RUNGS, math: [items.slice(0, 12), items] },
+      hardware: { logicalCores: 12 },
+      qualityAxes: [],
+      speedAxes: [],
+      samplingAxes: () => [
+        { name: "temperature", patches: [0.7, 0.2].map((temperature) => ({ temperature })) },
+        { name: "topP", patches: [0.9, 0.8, 0.7].map((topP) => ({ topP })) },
+        { name: "repeatPenalty", patches: [1, 1.05, 1.1].map((repeatPenalty) => ({ repeatPenalty })) },
+        { name: "topK", patches: [40, 20, 10].map((topK) => ({ topK })) },
+        { name: "dryStrength", patches: [0, 0.4, 0.8].map((dryStrength) => ({ dryStrength })) },
+        { name: "penalizeNewLine", patches: [true, false].map((penalizeNewLine) => ({ penalizeNewLine })) },
+        { name: "minP", patches: [0, 0.1].map((minP) => ({ minP })) },
+      ],
+      promptAxes: [],
+      options: { seeds: [42], passes: 1, ...(adaptive && { adaptive: { warmup: 2, budget: 0.25, tripwire: 0.1, trigger: 0.3, minItems: 16 } }) },
+    });
+    return { ...result, asked: asked.length };
+  };
+  const off = await run(false);
+  const on = await run(true);
+  assert.equal(off.tasks.math.settings.temperature, 0.2, "the plain run finds the temperature gain");
+  assert.equal(off.tasks.math.settings.minP, 0.1, "and the minP gain");
+  assert.equal(on.tasks.math.settings.temperature, 0.2, "the adaptive run finds the same gain in its warm-up");
+  assert.equal(on.tasks.math.settings.minP, 0.1, "and the later one, through escalation");
+  assert.ok(on.asked < off.asked * 0.8, `adaptive asked ${on.asked} answers against ${off.asked}`);
+  const adaptive = on.sweeps.filter((sweep) => sweep.adaptive);
+  assert.deepEqual(on.sweeps.map((sweep) => sweep.axis), ["temperature", "topP", "repeatPenalty", "topK", "dryStrength", "penalizeNewLine", "minP"]);
+  assert.ok(adaptive.length >= 4 && adaptive.every((sweep) => sweep.adaptive.items < sweep.adaptive.of), "the later sweeps ran on a subset");
+  assert.equal(on.sweeps.find((sweep) => sweep.axis === "minP").adaptive.escalated, true, "the sweep with a real gain was tested on the whole rung");
+  assert.equal(on.sweeps.find((sweep) => sweep.axis === "repeatPenalty").adaptive.escalated, false, "a sweep with nothing to find was not");
+  assert.equal(on.sweeps.find((sweep) => sweep.axis === "topP").adaptive, undefined, "the warm-up sweeps run at full cost");
+  assert.ok(off.sweeps.every((sweep) => !sweep.adaptive), "without the option no sweep says anything about subsets");
+});

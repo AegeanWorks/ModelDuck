@@ -17,6 +17,7 @@ import { STAGES, resultFrom, tune } from "./tune.mjs";
 import { expectedAnswers, promptAxes, qualityAxes, quickRungs, samplingAxes, speedAxes } from "./tune-grid.mjs";
 import { createEvaluator } from "./tune-evaluate.mjs";
 import { budgetDeadline } from "./tune-budget.mjs";
+import { DEFAULT_ADAPTIVE } from "./tune-adaptive.mjs";
 import { summarizeFailures } from "./tune-failures.mjs";
 import { PROBE_ITEMS, chooseParallel, probeItemIds, probeParallel } from "./tune-parallel.mjs";
 import { createPhaseTimer } from "./tune-timing.mjs";
@@ -96,7 +97,7 @@ export function answerRow(settings, seed, answer, tuneWidth = 1) {
  * The profile is saved after every finished setting, so stopping keeps what
  * was found and a later run resumes. Resolves `{ skipped, warnings, profile, result }`.
  */
-export async function runTune(target, { tasks, stages = STAGES, only = null, steps = null, force = false, continueRun = false, quick = false, guard = false, fullFinal = false, maxRuns = 0, passes = 0, parallel: requestedParallel = 1, budgetMinutes = null, escalate = false, reuseFrom = [], onEvent = () => {}, onStart = () => {}, onNote = () => {} }) {
+export async function runTune(target, { tasks, stages = STAGES, only = null, steps = null, force = false, continueRun = false, quick = false, guard = false, fullFinal = false, maxRuns = 0, passes = 0, parallel: requestedParallel = 1, budgetMinutes = null, escalate = false, adaptive = false, reuseFrom = [], onEvent = () => {}, onStart = () => {}, onNote = () => {} }) {
   const saved = force ? null : await loadProfile(target.paths.profiles, target.profileId, target.fingerprint);
   const plan = planTune(saved, tasks, stages, only, { continueRun });
   const warnings = saved?.warnings ?? [];
@@ -143,7 +144,7 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
   const run = await startRun(target.paths.tuneRuns, {
     profileId: target.profileId,
     model: target.entry.fileName,
-    request: { stages, tasks, only, force, continueRun, quick, guard, maxRuns, passes, parallel: requestedParallel, budgetMinutes, escalate, rerun: plan.rerun ?? [] },
+    request: { stages, tasks, only, force, continueRun, quick, guard, maxRuns, passes, parallel: requestedParallel, budgetMinutes, escalate, adaptive, rerun: plan.rerun ?? [] },
     fingerprint: target.fingerprint,
     expectedAnswers: expectedAnswers(used, { logicalCores, tasks, stages, only, quick }),
   });
@@ -251,7 +252,7 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
       speedAxes: speedAxes({ logicalCores }, used.load),
       samplingAxes: (task) => samplingAxes(task, used.sampling),
       promptAxes: (task) => promptAxes(used.prompt, task, { only }),
-      options: { ...(maxRuns > 0 && { maxRuns }), ...(passes > 0 && { passes }), ...(Number.isFinite(deadline) && { deadline }), ...(escalate && { escalate: true }) },
+      options: { ...(maxRuns > 0 && { maxRuns }), ...(passes > 0 && { passes }), ...(Number.isFinite(deadline) && { deadline }), ...(escalate && { escalate: true }), ...(adaptive && { adaptive: DEFAULT_ADAPTIVE }) },
       onEvent,
       onAnswers,
       onProgress: async (state) => {

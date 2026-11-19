@@ -50,6 +50,9 @@ noisier, so pass 1 for strict sequential latency readings. With --update-baselin
 the default is 1, since the speed and device stages time their answers and compete
 for the machine; pass 2 or 3 to tune the core models side by side (output lines then
 carry the model id), at the cost of timing decisions made under shared load.
+--adaptive (with --update-baseline) tunes each task on an adaptive subset of its items
+(experimental, ADR-188): faster, but a baseline made this way should be compared with a
+normal one before it replaces it.
 `;
 
 function parseArgs(argv) {
@@ -58,6 +61,7 @@ function parseArgs(argv) {
     const arg = argv[index];
     if (arg === "--help" || arg === "-h") options.help = true;
     else if (arg === "--update-baseline") options.updateBaseline = true;
+    else if (arg === "--adaptive") options.adaptive = true;
     else if (arg === "--models-dir") options.modelsDir = argv[++index];
     else if (arg === "--max-runs") options.maxRuns = Number(argv[++index]);
     else if (arg === "--models") options.models = String(argv[++index] ?? "").split(",").map((id) => id.trim()).filter(Boolean);
@@ -142,7 +146,7 @@ async function updateBaseline(options, home, { savedRuns = null } = {}) {
     // temp home starts empty, so without it every answer is asked again.
     const reuseFrom = [...(savedRuns ? [savedRuns] : []), ...(options.reuseFrom ? [path.join(options.reuseFrom, "tune-runs")] : [])];
     const onNote = (note) => say(`  ${note}\n`);
-    const { profile } = await runTune(target, { tasks: TASK_IDS, force: true, maxRuns: options.maxRuns, passes: options.passes, reuseFrom, onEvent, onNote });
+    const { profile } = await runTune(target, { tasks: TASK_IDS, force: true, maxRuns: options.maxRuns, passes: options.passes, adaptive: Boolean(options.adaptive), reuseFrom, onEvent, onNote });
     return { catalogId, identity, entry: baselineEntry(profile, { hardware: { cpu: target.system.cpu, threads: target.system.parallelism } }) };
   };
   const results = await runModelsInOrder(chosen, measureOne, lanes);

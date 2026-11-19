@@ -581,6 +581,7 @@ modelduck/
 │   ├── tune-evaluate.mjs
 │   ├── tune-timing.mjs
 │   ├── tune-parallel.mjs
+│   ├── tune-adaptive.mjs
 │   ├── tune-budget.mjs
 │   ├── tune-failures.mjs
 │   ├── sandbox.mjs
@@ -650,6 +651,7 @@ modelduck/
 │   ├── benchmark-tune-evaluate.test.js
 │   ├── benchmark-tune-timing.test.js
 │   ├── benchmark-tune-parallel.test.js
+│   ├── tune-adaptive.test.js
 │   ├── tune-budget.test.js
 │   ├── tune-escalate.test.js
 │   ├── tune-failures.test.js

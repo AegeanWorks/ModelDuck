@@ -6,6 +6,7 @@ import {
   isValidCombination,
 } from "./tune-grid.mjs";
 import { Measurements, axisKeys, candidatesFor, costDelta, lookPoints, paired, pairedClustered, pairedDiffs, pick, publicStats, round, score, scoreSequential, solvedCount } from "./tune-measure.mjs";
+import { DEFAULT_ADAPTIVE, ItemInformation, promisingChallengers } from "./tune-adaptive.mjs";
 import { deviceStage } from "./tune-device.mjs";
 import { holm, mcnemarExact, mcnemarOneSided, signFlipOneSided } from "./stats.mjs";
 import { speedStage } from "./tune-speed.mjs";
@@ -51,6 +52,8 @@ export const DEFAULT_TUNE_OPTIONS = Object.freeze({
   // Opt-in: retest an unproven rung leader alone on fresh pool items (see sweep()).
   // Off by default, so the default search and TUNER_VERSION stay as they are.
   escalate: false,
+  // Adaptive informative rungs (ADR-188): null = off; `{ warmup, budget, tripwire, trigger, minItems }` = on.
+  adaptive: null,
 });
 
 // A screen of fewer items cannot tell a significant gap from noise, so it is skipped.
@@ -191,7 +194,7 @@ function balancedChoice({ survivors, incumbent, chosen, itemIds, context, floor,
 }
 
 /** One axis: successive halving over the rungs (or one full rung), stopping a value that falls significantly behind, then the selection rule on the last rung. */
-async function sweep(context, { stage, task, axis, current, rungs, forced, cost, confirmItems = null }) {
+async function sweepCore(context, { stage, task, axis, current, rungs, forced, cost, confirmItems = null }) {
   const { measurements, options } = context;
   const { candidates, skipped } = candidatesFor(axis, current, context.valid);
   let levels = axis.full ? rungs.slice(-1) : rungs;
@@ -305,7 +308,10 @@ async function sweep(context, { stage, task, axis, current, rungs, forced, cost,
   // The best of many noisy rates is optimistic, so a quality-only gain must be real to move the setting.
   // Holm covers the challengers that survived the screens, not every value first tried (ADR-042, ADR-063).
   const challengers = survivors.filter((entry) => entry !== incumbent);
-  const adjusted = holm(challengers.map((entry) => sweepPaired(incumbent.stats, entry.stats).pValue));
+  // After an adaptive escalation only the leaders are re-tested, but the correction still counts every challenger of
+  // the subset sweep that picked them (`holmMinCount`), so picking the best on a subset buys no extra significance.
+  const pValues = challengers.map((entry) => sweepPaired(incumbent.stats, entry.stats).pValue);
+  const adjusted = holm([...pValues, ...Array(Math.max(0, (context.holmMinCount ?? 0) - pValues.length)).fill(1)]);
   const chosenP = chosen === incumbent ? 1 : adjusted[challengers.indexOf(chosen)] ?? 1;
   const evidence = sweepPaired(incumbent.stats, chosen.stats);
   const unproven = chosen !== incumbent && !incumbent.stats.failed && chosen.stats.rate > incumbent.stats.rate &&
@@ -388,6 +394,7 @@ async function sweep(context, { stage, task, axis, current, rungs, forced, cost,
     const winnerSolved = solvedOf(winner.stats);
     context.stageBestSolved = Math.max(Number.isFinite(context.stageBestSolved) ? context.stageBestSolved : -Infinity, winnerSolved);
   }
+  if (context.options.adaptive && task) context.information.learn(task, levels.at(-1), survivors.map((entry) => entry.stats));
   return {
     ...record,
     ...(kept && { kept }),
@@ -402,6 +409,64 @@ async function sweep(context, { stage, task, axis, current, rungs, forced, cost,
     ...sweepPaired(incumbent.stats, winner.stats),
     speed: { cost, ...costDelta(incumbent.stats, winner.stats, options.speedTie, COST[cost].item) },
   };
+}
+
+/**
+ * One axis. Scores are only comparable on the same items, so the best score of the stage is kept per search rung:
+ * with one rung for the whole stage (the default) nothing changes, and an adaptive subset starts its own record.
+ */
+async function sweep(context, args) {
+  const final = args.rungs.at(-1);
+  const key = `${final.length}:${final[0]}:${final.at(-1)}`;
+  if (context.stageBestKey === undefined) context.stageBestKey = key;
+  if (key !== context.stageBestKey) {
+    context.stageBestBy.set(context.stageBestKey, { rate: context.stageBest, solved: context.stageBestSolved });
+    const saved = context.stageBestBy.get(key) ?? { rate: -Infinity, solved: -Infinity };
+    context.stageBest = saved.rate;
+    context.stageBestSolved = saved.solved;
+    context.stageBestKey = key;
+  }
+  return sweepCore(context, args);
+}
+
+/**
+ * One axis on an adaptive subset of the rung (ADR-188). After the warm-up sweeps the task's rung is cut to the items
+ * that told candidates apart per second of answer time; a value that looks ahead on the subset (or won there) is
+ * tested again, alone against the current setting, on the whole rung before it may win, so a real change is not
+ * lost. The subset is chosen once per task stage and kept, so scores stay comparable between its sweeps.
+ */
+async function sweepAdaptive(context, args) {
+  const { options, information } = context;
+  const { stage, task, axis, rungs, quick } = args;
+  if (!options.adaptive || !task || quick || axis.full || axis.budget) return sweep(context, args);
+  const settings = { ...DEFAULT_ADAPTIVE, ...options.adaptive };
+  const full = rungs.at(-1);
+  const slot = `${stage}:${task}`;
+  let ids = context.adaptiveSubsets.get(slot);
+  if (!ids) {
+    ids = information.subset(task, full, { ...settings, typeOf: context.typeOf });
+    if (ids && ids.length < full.length) context.adaptiveSubsets.set(slot, ids);
+  }
+  if (!ids || ids.length >= full.length) return sweep(context, args);
+  const sizes = [...new Set(rungs.map((rung) => Math.min(rung.length, ids.length)))];
+  const first = await sweep(context, { ...args, rungs: sizes.map((size) => ids.slice(0, size)) });
+  if (first.aborted) return first;
+  const adaptive = { items: ids.length, of: full.length, escalated: false };
+  const reached = first.rungs?.at(-1)?.candidates ?? [];
+  const sameAsPrevious = (patch) => Object.entries(patch).every(([key, value]) => first.previous?.[key] === value);
+  const entries = reached.map((entry) => ({ patch: entry.patch, incumbent: sameAsPrevious(entry.patch), stats: { outcomes: entry.outcomes, failed: entry.failed, partial: entry.partial } }));
+  const promising = promisingChallengers(entries, settings.trigger);
+  if (!first.changed && !promising.length) return { ...first, adaptive };
+  const retest = new Map();
+  for (const patch of [...(first.changed ? [first.winner] : []), ...promising.map((entry) => entry.patch)]) retest.set(JSON.stringify(patch), patch);
+  context.holmMinCount = Math.max(0, reached.length - 1);
+  try {
+    const second = await sweep(context, { ...args, axis: { ...axis, patches: [...retest.values()] } });
+    if (second.aborted) return second;
+    return { ...second, adaptive: { ...adaptive, escalated: true, retested: retest.size } };
+  } finally {
+    context.holmMinCount = 0;
+  }
 }
 
 /**
@@ -442,6 +507,9 @@ async function descend(context, { stage, task = null, axes, start, rungs, forced
   let current = { ...start };
   context.stageBest = -Infinity;
   context.stageBestSolved = -Infinity;
+  context.stageBestKey = undefined;
+  context.stageBestBy.clear();
+  context.adaptiveSubsets.delete(`${stage}:${task}`);
   const swept = [];
   let lastPass = 0;
   let aborted = false;
@@ -460,7 +528,7 @@ async function descend(context, { stage, task = null, axes, start, rungs, forced
       } else if (typeof axis.skipWhen === "function" && axis.skipWhen(current)) {
         result = { stage, task, axis: axis.name, skippedReason: axis.skipReason ?? "this setting cannot change the answer", rungs: [], winner: null, changed: false };
       } else {
-        result = await sweep(context, { stage, task, axis, current, rungs, forced, cost, confirmItems });
+        result = await sweepAdaptive(context, { stage, task, axis, current, rungs, forced, cost, confirmItems, quick });
         if (result.aborted) {
           aborted = true;
           break;
@@ -564,7 +632,7 @@ export async function tune({
   const threadCap = hardware.logicalCores ? Math.max(1, Math.floor(hardware.logicalCores * 0.75)) : Infinity;
   const start = (base.threads ?? 0) > threadCap ? { ...base, threads: threadCap } : base;
   const state = resume ? { ...emptyProgress(), ...structuredClone(resume) } : emptyProgress();
-  const context = { options: settings, measurements: new Measurements(evaluate, settings.maxRuns, onAnswers, { quota: settings.quota ?? Infinity, deadline: settings.deadline ?? Infinity, ...(settings.clock && { clock: settings.clock }) }), sweeps: state.sweeps, onEvent, stageBest: -Infinity, stageBestSolved: -Infinity, valid: isValidCombination, typeOf, groupOf, clusterOf };
+  const context = { options: settings, measurements: new Measurements(evaluate, settings.maxRuns, onAnswers, { quota: settings.quota ?? Infinity, deadline: settings.deadline ?? Infinity, ...(settings.clock && { clock: settings.clock }) }), sweeps: state.sweeps, onEvent, stageBest: -Infinity, stageBestSolved: -Infinity, valid: isValidCombination, typeOf, groupOf, clusterOf, information: new ItemInformation(), adaptiveSubsets: new Map(), stageBestBy: new Map(), stageBestKey: undefined, holmMinCount: 0 };
   // A continue or re-tune reuses exact settings/seed/item matches from earlier answers (G8).
   for (const saved of restore ?? []) {
     try {
