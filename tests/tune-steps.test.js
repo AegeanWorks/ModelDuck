@@ -71,6 +71,8 @@ test("the sampling steps are the user's, and truncation axes are marked as no-op
   assert.equal(axes.find((axis) => axis.name === "topK").skipWhen({ temperature: 0.2, minP: 0.1 }), true, "top-k only when min-p is 0");
   assert.equal(axes.find((axis) => axis.name === "topK").skipWhen({ temperature: 0.2, minP: 0 }), false);
   assert.equal(axes.find((axis) => axis.name === "penalizeNewLine").skipWhen({ repeatPenalty: 1 }), true);
+  assert.equal(axes.find((axis) => axis.name === "penalizeNewLine").skipWhen({ repeatPenalty: 1.1, engine: "llama-server:vulkan" }), true, "llama-server has no newline switch (ADR-190)");
+  assert.equal(axes.find((axis) => axis.name === "penalizeNewLine").skipWhen({ repeatPenalty: 1.1, engine: "node-llama-cpp" }), false);
   assert.equal(axes.find((axis) => axis.name === "penalizeNewLine").skipWhen({ repeatPenalty: 1.1 }), false);
 });
 

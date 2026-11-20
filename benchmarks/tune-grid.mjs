@@ -332,8 +332,9 @@ export function samplingAxes(taskId, steps = DEFAULT_STEPS.sampling) {
     // mid-answer and the checkers fail the stump. The serving plumbing stays
     // for explicit user presets, but the search does not offer it.
     axis("penalizeNewLine", "penalizeNewLine", steps.penalizeNewLine ?? [true, false], {
-      skipWhen: (current) => (current.repeatPenalty ?? 1) === 1,
-      skipReason: "repeat penalty 1: newlines are not penalized at all",
+      // llama-server has no newline switch and refuses `false` (ADR-190), so the axis has nothing to offer there.
+      skipWhen: (current) => (current.repeatPenalty ?? 1) === 1 || String(current.engine ?? "").startsWith("llama-server"),
+      skipReason: "repeat penalty 1 (newlines are not penalized at all) or llama-server (it has no newline switch)",
     }),
     axis("topK", "topK", steps.topK, {
       greedyNoop: true,
