@@ -1,10 +1,10 @@
 {
   "schema": 2,
-  "tunerVersion": 11,
+  "tunerVersion": 12,
   "suiteVersion": 18,
   "taskHash": "605fa46013e915d5",
   "nodeLlamaCpp": "3.22.2",
-  "createdAt": "2026-11-14T21:18:19.211Z",
+  "createdAt": "2026-11-20T20:28:02.967Z",
   "note": "Deliberate baseline update: each core model was re-tuned by tune:gate --update-baseline. Do not replace this to make a change pass.",
   "models": {
     "smollm2-135m-instruct-q4": {
@@ -14,8 +14,8 @@
         "useMmap": "auto",
         "batchSize": 512,
         "threads": 8,
-        "gpuLayers": "max",
-        "gpuBackend": "vulkan"
+        "gpuLayers": 0,
+        "gpuBackend": "cpu"
       },
       "tasks": {
         "code": {
@@ -34,7 +34,7 @@
           },
           "rate": 10.4,
           "items": 48,
-          "latencyMs": 549.5,
+          "latencyMs": 2343,
           "outcomes": {
             "javascript": 0,
             "bug-sum-to": 0,
@@ -101,7 +101,7 @@
           },
           "rate": 0,
           "items": 48,
-          "latencyMs": 275,
+          "latencyMs": 522,
           "outcomes": {
             "read-sumTo-1": 0,
             "read-clamp-1": 0,
@@ -155,20 +155,20 @@
         },
         "recall": {
           "settings": {
-            "temperature": 0.2,
-            "minP": 0.1,
-            "topP": 0.8,
+            "temperature": 0.7,
+            "minP": 0.05,
+            "topP": 0.9,
             "maxTokens": 64,
-            "repeatPenalty": 1,
+            "repeatPenalty": 1.05,
             "penalizeNewLine": true,
             "topK": 40,
             "systemPrompt": "You are a precise assistant. Follow the requested output format exactly. Do not explain unless the user asks for an explanation.",
             "reasoning": "off",
             "promptRepeat": 1
           },
-          "rate": 19.6,
+          "rate": 12.3,
           "items": 46,
-          "latencyMs": 155.5,
+          "latencyMs": 1823,
           "outcomes": {
             "needle": 1,
             "recall-locker-first": 0,
@@ -181,8 +181,8 @@
             "recall-two-needles": 0,
             "context-v12-order-0": 0,
             "context-v12-order-1": 0,
-            "recall-updated-value": 1,
-            "recall-v10-pin-20-0": 1,
+            "recall-updated-value": 0,
+            "recall-v10-pin-20-0": 0,
             "context-v12-absent-1": 1,
             "recall-v10-pin-20-3": 0,
             "context-v12-cross-ref-0": 0,
@@ -191,11 +191,11 @@
             "recall-v10-pin-50-0": 1,
             "context-v12-cross-ref-3": 0,
             "recall-v10-pin-50-3": 0,
-            "recall-v10-pin-50-10": 1,
+            "recall-v10-pin-50-10": 0,
             "recall-v10-pin-80-0": 1,
             "recall-v10-pin-80-3": 0,
             "recall-v10-pin-80-10": 0,
-            "recall-v10-holder-30-10": 1,
+            "recall-v10-holder-30-10": 0,
             "recall-v10-holder-30-40": 0,
             "recall-v10-holder-30-95": 0,
             "recall-v10-holder-60-10": 0,
@@ -231,8 +231,8 @@
         "useMmap": "auto",
         "batchSize": 512,
         "threads": 8,
-        "gpuLayers": "max",
-        "gpuBackend": "vulkan"
+        "gpuLayers": 0,
+        "gpuBackend": "cpu"
       },
       "tasks": {
         "code": {
@@ -249,9 +249,9 @@
             "reasoning": "off",
             "promptRepeat": 1
           },
-          "rate": 35.4,
+          "rate": 33.3,
           "items": 48,
-          "latencyMs": 264,
+          "latencyMs": 1925,
           "outcomes": {
             "javascript": 1,
             "bug-sum-to": 1,
@@ -290,7 +290,7 @@
             "repo-find-accents": 1,
             "repo-escape-order": 0,
             "pub-humaneval-16": 1,
-            "pub-mbpp-12": 1,
+            "pub-mbpp-12": 0,
             "code-fibonacci": 1,
             "bug-count-words": 0,
             "code-unique-sorted": 1,
@@ -316,9 +316,9 @@
             "reasoning": "off",
             "promptRepeat": 1
           },
-          "rate": 46.5,
+          "rate": 45.8,
           "items": 48,
-          "latencyMs": 52,
+          "latencyMs": 387,
           "outcomes": {
             "read-sumTo-1": 1,
             "read-clamp-1": 1,
@@ -330,7 +330,7 @@
             "read-double-1": 1,
             "read-isOdd-1": 0,
             "read-lcm-1": 0,
-            "read-fib-1": 1,
+            "read-fib-1": 0,
             "read-isPrime-1": 1,
             "read-reverseDigits-1": 0,
             "read-countWords-1": 1,
@@ -383,9 +383,9 @@
             "reasoning": "off",
             "promptRepeat": 1
           },
-          "rate": 35.5,
+          "rate": 34.8,
           "items": 46,
-          "latencyMs": 96,
+          "latencyMs": 2335.5,
           "outcomes": {
             "needle": 1,
             "recall-locker-first": 1,
@@ -412,7 +412,7 @@
             "recall-v10-pin-80-0": 1,
             "recall-v10-pin-80-3": 0,
             "recall-v10-pin-80-10": 0,
-            "recall-v10-holder-30-10": 0,
+            "recall-v10-holder-30-10": 1,
             "recall-v10-holder-30-40": 0,
             "recall-v10-holder-30-95": 0,
             "recall-v10-holder-60-10": 0,
@@ -443,7 +443,7 @@
     },
     "qwen2.5-coder-1.5b-instruct-q4": {
       "load": {
-        "kvCache": "f16",
+        "kvCache": "q8_0:q4_0",
         "flashAttention": "auto",
         "useMmap": "auto",
         "batchSize": 512,
@@ -466,22 +466,22 @@
             "reasoning": "off",
             "promptRepeat": 1
           },
-          "rate": 54.2,
+          "rate": 56.3,
           "items": 48,
-          "latencyMs": 529.5,
+          "latencyMs": 1479.5,
           "outcomes": {
             "javascript": 1,
             "bug-sum-to": 1,
             "code-long-calculator": 0,
             "bug-long-binary-search": 1,
-            "repo-cart-total": 1,
+            "repo-cart-total": 0,
             "repo-format-cents": 0,
             "pub-humaneval-13": 1,
             "pub-mbpp-80": 1,
             "code-long-csv": 0,
             "bug-long-merge-intervals": 1,
             "repo-receipt": 1,
-            "repo-tokenize-digits": 0,
+            "repo-tokenize-digits": 1,
             "pub-humaneval-26": 0,
             "pub-mbpp-86": 1,
             "code-palindrome": 1,
@@ -515,14 +515,14 @@
             "code-long-query": 0,
             "bug-long-rotate": 0,
             "repo-end-times": 0,
-            "repo-trace-tag-case": 0,
+            "repo-trace-tag-case": 1,
             "pub-humaneval-49": 1,
             "pub-mbpp-16": 0
           }
         },
         "comprehension": {
           "settings": {
-            "temperature": 0,
+            "temperature": 0.7,
             "minP": 0.05,
             "topP": 0.9,
             "maxTokens": 512,
@@ -533,9 +533,9 @@
             "reasoning": "off",
             "promptRepeat": 1
           },
-          "rate": 79.2,
+          "rate": 72.9,
           "items": 48,
-          "latencyMs": 78,
+          "latencyMs": 186,
           "outcomes": {
             "read-sumTo-1": 1,
             "read-clamp-1": 1,
@@ -550,7 +550,7 @@
             "read-fib-1": 1,
             "read-isPrime-1": 1,
             "read-reverseDigits-1": 1,
-            "read-countWords-1": 1,
+            "read-countWords-1": 0,
             "read-longestWord-1": 1,
             "read-initials-1": 1,
             "read-power-1": 1,
@@ -564,7 +564,7 @@
             "read-sumTo-2": 1,
             "read-clamp-2": 1,
             "read-reverseText-2": 0,
-            "read-countVowels-2": 1,
+            "read-countVowels-2": 0,
             "read-isEven-2": 1,
             "read-factorial-2": 1,
             "read-repeatWord-2": 1,
@@ -573,9 +573,9 @@
             "read-lcm-2": 0,
             "read-fib-2": 0,
             "read-isPrime-2": 1,
-            "read-reverseDigits-2": 1,
+            "read-reverseDigits-2": 0,
             "read-countWords-2": 0,
-            "read-longestWord-2": 0,
+            "read-longestWord-2": 1,
             "read-initials-2": 1,
             "read-power-2": 1,
             "read-posMod-2": 0,
@@ -584,12 +584,12 @@
             "read-trimEdges-2": 1,
             "read-startsWithQu-2": 0,
             "read-arraySum-2": 1,
-            "read-arrayMax-2": 1
+            "read-arrayMax-2": 0
           }
         },
         "recall": {
           "settings": {
-            "temperature": 0,
+            "temperature": 0.7,
             "minP": 0.05,
             "topP": 0.9,
             "maxTokens": 512,
@@ -598,11 +598,11 @@
             "topK": 40,
             "systemPrompt": "You are a precise assistant. Follow the requested output format exactly. Do not explain unless the user asks for an explanation.",
             "reasoning": "off",
-            "promptRepeat": 1
+            "promptRepeat": 2
           },
-          "rate": 50,
+          "rate": 55.1,
           "items": 46,
-          "latencyMs": 169,
+          "latencyMs": 559,
           "outcomes": {
             "needle": 1,
             "recall-locker-first": 1,
@@ -624,10 +624,10 @@
             "recall-v10-pin-20-10": 1,
             "recall-v10-pin-50-0": 1,
             "context-v12-cross-ref-3": 1,
-            "recall-v10-pin-50-3": 0,
-            "recall-v10-pin-50-10": 0,
+            "recall-v10-pin-50-3": 1,
+            "recall-v10-pin-50-10": 1,
             "recall-v10-pin-80-0": 1,
-            "recall-v10-pin-80-3": 0,
+            "recall-v10-pin-80-3": 1,
             "recall-v10-pin-80-10": 0,
             "recall-v10-holder-30-10": 1,
             "recall-v10-holder-30-40": 1,
@@ -638,7 +638,7 @@
             "recall-v10-status-0": 0,
             "recall-v10-status-1": 0,
             "recall-v10-status-3": 0,
-            "recall-v10-status-4": 1,
+            "recall-v10-status-4": 0,
             "recall-v10-status-5": 0,
             "recall-v10-status-7": 0,
             "recall-v10-sum-24": 0,
@@ -646,7 +646,7 @@
             "recall-v10-sum-60": 0,
             "recall-v10-sum-72": 0,
             "recall-v10-sum-84": 0,
-            "recall-v10-count-16": 1,
+            "recall-v10-count-16": 0,
             "recall-v10-count-20": 0,
             "recall-v10-count-24": 0,
             "recall-v10-count-32": 0
