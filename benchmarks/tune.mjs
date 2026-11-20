@@ -442,6 +442,25 @@ async function sweepAdaptive(context, args) {
   const settings = { ...DEFAULT_ADAPTIVE, ...options.adaptive };
   const full = rungs.at(-1);
   const slot = `${stage}:${task}`;
+  // The first sweep of a task is the costliest (about half of a code tune) and would run whole as the warm-up. A probe
+  // learns from it first: the current setting and the axis's last value (the farthest from it) answer the whole rung, which is
+  // work the sweep would mostly have done anyway for these two, and from then on the sweep itself runs on the subset.
+  let probed = false;
+  if (settings.probe && information.sweeps(task) === 0 && axis.patches.length >= 3 && !context.adaptiveSubsets.has(slot)) {
+    const { candidates } = candidatesFor(axis, args.current, context.valid);
+    const base = candidates.find((entry) => entry.incumbent);
+    const far = [...candidates].reverse().find((entry) => !entry.incumbent);
+    if (base && far) {
+      const stats = [];
+      for (const entry of [base, far]) {
+        const scored = await score(context.measurements, { ...args.current, ...entry.patch, ...args.forced }, full, options.seeds);
+        if (!scored) return { stage, task, axis: axis.name, aborted: true, winner: null };
+        stats.push(scored);
+      }
+      information.learn(task, full, stats);
+      probed = true;
+    }
+  }
   let ids = context.adaptiveSubsets.get(slot);
   if (!ids) {
     ids = information.subset(task, full, { ...settings, typeOf: context.typeOf });
@@ -451,7 +470,7 @@ async function sweepAdaptive(context, args) {
   const sizes = [...new Set(rungs.map((rung) => Math.min(rung.length, ids.length)))];
   const first = await sweep(context, { ...args, rungs: sizes.map((size) => ids.slice(0, size)) });
   if (first.aborted) return first;
-  const adaptive = { items: ids.length, of: full.length, escalated: false };
+  const adaptive = { items: ids.length, of: full.length, escalated: false, ...(probed && { probed: true }) };
   const reached = first.rungs?.at(-1)?.candidates ?? [];
   const sameAsPrevious = (patch) => Object.entries(patch).every(([key, value]) => first.previous?.[key] === value);
   const entries = reached.map((entry) => ({ patch: entry.patch, incumbent: sameAsPrevious(entry.patch), stats: { outcomes: entry.outcomes, failed: entry.failed, partial: entry.partial } }));

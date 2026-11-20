@@ -16,7 +16,7 @@
  * the floor. One warm-up sweep is as safe as two in the replay (149 of 149 decisions the same, all 4 real changes
  * found) and also covers the costly `maxTokens` axis, which is the second sweep of the code task.
  */
-export const DEFAULT_ADAPTIVE = Object.freeze({ warmup: 1, budget: 0.25, tripwire: 0.1, trigger: 0.3, minItems: 16 });
+export const DEFAULT_ADAPTIVE = Object.freeze({ warmup: 1, budget: 0.25, tripwire: 0.1, trigger: 0.3, minItems: 16, probe: true });
 
 /** Prior flip rate of an item nobody has seen flip: optimism that keeps new items in play (as the replay in F10 used). */
 const PRIOR_FLIP = 0.15;

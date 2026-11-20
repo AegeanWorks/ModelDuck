@@ -5,9 +5,9 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1795157499.9288492,
+    "updated_at": 1795159755.015453,
     "owner": "claude:sonnet-5.5",
-    "lease_until": 1795164699.9288492,
+    "lease_until": 1795166955.015453,
     "started_by": "claude:opus-5.5",
     "continuations": [
       {
@@ -24,24 +24,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "task_id": "engine-start-hardening",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "platform notice in /api/engines and Models (ADR-176)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795093570.9357283,
-      "timestamp_str": "2026-11-19 16:06:10",
-      "agent": "claude:sonnet-5.5",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "chore-1795104556",
       "phase": "chore",
@@ -347,6 +329,24 @@
       "status": "in_progress",
       "timestamp": 1795157499.9288492,
       "timestamp_str": "2026-11-20 09:51:39",
+      "agent": "claude:sonnet-5.5",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "tune-system-prompt-optional",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "adaptive probe for the first sweep (ADR-189)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795159755.015453,
+      "timestamp_str": "2026-11-20 10:29:15",
       "agent": "claude:sonnet-5.5",
       "checklists": "passed",
       "workspaces": [

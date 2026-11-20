@@ -1565,3 +1565,48 @@ test("the pair check also runs on the subset under the adaptive option and escal
   assert.deepEqual(on.tasks.math.settings.minP, off.tasks.math.settings.minP);
   assert.ok(on.asked < off.asked, `adaptive asked ${on.asked} answers against ${off.asked}`);
 });
+
+test("the probe lets the first sweep of a task run on a subset, and still finds a real gain there (ADR-189)", async () => {
+  const items = ids("m", 48);
+  const run = async (adaptive) => {
+    const asked = [];
+    const evaluate = async (settings, itemIds, seed) => {
+      asked.push(...itemIds.map((id) => `${seed}:${id}`));
+      return {
+        prompts: itemIds.map((id) => {
+          const index = Number(id.split("-")[1]);
+          let pass = index % 2 === 0;
+          // Only items 0-11 depend on the temperature: 0.2 passes them, the far value 1 fails all of them.
+          if (index < 12) pass = settings.temperature <= 0.2 ? true : settings.temperature >= 1 ? false : index < 6;
+          return { id, passed: pass ? 1 : 0, total: 1, ms: index < 12 ? 20 : 400, tokensPerSecond: 1, outputTokens: 1, digest: id };
+        }),
+      };
+    };
+    const result = await tune({
+      evaluate,
+      base: { ...BASE, temperature: 0.7, minP: 0 },
+      tasks: ["math"],
+      stages: ["sampling"],
+      rungs: { ...RUNGS, math: [items.slice(0, 12), items] },
+      hardware: { logicalCores: 12 },
+      qualityAxes: [],
+      speedAxes: [],
+      // The first axis is the big one, as the sampler is in a code tune: six values, the last the farthest from the current.
+      samplingAxes: () => [{ name: "temperature", patches: [0.7, 0.4, 0.3, 0.2, 0.5, 0.6, 0.8, 1].map((temperature) => ({ temperature })) }],
+      promptAxes: [],
+      // Three seeds, as a real tune asks of a candidate above temperature 0; the tied values keep every one alive to the end.
+      options: { seeds: [42, 7, 1234], passes: 1, ...(adaptive && { adaptive: { ...adaptive, warmup: 1, budget: 0.25, tripwire: 0.1, trigger: 0.3, minItems: 16 } }) },
+    });
+    return { ...result, asked: asked.length };
+  };
+  const off = await run(false);
+  const probing = await run({ probe: true });
+  const plain = await run({ probe: false });
+  assert.equal(off.tasks.math.settings.temperature, 0.2, "the plain run finds the gain");
+  assert.equal(probing.tasks.math.settings.temperature, 0.2, "so does the probing run, through the escalation");
+  const first = probing.sweeps[0];
+  assert.equal(first.adaptive.probed, true, "the first sweep says it was probed");
+  assert.ok(first.adaptive.items < first.adaptive.of, "and ran on a subset");
+  assert.equal(plain.sweeps[0].adaptive, undefined, "without the probe the first sweep is the warm-up, whole");
+  assert.ok(probing.asked < off.asked, `probing asked ${probing.asked} answers against ${off.asked}`);
+});
