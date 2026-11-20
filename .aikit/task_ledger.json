@@ -25,17 +25,6 @@
   },
   "checkpoints": [
     {
-      "task_id": "chore-1795104556",
-      "phase": "chore",
-      "phase_num": 1,
-      "description": "record Wave 3 phases 4 and 6 outcome and the real engine-choice run (ADR-177)",
-      "status": "completed",
-      "chore": true,
-      "timestamp": 1795104556.6557946,
-      "timestamp_str": "2026-11-19 19:09:16",
-      "agent": "claude-code:bba617e6"
-    },
-    {
       "task_id": "engine-start-hardening",
       "phase": "phase 4",
       "phase_num": 4,
@@ -355,6 +344,17 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "task_id": "chore-1795160600",
+      "phase": "chore",
+      "phase_num": 1,
+      "description": "ADR-189 third A/B result",
+      "status": "completed",
+      "chore": true,
+      "timestamp": 1795160600.5220761,
+      "timestamp_str": "2026-11-20 10:43:20",
+      "agent": "claude-code:bba617e6"
     }
   ]
 }
