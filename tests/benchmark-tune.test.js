@@ -1610,3 +1610,38 @@ test("the probe lets the first sweep of a task run on a subset, and still finds 
   assert.equal(plain.sweeps[0].adaptive, undefined, "without the probe the first sweep is the warm-up, whole");
   assert.ok(probing.asked < off.asked, `probing asked ${probing.asked} answers against ${off.asked}`);
 });
+
+test("the prompt stage is never adaptive: its axes do not share the items the sampling axes taught (ADR-189)", async () => {
+  const items = ids("m", 48);
+  // Items 0-9 depend on temperature (the sampling axis); items 30-39 depend only on the prompt repeat. A subset chosen from
+  // the temperature sweeps would leave the second group out, so the prompt sweeps must run on the whole rung.
+  const evaluate = async (settings, itemIds) => ({
+    prompts: itemIds.map((id) => {
+      const index = Number(id.split("-")[1]);
+      let pass = index % 2 === 0;
+      if (index < 10) pass = settings.temperature <= 0.2 || index < 5;
+      if (index >= 30 && index < 40) pass = settings.promptRepeat >= 2 || index % 2 === 0;
+      return { id, passed: pass ? 1 : 0, total: 1, ms: 20, tokensPerSecond: 1, outputTokens: 1, digest: id };
+    }),
+  });
+  const result = await tune({
+    evaluate,
+    base: { ...BASE, temperature: 0.7, promptRepeat: 1 },
+    tasks: ["math"],
+    stages: ["sampling", "prompt"],
+    rungs: { ...RUNGS, math: [items.slice(0, 12), items] },
+    hardware: { logicalCores: 12 },
+    qualityAxes: [],
+    speedAxes: [],
+    samplingAxes: () => [
+      { name: "temperature", patches: [0.7, 0.2, 0.4].map((temperature) => ({ temperature })) },
+      { name: "topP", patches: [0.9, 0.8, 0.7].map((topP) => ({ topP })) },
+      { name: "minP", patches: [0, 0.05, 0.1].map((minP) => ({ minP })) },
+    ],
+    promptAxes: [{ name: "promptRepeat", patches: [1, 2, 3].map((promptRepeat) => ({ promptRepeat })) }],
+    options: { seeds: [42], passes: 1, adaptive: { warmup: 1, budget: 0.25, tripwire: 0.1, trigger: 0.3, minItems: 16 } },
+  });
+  assert.ok(result.sweeps.filter((sweep) => sweep.stage === "sampling").some((sweep) => sweep.adaptive), "the sampling sweeps are adaptive");
+  assert.ok(result.sweeps.filter((sweep) => sweep.stage === "prompt").every((sweep) => !sweep.adaptive), "no prompt sweep is");
+  assert.equal(result.tasks.math.settings.promptRepeat >= 2, true, "so the prompt-only gain is found");
+});

@@ -5,9 +5,9 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1795159755.015453,
+    "updated_at": 1795164033.6116278,
     "owner": "claude:sonnet-5.5",
-    "lease_until": 1795166955.015453,
+    "lease_until": 1795171233.6116278,
     "started_by": "claude:opus-5.5",
     "continuations": [
       {
@@ -24,25 +24,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "task_id": "engine-start-hardening",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "engine list probes liveness (ADR-178); same session continued on another model",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795104681.2444222,
-      "timestamp_str": "2026-11-19 19:11:21",
-      "agent": "claude:opus-5.5",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ],
-      "continued_from": "claude:sonnet-5.5"
-    },
     {
       "task_id": "engine-start-hardening",
       "phase": "completed",
@@ -355,6 +336,24 @@
       "timestamp": 1795160600.5220761,
       "timestamp_str": "2026-11-20 10:43:20",
       "agent": "claude-code:bba617e6"
+    },
+    {
+      "task_id": "tune-system-prompt-optional",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "adaptive limited to the sampling stage after a missed prompt gain (ADR-189)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795164033.6116278,
+      "timestamp_str": "2026-11-20 11:40:33",
+      "agent": "claude:sonnet-5.5",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }

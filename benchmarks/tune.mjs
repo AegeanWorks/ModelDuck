@@ -438,7 +438,10 @@ async function sweep(context, args) {
 async function sweepAdaptive(context, args) {
   const { options, information } = context;
   const { stage, task, axis, rungs, quick } = args;
-  if (!options.adaptive || !task || quick || axis.full || axis.budget) return sweep(context, args);
+  // Only the sampling stage: its axes (sampler, token budget, repeat penalty, DRY...) change the same kind of thing, so the items
+  // that told one apart tell the next apart. A prompt axis does not share them: on the Coder's recall task `promptRepeat` was
+  // the one real gain (held-back 39.6% to 58.3%) and a subset chosen from sampling flips missed it (ADR-189).
+  if (!options.adaptive || !task || quick || axis.full || axis.budget || stage !== "sampling") return sweep(context, args);
   const settings = { ...DEFAULT_ADAPTIVE, ...options.adaptive };
   const full = rungs.at(-1);
   const slot = `${stage}:${task}`;
