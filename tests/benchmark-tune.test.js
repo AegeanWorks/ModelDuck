@@ -130,6 +130,19 @@ test("code sampling starts with the newline penalty off", async () => {
   );
 });
 
+test("code sampling does not start with a setting the chosen engine refuses (llama-server has no newline switch)", async () => {
+  const model = syntheticModel();
+  const rungs = { ...RUNGS, code: [ids("c", 4), ids("c", 8)] };
+  await tune({
+    evaluate: model.evaluate, base: { ...BASE, engine: "llama-server:vulkan" }, tasks: ["code"], rungs,
+    hardware: { logicalCores: 12 }, ...AXES,
+    options: { seeds: [42, 7, 1234], passes: 1, changeAlpha: Infinity },
+  });
+  const codeCalls = model.calls.filter((call) => call.itemIds.some((id) => id.startsWith("c-")));
+  assert.ok(codeCalls.length > 0, "code items were measured");
+  assert.ok(codeCalls.every((call) => call.settings.penalizeNewLine !== false), "the engine would refuse every one of those answers");
+});
+
 test("stage 3 tunes sampling per task by quality, then answer length, and skips no-op axes when greedy", async () => {
   const { tasks, sweeps } = await run().result;
   assert.equal(tasks.math.settings.temperature, 0, "0.2 lost an item on one seed");

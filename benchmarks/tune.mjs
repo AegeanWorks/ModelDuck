@@ -792,7 +792,9 @@ export async function tune({
       const startRepeat = task === "code" && !("repeatPenalty" in entry.settings) ? { repeatPenalty: 1 } : null;
       // Code answers are measured with the newline penalty off (lit review §2):
       // the engine penalizes newlines by default, which code is full of.
-      const startPenalize = task === "code" && !("penalizeNewLine" in entry.settings) ? { penalizeNewLine: false } : null;
+      // llama-server's chat endpoint has no newline switch and refuses `penalizeNewLine: false` (src/external-engines.js),
+      // so on it every code answer would fail from the first sampler on.
+      const startPenalize = task === "code" && !("penalizeNewLine" in entry.settings) && !String(untuned.engine ?? "").startsWith("llama-server") ? { penalizeNewLine: false } : null;
       // Code starts greedy (G3): a temperature the tune never earns would otherwise
       // stick for the same reason. Higher temperatures must prove themselves.
       const startTemp = task === "code" && !("temperature" in entry.settings) ? { temperature: 0 } : null;
