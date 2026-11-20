@@ -459,6 +459,10 @@ async function sweepAdaptive(context, args) {
   if (!first.changed && !promising.length) return { ...first, adaptive };
   const retest = new Map();
   for (const patch of [...(first.changed ? [first.winner] : []), ...promising.map((entry) => entry.patch)]) retest.set(JSON.stringify(patch), patch);
+  // The runner-up goes along: the pair check after the passes builds its combinations from each axis's winner and
+  // runner-up, and a sweep that kept only the leaders would silently turn that check off.
+  const runner = runnerUp(first, args.cost);
+  if (runner) retest.set(JSON.stringify(runner.patch), runner.patch);
   context.holmMinCount = Math.max(0, reached.length - 1);
   try {
     const second = await sweep(context, { ...args, axis: { ...axis, patches: [...retest.values()] } });
@@ -558,7 +562,9 @@ async function descend(context, { stage, task = null, axes, start, rungs, forced
     const combos = first.runner && second.runner ? pairCombos(first, second) : null;
     if (combos) {
       const pairAxis = { name: `pair:${first.name}+${second.name}`, patches: combos };
-      const result = await sweep(context, { stage, task, axis: pairAxis, current, rungs: [rungs.at(-1)], forced, cost, confirmItems });
+      // With the adaptive option the pair check runs on the task's subset too, and escalates only a combination that looks ahead (ADR-188):
+      // in the first A/B the two pair checks were 40% of the answers, because each tried four combinations on the whole rung.
+      const result = await sweepAdaptive(context, { stage, task, axis: pairAxis, current, rungs: [rungs.at(-1)], forced, cost, confirmItems, quick });
       if (!result.aborted) {
         const record = { pass: lastPass, ...result };
         context.sweeps.push(record);

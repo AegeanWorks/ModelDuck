@@ -1517,3 +1517,51 @@ test("adaptive rungs ask far fewer answers, reach the same settings and still fi
   assert.equal(on.sweeps.find((sweep) => sweep.axis === "topP").adaptive, undefined, "the warm-up sweeps run at full cost");
   assert.ok(off.sweeps.every((sweep) => !sweep.adaptive), "without the option no sweep says anything about subsets");
 });
+
+test("the pair check also runs on the subset under the adaptive option and escalates only a combination that leads (ADR-188)", async () => {
+  const items = ids("m", 48);
+  const run = async (adaptive) => {
+    const asked = [];
+    const evaluate = async (settings, itemIds, seed) => {
+      asked.push(...itemIds.map((id) => `${seed}:${id}`));
+      return {
+        prompts: itemIds.map((id) => {
+          const index = Number(id.split("-")[1]);
+          let pass = index % 2 === 0;
+          // temperature 0.2 helps items 0-9 most, 0.4 some of them; minP 0.1 helps 10-19 most, 0.05 some of them.
+          if (index < 10) pass = settings.temperature <= 0.2 ? true : settings.temperature <= 0.4 ? index < 8 : index < 5;
+          if (index >= 10 && index < 20) pass = settings.minP >= 0.1 ? true : settings.minP >= 0.05 ? index < 17 : index % 2 === 0;
+          return { id, passed: pass ? 1 : 0, total: 1, ms: index < 20 ? 20 : 400, tokensPerSecond: 1, outputTokens: 1, digest: id };
+        }),
+      };
+    };
+    const result = await tune({
+      evaluate,
+      base: { ...BASE, temperature: 0.7, minP: 0, topP: 0.9, repeatPenalty: 1 },
+      tasks: ["math"],
+      stages: ["sampling"],
+      rungs: { ...RUNGS, math: [items.slice(0, 12), items] },
+      hardware: { logicalCores: 12 },
+      qualityAxes: [],
+      speedAxes: [],
+      samplingAxes: () => [
+        { name: "temperature", patches: [0.7, 0.2, 0.4].map((temperature) => ({ temperature })) },
+        { name: "minP", patches: [0, 0.1, 0.05].map((minP) => ({ minP })) },
+        { name: "topP", patches: [0.9, 0.8, 0.7].map((topP) => ({ topP })) },
+      ],
+      promptAxes: [],
+      options: { seeds: [42], passes: 1, ...(adaptive && { adaptive: { warmup: 1, budget: 0.25, tripwire: 0.1, trigger: 0.3, minItems: 16 } }) },
+    });
+    return { ...result, asked: asked.length };
+  };
+  const off = await run(false);
+  const on = await run(true);
+  const pair = (result) => result.sweeps.find((sweep) => sweep.axis.startsWith("pair:"));
+  assert.ok(pair(off), "the plain run makes a pair check in this scenario");
+  assert.ok(pair(on), "and so does the adaptive one");
+  assert.ok(pair(on).adaptive, "the adaptive pair check says it ran on a subset");
+  assert.ok(pair(on).adaptive.items < pair(on).adaptive.of, "a smaller one than the rung");
+  assert.deepEqual(on.tasks.math.settings.temperature, off.tasks.math.settings.temperature);
+  assert.deepEqual(on.tasks.math.settings.minP, off.tasks.math.settings.minP);
+  assert.ok(on.asked < off.asked, `adaptive asked ${on.asked} answers against ${off.asked}`);
+});
