@@ -49,3 +49,4 @@ secrets.*
 # Inference engines are downloaded by `npm run engines:install`; only the manifest is tracked.
 engines/bin/
 engines/.cache/
+.aikit/*.log

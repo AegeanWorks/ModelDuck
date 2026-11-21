@@ -1460,5 +1460,35 @@
     "final_snapshot_entries": 0,
     "surface_digest": "b7af2879637df3ec49e0ca09dfff5be7b14db76973ca09ce06466d39f6c40ab5",
     "baseline_digest": "b7af2879637df3ec49e0ca09dfff5be7b14db76973ca09ce06466d39f6c40ab5"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [],
+    "no_visual_reason": "",
+    "no_change_reason": "records the committed surface digest ab61 so delivery matches the tree; no UI files changed in this task",
+    "baseline_commit": "cbd20761d4b2d4ce9d558b2f2620d8edda26f778",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1795252533.191863,
+    "finished_at": 1795252585.0800629,
+    "strikes": 0,
+    "reviewer": "kilo:1",
+    "review": {
+      "reviewer": "kilo:1",
+      "surface": "app",
+      "surface_digest": "ab610cbe08464e744972565a13b538bfeee6f0b940535cd39d6c779f7d84929a",
+      "snapshot_digest": "",
+      "snapshot_entries": 0,
+      "visual": true,
+      "reviewed_at": 1795252585.080065
+    },
+    "allowed_removals": [],
+    "allowed_tests": [],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "ab610cbe08464e744972565a13b538bfeee6f0b940535cd39d6c779f7d84929a",
+    "baseline_digest": "ab610cbe08464e744972565a13b538bfeee6f0b940535cd39d6c779f7d84929a"
   }
 ]
