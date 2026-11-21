@@ -1,83 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "tune-system-prompt-optional",
+    "task_id": "retune-profiles-engine-stage",
     "last_phase": "in_progress",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795252307.7407217,
+    "active_phase": 4,
+    "status": "in_progress",
+    "updated_at": 1795255111.6084375,
     "owner": "kilo:1",
-    "lease_until": 1795259507.7407217,
-    "started_by": "claude:opus-5.5",
-    "continuations": [
-      {
-        "agent": "claude:sonnet-5.5",
-        "from": "claude:opus-5.5",
-        "at": 1795109966.8790858
-      },
-      {
-        "agent": "kilo:1",
-        "from": "claude:sonnet-5.5",
-        "at": 1795252307.7407217
-      }
-    ],
-    "workspaces": [
-      {
-        "name": "modelduck",
-        "path": "projects/modelduck"
-      }
-    ],
-    "completed_at": 1795252408.5291758,
-    "completed_head": "35b2de0c3de87ccad0b645fb11279866babab685",
-    "completed_tree": "912c62e22d1c5782e89130664a88ab7e6cbeba1e"
+    "lease_until": 1795262311.6084375,
+    "started_by": "kilo:1",
+    "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "chore-1795105375",
-      "phase": "chore",
-      "phase_num": 1,
-      "description": "tuning report follow-up F1-F7 from recorded runs",
-      "status": "completed",
-      "chore": true,
-      "timestamp": 1795105375.3897734,
-      "timestamp_str": "2026-11-19 19:22:55",
-      "agent": "claude-code:bba617e6"
-    },
-    {
-      "task_id": "tune-system-prompt-optional",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/2] system-prompt axis off by default (prompt.tuneSystemPrompt step, pinned measured prompt, UI checkbox, tuner v12); [2/2] baseline regenerated with --reuse-from, gate, CHANGELOG, ADR",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795105757.5532358,
-      "timestamp_str": "2026-11-19 19:29:17",
-      "agent": "claude:opus-5.5",
-      "impact_assessment": {
-        "why": "the axis took 36% of recorded tune answers (49,282) and never changed a saved profile (report F2)",
-        "benefits": "about a third fewer answers per tune; the opt-in restores the old search",
-        "risks": "contract: profiles stale at tuner v12; state: a preset without the measured prompt would serve the app default prompt; dependency: none; concurrency: none",
-        "mitigation": "pin systemPrompt in the prompt-stage preset; custom prompt lists stay opted in; baseline regenerated deliberately"
-      },
-      "plan_digest": "360f082869887c854eae91f7340be56ea7b19963f31444056ee315e0dad3ec4f",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "task_id": "chore-1795110551",
-      "phase": "chore",
-      "phase_num": 1,
-      "description": "tuning report: measured F6 outcome",
-      "status": "completed",
-      "chore": true,
-      "timestamp": 1795110551.5653658,
-      "timestamp_str": "2026-11-19 20:49:11",
-      "agent": "claude-code:bba617e6"
-    },
     {
       "task_id": "chore-1795112470",
       "phase": "chore",
@@ -362,6 +296,47 @@
         ],
         "forced": false
       }
+    },
+    {
+      "task_id": "retune-profiles-engine-stage",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] finish the interrupted llama-3.2-3b re-tune through the engine stage; [2/4] audit every re-tuned profile and record outcomes; [3/4] ADR-191 and CHANGELOG; [4/4] gates and commit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795252904.8528054,
+      "timestamp_str": "2026-11-21 12:21:44",
+      "agent": "kilo:1",
+      "impact_assessment": {
+        "why": "the engine-backed re-tune wave stopped mid-recall on llama-3.2-3b, leaving a running record and a profile without recall",
+        "benefits": "every saved profile carries a measured engine and a full task set under tuner v12",
+        "risks": "contract: profiles move to tuner v12 and name an engine; dependency: none, the llama-server builds are installed; concurrency: one tune writer on profiles and tune-runs; state: an interrupted run keeps the last finished stage",
+        "mitigation": "resume the recorded run with --continue, keep the .before-tuner-v12 backups, and stop on any profile write error"
+      },
+      "plan_digest": "a2a3573db19bc11bf1811bb07f8641367d709f9af5bc7375dcd20836946fcad4"
+    },
+    {
+      "task_id": "retune-profiles-engine-stage",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4] audit done: five profiles at tuner v12 with llama-server:vulkan, held-back not lower anywhere; [3/4] ADR-191 recorded, no CHANGELOG row needed (no suite or search change)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795254746.660367,
+      "timestamp_str": "2026-11-21 12:52:26",
+      "agent": "kilo:1"
+    },
+    {
+      "task_id": "retune-profiles-engine-stage",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "ADR-191 recorded and README tree lists .gitattributes; all four project gates pass",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795255111.6084375,
+      "timestamp_str": "2026-11-21 12:58:31",
+      "agent": "kilo:1",
+      "checklists": "passed"
     }
   ]
 }

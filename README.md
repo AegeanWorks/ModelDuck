@@ -743,6 +743,7 @@ modelduck/
 ├── .aikit/ <- project memory and ledger
 ├── .kiro/ <- Kiro agent-mode workspace
 ├── .gitignore
+├── .gitattributes
 ├── start.bat
 ├── package.json
 ├── package-lock.json <- pinned dependencies
