@@ -2,18 +2,23 @@
   "version": 1,
   "active_task": {
     "task_id": "tune-system-prompt-optional",
-    "last_phase": "phase 4",
-    "active_phase": 4,
-    "status": "in_progress",
-    "updated_at": 1795164033.6116278,
-    "owner": "claude:sonnet-5.5",
-    "lease_until": 1795171233.6116278,
+    "last_phase": "in_progress",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795252307.7407217,
+    "owner": "kilo:1",
+    "lease_until": 1795259507.7407217,
     "started_by": "claude:opus-5.5",
     "continuations": [
       {
         "agent": "claude:sonnet-5.5",
         "from": "claude:opus-5.5",
         "at": 1795109966.8790858
+      },
+      {
+        "agent": "kilo:1",
+        "from": "claude:sonnet-5.5",
+        "at": 1795252307.7407217
       }
     ],
     "workspaces": [
@@ -21,26 +26,12 @@
         "name": "modelduck",
         "path": "projects/modelduck"
       }
-    ]
+    ],
+    "completed_at": 1795252408.5291758,
+    "completed_head": "35b2de0c3de87ccad0b645fb11279866babab685",
+    "completed_tree": "912c62e22d1c5782e89130664a88ab7e6cbeba1e"
   },
   "checkpoints": [
-    {
-      "task_id": "engine-start-hardening",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'engine-start-hardening' completed successfully.",
-      "status": "completed",
-      "timestamp": 1795104709.6639256,
-      "timestamp_str": "2026-11-19 19:11:49",
-      "agent": "claude:opus-5.5",
-      "head": "b9b36634741556eec303d0a82bb29e3122f9b2fd",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
     {
       "task_id": "chore-1795105375",
       "phase": "chore",
@@ -77,43 +68,6 @@
       ]
     },
     {
-      "task_id": "tune-system-prompt-optional",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[1/2] system prompt off by default in tuning, tuner v12 (ADR-179); gates pass",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795105975.3552332,
-      "timestamp_str": "2026-11-19 19:32:55",
-      "agent": "claude:opus-5.5",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "task_id": "tune-system-prompt-optional",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "F1 screen halving and F6 shared engine timing threads folded into tuner v12 (ADR-180); same session, model switched",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795109966.8790858,
-      "timestamp_str": "2026-11-19 20:39:26",
-      "agent": "claude:sonnet-5.5",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ],
-      "continued_from": "claude:opus-5.5"
-    },
-    {
       "task_id": "chore-1795110551",
       "phase": "chore",
       "phase_num": 1,
@@ -123,24 +77,6 @@
       "timestamp": 1795110551.5653658,
       "timestamp_str": "2026-11-19 20:49:11",
       "agent": "claude-code:bba617e6"
-    },
-    {
-      "task_id": "tune-system-prompt-optional",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "engine tie note and per-task ranking (ADR-181)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795112347.1348636,
-      "timestamp_str": "2026-11-19 21:19:07",
-      "agent": "claude:sonnet-5.5",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
     },
     {
       "task_id": "chore-1795112470",
@@ -154,24 +90,6 @@
       "agent": "claude-code:bba617e6"
     },
     {
-      "task_id": "tune-system-prompt-optional",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "answers shared across token caps (ADR-182), time analysis F9",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795119378.236677,
-      "timestamp_str": "2026-11-19 23:16:18",
-      "agent": "claude:sonnet-5.5",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
       "task_id": "chore-1795119820",
       "phase": "chore",
       "phase_num": 1,
@@ -181,24 +99,6 @@
       "timestamp": 1795119820.59777,
       "timestamp_str": "2026-11-19 23:23:40",
       "agent": "claude-code:bba617e6"
-    },
-    {
-      "task_id": "tune-system-prompt-optional",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "baseline update can run models side by side (ADR-184)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795120019.7106678,
-      "timestamp_str": "2026-11-19 23:26:59",
-      "agent": "claude:sonnet-5.5",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
     },
     {
       "task_id": "tune-system-prompt-optional",
@@ -354,6 +254,114 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "task_id": "tune-system-prompt-optional",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "Record validated adaptive-rungs A/B (sampling stage only) in ADR-189 and report",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795180710.7446268,
+      "timestamp_str": "2026-11-20 16:18:30",
+      "agent": "claude:sonnet-5.5",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "tune-system-prompt-optional",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "Regenerate tune gate baseline for tuner v12; gate passes",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795207530.6098506,
+      "timestamp_str": "2026-11-20 23:45:30",
+      "agent": "claude:sonnet-5.5",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "tune-system-prompt-optional",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "Code sampling start respects llama-server (ADR-190)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795207962.906935,
+      "timestamp_str": "2026-11-20 23:52:42",
+      "agent": "claude:sonnet-5.5",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "tune-system-prompt-optional",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "Skip the newline axis on llama-server (ADR-190)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795209078.3971748,
+      "timestamp_str": "2026-11-21 00:11:18",
+      "agent": "claude:sonnet-5.5",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "tune-system-prompt-optional",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "Tuner v12 baseline gate run linked to 980498d; modelduck gates 4/4 pass; stale UI task dropped (backup kept)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795252307.7407217,
+      "timestamp_str": "2026-11-21 12:11:47",
+      "agent": "kilo:1",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ],
+      "continued_from": "claude:sonnet-5.5"
+    },
+    {
+      "task_id": "tune-system-prompt-optional",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'tune-system-prompt-optional' completed successfully.",
+      "status": "completed",
+      "timestamp": 1795252408.6148548,
+      "timestamp_str": "2026-11-21 12:13:28",
+      "agent": "kilo:1",
+      "head": "35b2de0c3de87ccad0b645fb11279866babab685",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
     }
   ]
 }
