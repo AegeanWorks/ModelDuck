@@ -1459,3 +1459,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Cache parsed recipes per directory, keyed by a stamp of every preset file's name, mtime and size. Any add, remove or edit changes the stamp and forces a fresh read; invalid files are still skipped exactly as before. `resetShippedPresetCache()` and `shippedPresetReads()` are test seams.
 - **Consequences**: `readShippedPresets()` drops to **0.27 ms per call** and `/api/recommendations` from 5.12 ms to **4.52 ms** with eight models. Two failing-first tests pin reuse and invalidation; `npm test` passes 1,106 tests and the suite wall time is ~8.8 s.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests with a read counter, no assertion weakened; G-001/G-003: no tuning setting, prompt, check or suite hash changed, so no `tune:gate` or baseline update.
+
+### ADR-198: Concurrent multistep chains were tried and reversed
+- **Date**: 2026-11-23
+- **Status**: Rejected — reversed in the working tree
+- **Context**: Continuing the speed work, the profiled multistep test file took 2.8–3.9 s because each chain's sandboxed judge child ran after the previous one, although the five chains share no mutable state.
+- **Experiment**: Mark the two tests generated per chain with Node's `concurrency: true` option; assertions, sandbox flags and child count unchanged.
+- **Result**: that file's median improved from ~3.44 s to ~2.87 s, but the full suite regressed: a timing-sensitive `openai-engines` assertion ("two gaps of about 15 ms") failed under the extra child-process contention and the gate run took 48 s instead of ~9 s. The change was reverted before delivery. The objective explicitly says to reverse anything that worsens speed and to keep all functionality intact; this experiment met neither bar in the full run.
+- **Cross-principle check:** PRINCIPLE-014: no assertion was weakened or deleted; the rejected option never reached a commit.
