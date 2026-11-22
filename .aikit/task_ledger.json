@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "static-catalog-cache-1123",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795390035.2727866,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795390338.6979158,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795397235.2727866,
+    "lease_until": 1795397538.6979158,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,55 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; after larger wins, machineCatalog() still cost 8us per /api/health poll",
-      "benefits": "Read-only health route stops rebuilding an immutable catalog",
-      "risks": "contract: returned shape and values unchanged; dependency: Node only; concurrency: none; state: no tuning settings or prompts change",
-      "mitigation": "failing-first test with computation counter, full npm test and strict gates; revert if regression"
-    }
+    "completed_at": 1795390341.084074,
+    "completed_head": "79a3f5d1bd3d00117fc5024a45ad136429d94db7",
+    "completed_tree": "0b5c994fbcbdc504a59adf256d65d2146fa41983"
   },
   "checkpoints": [
-    {
-      "task_id": "missing-profile-read-1123",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'missing-profile-read-1123' completed successfully.",
-      "status": "completed",
-      "timestamp": 1795385893.0680733,
-      "timestamp_str": "2026-11-23 01:18:13",
-      "agent": "opencode:hy4-flash-free",
-      "head": "3f9c0f8487edcac908904c38545ab3e367c7ec1b",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
-    {
-      "task_id": "receipt-stat-first-1123",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/2] Stat before reading a missing install receipt; 600 missing reads measured 1.7ms each",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795386149.678254,
-      "timestamp_str": "2026-11-23 01:22:29",
-      "agent": "opencode:hy4-flash-free",
-      "impact_assessment": {
-        "why": "User directive to keep improving speeds; readInstallReceipt issues a failing readFile for every unprofiled/unreceived model, 1.7ms each in a temp library",
-        "benefits": "Avoid a failed I/O per model on /api/models and /api/state",
-        "risks": "contract: returns null when absent and parses a present receipt identically; dependency: Node fs only; concurrency: none; state: receipts written later are found by the next stat",
-        "mitigation": "failing-first tests for skip and create-later, measure both missing and present cases, full npm test and strict gates; revert if either case regresses"
-      },
-      "plan_digest": "779c6ec81c7229a50dbacedf4f88135e0800adddb186e06e85e7853aa8dc7876",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "receipt-stat-first-1123",
       "phase": "phase 4",
@@ -405,6 +361,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "task_id": "static-catalog-cache-1123",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[2/2] DELIVERED: machineCatalog 8.06us -> 0.03us; sandbox env/flags A/B all rejected; 1122 tests pass",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795390338.6979158,
+      "timestamp_str": "2026-11-23 02:32:18",
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "static-catalog-cache-1123",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'static-catalog-cache-1123' completed successfully.",
+      "status": "completed",
+      "timestamp": 1795390341.1644473,
+      "timestamp_str": "2026-11-23 02:32:21",
+      "agent": "opencode:hy4-flash-free",
+      "head": "79a3f5d1bd3d00117fc5024a45ad136429d94db7",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
     }
   ]
 }
