@@ -1940,5 +1940,35 @@
     "final_snapshot_entries": 0,
     "surface_digest": "9a9f8845a9af1cf68f14279d1117d33794d92b7cf7ae0f3d39dc4f348ddee0a2",
     "baseline_digest": "9a9f8845a9af1cf68f14279d1117d33794d92b7cf7ae0f3d39dc4f348ddee0a2"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [],
+    "no_visual_reason": "",
+    "no_change_reason": "Backend-only registry pruning fix; no rendered view touched",
+    "baseline_commit": "5dce070b9a9c153c879f6660f5ed743e9786da7a",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1795390973.3013887,
+    "finished_at": 1795390987.2422612,
+    "strikes": 0,
+    "reviewer": "opencode:hy4-flash-free",
+    "review": {
+      "reviewer": "opencode:hy4-flash-free",
+      "surface": "app",
+      "surface_digest": "f4cb4ee494381a81faed75f9f40f25a2d5a8f432eae5789abac2640e942393e7",
+      "snapshot_digest": "",
+      "snapshot_entries": 0,
+      "visual": true,
+      "reviewed_at": 1795390987.2422628
+    },
+    "allowed_removals": [],
+    "allowed_tests": [],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "f4cb4ee494381a81faed75f9f40f25a2d5a8f432eae5789abac2640e942393e7",
+    "baseline_digest": "f4cb4ee494381a81faed75f9f40f25a2d5a8f432eae5789abac2640e942393e7"
   }
 ]
