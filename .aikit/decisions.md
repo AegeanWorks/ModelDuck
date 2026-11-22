@@ -1475,3 +1475,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Cache the summary array per directory, keyed by each profile file's name, mtime and size. A tune writing a profile changes the stamp and the next poll reads fresh; callers receive a shallow copy so they cannot mutate the cache. `resetProfileListCache()` and `profileListParses()` are test seams. ENOENT still returns an empty list.
 - **Consequences**: `listProfiles(12)` drops to **0.41 ms** and `/api/profiles` to **1.42 ms** (~2x). Two failing-first tests pin reuse, copy-by-value and invalidation on add; no profile content, setting or suite hash changed.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: read-only summaries, so no `tune:gate` or baseline update.
+
+### ADR-200: Measure loop lag in the check phase instead of the timer wheel
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: Continuing the speed work, `/api/health` measured **7.49 ms per request** because `measureLoopLag()` awaited `setTimeout(0)`; on this Windows host a single timer turn costs ~10.6 ms. A broader route profile showed it was the slowest endpoint in the app.
+- **Decision**: Schedule the probe with `setImmediate` instead. It still measures the exact delay between scheduling and the event loop getting back to the callback; a 20 ms synchronous block scheduled after the probe reports ~20.6 ms, so the health signal is preserved. No caching or stale samples.
+- **Consequences**: `/api/health` drops from **7.49 ms to 0.68 ms** (~11x); the probe itself from 10.6 ms to ~0.007 ms. Two failing-first tests pin the speed and the blocked-loop behavior; no settings, prompts or generation changed.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests with preserved functional assertion, no gate weakened; G-001/G-003: read-only health probe, no `tune:gate` or baseline update.

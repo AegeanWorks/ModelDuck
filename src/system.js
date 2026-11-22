@@ -56,12 +56,17 @@ export function systemInfo() {
  * IDEA-1198: host-side health without process-wide tricks. One event-loop
  * round trip in milliseconds; a busy loop shows up here before it shows up
  * anywhere else. No monitorEventLoopDelay, no priority games.
+ *
+ * The probe runs in the check phase (setImmediate) rather than waiting for the
+ * timer wheel. It still measures exactly the delay between scheduling and the
+ * loop getting back to the callback — a 20 ms blocking loop reports ~20 ms —
+ * but avoids ~10 ms of Windows timer overhead on every /api/health poll.
  */
 export function measureLoopLag() {
   return new Promise((resolve) => {
     const start = process.hrtime.bigint();
-    setTimeout(() => {
+    setImmediate(() => {
       resolve(Number(process.hrtime.bigint() - start) / 1e6);
-    }, 0);
+    });
   });
 }
