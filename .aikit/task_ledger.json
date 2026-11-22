@@ -3,8 +3,8 @@
   "active_task": {
     "task_id": "judge-cache-size-1123",
     "last_phase": "phase 4",
-    "active_phase": 4,
-    "status": "in_progress",
+    "active_phase": 5,
+    "status": "completed",
     "updated_at": 1795387803.8878818,
     "owner": "opencode:hy4-flash-free",
     "lease_until": 1795395003.8878818,
@@ -15,27 +15,12 @@
         "name": "modelduck",
         "path": "projects/modelduck"
       }
-    ]
+    ],
+    "completed_at": 1795387868.480865,
+    "completed_head": "5a45094cf94c5428ecd91dda52714533008ca292",
+    "completed_tree": "c45ee13326b4b11dd588bfede5f201819fe33587"
   },
   "checkpoints": [
-    {
-      "task_id": "test-concurrency-1123",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[2/2] Rejected and reversed: concurrent multistep tests sped one file (3.44s -> 2.87s) but made the full gate flaky/slower (48s, timing assertion failed), so the option was removed; 4/4 gates green after revert",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795382178.7875812,
-      "timestamp_str": "2026-11-23 00:16:18",
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "test-concurrency-1123",
       "phase": "completed",
@@ -400,6 +385,23 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "task_id": "judge-cache-size-1123",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'judge-cache-size-1123' completed successfully.",
+      "status": "completed",
+      "timestamp": 1795387868.662304,
+      "timestamp_str": "2026-11-23 01:51:08",
+      "agent": "opencode:hy4-flash-free",
+      "head": "5a45094cf94c5428ecd91dda52714533008ca292",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
     }
   ]
 }
