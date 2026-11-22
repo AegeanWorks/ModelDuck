@@ -3,11 +3,11 @@
   "active_task": {
     "task_id": "app-speed-rust",
     "last_phase": "phase 4",
-    "active_phase": 4,
-    "status": "in_progress",
-    "updated_at": 1795374683.924272,
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795375279.8611107,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795381883.924272,
+    "lease_until": 1795382479.8611107,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -15,45 +15,12 @@
         "name": "modelduck",
         "path": "projects/modelduck"
       }
-    ]
+    ],
+    "completed_at": 1795375298.0303388,
+    "completed_head": "a1b69d4890a1ec337aee7838349cdc5fc1e648e9",
+    "completed_tree": "35a8fc62c5491cd417e5f5b373113c226d8bf058"
   },
   "checkpoints": [
-    {
-      "task_id": "tune-system-prompt-optional",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "adaptive warm-up default one sweep (replay: as safe as two)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795124844.617486,
-      "timestamp_str": "2026-11-20 00:47:24",
-      "agent": "claude:sonnet-5.5",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "task_id": "tune-system-prompt-optional",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "adaptive pair checks and runner-up in escalation; first A/B recorded (ADR-189)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795157499.9288492,
-      "timestamp_str": "2026-11-20 09:51:39",
-      "agent": "claude:sonnet-5.5",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "tune-system-prompt-optional",
       "phase": "phase 4",
@@ -354,6 +321,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "task_id": "app-speed-rust",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[4/4] DELIVERED: syntax check spawn removed (47.15ms -> ~0.005ms), /api/gpu resilient+memoized (red test fixed), optional in-process Rust GGUF guard (16.48ms -> 2.45ms JS vs Rust, ~6.7x) with JS fallback; npm test 1095 tests pass, check --strict 4/4 gates green",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795375279.8611107,
+      "timestamp_str": "2026-11-22 22:21:19",
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "app-speed-rust",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'app-speed-rust' completed successfully.",
+      "status": "completed",
+      "timestamp": 1795375298.2358057,
+      "timestamp_str": "2026-11-22 22:21:38",
+      "agent": "opencode:hy4-flash-free",
+      "head": "a1b69d4890a1ec337aee7838349cdc5fc1e648e9",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
     }
   ]
 }
