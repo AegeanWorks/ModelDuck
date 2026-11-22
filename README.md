@@ -748,7 +748,8 @@ modelduck/
 │   ├── missing-profile-read.test.js
 │   ├── receipt-stat-first.test.js
 │   ├── run-liveness-cache.test.js
-│   └── judge-cache-size.test.js
+│   ├── judge-cache-size.test.js
+│   └── main-lazy-import.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml

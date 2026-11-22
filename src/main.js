@@ -3,24 +3,9 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { APP_NAME, VERSION, isLoopbackHost, parseArgs, resolvePaths } from "./config.js";
-import { BenchmarkRunner } from "./benchmark-runner.js";
-import { TunedSettings } from "./tuned-settings.js";
-import { TuneScheduler } from "./tune-scheduler.js";
-import { DownloadManager } from "./downloader.js";
-import { drainServer } from "./drain.js";
-import { BUILTIN_DESCRIPTORS, createEngineCatalog, engineContext, loadEnginePlugin } from "./engine-catalog.js";
-import { createEngineListing } from "./engine-listing.js";
-import { RoutedEngine } from "./engine-router.js";
-import { servingResolver } from "./inference-engines.js";
-import { LlamaEngine } from "./engine.js";
 import { AppError } from "./errors.js";
-import { acquireHomeLock, ensureDirectory } from "./fs-atomic.js";
-import { JitManager } from "./jit.js";
-import { createModelRegistry } from "./model-registry.js";
-import { createHttpServer } from "./server.js";
-import { ServerSettingsStore } from "./server-settings.js";
-import { SettingsStore } from "./settings.js";
-import { systemInfo } from "./system.js";
+// The server, engine and tuner graph is loaded only when the app actually
+// starts. `--help` and `--version` used to pay ~130 ms of unrelated imports.
 
 const HELP = `${APP_NAME} ${VERSION}
 
@@ -92,6 +77,22 @@ async function main() {
     process.stdout.write(`${VERSION}\n`);
     return;
   }
+
+  const [
+    { BenchmarkRunner }, { TunedSettings }, { TuneScheduler }, { DownloadManager },
+    { drainServer }, { BUILTIN_DESCRIPTORS, createEngineCatalog, engineContext, loadEnginePlugin },
+    { createEngineListing }, { RoutedEngine }, { servingResolver }, { LlamaEngine },
+    { acquireHomeLock, ensureDirectory }, { JitManager }, { createModelRegistry },
+    { createHttpServer }, { ServerSettingsStore }, { SettingsStore }, { systemInfo },
+  ] = await Promise.all([
+    import("./benchmark-runner.js"), import("./tuned-settings.js"),
+    import("./tune-scheduler.js"), import("./downloader.js"), import("./drain.js"),
+    import("./engine-catalog.js"), import("./engine-listing.js"),
+    import("./engine-router.js"), import("./inference-engines.js"), import("./engine.js"),
+    import("./fs-atomic.js"), import("./jit.js"), import("./model-registry.js"),
+    import("./server.js"), import("./server-settings.js"), import("./settings.js"),
+    import("./system.js"),
+  ]);
 
   const paths = resolvePaths({ home: options.home, models: options.models });
   await ensureDirectory(paths.home);

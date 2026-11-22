@@ -1523,3 +1523,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Raise the bound to 4096 entries (bounded memory, ~tens of MB) and export the constant so a test can pin it. Verdicts, sandbox flags and eviction order are unchanged.
 - **Consequences**: a controlled 600-answer A/B (same machine, alternating constant) went from **66.5 s / 0 hits / 600 spawns** to **46.3 s / 50 hits / 550 spawns** (~30% faster). No tuning settings, prompts or suite hashes changed; the cache still stores only results of the same pure verification.
 - **Cross-principle check:** PRINCIPLE-014: failing-first test and controlled A/B, no assertion weakened; G-001/G-003: no tuning change — only reuse of already-verified answers.
+
+### ADR-206: Load the server graph only when the app actually starts
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: Continuing the speed work, `node src/main.js --help` cost ~200 ms because the entry statically imported the server, engine, registry, tuner and benchmark graph before printing three lines of help.
+- **Decision**: Keep only `config.js` and `errors.js` static; load the other 15 modules with dynamic `import()` inside `main()` after the help/version early returns. The entry path (`node src/main.js`) and all flags are unchanged.
+- **Consequences**: help drops from ~200 ms to **57–62 ms**; `ui:smoke` proves the real start path still serves the full control panel, and the full suite passes 1,120 tests. No settings, prompts or generation changed.
+- **Cross-principle check:** PRINCIPLE-014: failing-first source test plus real start-path smoke, no assertion weakened; G-001/G-003: CLI startup only, no `tune:gate` or baseline update.
