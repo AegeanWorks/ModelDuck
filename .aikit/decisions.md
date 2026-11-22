@@ -1566,3 +1566,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: both builders drop to **0.03–0.04 us** (~20,000x). Three failing-first tests pin default reuse and custom-argument behavior. Summary values and shapes are unchanged.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no prompt, check, suite version or hash changed — only reuse of the same computed summary.
 
+### ADR-211: Prune stale sampling overrides on a cached scan
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: Repeated gate runs exposed a pre-existing flake (~1 in 3) in `model-registry.test.js`: after a file was deleted outside the API, a full scan inside the 1 s directory-stamp TTL could return the cached listing and keep a per-model sampling override attached to a vanished model.
+- **Decision**: On the cached-scan path, verify only the few override target paths with `fs.access` and delete overrides whose file is gone. The full scan's pruning logic and the 1 s scan cache stay unchanged; no assertion was loosened.
+- **Consequences**: five consecutive full `npm test` runs passed (previously ~1 in 3 failed). Cost is one `access` per existing override, normally zero, so the cached `/api/state` path keeps its speed.
+- **Cross-principle check:** PRINCIPLE-014: a new regression test pins the behavior and no assertion was weakened; G-001/G-003: registry bookkeeping only, no tuning or suite change.
+

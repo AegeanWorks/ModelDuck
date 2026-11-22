@@ -270,6 +270,18 @@ export function createModelRegistry({
     const stamp = await dirStamp();
     if (!only && !force && stamp === lastDirStamp && Date.now() - lastScanAt < 1000) {
       scanHits += 1;
+      // A file deleted outside the API may not move the directory stamp within
+      // this TTL. Verify the few override targets directly so a stale override
+      // cannot attach to a later model reusing the same id.
+      if (samplingOverrides.size) {
+        await Promise.all([...samplingOverrides.keys()].map(async (id) => {
+          const entry = entries.get(id);
+          const exists = entry
+            ? await fs.promises.access(entry.path).then(() => true, () => false)
+            : false;
+          if (!exists) samplingOverrides.delete(id);
+        }));
+      }
       return listPublic();
     }
     scanMisses += 1;
