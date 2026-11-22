@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "preset-cache-speed-1122",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795380682.8815532,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795381245.5301127,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795387882.8815532,
+    "lease_until": 1795388445.5301127,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,37 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; measured readShippedPresets at 1.52ms per call and /api/recommendations at 5.12ms with 8 models",
-      "benefits": "Exact-stamp cache: no stale presets after a file edit, but no repeated 135KB read+parse on unchanged files",
-      "risks": "contract: returned recipe objects and skip-invalid behavior must stay identical; dependency: Node fs only; concurrency: cache is keyed by directory; state: no tuning settings, prompts or suite hashes change",
-      "mitigation": "failing-first test with a read counter plus invalidation test on file change, then npm test and gates"
-    }
+    "completed_at": 1795381246.2918644,
+    "completed_head": "26d870606b62809ba0511afa26c4b7c1ef3b831d",
+    "completed_tree": "057c3c30f799cfbe2f2186e53747c5a98988b254"
   },
   "checkpoints": [
-    {
-      "task_id": "retune-profiles-engine-stage",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/4] audit done: five profiles at tuner v12 with llama-server:vulkan, held-back not lower anywhere; [3/4] ADR-191 recorded, no CHANGELOG row needed (no suite or search change)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795254746.660367,
-      "timestamp_str": "2026-11-21 12:52:26",
-      "agent": "kilo:1"
-    },
-    {
-      "task_id": "retune-profiles-engine-stage",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "ADR-191 recorded and README tree lists .gitattributes; all four project gates pass",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795255111.6084375,
-      "timestamp_str": "2026-11-21 12:58:31",
-      "agent": "kilo:1",
-      "checklists": "passed"
-    },
     {
       "task_id": "retune-profiles-engine-stage",
       "phase": "completed",
@@ -387,6 +361,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "task_id": "preset-cache-speed-1122",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[2/2] DELIVERED: readShippedPresets 1.52ms -> 0.27ms; /api/recommendations 5.12ms -> 4.52ms; exact-stamp invalidation tested; 1106 tests pass, strict gates 4/4",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795381245.5301127,
+      "timestamp_str": "2026-11-23 00:00:45",
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "preset-cache-speed-1122",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'preset-cache-speed-1122' completed successfully.",
+      "status": "completed",
+      "timestamp": 1795381247.1924772,
+      "timestamp_str": "2026-11-23 00:00:47",
+      "agent": "opencode:hy4-flash-free",
+      "head": "26d870606b62809ba0511afa26c4b7c1ef3b831d",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
     }
   ]
 }
