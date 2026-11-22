@@ -1467,3 +1467,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Experiment**: Mark the two tests generated per chain with Node's `concurrency: true` option; assertions, sandbox flags and child count unchanged.
 - **Result**: that file's median improved from ~3.44 s to ~2.87 s, but the full suite regressed: a timing-sensitive `openai-engines` assertion ("two gaps of about 15 ms") failed under the extra child-process contention and the gate run took 48 s instead of ~9 s. The change was reverted before delivery. The objective explicitly says to reverse anything that worsens speed and to keep all functionality intact; this experiment met neither bar in the full run.
 - **Cross-principle check:** PRINCIPLE-014: no assertion was weakened or deleted; the rejected option never reached a commit.
+
+### ADR-199: Cache profile-list summaries by an exact directory stamp
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: Continuing the speed work, `listProfiles(12)` measured **1.31 ms** and `/api/profiles` **2.91 ms**: the UI polls the route, and every poll re-read and re-parsed every saved profile just to return three summary fields.
+- **Decision**: Cache the summary array per directory, keyed by each profile file's name, mtime and size. A tune writing a profile changes the stamp and the next poll reads fresh; callers receive a shallow copy so they cannot mutate the cache. `resetProfileListCache()` and `profileListParses()` are test seams. ENOENT still returns an empty list.
+- **Consequences**: `listProfiles(12)` drops to **0.41 ms** and `/api/profiles` to **1.42 ms** (~2x). Two failing-first tests pin reuse, copy-by-value and invalidation on add; no profile content, setting or suite hash changed.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: read-only summaries, so no `tune:gate` or baseline update.

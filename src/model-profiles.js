@@ -431,6 +431,25 @@ export function pendingWork(profile, tasks, stages = TUNE_STAGES) {
 }
 
 /** One summary line per saved profile. */
+/**
+ * /api/profiles polls this on the UI's timer. Re-reading and parsing every
+ * profile file cost ~1.3 ms for twelve profiles, so cache the summaries by an
+ * exact directory stamp (name + mtime + size). A tune writing a profile changes
+ * the stamp and is read fresh on the next poll.
+ */
+const PROFILE_LIST_CACHE = new Map();
+let profileListReads = 0;
+
+export function resetProfileListCache() {
+  PROFILE_LIST_CACHE.clear();
+  profileListReads = 0;
+}
+
+/** Test seam: how many directory listings actually parsed files since the last reset. */
+export function profileListParses() {
+  return profileListReads;
+}
+
 export async function listProfiles(directory) {
   let names;
   try {
@@ -439,13 +458,22 @@ export async function listProfiles(directory) {
     if (error?.code === "ENOENT") return [];
     throw error;
   }
+  const files = names.filter((item) => item.endsWith(".json")).sort();
+  const stamp = (await Promise.all(files.map(async (name) => {
+    const stat = await fs.promises.stat(path.join(directory, name)).catch(() => null);
+    return `${name}:${stat?.mtimeMs ?? ""}:${stat?.size ?? ""}`;
+  }))).join("|");
+  const cached = PROFILE_LIST_CACHE.get(directory);
+  if (cached && cached.stamp === stamp) return [...cached.profiles];
   const profiles = [];
-  for (const name of names.filter((item) => item.endsWith(".json")).sort()) {
+  for (const name of files) {
     const profile = await readJsonWithQuarantine(path.join(directory, name), null);
     if (profile?.schema !== PROFILE_SCHEMA) continue;
     profiles.push({ catalogId: profile.catalogId, createdAt: profile.createdAt, tasks: Object.keys(profile.tasks ?? {}) });
   }
-  return profiles;
+  profileListReads += 1;
+  PROFILE_LIST_CACHE.set(directory, { stamp, profiles });
+  return [...profiles];
 }
 
 /**

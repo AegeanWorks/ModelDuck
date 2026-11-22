@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "test-concurrency-1123",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795382178.7875812,
+    "task_id": "profile-list-cache-1123",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795382724.7615912,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795389378.7875812,
+    "lease_until": 1795389924.7615912,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,35 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795382253.993137,
-    "completed_head": "3a9e0eff02ce0b993466f01749ac3dae3e8321bf",
-    "completed_tree": "0deb5e504103aa9aa5655ce83802298ca8717133"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; measured listProfiles(12) at 1.31ms and /api/profiles at 2.91ms",
+      "benefits": "No repeated JSON reads on unchanged profile directories; edits/adds/removes still invalidate exactly",
+      "risks": "contract: returned summaries and ENOENT behavior unchanged; dependency: Node fs only; concurrency: cache keyed by directory, returns a copy; state: no tuning settings or suite hashes change",
+      "mitigation": "failing-first test with parse counter and invalidation on write, full npm test and strict gates; revert if slower"
+    }
   },
   "checkpoints": [
-    {
-      "task_id": "app-speed-rust",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/4] Speed the app without tuning: in-process JS syntax check, memoized GPU detection, Rust GGUF header guard with JS fallback",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795371532.8870513,
-      "timestamp_str": "2026-11-22 21:18:52",
-      "agent": "opencode:hy4-flash-free",
-      "impact_assessment": {
-        "why": "User directive to improve ModelDuck app speed (explicitly not tuning); measured 47ms spawn per JS syntax check, a 500 /api/gpu endpoint, and 6.4ms+ GGUF header validation on a synthetic large header",
-        "benefits": "No process spawn per syntax check, repeatable GPU info without re-import, and a native bounded GGUF header scan that scales to real vocabularies",
-        "risks": "contract: judge verdicts, API shapes and guard reject reasons must stay identical; dependency: Rust stdlib only and Node stdlib only, no new npm packages; concurrency: GGUF guard is called by scans and must remain bounded; state: no settings, prompts or generation paths are touched",
-        "mitigation": "failing-first tests for each path, keep the JS guard as a fallback, compare verdicts on the same fixtures, run npm test and the project gates before each commit"
-      },
-      "plan_digest": "54e3b6628f58baffca8ff824acecc31e5920c7ae3aaf5c8fe3f6eb5cd99fac77",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "app-speed-rust",
       "phase": "phase 4",
@@ -410,6 +389,30 @@
         ],
         "forced": false
       }
+    },
+    {
+      "task_id": "profile-list-cache-1123",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/2] Cache listProfiles by exact directory stamp so /api/profiles stops re-reading every profile per poll",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795382724.7615912,
+      "timestamp_str": "2026-11-23 00:25:24",
+      "agent": "opencode:hy4-flash-free",
+      "impact_assessment": {
+        "why": "User directive to keep improving speeds; measured listProfiles(12) at 1.31ms and /api/profiles at 2.91ms",
+        "benefits": "No repeated JSON reads on unchanged profile directories; edits/adds/removes still invalidate exactly",
+        "risks": "contract: returned summaries and ENOENT behavior unchanged; dependency: Node fs only; concurrency: cache keyed by directory, returns a copy; state: no tuning settings or suite hashes change",
+        "mitigation": "failing-first test with parse counter and invalidation on write, full npm test and strict gates; revert if slower"
+      },
+      "plan_digest": "ecd2d18f95c08fe2a2f0f991cc82ae628014671a222e1b62493ce1825bb32e38",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }
