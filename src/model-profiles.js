@@ -23,13 +23,19 @@ const PROFILE_TEXT_CACHE = new Map();
 const PROFILE_TEXT_LIMIT = 16;
 let profileCacheHits = 0;
 let profileCacheMisses = 0;
+let missingProfileSkips = 0;
 export function profileCacheStats() {
   return { size: PROFILE_TEXT_CACHE.size, hits: profileCacheHits, misses: profileCacheMisses };
+}
+/** How many missing profiles skipped a redundant read after stat (test seam). */
+export function profileMissingSkips() {
+  return missingProfileSkips;
 }
 export function resetProfileCache() {
   PROFILE_TEXT_CACHE.clear();
   profileCacheHits = 0;
   profileCacheMisses = 0;
+  missingProfileSkips = 0;
 }
 
 export const LOAD_KEYS = Object.freeze([
@@ -304,7 +310,14 @@ export function importRecipe(recipe) {
 export async function loadProfile(directory, catalogId, fingerprint) {
   const file = fileFor(directory, catalogId);
   const info = await fs.promises.stat(file).catch(() => null);
-  const stamp = info ? `${info.mtimeMs}:${info.size}` : "missing";
+  if (!info) {
+    // stat already proved the file absent; a second failing readFile per model
+    // cost ~50us on a large library. A file created later is found by the next
+    // call's stat, so no profile is lost.
+    missingProfileSkips += 1;
+    return null;
+  }
+  const stamp = `${info.mtimeMs}:${info.size}`;
   const cached = PROFILE_TEXT_CACHE.get(file);
   let profile;
   if (cached?.stamp === stamp) {

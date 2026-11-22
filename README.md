@@ -744,7 +744,8 @@ modelduck/
 │   ├── preset-cache-speed.test.js
 │   ├── profile-list-cache.test.js
 │   ├── loop-lag-speed.test.js
-│   └── fingerprint-runtime-cache.test.js
+│   ├── fingerprint-runtime-cache.test.js
+│   └── missing-profile-read.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml

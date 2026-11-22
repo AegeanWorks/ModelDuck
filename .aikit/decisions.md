@@ -1491,3 +1491,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Cache by `fileName|size|runtime` whenever the runtime is a string (still no cache when a custom `system` object is supplied). A computation counter is exposed for tests.
 - **Consequences**: `/api/recommendations` with 60 models drops from **76 ms to ~8–10 ms**; two failing-first tests pin runtime-keyed reuse and distinct-runtime separation. Fingerprint fields and values are unchanged, so saved profiles remain comparable.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: the fingerprint formula is unchanged — only when its result is reused — so no `SUITE_VERSION` or baseline update.
+
+### ADR-202: Do not re-read a profile that stat already proved missing
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: Continuing the speed work, `loadProfile()` statted a profile file and then still attempted `readFile`, which failed for models with no saved profile. 600 missing lookups measured **107 us each**; a 60-model recommendation path pays that for every unprofiled model.
+- **Decision**: Return `null` immediately when stat reports the file absent. A file created later is found by the next call's stat, so no profile is lost; damaged-file quarantine and all other branches are unchanged.
+- **Consequences**: 600 missing lookups drop to **~48 us each (~2.2x)** with stable repeated measurements. Two failing-first tests pin the skipped read and the create-later behavior. End-to-end endpoint timings were noisy under concurrent host load, so the stable microbenchmark is the reported evidence.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests with the functional case preserved, no assertion weakened; G-001/G-003: read-only profile lookup, no tuning or suite change.
