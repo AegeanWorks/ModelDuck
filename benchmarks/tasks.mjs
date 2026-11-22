@@ -228,15 +228,36 @@ export function speedItems(prompts = PROMPTS) {
   ].filter((id) => typeof id === "string");
 }
 
-/** Hash of every item definition a tune can ask, by task; part of a profile's comparability key. */
+/**
+ * Hash of every item definition a tune can ask, by task; part of a profile's
+ * comparability key. The suite is frozen for the process, so hashing it costs
+ * ~1.8 ms once rather than once per model per /api/recommendations request.
+ */
+const SUBSET_HASH_CACHE = new Map();
+let subsetHashComputations = 0;
+
+export function resetTaskSubsetHash() {
+  SUBSET_HASH_CACHE.clear();
+  subsetHashComputations = 0;
+}
+
+/** Test seam: how many times the suite definition was actually hashed. */
+export function taskSubsetHashComputations() {
+  return subsetHashComputations;
+}
+
 export function taskSubsetHash(prompts = PROMPTS) {
+  if (SUBSET_HASH_CACHE.has(prompts)) return SUBSET_HASH_CACHE.get(prompts);
   const definition = {
     suiteVersion: SUITE_VERSION,
     rungs: TASK_RUNGS,
     holdout: HOLDOUT_SHARE,
     tasks: TASKS.map((task) => ({ id: task.id, items: taskPrompts(task.id, prompts) })),
   };
-  return createHash("sha256").update(JSON.stringify(definition)).digest("hex").slice(0, 16);
+  subsetHashComputations += 1;
+  const hash = createHash("sha256").update(JSON.stringify(definition)).digest("hex").slice(0, 16);
+  SUBSET_HASH_CACHE.set(prompts, hash);
+  return hash;
 }
 
 /**

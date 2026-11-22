@@ -1435,3 +1435,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
   2. Move the static `TASKS` vocabulary into `benchmarks/task-ids.mjs`; `tasks.mjs` re-exports the same frozen array, and `server.js` imports the lightweight module. The two heavy summaries are dynamically imported only inside the `/api/benchmarks/suite` route.
 - **Consequences**: `systemInfo()` measures **1.3 us/op** (about 265x faster). Server startup no longer loads suite/item modules; a source test pins that the heavy imports are absent and another pins that the two task arrays are the same object. `npm test` passes 1,100 tests (1 skipped).
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests were added before each change and no assertion was weakened; G-001/G-003: no prompt, check, task subset, setting or generation path changed, so no `tune:gate` or `SUITE_VERSION` bump.
+
+### ADR-195: Memoize the task-subset hash used by profile fingerprints
+- **Date**: 2026-11-22
+- **Status**: Accepted
+- **Context**: Speed wave 3 profiled `/api/recommendations` at **18.76 ms per request** with eight installed models. Each `currentFingerprint` call recomputed `taskSubsetHash()`, which serializes every prompt definition and SHA-256 hashes it (**1.79 ms per call**); eight models meant ~14 ms of identical hashing per request. The suite is frozen for a process, so the work is constant.
+- **Decision**: Cache the hash by prompt array in `benchmarks/tasks.mjs`. The default frozen `PROMPTS` array is hashed once; a caller passing a different array still gets its own hash. `resetTaskSubsetHash()` and `taskSubsetHashComputations()` are test seams, and a parity test recomputes the original definition hash to prove the cached value is byte-identical.
+- **Consequences**: `taskSubsetHash()` drops from 1.79 ms to ~0.00 ms per call; `/api/recommendations` drops from **18.76 ms to 5.12 ms** with eight models. `npm test` passes 1,103 tests (1 skipped).
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests and byte-parity check added before the change; G-003: no prompt, check, task subset or version changed — only the cost of hashing the same static suite, so no `SUITE_VERSION` bump or baseline update.
