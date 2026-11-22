@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "app-speed-wave2",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795375983.137744,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795377413.8867922,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795383183.137744,
+    "lease_until": 1795384613.8867922,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,43 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to continue improving ModelDuck speed; measured os.cpus() at 347us per call and systemInfo() at 345us, called on /api/health, /api/metrics and every fingerprint resolution",
-      "benefits": "Free-memory and uptime stay live while CPU model/core reads become O(1); lower latency on frequently polled routes",
-      "risks": "contract: systemInfo's returned shape and values must stay identical; dependency: Node stdlib only; concurrency: cached topology is immutable; state: no settings, prompts, generation or suite hashes change",
-      "mitigation": "failing-first test pinning one CPU read, compare fields before/after, run npm test and project gates before commit"
-    }
+    "completed_at": 1795377436.7508962,
+    "completed_head": "5f47f514c2d7197db1ab268d22d34a3505d55e42",
+    "completed_tree": "7ab362059d497f76330a92315acf8b2b6b53f843"
   },
   "checkpoints": [
-    {
-      "task_id": "chore-1795160600",
-      "phase": "chore",
-      "phase_num": 1,
-      "description": "ADR-189 third A/B result",
-      "status": "completed",
-      "chore": true,
-      "timestamp": 1795160600.5220761,
-      "timestamp_str": "2026-11-20 10:43:20",
-      "agent": "claude-code:bba617e6"
-    },
-    {
-      "task_id": "tune-system-prompt-optional",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "adaptive limited to the sampling stage after a missed prompt gain (ADR-189)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795164033.6116278,
-      "timestamp_str": "2026-11-20 11:40:33",
-      "agent": "claude:sonnet-5.5",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "tune-system-prompt-optional",
       "phase": "phase 4",
@@ -365,6 +333,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "task_id": "app-speed-wave2",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[3/3] DELIVERED: systemInfo 345.5us -> 1.3us (~265x) via one-time CPU topology read; server startup no longer imports the benchmark suite (task ids split into task-ids.mjs); npm test 1100 tests pass, check --strict 4/4 gates green",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795377413.8867922,
+      "timestamp_str": "2026-11-22 22:56:53",
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "app-speed-wave2",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'app-speed-wave2' completed successfully.",
+      "status": "completed",
+      "timestamp": 1795377437.552332,
+      "timestamp_str": "2026-11-22 22:57:17",
+      "agent": "opencode:hy4-flash-free",
+      "head": "5f47f514c2d7197db1ab268d22d34a3505d55e42",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
     }
   ]
 }
