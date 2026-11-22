@@ -99,9 +99,20 @@ export const MACHINES = Object.freeze({
   benchmark: BENCHMARK_MACHINE,
 });
 
+let machineCatalogComputes = 0;
+let cachedMachineCatalog = null;
+export function machineCatalogComputations() {
+  return machineCatalogComputes;
+}
+
 /** The vocabulary an agent (or the UI) can read without reading the source. */
 export function machineCatalog() {
-  return Object.fromEntries(Object.entries(MACHINES).map(([key, machine]) => [key, machine.toJSON()]));
+  if (cachedMachineCatalog === null) {
+    machineCatalogComputes += 1;
+    cachedMachineCatalog = Object.freeze(
+      Object.fromEntries(Object.entries(MACHINES).map(([key, machine]) => [key, machine.toJSON()])));
+  }
+  return { ...cachedMachineCatalog };
 }
 
 /** Move a record's status only when the machine allows it; returns whether it moved. */

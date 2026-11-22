@@ -1550,3 +1550,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: cached reads drop to **0.27 ms (~2x)**. A failing-first test pins one computation per limit. Summary shape and values are unchanged.
 - **Cross-principle check:** PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: read-only Bench reporting, no tuning or suite change.
 
+### ADR-209: Compute the static state-machine catalog once
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: Continuing the speed work, `machineCatalog()` cost **8.06 us** per call because it rebuilt the same frozen machine vocabulary on every `/api/health` poll.
+- **Decision**: Memoize the catalog at module scope and return a fresh shallow copy per call, so a caller cannot mutate the cached record. A computation counter is exposed for tests.
+- **Consequences**: `machineCatalog()` drops to **0.03 us** (~270x). The value shape is unchanged and the full suite passes 1,122 tests. Sandbox startup flags were A/B tested this turn and all rejected (invalid, slower or flat), so no isolation property was relaxed.
+- **Cross-principle check:** PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: read-only state vocabulary, no tuning change.
+
