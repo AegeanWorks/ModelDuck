@@ -170,6 +170,7 @@ export class LlamaServerBackend {
   #child = null;
   #base = null;
   #exitedWith = null;
+  #childGone = false;
   #stderrTail = "";
 
   /** `cachePrompt`: reuse the prompt cache between requests (serving); a tune sets it off so every answer pays for its own prompt. */
@@ -227,11 +228,18 @@ export class LlamaServerBackend {
     this.#stderrTail = "";
     child.stderr?.on("data", (chunk) => { stderr = (stderr + chunk).slice(-4000); this.#stderrTail = stderr; });
     let exited = null;
-    child.once("exit", (code) => { exited = code ?? "signal"; this.#exitedWith = exited; });
+    child.once("exit", (code) => { exited = code ?? "signal"; this.#exitedWith = exited; this.#childGone = true; });
     // A binary that is missing or not executable reports through "error"; unhandled, that ends the whole process.
     let spawnError = null;
-    child.once("error", (error) => { spawnError = error; exited = error?.code ?? "error"; this.#exitedWith = exited; });
+    child.once("error", (error) => {
+      spawnError = error;
+      exited = error?.code ?? "error";
+      this.#exitedWith = exited;
+      // A failed spawn never emits "exit"; stop() must not wait for one.
+      this.#childGone = true;
+    });
     this.#exitedWith = null;
+    this.#childGone = false;
     // A tune or app that dies must not leave a server holding the model.
     const reap = () => child.kill();
     process.once("exit", reap);
@@ -294,10 +302,12 @@ export class LlamaServerBackend {
     this.#base = null;
     if (!child) return;
     process.removeListener("exit", child.reap);
-    if (child.exitCode === null) {
+    if (child.exitCode === null && !this.#childGone) {
       const gone = new Promise((resolve) => child.once("exit", resolve));
       child.kill();
       await Promise.race([gone, sleep(5000)]);
+    } else {
+      child.kill();
     }
   }
 }

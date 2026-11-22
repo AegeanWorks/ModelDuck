@@ -1443,3 +1443,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Cache the hash by prompt array in `benchmarks/tasks.mjs`. The default frozen `PROMPTS` array is hashed once; a caller passing a different array still gets its own hash. `resetTaskSubsetHash()` and `taskSubsetHashComputations()` are test seams, and a parity test recomputes the original definition hash to prove the cached value is byte-identical.
 - **Consequences**: `taskSubsetHash()` drops from 1.79 ms to ~0.00 ms per call; `/api/recommendations` drops from **18.76 ms to 5.12 ms** with eight models. `npm test` passes 1,103 tests (1 skipped).
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests and byte-parity check added before the change; G-003: no prompt, check, task subset or version changed — only the cost of hashing the same static suite, so no `SUITE_VERSION` bump or baseline update.
+
+### ADR-196: A failed engine spawn refuses at once, without the exit wait
+- **Date**: 2026-11-22
+- **Status**: Accepted
+- **Context**: Looking at tuning/engine test speed without running a whole tune, a TAP profile showed `a binary that cannot be started is a refusal, not a crash` spending **5,131 ms**: `LlamaServerBackend.stop()` waited up to 5 s for an `exit` event after `kill()`, but a child that fails to spawn emits only `error` and never exits. The app had the same delay before telling the user the engine binary was missing.
+- **Decision**: Track a `#childGone` flag when the child emits `exit` or `error`, and have `stop()` skip the exit wait in that case (it still calls `kill()` and removes the exit hook). The refusal code, Why/Fix text and listener cleanup are unchanged.
+- **Consequences**: the failing-first test drops from **5,154 ms to 143 ms**; all 35 external-engine tests pass and the whole suite drops from ~17.4 s to ~13.8 s wall time. No tuning was run and no tuning setting, prompt or suite hash changed.
+- **Cross-principle check:** PRINCIPLE-014: the new timing test failed before the fix and no assertion was weakened; G-001/G-003: no generation, prompt, settings or suite change, so no `tune:gate` run or baseline update.

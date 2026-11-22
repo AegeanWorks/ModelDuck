@@ -739,7 +739,8 @@ modelduck/
 │   ├── server.test.js
 │   ├── system-info-speed.test.js
 │   ├── server-startup-speed.test.js
-│   └── task-subset-hash-speed.test.js
+│   ├── task-subset-hash-speed.test.js
+│   └── engine-start-speed.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml

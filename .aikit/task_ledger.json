@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "app-speed-wave3",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795378852.2324202,
+    "task_id": "tuning-test-speed",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795379676.4014971,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795386052.2324202,
+    "lease_until": 1795386876.4014971,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,29 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795378852.9851217,
-    "completed_head": "9700e99bbc54d41fa11ff1a1e51c0b31d7a05382",
-    "completed_tree": "0c398d8bc056b5a708d79b6337161bb1b37152ca"
+    "impact_assessment": {
+      "why": "User directive to look at tuning speed via tests only; TAP profile showed one engine test taking 5131ms because stop() waited 5s for an exit event that a failed spawn never emits",
+      "benefits": "Immediate actionable failure for a missing engine binary in the app, and a ~20% faster full test suite",
+      "risks": "contract: refusal code, Why/Fix text and exit-listener cleanup must stay identical; dependency: Node stdlib only; concurrency: the child-gone flag is per backend instance; state: no tuning settings, prompts or suite hashes change",
+      "mitigation": "failing-first timing test plus all 35 external-engine tests, then npm test and project gates"
+    }
   },
   "checkpoints": [
-    {
-      "task_id": "tune-system-prompt-optional",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "Skip the newline axis on llama-server (ADR-190)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795209078.3971748,
-      "timestamp_str": "2026-11-21 00:11:18",
-      "agent": "claude:sonnet-5.5",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "tune-system-prompt-optional",
       "phase": "in_progress",
@@ -373,6 +358,30 @@
         ],
         "forced": false
       }
+    },
+    {
+      "task_id": "tuning-test-speed",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/2] Speed tuning/engine tests without running a whole tune: make a failed llama-server spawn refuse immediately instead of waiting the 5s exit timeout",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795379676.4014971,
+      "timestamp_str": "2026-11-22 23:34:36",
+      "agent": "opencode:hy4-flash-free",
+      "impact_assessment": {
+        "why": "User directive to look at tuning speed via tests only; TAP profile showed one engine test taking 5131ms because stop() waited 5s for an exit event that a failed spawn never emits",
+        "benefits": "Immediate actionable failure for a missing engine binary in the app, and a ~20% faster full test suite",
+        "risks": "contract: refusal code, Why/Fix text and exit-listener cleanup must stay identical; dependency: Node stdlib only; concurrency: the child-gone flag is per backend instance; state: no tuning settings, prompts or suite hashes change",
+        "mitigation": "failing-first timing test plus all 35 external-engine tests, then npm test and project gates"
+      },
+      "plan_digest": "5990df35efab482348b3694bb772ee5cfd31622209d5975f6cf31f76bc792263",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }
