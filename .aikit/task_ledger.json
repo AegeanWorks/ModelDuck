@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "report-summary-cache-1123",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795388910.1874306,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795389359.3910177,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795396110.1874306,
+    "lease_until": 1795396559.3910177,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,56 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; every /api/benchmarks cache hit recomputed item summaries over a 2.3MB baseline",
-      "benefits": "Cached report reads become near-free while file stamps still invalidate exactly",
-      "risks": "contract: returned summary shape and values unchanged; dependency: Node Map only; concurrency: none; state: no tuning settings or suite hashes change",
-      "mitigation": "failing-first test with a summarize counter plus invalidation-on-edit, full npm test and strict gates; revert if regression"
-    }
+    "completed_at": 1795389363.3171237,
+    "completed_head": "09c19b96f81b32f4345fbe37882895cae6b8a362",
+    "completed_tree": "1c75ccf79322c7dd6b4fcb8cb27d95e78b08803c"
   },
   "checkpoints": [
-    {
-      "task_id": "fingerprint-runtime-cache-1123",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/2] Cache currentFingerprint by runtime string too; 60 explicit-runtime lookups cost 13.8ms",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795384585.6974757,
-      "timestamp_str": "2026-11-23 00:56:25",
-      "agent": "opencode:hy4-flash-free",
-      "impact_assessment": {
-        "why": "User directive to keep improving speeds; /api/recommendations with 60 models measured 76ms, of which 60 uncached fingerprint+loadProfile calls cost 13.8ms because an explicit nodeLlamaCpp disabled the cache",
-        "benefits": "One fingerprint per model+size+runtime instead of one per model per request",
-        "risks": "contract: fingerprint fields and values unchanged; dependency: Node stdlib; concurrency: cache keyed by all inputs; state: no prompts, checks, settings or suite hashes change",
-        "mitigation": "failing-first tests for runtime-keyed reuse and distinct-runtime separation, full npm test and strict gates; revert if regression"
-      },
-      "plan_digest": "0964397d1495e27aacf99daefbd1f33a08582f99fa5b7d758e988350be4208af",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "task_id": "fingerprint-runtime-cache-1123",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[2/2] DELIVERED: /api/recommendations with 60 models 76ms -> ~8-10ms by keying fingerprint cache on runtime; 1112 tests pass, strict gates 4/4",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795385087.017482,
-      "timestamp_str": "2026-11-23 01:04:47",
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "fingerprint-runtime-cache-1123",
       "phase": "completed",
@@ -412,6 +367,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "task_id": "report-summary-cache-1123",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[2/2] DELIVERED: cached Bench summary 0.55ms -> 0.27ms; 1121 tests pass, strict gates green",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795389359.3910177,
+      "timestamp_str": "2026-11-23 02:15:59",
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "report-summary-cache-1123",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'report-summary-cache-1123' completed successfully.",
+      "status": "completed",
+      "timestamp": 1795389363.7661922,
+      "timestamp_str": "2026-11-23 02:16:03",
+      "agent": "opencode:hy4-flash-free",
+      "head": "09c19b96f81b32f4345fbe37882895cae6b8a362",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
     }
   ]
 }
