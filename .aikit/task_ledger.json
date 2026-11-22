@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "missing-profile-read-1123",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795385268.7396805,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795385892.2326086,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795392468.7396805,
+    "lease_until": 1795393092.2326086,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,49 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; 600 missing loadProfile calls measured 107us each, and 60-model /api/recommendation path spends ~6.4ms on them",
-      "benefits": "One stat instead of stat+failed-read for every model without a saved profile",
-      "risks": "contract: loadProfile still returns null for a missing file and loads one created later; dependency: Node fs only; concurrency: none; state: no profile content or tuning setting changes",
-      "mitigation": "failing-first test with skip counter plus create-later functionality test, full npm test and strict gates; revert if regression"
-    }
+    "completed_at": 1795385892.9711885,
+    "completed_head": "3f9c0f8487edcac908904c38545ab3e367c7ec1b",
+    "completed_tree": "3fef314f6b141433eb356a4298f8d33cdda160d8"
   },
   "checkpoints": [
-    {
-      "task_id": "app-speed-wave3",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[3/3] DELIVERED: taskSubsetHash 1.79ms -> ~0.00ms; /api/recommendations 18.76ms -> 5.12ms with 8 models; byte-parity test, npm test 1103 tests pass, strict gates 4/4",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795378852.2324202,
-      "timestamp_str": "2026-11-22 23:20:52",
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "task_id": "app-speed-wave3",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'app-speed-wave3' completed successfully.",
-      "status": "completed",
-      "timestamp": 1795378853.1109517,
-      "timestamp_str": "2026-11-22 23:20:53",
-      "agent": "opencode:hy4-flash-free",
-      "head": "9700e99bbc54d41fa11ff1a1e51c0b31d7a05382",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
     {
       "task_id": "tuning-test-speed",
       "phase": "phase 2",
@@ -412,6 +374,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "task_id": "missing-profile-read-1123",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[2/2] DELIVERED: missing loadProfile 107us -> ~48us (2.2x), create-later behavior tested, strict gates 4/4",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795385892.2326086,
+      "timestamp_str": "2026-11-23 01:18:12",
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "missing-profile-read-1123",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'missing-profile-read-1123' completed successfully.",
+      "status": "completed",
+      "timestamp": 1795385893.0680733,
+      "timestamp_str": "2026-11-23 01:18:13",
+      "agent": "opencode:hy4-flash-free",
+      "head": "3f9c0f8487edcac908904c38545ab3e367c7ec1b",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
     }
   ]
 }
