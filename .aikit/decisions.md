@@ -1582,3 +1582,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: the same 60-model endpoint drops to **1.34 ms (~6.5x)**; a failing-first test pins zero profile reads for an unprofiled library while all 60 models are still recommended.
 - **Cross-principle check:** PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: read-only recommendation path, no tuning or suite change.
 
+### ADR-213: Buffered line scan for the tune run summary
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: Continuing the speed work, `/api/tune/runs/:id` re-parsed every answer line through `readline` streaming. A controlled 7-round alternating A/B on 10k rows measured a **3.14 ms** median.
+- **Decision**: Read the app-written, row-capped `answers.jsonl` once and scan it by newline index instead of streaming through `readline`. The two larger readers (`itemOutcomes`, `cachedAnswers`) keep streaming. Malformed/cut-off line handling, CRLF tolerance, nearest-rank percentiles and empty/missing-file behavior are unchanged.
+- **Consequences**: the same summary loop drops to a **2.48 ms** median (**1.26x**). Three failing-first tests pin the read mode plus CRLF, truncated-line, unreadable-example, error/wrong counts and empty/missing-file equivalence.
+- **Cross-principle check:** PRINCIPLE-010: the file is app-written and row-capped, and `cachedAnswers()` already reads it whole, so this is controlled input; PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: read-only summary, no tuning or suite change.
+

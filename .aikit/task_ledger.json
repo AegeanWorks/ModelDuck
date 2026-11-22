@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "recommendations-profile-probe-1123",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795391545.7369516,
+    "task_id": "buffered-answer-summary-1123",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795391840.4641593,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795398745.7369516,
+    "lease_until": 1795399040.4641593,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,29 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795391546.142601,
-    "completed_head": "b21e7f01dd01cf4585ab5f8f4c228922edc591eb",
-    "completed_tree": "4746e19c3e77673aca14f4420b455848508096e7"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; /api/tune/runs/:id re-parses every answer line through readline at 4.64ms for 10k rows",
+      "benefits": "Buffered line scan is ~23% faster on the on-demand run-summary route and the tests that summarize answers",
+      "risks": "contract: summary values and malformed-line handling unchanged including CRLF; dependency: Node fs only; concurrency: none; state: app-written bounded answers file read fully like cachedAnswers already does",
+      "mitigation": "equivalence test over CRLF, truncated final line and unreadable examples, full npm test and strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "task_id": "lazy-cli-start-1123",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[2/2] DELIVERED: help 200ms -> 58ms, ui:smoke start path OK, 1120 tests pass, strict gates 4/4",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795388265.7093134,
-      "timestamp_str": "2026-11-23 01:57:45",
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "lazy-cli-start-1123",
       "phase": "completed",
@@ -396,6 +381,30 @@
         ],
         "forced": false
       }
+    },
+    {
+      "task_id": "buffered-answer-summary-1123",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/2] Read answers.jsonl once with a buffered line scan instead of readline streaming: 4.64ms -> 3.59ms per 10k rows",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795391840.4641593,
+      "timestamp_str": "2026-11-23 02:57:20",
+      "agent": "opencode:hy4-flash-free",
+      "impact_assessment": {
+        "why": "User directive to keep improving speeds; /api/tune/runs/:id re-parses every answer line through readline at 4.64ms for 10k rows",
+        "benefits": "Buffered line scan is ~23% faster on the on-demand run-summary route and the tests that summarize answers",
+        "risks": "contract: summary values and malformed-line handling unchanged including CRLF; dependency: Node fs only; concurrency: none; state: app-written bounded answers file read fully like cachedAnswers already does",
+        "mitigation": "equivalence test over CRLF, truncated final line and unreadable examples, full npm test and strict gates; revert if regression"
+      },
+      "plan_digest": "0601eda7a11778d830175a28585e04511334b998474c089e4c8efd921f2e855a",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }
