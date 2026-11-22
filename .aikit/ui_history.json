@@ -1850,5 +1850,35 @@
     "final_snapshot_entries": 0,
     "surface_digest": "82ff30d392f8a42d54afc439abb9df97a87bca74fcf8c7ade0355c3a253bafd0",
     "baseline_digest": "82ff30d392f8a42d54afc439abb9df97a87bca74fcf8c7ade0355c3a253bafd0"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [],
+    "no_visual_reason": "",
+    "no_change_reason": "Backend-only CLI import deferral; ui:smoke verified the real start path",
+    "baseline_commit": "52c5e572e1b3bad6b4bec8e1e3bf714ca0e8515e",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1795388161.0425766,
+    "finished_at": 1795388182.8008149,
+    "strikes": 0,
+    "reviewer": "opencode:hy4-flash-free",
+    "review": {
+      "reviewer": "opencode:hy4-flash-free",
+      "surface": "app",
+      "surface_digest": "e48d23ab274a925027a338b2b4ad7a6c1842a6b745df685738e341fd79e7c57d",
+      "snapshot_digest": "",
+      "snapshot_entries": 0,
+      "visual": true,
+      "reviewed_at": 1795388182.800817
+    },
+    "allowed_removals": [],
+    "allowed_tests": [],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "e48d23ab274a925027a338b2b4ad7a6c1842a6b745df685738e341fd79e7c57d",
+    "baseline_digest": "e48d23ab274a925027a338b2b4ad7a6c1842a6b745df685738e341fd79e7c57d"
   }
 ]
