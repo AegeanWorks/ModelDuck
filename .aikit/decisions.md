@@ -1558,3 +1558,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: `machineCatalog()` drops to **0.03 us** (~270x). The value shape is unchanged and the full suite passes 1,122 tests. Sandbox startup flags were A/B tested this turn and all rejected (invalid, slower or flat), so no isolation property was relaxed.
 - **Cross-principle check:** PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: read-only state vocabulary, no tuning change.
 
+### ADR-210: Memoize the static suite and multistep summaries
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: Continuing the speed work, `/api/benchmarks/suite` rebuilt `suiteSummary()` over 277 prompts at **879 us** plus `multistepSummary()` at **62 us** on every poll.
+- **Decision**: Cache each summary by the identity of its prompt/chain array, with computation counters exposed for tests. The default static arrays are computed once; a caller passing a different array still gets its own summary.
+- **Consequences**: both builders drop to **0.03–0.04 us** (~20,000x). Three failing-first tests pin default reuse and custom-argument behavior. Summary values and shapes are unchanged.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no prompt, check, suite version or hash changed — only reuse of the same computed summary.
+

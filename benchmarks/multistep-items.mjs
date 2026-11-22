@@ -362,9 +362,16 @@ export function multistepHash(chains = MULTISTEP_CHAINS) {
 }
 
 /** What GET /api/benchmarks/suite and the Bench page say about the opt-in multistep evaluation. */
+const MULTISTEP_SUMMARY_CACHE = new Map();
+let multistepSummaryComputes = 0;
+export function multistepSummaryComputations() {
+  return multistepSummaryComputes;
+}
 export function multistepSummary(chains = MULTISTEP_CHAINS) {
+  if (MULTISTEP_SUMMARY_CACHE.has(chains)) return MULTISTEP_SUMMARY_CACHE.get(chains);
+  multistepSummaryComputes += 1;
   const checks = chains.reduce((sum, chain) => sum + chain.steps.reduce((inner, step) => inner + step.check.cases.length, 0), 0);
-  return {
+  const summary = {
     id: "multistep",
     label: "Multistep",
     optIn: true,
@@ -376,4 +383,6 @@ export function multistepSummary(chains = MULTISTEP_CHAINS) {
     command: "npm run bench:multistep -- --model <id>",
     description: "One conversation per chain; each step changes or builds on the code the model wrote before and is checked with that code loaded. Not part of the tune or the gate.",
   };
+  MULTISTEP_SUMMARY_CACHE.set(chains, summary);
+  return summary;
 }

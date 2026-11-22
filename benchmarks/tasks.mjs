@@ -264,7 +264,14 @@ export function taskSubsetHash(prompts = PROMPTS) {
  * What the suite asks, per task and question type: item counts, where the items come
  * from, how answers are checked, and how many are held back from tuning.
  */
+const SUITE_SUMMARY_CACHE = new Map();
+let suiteSummaryComputes = 0;
+export function suiteSummaryComputations() {
+  return suiteSummaryComputes;
+}
 export function suiteSummary(prompts = PROMPTS) {
+  if (SUITE_SUMMARY_CACHE.has(prompts)) return SUITE_SUMMARY_CACHE.get(prompts);
+  suiteSummaryComputes += 1;
   const tasks = TASKS.map((task) => {
     const items = taskPrompts(task.id, prompts);
     const held = new Set(taskHoldout(task.id, prompts));
@@ -281,5 +288,7 @@ export function suiteSummary(prompts = PROMPTS) {
     }).filter((type) => type.items);
     return { id: task.id, label: task.label, items: items.length, held: held.size, tunedOn: rungs.at(-1).length, rungs: rungs.map((rung) => rung.length), types };
   });
-  return { suiteVersion: SUITE_VERSION, items: prompts.length, holdoutShare: HOLDOUT_SHARE, tasks };
+  const summary = { suiteVersion: SUITE_VERSION, items: prompts.length, holdoutShare: HOLDOUT_SHARE, tasks };
+  SUITE_SUMMARY_CACHE.set(prompts, summary);
+  return summary;
 }

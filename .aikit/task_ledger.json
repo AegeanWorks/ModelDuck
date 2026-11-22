@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "static-catalog-cache-1123",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795390338.6979158,
+    "task_id": "static-summaries-cache-1123",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795390499.5399377,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795397538.6979158,
+    "lease_until": 1795397699.5399377,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,29 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795390341.084074,
-    "completed_head": "79a3f5d1bd3d00117fc5024a45ad136429d94db7",
-    "completed_tree": "0b5c994fbcbdc504a59adf256d65d2146fa41983"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; suite and multistep summaries are rebuilt from static definitions on every poll",
+      "benefits": "Bench suite route becomes near-free; no change to summary shape",
+      "risks": "contract: summary values unchanged; dependency: Node Map only; concurrency: none; state: no tuning settings or suite hashes change",
+      "mitigation": "failing-first tests with computation counters and custom-argument coverage, full npm test and strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "task_id": "receipt-stat-first-1123",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[2/2] DELIVERED: negative receipt cache; missing 1718us -> 128us, present unchanged; stat-first variant measured worse and rejected; 1116 tests pass, strict gates 4/4",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795386762.6398785,
-      "timestamp_str": "2026-11-23 01:32:42",
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "receipt-stat-first-1123",
       "phase": "completed",
@@ -396,6 +381,30 @@
         ],
         "forced": false
       }
+    },
+    {
+      "task_id": "static-summaries-cache-1123",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/2] Memoize suiteSummary and multistepSummary: 879us + 62us per /api/benchmarks/suite request",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795390499.5399377,
+      "timestamp_str": "2026-11-23 02:34:59",
+      "agent": "opencode:hy4-flash-free",
+      "impact_assessment": {
+        "why": "User directive to keep improving speeds; suite and multistep summaries are rebuilt from static definitions on every poll",
+        "benefits": "Bench suite route becomes near-free; no change to summary shape",
+        "risks": "contract: summary values unchanged; dependency: Node Map only; concurrency: none; state: no tuning settings or suite hashes change",
+        "mitigation": "failing-first tests with computation counters and custom-argument coverage, full npm test and strict gates; revert if regression"
+      },
+      "plan_digest": "cb565eb197a2997b1d88bc8668d0ef8bedf0d15d11cf79b0d8cb7bd9a70877f6",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }
