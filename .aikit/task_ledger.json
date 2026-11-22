@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "preset-cache-speed-1122",
+    "task_id": "test-concurrency-1123",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1795381245.5301127,
+    "updated_at": 1795382178.7875812,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795388445.5301127,
+    "lease_until": 1795389378.7875812,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,56 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795381246.2918644,
-    "completed_head": "26d870606b62809ba0511afa26c4b7c1ef3b831d",
-    "completed_tree": "057c3c30f799cfbe2f2186e53747c5a98988b254"
+    "completed_at": 1795382253.993137,
+    "completed_head": "3a9e0eff02ce0b993466f01749ac3dae3e8321bf",
+    "completed_tree": "0deb5e504103aa9aa5655ce83802298ca8717133"
   },
   "checkpoints": [
-    {
-      "task_id": "retune-profiles-engine-stage",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'retune-profiles-engine-stage' completed successfully.",
-      "status": "completed",
-      "timestamp": 1795255184.9821553,
-      "timestamp_str": "2026-11-21 12:59:44",
-      "agent": "kilo:1",
-      "head": "4cebe0b4cf41f9ff779bcad2b9a5adc26f3b280a",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
-    {
-      "task_id": "retune-core-models",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/3] re-tune qwen2.5-coder-1.5b and smollm2-135m through the engine stage at tuner v12; [2/3] phi-3.5-mini decided on measured value; [3/3] ADR-192, gates, commit",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795255251.6402807,
-      "timestamp_str": "2026-11-21 13:00:51",
-      "agent": "kilo:1",
-      "impact_assessment": {
-        "why": "the two strongest core gate models still carry tuner v11 profiles with no measured engine, so the app would serve them through settings no engine stage confirmed",
-        "benefits": "every core gate model profile names the engine it serves with, closing report follow-up F4",
-        "risks": "contract: the coder and smol profiles move to tuner v12 and name llama-server:vulkan; dependency: none, llama-server b12521 is installed; concurrency: one tune writer on profiles and tune-runs while other projects run on the machine; state: an interrupted run keeps finished stages and is resumed with --continue",
-        "mitigation": "keep .before-tuner-v12 backups, resume rather than restart, and record any timing decided under load in the ADR"
-      },
-      "plan_digest": "d28b675630a598cfa69725501241531510161bc7828634f484c5c3ac7d101ef1"
-    },
-    {
-      "task_id": "retune-core-models",
-      "phase": "suspended",
-      "phase_num": 2,
-      "description": "Task 'retune-core-models' suspended: user instructed to stop all tuning on 2026-11-21; no engine re-tune wave continues",
-      "status": "suspended",
-      "timestamp": 1795255815.4785426,
-      "timestamp_str": "2026-11-21 13:10:15",
-      "agent": "kilo:1"
-    },
     {
       "task_id": "app-speed-rust",
       "phase": "phase 2",
@@ -390,6 +345,65 @@
       "timestamp_str": "2026-11-23 00:00:47",
       "agent": "opencode:hy4-flash-free",
       "head": "26d870606b62809ba0511afa26c4b7c1ef3b831d",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
+    },
+    {
+      "task_id": "test-concurrency-1123",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/2] Run independent multistep chains concurrently in the test runner; no assertion or sandbox change",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795381758.7168489,
+      "timestamp_str": "2026-11-23 00:09:18",
+      "agent": "opencode:hy4-flash-free",
+      "impact_assessment": {
+        "why": "User directive to keep improving speeds; TAP profile showed multistep/sandbox tests at 0.6-1.0s each because child processes ran one after another",
+        "benefits": "Shorter test wall time without weakening the sandbox or changing any check",
+        "risks": "contract: every test keeps its assertions; dependency: Node test runner option only; concurrency: chains use independent sandboxed children and read-only chain data; state: no app, tuning or suite hash change",
+        "mitigation": "measured before/after on the same file, full npm test, strict gates; revert if the file gets slower"
+      },
+      "plan_digest": "aed4c37731d9458afd855c987224478eb540d191d7b80ddb2304387cfcc24457",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "test-concurrency-1123",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[2/2] Rejected and reversed: concurrent multistep tests sped one file (3.44s -> 2.87s) but made the full gate flaky/slower (48s, timing assertion failed), so the option was removed; 4/4 gates green after revert",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795382178.7875812,
+      "timestamp_str": "2026-11-23 00:16:18",
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "test-concurrency-1123",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'test-concurrency-1123' completed successfully.",
+      "status": "completed",
+      "timestamp": 1795382254.1695771,
+      "timestamp_str": "2026-11-23 00:17:34",
+      "agent": "opencode:hy4-flash-free",
+      "head": "3a9e0eff02ce0b993466f01749ac3dae3e8321bf",
       "delivery": {
         "roots": [
           "."
