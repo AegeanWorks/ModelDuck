@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "app-speed-wave3",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795378397.0362494,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795378852.2324202,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795385597.0362494,
+    "lease_until": 1795386052.2324202,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,50 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving project speed; measured taskSubsetHash at 1.79ms per call and /api/recommendations at 18.76ms with 8 models because each fingerprint recomputed the same suite hash",
-      "benefits": "One hash of the frozen prompt suite per process instead of one per model per request",
-      "risks": "contract: the returned hash must be byte-identical; dependency: Node crypto only; concurrency: memoized value is immutable; state: no prompts, checks, suite version, settings or generation change",
-      "mitigation": "failing-first test pinning one computation, verify hash parity with the uncached path, run npm test and project gates before commit"
-    }
+    "completed_at": 1795378852.9851217,
+    "completed_head": "9700e99bbc54d41fa11ff1a1e51c0b31d7a05382",
+    "completed_tree": "0c398d8bc056b5a708d79b6337161bb1b37152ca"
   },
   "checkpoints": [
-    {
-      "task_id": "tune-system-prompt-optional",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "Regenerate tune gate baseline for tuner v12; gate passes",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795207530.6098506,
-      "timestamp_str": "2026-11-20 23:45:30",
-      "agent": "claude:sonnet-5.5",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "task_id": "tune-system-prompt-optional",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "Code sampling start respects llama-server (ADR-190)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795207962.906935,
-      "timestamp_str": "2026-11-20 23:52:42",
-      "agent": "claude:sonnet-5.5",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "tune-system-prompt-optional",
       "phase": "phase 4",
@@ -377,6 +338,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "task_id": "app-speed-wave3",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[3/3] DELIVERED: taskSubsetHash 1.79ms -> ~0.00ms; /api/recommendations 18.76ms -> 5.12ms with 8 models; byte-parity test, npm test 1103 tests pass, strict gates 4/4",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795378852.2324202,
+      "timestamp_str": "2026-11-22 23:20:52",
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "app-speed-wave3",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'app-speed-wave3' completed successfully.",
+      "status": "completed",
+      "timestamp": 1795378853.1109517,
+      "timestamp_str": "2026-11-22 23:20:53",
+      "agent": "opencode:hy4-flash-free",
+      "head": "9700e99bbc54d41fa11ff1a1e51c0b31d7a05382",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
     }
   ]
 }
