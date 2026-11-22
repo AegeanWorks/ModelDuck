@@ -1574,3 +1574,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: five consecutive full `npm test` runs passed (previously ~1 in 3 failed). Cost is one `access` per existing override, normally zero, so the cached `/api/state` path keeps its speed.
 - **Cross-principle check:** PRINCIPLE-014: a new regression test pins the behavior and no assertion was weakened; G-001/G-003: registry bookkeeping only, no tuning or suite change.
 
+### ADR-212: Probe saved profiles with one cached list instead of N failed reads
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: Continuing the speed work, `/api/recommendations` with 60 installed models measured **8.7 ms**: it called `loadProfile()` for every model even though most libraries have few or no saved profiles, paying a failing read each time.
+- **Decision**: Use the already directory-stamp-cached `listProfiles()` to build the set of saved catalog ids, and call `loadProfile()` only for models in that set. Response shape and profile application are unchanged; a profile written during a request is visible on the next poll.
+- **Consequences**: the same 60-model endpoint drops to **1.34 ms (~6.5x)**; a failing-first test pins zero profile reads for an unprofiled library while all 60 models are still recommended.
+- **Cross-principle check:** PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: read-only recommendation path, no tuning or suite change.
+

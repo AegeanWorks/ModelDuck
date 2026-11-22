@@ -29,6 +29,15 @@ import { SHIPPED_PRESETS_DIR, matchPreset, presetProfile, readShippedPresets } f
 import { parseVerifyRequest, runVerified } from "./verified-code.js";
 import { networkDenied } from "../benchmarks/sandbox.mjs";
 import { answersFile, answerPaceByProfile, listRuns, loadRun, summarizeAnswers } from "./tune-runs.js";
+
+// Test seam: how many profile files the recommendations route actually opened.
+let recommendationProfileReads = 0;
+export function recommendationProfileReadsCount() {
+  return recommendationProfileReads;
+}
+export function resetRecommendationProfileReads() {
+  recommendationProfileReads = 0;
+}
 import { TunedSettings, diffSettings } from "./tuned-settings.js";
 import { EngineRebuildLease, reloadFingerprint } from "./settings-reload.js";
 import { readSteps, writeSteps } from "./tune-steps.js";
@@ -436,9 +445,18 @@ export function createHttpServer({
       const machine = system();
       const memory = { free: machine.freeMemory, total: machine.totalMemory };
       const models = registry.listPublic().map((model) => ({ ...model, profileId: profileIdFor(model.fileName) }));
+      // listProfiles is already directory-stamp cached; use it to skip a
+      // per-model failing read for libraries with few or no saved profiles.
+      const savedIds = profilesDir
+        ? new Set((await listProfiles(profilesDir)).map((profile) => profile.catalogId))
+        : new Set();
       const profiles = {};
       for (const model of models) {
-        const loaded = profilesDir ? await loadProfile(profilesDir, model.profileId, await profileFingerprint(model)).catch(() => null) : null;
+        let loaded = null;
+        if (profilesDir && savedIds.has(model.profileId)) {
+          recommendationProfileReads += 1;
+          loaded = await loadProfile(profilesDir, model.profileId, await profileFingerprint(model)).catch(() => null);
+        }
         profiles[model.profileId] = loaded?.profile ?? null;
       }
       sendJson(res, 200, {
