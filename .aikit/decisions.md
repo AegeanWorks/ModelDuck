@@ -1507,3 +1507,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Remember only the negative result for 500 ms, so a burst of `/api/models` or `/api/state` reads skips repeated failed reads while the common present-receipt path keeps its single successful read. App downloads and deletes invalidate the mark immediately; an external file creation becomes visible after the short window.
 - **Consequences**: missing receipts drop to **~128 us each (~13x)**; present receipts stay at **~137–178 us** (baseline ~152 us). Two failing-first tests pin the skip and the create-later behavior; `npm test` passes 1,116 tests. The rejected stat-first variant never reached a commit.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened, and a slower variant was reversed; G-001/G-003: read-only receipt lookup, no tuning or suite change.
+
+### ADR-204: Check process liveness once per pid when listing tune runs
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: Continuing the speed work, `listRuns(50)` measured **176 ms** because `present()` called `process.kill(pid, 0)` for every run, although a tune writes all its runs from one process and they share a pid.
+- **Decision**: Memoize the liveness answer per distinct pid within a single `listRuns` call. A pid cannot change from dead to alive during one listing, so every run still gets the same verdict it would have had individually; custom `isAlive` injections are supported as before.
+- **Consequences**: `listRuns(50)` drops to **10.6 ms (~17x)**. Two failing-first tests pin one probe for 40 same-pid runs and one probe per distinct pid. Run summaries and the interrupted-vs-running verdict are unchanged.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: read-only run listing, no tuning or suite change.

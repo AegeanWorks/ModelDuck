@@ -146,12 +146,20 @@ export async function answerPaceByProfile(dir, { perProfile = 3 } = {}) {
 /** Every saved run without its details, newest first; one left running by a process that has died is "interrupted". */
 export async function listRuns(dir, { isAlive = isAliveDefault } = {}) {
   const names = await fs.promises.readdir(dir).catch(() => []);
+  // Tunes are recorded by one process, so dozens of runs usually share a pid.
+  // A process.kill(pid, 0) probe per run cost ~3ms each on this host; a pid's
+  // answer cannot change during one listing, so check each distinct pid once.
+  const aliveByPid = new Map();
+  const isAliveCached = (pid) => {
+    if (!aliveByPid.has(pid)) aliveByPid.set(pid, isAlive(pid));
+    return aliveByPid.get(pid);
+  };
   const runs = [];
   for (const name of names.filter((item) => item.endsWith(".json"))) {
     const record = await readJsonWithQuarantine(path.join(dir, name), null, { logger: quiet });
     if (record?.schema !== RUN_SCHEMA) continue;
     const { sweeps: _sweeps, result: _result, ...summary } = record;
-    runs.push(present(summary, isAlive));
+    runs.push(present(summary, isAliveCached));
   }
   return runs.sort((left, right) => right.startedAt.localeCompare(left.startedAt));
 }
