@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "receipt-stat-first-1123",
+    "task_id": "run-liveness-cache-1123",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1795386762.6398785,
+    "updated_at": 1795387141.7860873,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795393962.6398785,
+    "lease_until": 1795394341.7860873,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,53 +16,12 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795386763.6388347,
-    "completed_head": "cbbdc4436aab0edfd8a730c4f1e5e7883a8d2bb7",
-    "completed_tree": "72323b405a4adc20285d292339710d647384942c"
+    "completed_without_impact_assessment": true,
+    "completed_at": 1795387142.5462148,
+    "completed_head": "e34259a01348fa6f14f9cff9ab862d1056f1473b",
+    "completed_tree": "e4a446e698b7559f3009cb74313e51ddcbf7d707"
   },
   "checkpoints": [
-    {
-      "task_id": "preset-cache-speed-1122",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/2] Cache shipped presets by exact file stamp so /api/recommendations stops re-reading and re-parsing them per request",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795380682.8815532,
-      "timestamp_str": "2026-11-22 23:51:22",
-      "agent": "opencode:hy4-flash-free",
-      "impact_assessment": {
-        "why": "User directive to keep improving speeds; measured readShippedPresets at 1.52ms per call and /api/recommendations at 5.12ms with 8 models",
-        "benefits": "Exact-stamp cache: no stale presets after a file edit, but no repeated 135KB read+parse on unchanged files",
-        "risks": "contract: returned recipe objects and skip-invalid behavior must stay identical; dependency: Node fs only; concurrency: cache is keyed by directory; state: no tuning settings, prompts or suite hashes change",
-        "mitigation": "failing-first test with a read counter plus invalidation test on file change, then npm test and gates"
-      },
-      "plan_digest": "cfe800846f101342f1f5214dba064a2c3ab698488602343f26a87e0a153102f8",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "task_id": "preset-cache-speed-1122",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[2/2] DELIVERED: readShippedPresets 1.52ms -> 0.27ms; /api/recommendations 5.12ms -> 4.52ms; exact-stamp invalidation tested; 1106 tests pass, strict gates 4/4",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795381245.5301127,
-      "timestamp_str": "2026-11-23 00:00:45",
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "preset-cache-speed-1122",
       "phase": "completed",
@@ -403,6 +362,41 @@
       "timestamp_str": "2026-11-23 01:32:43",
       "agent": "opencode:hy4-flash-free",
       "head": "cbbdc4436aab0edfd8a730c4f1e5e7883a8d2bb7",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
+    },
+    {
+      "task_id": "run-liveness-cache-1123",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[1/1] DELIVERED: listRuns(50) 176ms -> 10.6ms via per-pid liveness memo; 1118 tests pass",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795387141.7860873,
+      "timestamp_str": "2026-11-23 01:39:01",
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "run-liveness-cache-1123",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'run-liveness-cache-1123' completed successfully.",
+      "status": "completed",
+      "timestamp": 1795387143.020419,
+      "timestamp_str": "2026-11-23 01:39:03",
+      "agent": "opencode:hy4-flash-free",
+      "head": "e34259a01348fa6f14f9cff9ab862d1056f1473b",
       "delivery": {
         "roots": [
           "."
