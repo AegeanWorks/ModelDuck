@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "lazy-cli-start-1123",
+    "task_id": "sandbox-flags-ab-1123",
     "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795388265.7093134,
+    "active_phase": 4,
+    "status": "in_progress",
+    "updated_at": 1795388690.6072745,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795395465.7093134,
+    "lease_until": 1795395890.6072745,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -15,29 +15,9 @@
         "name": "modelduck",
         "path": "projects/modelduck"
       }
-    ],
-    "completed_at": 1795388266.3878474,
-    "completed_head": "54b58aa5e84107b0ec06b2aa7ff38b7bc75a65b5",
-    "completed_tree": "070b339ad0e85ea09ba775e60dc7dd3f7fe837cc"
+    ]
   },
   "checkpoints": [
-    {
-      "task_id": "profile-list-cache-1123",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'profile-list-cache-1123' completed successfully.",
-      "status": "completed",
-      "timestamp": 1795383347.4770331,
-      "timestamp_str": "2026-11-23 00:35:47",
-      "agent": "opencode:hy4-flash-free",
-      "head": "75cd819868aa5efa25944bbb3969fc1d3feaff33",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
     {
       "task_id": "loop-lag-probe-1123",
       "phase": "phase 4",
@@ -402,6 +382,24 @@
         ],
         "forced": false
       }
+    },
+    {
+      "task_id": "sandbox-flags-ab-1123",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[1/1] Controlled A/B of sandbox startup flags: --disable-source-map invalid, --no-warnings 7.5% slower, 128MB heap flat; all rejected, no code change",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795388690.6072745,
+      "timestamp_str": "2026-11-23 02:04:50",
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }
