@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "profile-list-cache-1123",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795382724.7615912,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795383346.7328057,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795389924.7615912,
+    "lease_until": 1795390546.7328057,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,50 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; measured listProfiles(12) at 1.31ms and /api/profiles at 2.91ms",
-      "benefits": "No repeated JSON reads on unchanged profile directories; edits/adds/removes still invalidate exactly",
-      "risks": "contract: returned summaries and ENOENT behavior unchanged; dependency: Node fs only; concurrency: cache keyed by directory, returns a copy; state: no tuning settings or suite hashes change",
-      "mitigation": "failing-first test with parse counter and invalidation on write, full npm test and strict gates; revert if slower"
-    }
+    "completed_at": 1795383347.378998,
+    "completed_head": "75cd819868aa5efa25944bbb3969fc1d3feaff33",
+    "completed_tree": "416a70f0ca6b5657b2e265eada946d1554b42f02"
   },
   "checkpoints": [
-    {
-      "task_id": "app-speed-rust",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[2/4] M1+M2 verified: vm.Script syntax check 47.15ms -> ~0.005ms per answer, /api/gpu 200 with memoized detection; npm test 1093 tests pass, 4/4 project gates green",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795372428.240046,
-      "timestamp_str": "2026-11-22 21:33:48",
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "task_id": "app-speed-rust",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[3/4] M3 verified: optional in-process Rust GGUF guard 1.38ms vs JS 8.19ms (~5.9x) on a 20k-token/2k-tensor header; CLI variant rejected as 14x slower; native fact parity and hostile-header fallback tested; 1095 tests pass, 4/4 gates green",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795374683.924272,
-      "timestamp_str": "2026-11-22 22:11:23",
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "app-speed-rust",
       "phase": "phase 4",
@@ -413,6 +374,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "task_id": "profile-list-cache-1123",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[2/2] DELIVERED: listProfiles(12) 1.31ms -> 0.41ms; /api/profiles 2.91ms -> 1.42ms; reuse/copy/invalidation tested; 1108 tests pass, strict gates 4/4",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795383346.7328057,
+      "timestamp_str": "2026-11-23 00:35:46",
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "profile-list-cache-1123",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'profile-list-cache-1123' completed successfully.",
+      "status": "completed",
+      "timestamp": 1795383347.4770331,
+      "timestamp_str": "2026-11-23 00:35:47",
+      "agent": "opencode:hy4-flash-free",
+      "head": "75cd819868aa5efa25944bbb3969fc1d3feaff33",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
     }
   ]
 }
