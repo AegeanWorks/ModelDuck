@@ -1451,3 +1451,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Track a `#childGone` flag when the child emits `exit` or `error`, and have `stop()` skip the exit wait in that case (it still calls `kill()` and removes the exit hook). The refusal code, Why/Fix text and listener cleanup are unchanged.
 - **Consequences**: the failing-first test drops from **5,154 ms to 143 ms**; all 35 external-engine tests pass and the whole suite drops from ~17.4 s to ~13.8 s wall time. No tuning was run and no tuning setting, prompt or suite hash changed.
 - **Cross-principle check:** PRINCIPLE-014: the new timing test failed before the fix and no assertion was weakened; G-001/G-003: no generation, prompt, settings or suite change, so no `tune:gate` run or baseline update.
+
+### ADR-197: Cache shipped presets by an exact directory stamp
+- **Date**: 2026-11-22
+- **Status**: Accepted
+- **Context**: Continuing speed work without running a tune, `readShippedPresets()` was measured at **1.52 ms per call**, re-reading and re-parsing ~135 KB of preset JSON on every `/api/recommendations` and preset-detail request.
+- **Decision**: Cache parsed recipes per directory, keyed by a stamp of every preset file's name, mtime and size. Any add, remove or edit changes the stamp and forces a fresh read; invalid files are still skipped exactly as before. `resetShippedPresetCache()` and `shippedPresetReads()` are test seams.
+- **Consequences**: `readShippedPresets()` drops to **0.27 ms per call** and `/api/recommendations` from 5.12 ms to **4.52 ms** with eight models. Two failing-first tests pin reuse and invalidation; `npm test` passes 1,106 tests and the suite wall time is ~8.8 s.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests with a read counter, no assertion weakened; G-001/G-003: no tuning setting, prompt, check or suite hash changed, so no `tune:gate` or baseline update.

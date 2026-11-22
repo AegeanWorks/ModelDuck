@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "tuning-test-speed",
-    "last_phase": "in_progress",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795380147.7812634,
+    "task_id": "preset-cache-speed-1122",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795380682.8815532,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795387347.7812634,
+    "lease_until": 1795387882.8815532,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,29 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795380166.9060614,
-    "completed_head": "e0689d95562a0ad2945b91ac89b5d4cd9aed6bff",
-    "completed_tree": "07b217c9c3bcba47e8c42f5410316da31f813d29"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; measured readShippedPresets at 1.52ms per call and /api/recommendations at 5.12ms with 8 models",
+      "benefits": "Exact-stamp cache: no stale presets after a file edit, but no repeated 135KB read+parse on unchanged files",
+      "risks": "contract: returned recipe objects and skip-invalid behavior must stay identical; dependency: Node fs only; concurrency: cache is keyed by directory; state: no tuning settings, prompts or suite hashes change",
+      "mitigation": "failing-first test with a read counter plus invalidation test on file change, then npm test and gates"
+    }
   },
   "checkpoints": [
-    {
-      "task_id": "retune-profiles-engine-stage",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/4] finish the interrupted llama-3.2-3b re-tune through the engine stage; [2/4] audit every re-tuned profile and record outcomes; [3/4] ADR-191 and CHANGELOG; [4/4] gates and commit",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795252904.8528054,
-      "timestamp_str": "2026-11-21 12:21:44",
-      "agent": "kilo:1",
-      "impact_assessment": {
-        "why": "the engine-backed re-tune wave stopped mid-recall on llama-3.2-3b, leaving a running record and a profile without recall",
-        "benefits": "every saved profile carries a measured engine and a full task set under tuner v12",
-        "risks": "contract: profiles move to tuner v12 and name an engine; dependency: none, the llama-server builds are installed; concurrency: one tune writer on profiles and tune-runs; state: an interrupted run keeps the last finished stage",
-        "mitigation": "resume the recorded run with --continue, keep the .before-tuner-v12 backups, and stop on any profile write error"
-      },
-      "plan_digest": "a2a3573db19bc11bf1811bb07f8641367d709f9af5bc7375dcd20836946fcad4"
-    },
     {
       "task_id": "retune-profiles-engine-stage",
       "phase": "in_progress",
@@ -378,6 +363,30 @@
         ],
         "forced": false
       }
+    },
+    {
+      "task_id": "preset-cache-speed-1122",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/2] Cache shipped presets by exact file stamp so /api/recommendations stops re-reading and re-parsing them per request",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795380682.8815532,
+      "timestamp_str": "2026-11-22 23:51:22",
+      "agent": "opencode:hy4-flash-free",
+      "impact_assessment": {
+        "why": "User directive to keep improving speeds; measured readShippedPresets at 1.52ms per call and /api/recommendations at 5.12ms with 8 models",
+        "benefits": "Exact-stamp cache: no stale presets after a file edit, but no repeated 135KB read+parse on unchanged files",
+        "risks": "contract: returned recipe objects and skip-invalid behavior must stay identical; dependency: Node fs only; concurrency: cache is keyed by directory; state: no tuning settings, prompts or suite hashes change",
+        "mitigation": "failing-first test with a read counter plus invalidation test on file change, then npm test and gates"
+      },
+      "plan_digest": "cfe800846f101342f1f5214dba064a2c3ab698488602343f26a87e0a153102f8",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }
