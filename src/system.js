@@ -9,13 +9,21 @@ import { APP_NAME, VERSION } from "./config.js";
  * Free memory and uptime stay live in systemInfo() below.
  */
 let cpuTopologyCache = null;
+let cpuReads = 0;
 
 export function resetSystemInfoCache() {
   cpuTopologyCache = null;
+  cpuReads = 0;
+}
+
+/** How many times os.cpus() was actually called since the last reset (a test seam). */
+export function cpuReadCount() {
+  return cpuReads;
 }
 
 export function cpuTopology() {
   if (cpuTopologyCache === null) {
+    cpuReads += 1;
     const cpus = os.cpus();
     cpuTopologyCache = Object.freeze({
       model: cpus[0]?.model?.trim() || "unknown CPU",

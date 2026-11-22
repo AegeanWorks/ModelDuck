@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
-import { performance } from "node:perf_hooks";
 import test from "node:test";
 
-import { cpuTopology, resetSystemInfoCache, systemInfo } from "../src/system.js";
+import { cpuReadCount, cpuTopology, resetSystemInfoCache, systemInfo } from "../src/system.js";
 
 test("CPU topology is read once and reused by every systemInfo call", () => {
   resetSystemInfoCache();
@@ -14,11 +13,11 @@ test("CPU topology is read once and reused by every systemInfo call", () => {
 
 test("systemInfo reads no CPU data after the first call", () => {
   resetSystemInfoCache();
-  for (let i = 0; i < 5; i += 1) systemInfo();
-  const start = performance.now();
+  assert.equal(cpuReadCount(), 0);
+  systemInfo();
+  assert.equal(cpuReadCount(), 1);
   for (let i = 0; i < 20; i += 1) systemInfo();
-  const elapsed = performance.now() - start;
-  assert.ok(elapsed < 2, `${elapsed.toFixed(2)} ms for 20 reads; uncached os.cpus() costs ~7 ms`);
+  assert.equal(cpuReadCount(), 1, "os.cpus() must not be re-read on later calls");
 });
 
 test("live fields are still live", () => {
