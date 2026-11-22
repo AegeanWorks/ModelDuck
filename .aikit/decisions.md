@@ -1531,3 +1531,15 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Keep only `config.js` and `errors.js` static; load the other 15 modules with dynamic `import()` inside `main()` after the help/version early returns. The entry path (`node src/main.js`) and all flags are unchanged.
 - **Consequences**: help drops from ~200 ms to **57–62 ms**; `ui:smoke` proves the real start path still serves the full control panel, and the full suite passes 1,120 tests. No settings, prompts or generation changed.
 - **Cross-principle check:** PRINCIPLE-014: failing-first source test plus real start-path smoke, no assertion weakened; G-001/G-003: CLI startup only, no `tune:gate` or baseline update.
+
+### ADR-207: Sandbox startup flags tested and rejected
+- **Date**: 2026-11-23
+- **Status**: Rejected — no code change
+- **Context**: The remaining profiled hotspot is the ~76 ms sandbox child spawn in `runJavaScriptTests`. A controlled A/B harness re-wrote the spawn flags, ran 80 unique answers (judge verdicts asserted identical), alternated variants over five rounds, and always restored the original file.
+- **Results**:
+  - `--disable-source-map`: invalid on Node 26 (`bad option`, child exit 9) — rejected immediately as a correctness regression.
+  - `--no-warnings`: median 7,184 ms → **7,724 ms** over five rounds (~7.5% slower) — rejected.
+  - `--max-old-space-size=128` instead of 256: median 5,341 ms → 5,385 ms (flat/noise) — rejected.
+- **Consequences**: `benchmarks/suite.mjs` is unchanged (verified by a clean `git diff`). No process-isolation property was relaxed in any variant: `--permission`, the neutral environment, heap cap, timeout and one-child-per-answer remained. The A/B harness asserts every verdict still passes, so a flag that broke judging would have been caught.
+- **Cross-principle check:** PRINCIPLE-014: no assertion weakened; the slower/invalid variants never reached a commit, and the tree remains green.
+
