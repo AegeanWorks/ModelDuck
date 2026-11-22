@@ -145,13 +145,19 @@ const REPORT_CACHE = new Map();
 const REPORT_CACHE_LIMIT = 4;
 let reportHits = 0;
 let reportMisses = 0;
+let summarizeComputes = 0;
 export function benchmarkReportCacheStats() {
   return { size: REPORT_CACHE.size, hits: reportHits, misses: reportMisses };
+}
+/** Test seam: how many times an unchanged report was re-summarized. */
+export function summarizeComputations() {
+  return summarizeComputes;
 }
 export function resetBenchmarkReportCache() {
   REPORT_CACHE.clear();
   reportHits = 0;
   reportMisses = 0;
+  summarizeComputes = 0;
 }
 async function fileStamp(file) {
   try {
@@ -220,7 +226,11 @@ export async function loadBenchmarkReport({
   const cached = REPORT_CACHE.get(cacheKey);
   if (cached?.stamps === stamps) {
     reportHits += 1;
-    return summarizeBenchmark({ ...cached.data, limit });
+    if (!cached.summaries.has(limit)) {
+      summarizeComputes += 1;
+      cached.summaries.set(limit, summarizeBenchmark({ ...cached.data, limit }));
+    }
+    return cached.summaries.get(limit);
   }
   reportMisses += 1;
   const readJson = async (file) => {
@@ -240,6 +250,9 @@ export async function loadBenchmarkReport({
   ]);
   const data = { model, chat, latestModel, singleModel, chatBase, history: parseHistory(historyText) };
   if (REPORT_CACHE.size >= REPORT_CACHE_LIMIT) REPORT_CACHE.delete(REPORT_CACHE.keys().next().value);
-  REPORT_CACHE.set(cacheKey, { stamps, data });
-  return summarizeBenchmark({ ...data, limit });
+  REPORT_CACHE.set(cacheKey, { stamps, data, summaries: new Map() });
+  summarizeComputes += 1;
+  const result = summarizeBenchmark({ ...data, limit });
+  REPORT_CACHE.get(cacheKey).summaries.set(limit, result);
+  return result;
 }

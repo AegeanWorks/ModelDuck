@@ -1532,6 +1532,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: help drops from ~200 ms to **57–62 ms**; `ui:smoke` proves the real start path still serves the full control panel, and the full suite passes 1,120 tests. No settings, prompts or generation changed.
 - **Cross-principle check:** PRINCIPLE-014: failing-first source test plus real start-path smoke, no assertion weakened; G-001/G-003: CLI startup only, no `tune:gate` or baseline update.
 
+### ADR-208: Cache the per-limit Bench summary with the parsed report
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: Continuing the speed work, the Bench panel polls `/api/benchmarks`; a cache hit still re-summarized a 2.3 MB baseline at **0.55 ms per call**.
+- **Decision**: Keep a `Map` of summary results by `limit` inside the existing stamp-keyed report cache. A new file stamp replaces the whole entry, so edits still invalidate exactly; each distinct limit is summarized once.
+- **Consequences**: cached reads drop to **0.27 ms (~2x)**. A failing-first test pins one computation per limit. Summary shape and values are unchanged.
+- **Cross-principle check:** PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: read-only Bench reporting, no tuning or suite change.
+
 ### ADR-207: Sandbox startup flags tested and rejected
 - **Date**: 2026-11-23
 - **Status**: Rejected — no code change

@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "sandbox-flags-ab-1123",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795388690.6072745,
+    "task_id": "report-summary-cache-1123",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795388910.1874306,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795395890.6072745,
+    "lease_until": 1795396110.1874306,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,29 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_without_impact_assessment": true,
-    "completed_at": 1795388722.715136,
-    "completed_head": "48f9f7572c256a0283874425124c53153e7e79e0",
-    "completed_tree": "e1b0aa7d844da50e9cdb9d4e5728ae3eb58a85ab"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; every /api/benchmarks cache hit recomputed item summaries over a 2.3MB baseline",
+      "benefits": "Cached report reads become near-free while file stamps still invalidate exactly",
+      "risks": "contract: returned summary shape and values unchanged; dependency: Node Map only; concurrency: none; state: no tuning settings or suite hashes change",
+      "mitigation": "failing-first test with a summarize counter plus invalidation-on-edit, full npm test and strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "task_id": "loop-lag-probe-1123",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'loop-lag-probe-1123' completed successfully.",
-      "status": "completed",
-      "timestamp": 1795384080.4865103,
-      "timestamp_str": "2026-11-23 00:48:00",
-      "agent": "opencode:hy4-flash-free",
-      "head": "190f0ca8ff4914c4237b881fa3fe3d059e2d9683",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
     {
       "task_id": "fingerprint-runtime-cache-1123",
       "phase": "phase 2",
@@ -403,6 +388,30 @@
         ],
         "forced": false
       }
+    },
+    {
+      "task_id": "report-summary-cache-1123",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/2] Cache the per-limit benchmark summary alongside the raw report; cached load 0.55ms",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795388910.1874306,
+      "timestamp_str": "2026-11-23 02:08:30",
+      "agent": "opencode:hy4-flash-free",
+      "impact_assessment": {
+        "why": "User directive to keep improving speeds; every /api/benchmarks cache hit recomputed item summaries over a 2.3MB baseline",
+        "benefits": "Cached report reads become near-free while file stamps still invalidate exactly",
+        "risks": "contract: returned summary shape and values unchanged; dependency: Node Map only; concurrency: none; state: no tuning settings or suite hashes change",
+        "mitigation": "failing-first test with a summarize counter plus invalidation-on-edit, full npm test and strict gates; revert if regression"
+      },
+      "plan_digest": "281287a18104f58bae32bec807379fd11869e8d565f3f15024a03d67a380e6c3",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }
