@@ -1490,5 +1490,35 @@
     "final_snapshot_entries": 0,
     "surface_digest": "ab610cbe08464e744972565a13b538bfeee6f0b940535cd39d6c779f7d84929a",
     "baseline_digest": "ab610cbe08464e744972565a13b538bfeee6f0b940535cd39d6c779f7d84929a"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [],
+    "no_visual_reason": "",
+    "no_change_reason": "Backend-only speed work: syntax check and GPU route changed no rendered view",
+    "baseline_commit": "47604872619083247fdd09147136ab3fcf3133d7",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1795372578.2980766,
+    "finished_at": 1795372725.636888,
+    "strikes": 0,
+    "reviewer": "opencode:hy4-flash-free",
+    "review": {
+      "reviewer": "opencode:hy4-flash-free",
+      "surface": "app",
+      "surface_digest": "0e5183331ca944087915788b78c0bd351abe799001be52d735c95d8f75da5275",
+      "snapshot_digest": "",
+      "snapshot_entries": 0,
+      "visual": true,
+      "reviewed_at": 1795372725.6368911
+    },
+    "allowed_removals": [],
+    "allowed_tests": [],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "0e5183331ca944087915788b78c0bd351abe799001be52d735c95d8f75da5275",
+    "baseline_digest": "0e5183331ca944087915788b78c0bd351abe799001be52d735c95d8f75da5275"
   }
 ]
