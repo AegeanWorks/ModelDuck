@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "report-summary-cache-1123",
+    "task_id": "adr-order-fix-1123",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1795389359.3910177,
+    "updated_at": 1795389504.4431405,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795396559.3910177,
+    "lease_until": 1795396704.4431405,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,52 +16,12 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795389363.3171237,
-    "completed_head": "09c19b96f81b32f4345fbe37882895cae6b8a362",
-    "completed_tree": "1c75ccf79322c7dd6b4fcb8cb27d95e78b08803c"
+    "completed_without_impact_assessment": true,
+    "completed_at": 1795389504.8931465,
+    "completed_head": "31d1af8dfafaa79af5a831ebffa6b586d196fae3",
+    "completed_tree": "dd6b9a8d816ed4e58799aaa838d9facd1da2795b"
   },
   "checkpoints": [
-    {
-      "task_id": "fingerprint-runtime-cache-1123",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'fingerprint-runtime-cache-1123' completed successfully.",
-      "status": "completed",
-      "timestamp": 1795385087.619711,
-      "timestamp_str": "2026-11-23 01:04:47",
-      "agent": "opencode:hy4-flash-free",
-      "head": "24ab2df6bfb97a3142ec698458c252d8b86d219e",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
-    {
-      "task_id": "missing-profile-read-1123",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/2] Skip the redundant readFile when a profile file is known missing from stat; /api/recommendations with 60 models still spends ~6ms here",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795385268.7396805,
-      "timestamp_str": "2026-11-23 01:07:48",
-      "agent": "opencode:hy4-flash-free",
-      "impact_assessment": {
-        "why": "User directive to keep improving speeds; 600 missing loadProfile calls measured 107us each, and 60-model /api/recommendation path spends ~6.4ms on them",
-        "benefits": "One stat instead of stat+failed-read for every model without a saved profile",
-        "risks": "contract: loadProfile still returns null for a missing file and loads one created later; dependency: Node fs only; concurrency: none; state: no profile content or tuning setting changes",
-        "mitigation": "failing-first test with skip counter plus create-later functionality test, full npm test and strict gates; revert if regression"
-      },
-      "plan_digest": "c82b39f3c958aa608b08792b0c8380835621e47dc22ed35a4355c74c6d29c4f2",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "missing-profile-read-1123",
       "phase": "phase 4",
@@ -396,6 +356,41 @@
       "timestamp_str": "2026-11-23 02:16:03",
       "agent": "opencode:hy4-flash-free",
       "head": "09c19b96f81b32f4345fbe37882895cae6b8a362",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
+    },
+    {
+      "task_id": "adr-order-fix-1123",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[1/1] Restore numeric ADR order after appending ADR-207 behind ADR-208",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795389504.4431405,
+      "timestamp_str": "2026-11-23 02:18:24",
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "adr-order-fix-1123",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'adr-order-fix-1123' completed successfully.",
+      "status": "completed",
+      "timestamp": 1795389505.076877,
+      "timestamp_str": "2026-11-23 02:18:25",
+      "agent": "opencode:hy4-flash-free",
+      "head": "31d1af8dfafaa79af5a831ebffa6b586d196fae3",
       "delivery": {
         "roots": [
           "."
