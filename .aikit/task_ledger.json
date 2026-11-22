@@ -3,8 +3,8 @@
   "active_task": {
     "task_id": "sandbox-flags-ab-1123",
     "last_phase": "phase 4",
-    "active_phase": 4,
-    "status": "in_progress",
+    "active_phase": 5,
+    "status": "completed",
     "updated_at": 1795388690.6072745,
     "owner": "opencode:hy4-flash-free",
     "lease_until": 1795395890.6072745,
@@ -15,27 +15,13 @@
         "name": "modelduck",
         "path": "projects/modelduck"
       }
-    ]
+    ],
+    "completed_without_impact_assessment": true,
+    "completed_at": 1795388722.715136,
+    "completed_head": "48f9f7572c256a0283874425124c53153e7e79e0",
+    "completed_tree": "e1b0aa7d844da50e9cdb9d4e5728ae3eb58a85ab"
   },
   "checkpoints": [
-    {
-      "task_id": "loop-lag-probe-1123",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[1/1] DELIVERED: /api/health 7.49ms -> 0.68ms via setImmediate loop-lag probe; blocked-loop detection still verified; 1110 tests pass",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795384078.3365386,
-      "timestamp_str": "2026-11-23 00:47:58",
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "loop-lag-probe-1123",
       "phase": "completed",
@@ -400,6 +386,23 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "task_id": "sandbox-flags-ab-1123",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'sandbox-flags-ab-1123' completed successfully.",
+      "status": "completed",
+      "timestamp": 1795388722.780256,
+      "timestamp_str": "2026-11-23 02:05:22",
+      "agent": "opencode:hy4-flash-free",
+      "head": "48f9f7572c256a0283874425124c53153e7e79e0",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
     }
   ]
 }
