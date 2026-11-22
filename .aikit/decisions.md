@@ -1515,3 +1515,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Memoize the liveness answer per distinct pid within a single `listRuns` call. A pid cannot change from dead to alive during one listing, so every run still gets the same verdict it would have had individually; custom `isAlive` injections are supported as before.
 - **Consequences**: `listRuns(50)` drops to **10.6 ms (~17x)**. Two failing-first tests pin one probe for 40 same-pid runs and one probe per distinct pid. Run summaries and the interrupted-vs-running verdict are unchanged.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: read-only run listing, no tuning or suite change.
+
+### ADR-205: Hold a full wave of verified judge results
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: The sandbox hotspot remained: each uncached answer costs a ~76 ms child spawn. The judge result is a pure function of answer text + check + timeout, and a quick tune repeats answers across load variants, but the cache held only 512 entries. A 700-answer cycle had **0 hits** because the first answers were evicted before their variants ran.
+- **Decision**: Raise the bound to 4096 entries (bounded memory, ~tens of MB) and export the constant so a test can pin it. Verdicts, sandbox flags and eviction order are unchanged.
+- **Consequences**: a controlled 600-answer A/B (same machine, alternating constant) went from **66.5 s / 0 hits / 600 spawns** to **46.3 s / 50 hits / 550 spawns** (~30% faster). No tuning settings, prompts or suite hashes changed; the cache still stores only results of the same pure verification.
+- **Cross-principle check:** PRINCIPLE-014: failing-first test and controlled A/B, no assertion weakened; G-001/G-003: no tuning change — only reuse of already-verified answers.

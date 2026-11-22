@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "run-liveness-cache-1123",
+    "task_id": "judge-cache-size-1123",
     "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795387141.7860873,
+    "active_phase": 4,
+    "status": "in_progress",
+    "updated_at": 1795387803.8878818,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795394341.7860873,
+    "lease_until": 1795395003.8878818,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -15,54 +15,9 @@
         "name": "modelduck",
         "path": "projects/modelduck"
       }
-    ],
-    "completed_without_impact_assessment": true,
-    "completed_at": 1795387142.5462148,
-    "completed_head": "e34259a01348fa6f14f9cff9ab862d1056f1473b",
-    "completed_tree": "e4a446e698b7559f3009cb74313e51ddcbf7d707"
+    ]
   },
   "checkpoints": [
-    {
-      "task_id": "preset-cache-speed-1122",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'preset-cache-speed-1122' completed successfully.",
-      "status": "completed",
-      "timestamp": 1795381247.1924772,
-      "timestamp_str": "2026-11-23 00:00:47",
-      "agent": "opencode:hy4-flash-free",
-      "head": "26d870606b62809ba0511afa26c4b7c1ef3b831d",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
-    {
-      "task_id": "test-concurrency-1123",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/2] Run independent multistep chains concurrently in the test runner; no assertion or sandbox change",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795381758.7168489,
-      "timestamp_str": "2026-11-23 00:09:18",
-      "agent": "opencode:hy4-flash-free",
-      "impact_assessment": {
-        "why": "User directive to keep improving speeds; TAP profile showed multistep/sandbox tests at 0.6-1.0s each because child processes ran one after another",
-        "benefits": "Shorter test wall time without weakening the sandbox or changing any check",
-        "risks": "contract: every test keeps its assertions; dependency: Node test runner option only; concurrency: chains use independent sandboxed children and read-only chain data; state: no app, tuning or suite hash change",
-        "mitigation": "measured before/after on the same file, full npm test, strict gates; revert if the file gets slower"
-      },
-      "plan_digest": "aed4c37731d9458afd855c987224478eb540d191d7b80ddb2304387cfcc24457",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "test-concurrency-1123",
       "phase": "phase 4",
@@ -403,6 +358,48 @@
         ],
         "forced": false
       }
+    },
+    {
+      "task_id": "judge-cache-size-1123",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/2] Raise the sandbox judge cache bound so repeated answers are not evicted and re-spawned",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795387453.3338237,
+      "timestamp_str": "2026-11-23 01:44:13",
+      "agent": "opencode:hy4-flash-free",
+      "impact_assessment": {
+        "why": "User directive to keep improving speeds; a 700-answer cycle measured 82.8s with 0 hits because the 512-entry cache evicted the first answers, each miss spawning a 76ms child",
+        "benefits": "Repeated answers across tuning variants reuse the verified verdict without re-running the sandbox",
+        "risks": "contract: pure function cache, verdicts unchanged; dependency: Node Map only; concurrency: none; state: no tuning settings or prompts change, bounded memory ~tens of MB",
+        "mitigation": "failing-first test for reuse after a large first cycle, full npm test and strict gates; revert if regression"
+      },
+      "plan_digest": "ed4d620372f2d7002fb0fb56d729b83cccd74ae5e742067c1febd4816c4808fb",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "judge-cache-size-1123",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[2/2] DELIVERED: judge cache 512 -> 4096; controlled 600-answer A/B 66.5s -> 46.3s with 550 spawns instead of 600; full tests pass",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795387803.8878818,
+      "timestamp_str": "2026-11-23 01:50:03",
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }

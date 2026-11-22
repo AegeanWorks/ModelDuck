@@ -911,7 +911,10 @@ function judgeCase(reported, expect) {
 // Verification is pure for a given text + check + timeout, so a bounded cache
 // skips the child process without changing a single check result.
 const JS_TEST_CACHE = new Map();
-const JS_TEST_CACHE_LIMIT = 512;
+// A quick tune asks hundreds of answers and repeats each across load variants.
+// At 512 entries the first answers were evicted before their variants ran, so
+// a verified result was re-judged in a fresh child (~76 ms) for nothing.
+export const JAVASCRIPT_TEST_CACHE_LIMIT = 4096;
 let jsTestHits = 0;
 let jsTestMisses = 0;
 const jsTestKey = (text, check, timeoutMs) => JSON.stringify([
@@ -1007,7 +1010,7 @@ export async function runJavaScriptTests(text, check, { timeoutMs = 5000 } = {})
     };
   });
   jsTestMisses += 1;
-  if (JS_TEST_CACHE.size >= JS_TEST_CACHE_LIMIT) JS_TEST_CACHE.delete(JS_TEST_CACHE.keys().next().value);
+  if (JS_TEST_CACHE.size >= JAVASCRIPT_TEST_CACHE_LIMIT) JS_TEST_CACHE.delete(JS_TEST_CACHE.keys().next().value);
   JS_TEST_CACHE.set(cacheKey, checked.map((item) => ({ ...item })));
   return checked;
 }
