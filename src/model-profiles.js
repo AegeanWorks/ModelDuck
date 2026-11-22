@@ -385,14 +385,26 @@ let runtimeVersion = null;
 // explicit system/runtime still compute a fresh value.
 const FINGERPRINT_CACHE = new Map();
 const FINGERPRINT_LIMIT = 32;
+let fingerprintComputes = 0;
 export function resetFingerprintCache() {
   FINGERPRINT_CACHE.clear();
+  fingerprintComputes = 0;
+}
+
+/** Test seam: how many fingerprints were actually computed since the last reset. */
+export function fingerprintComputations() {
+  return fingerprintComputes;
 }
 
 /** What a tune measured on right now, for `loadProfile` and for a new profile. */
 export async function currentFingerprint(entry, { system = null, nodeLlamaCpp } = {}) {
-  const cacheable = system === null && nodeLlamaCpp === undefined && Boolean(entry);
-  const key = cacheable ? `${entry.fileName}|${entry.size ?? ""}` : null;
+  // The runtime version is part of the fingerprint, so key the cache by it too:
+  // callers that pin a runtime (tests, the harness) were otherwise recomputing
+  // the same fingerprint for every model on every request.
+  const cacheable = system === null
+    && (nodeLlamaCpp === undefined || typeof nodeLlamaCpp === "string")
+    && Boolean(entry);
+  const key = cacheable ? `${entry.fileName}|${entry.size ?? ""}|${nodeLlamaCpp ?? ""}` : null;
   if (key && FINGERPRINT_CACHE.has(key)) return { ...FINGERPRINT_CACHE.get(key) };
   runtimeVersion ??= import("node-llama-cpp").then((runtime) => runtime.getModuleVersion()).catch(() => "unknown");
   const resolvedSystem = system ?? systemInfo();
@@ -410,6 +422,7 @@ export async function currentFingerprint(entry, { system = null, nodeLlamaCpp } 
   };
   if (key) {
     if (FINGERPRINT_CACHE.size >= FINGERPRINT_LIMIT) FINGERPRINT_CACHE.delete(FINGERPRINT_CACHE.keys().next().value);
+    fingerprintComputes += 1;
     FINGERPRINT_CACHE.set(key, value);
   }
   return value;

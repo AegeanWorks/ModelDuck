@@ -1483,3 +1483,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Schedule the probe with `setImmediate` instead. It still measures the exact delay between scheduling and the event loop getting back to the callback; a 20 ms synchronous block scheduled after the probe reports ~20.6 ms, so the health signal is preserved. No caching or stale samples.
 - **Consequences**: `/api/health` drops from **7.49 ms to 0.68 ms** (~11x); the probe itself from 10.6 ms to ~0.007 ms. Two failing-first tests pin the speed and the blocked-loop behavior; no settings, prompts or generation changed.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests with preserved functional assertion, no gate weakened; G-001/G-003: read-only health probe, no `tune:gate` or baseline update.
+
+### ADR-201: Include the explicit runtime version in the fingerprint cache key
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: Continuing the speed work, `/api/recommendations` with 60 installed models measured **76 ms**. `currentFingerprint()` cached only when no runtime was passed; a caller that pins `nodeLlamaCpp` (the test harness, and any caller measuring against a fixed runtime) recomputed the fingerprint for every model on every request — 13.8 ms for 60 models.
+- **Decision**: Cache by `fileName|size|runtime` whenever the runtime is a string (still no cache when a custom `system` object is supplied). A computation counter is exposed for tests.
+- **Consequences**: `/api/recommendations` with 60 models drops from **76 ms to ~8–10 ms**; two failing-first tests pin runtime-keyed reuse and distinct-runtime separation. Fingerprint fields and values are unchanged, so saved profiles remain comparable.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: the fingerprint formula is unchanged — only when its result is reused — so no `SUITE_VERSION` or baseline update.
