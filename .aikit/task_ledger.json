@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "fingerprint-runtime-cache-1123",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795384585.6974757,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795385087.017482,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795391785.6974757,
+    "lease_until": 1795392287.017482,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,49 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; /api/recommendations with 60 models measured 76ms, of which 60 uncached fingerprint+loadProfile calls cost 13.8ms because an explicit nodeLlamaCpp disabled the cache",
-      "benefits": "One fingerprint per model+size+runtime instead of one per model per request",
-      "risks": "contract: fingerprint fields and values unchanged; dependency: Node stdlib; concurrency: cache keyed by all inputs; state: no prompts, checks, settings or suite hashes change",
-      "mitigation": "failing-first tests for runtime-keyed reuse and distinct-runtime separation, full npm test and strict gates; revert if regression"
-    }
+    "completed_at": 1795385087.556562,
+    "completed_head": "24ab2df6bfb97a3142ec698458c252d8b86d219e",
+    "completed_tree": "dcf814febf52699da3d6d653e6ee52c8b754cf50"
   },
   "checkpoints": [
-    {
-      "task_id": "app-speed-wave2",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[3/3] DELIVERED: systemInfo 345.5us -> 1.3us (~265x) via one-time CPU topology read; server startup no longer imports the benchmark suite (task ids split into task-ids.mjs); npm test 1100 tests pass, check --strict 4/4 gates green",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795377413.8867922,
-      "timestamp_str": "2026-11-22 22:56:53",
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "task_id": "app-speed-wave2",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'app-speed-wave2' completed successfully.",
-      "status": "completed",
-      "timestamp": 1795377437.552332,
-      "timestamp_str": "2026-11-22 22:57:17",
-      "agent": "opencode:hy4-flash-free",
-      "head": "5f47f514c2d7197db1ab268d22d34a3505d55e42",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
     {
       "task_id": "app-speed-wave3",
       "phase": "phase 2",
@@ -412,6 +374,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "task_id": "fingerprint-runtime-cache-1123",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[2/2] DELIVERED: /api/recommendations with 60 models 76ms -> ~8-10ms by keying fingerprint cache on runtime; 1112 tests pass, strict gates 4/4",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795385087.017482,
+      "timestamp_str": "2026-11-23 01:04:47",
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "fingerprint-runtime-cache-1123",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'fingerprint-runtime-cache-1123' completed successfully.",
+      "status": "completed",
+      "timestamp": 1795385087.619711,
+      "timestamp_str": "2026-11-23 01:04:47",
+      "agent": "opencode:hy4-flash-free",
+      "head": "24ab2df6bfb97a3142ec698458c252d8b86d219e",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
     }
   ]
 }
