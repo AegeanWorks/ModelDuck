@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "missing-profile-read-1123",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795385892.2326086,
+    "task_id": "receipt-stat-first-1123",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795386149.678254,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795393092.2326086,
+    "lease_until": 1795393349.678254,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,35 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795385892.9711885,
-    "completed_head": "3f9c0f8487edcac908904c38545ab3e367c7ec1b",
-    "completed_tree": "3fef314f6b141433eb356a4298f8d33cdda160d8"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; readInstallReceipt issues a failing readFile for every unprofiled/unreceived model, 1.7ms each in a temp library",
+      "benefits": "Avoid a failed I/O per model on /api/models and /api/state",
+      "risks": "contract: returns null when absent and parses a present receipt identically; dependency: Node fs only; concurrency: none; state: receipts written later are found by the next stat",
+      "mitigation": "failing-first tests for skip and create-later, measure both missing and present cases, full npm test and strict gates; revert if either case regresses"
+    }
   },
   "checkpoints": [
-    {
-      "task_id": "tuning-test-speed",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/2] Speed tuning/engine tests without running a whole tune: make a failed llama-server spawn refuse immediately instead of waiting the 5s exit timeout",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795379676.4014971,
-      "timestamp_str": "2026-11-22 23:34:36",
-      "agent": "opencode:hy4-flash-free",
-      "impact_assessment": {
-        "why": "User directive to look at tuning speed via tests only; TAP profile showed one engine test taking 5131ms because stop() waited 5s for an exit event that a failed spawn never emits",
-        "benefits": "Immediate actionable failure for a missing engine binary in the app, and a ~20% faster full test suite",
-        "risks": "contract: refusal code, Why/Fix text and exit-listener cleanup must stay identical; dependency: Node stdlib only; concurrency: the child-gone flag is per backend instance; state: no tuning settings, prompts or suite hashes change",
-        "mitigation": "failing-first timing test plus all 35 external-engine tests, then npm test and project gates"
-      },
-      "plan_digest": "5990df35efab482348b3694bb772ee5cfd31622209d5975f6cf31f76bc792263",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "tuning-test-speed",
       "phase": "in_progress",
@@ -409,6 +388,30 @@
         ],
         "forced": false
       }
+    },
+    {
+      "task_id": "receipt-stat-first-1123",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/2] Stat before reading a missing install receipt; 600 missing reads measured 1.7ms each",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795386149.678254,
+      "timestamp_str": "2026-11-23 01:22:29",
+      "agent": "opencode:hy4-flash-free",
+      "impact_assessment": {
+        "why": "User directive to keep improving speeds; readInstallReceipt issues a failing readFile for every unprofiled/unreceived model, 1.7ms each in a temp library",
+        "benefits": "Avoid a failed I/O per model on /api/models and /api/state",
+        "risks": "contract: returns null when absent and parses a present receipt identically; dependency: Node fs only; concurrency: none; state: receipts written later are found by the next stat",
+        "mitigation": "failing-first tests for skip and create-later, measure both missing and present cases, full npm test and strict gates; revert if either case regresses"
+      },
+      "plan_digest": "779c6ec81c7229a50dbacedf4f88135e0800adddb186e06e85e7853aa8dc7876",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }

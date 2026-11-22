@@ -35,14 +35,39 @@ export function gatedDownloadHeaders({ token } = {}) {
   return {};
 }
 
+let missingReceiptSkips = 0;
+// A failed readFile costs ~1.7 ms each on this host, while a model with a real
+// receipt only pays one successful read. Remember only the negative result, so
+// the common present-receipt path stays unchanged; the writer clears the mark.
+const MISSING_RECEIPTS = new Map();
+const MISSING_RECEIPT_TTL_MS = 500;
+
+export function receiptMissingSkips() {
+  return missingReceiptSkips;
+}
+export function invalidateReceiptCache(modelsDir, fileName) {
+  MISSING_RECEIPTS.delete(receiptPath(modelsDir, fileName));
+}
+export function resetReceiptCounters() {
+  missingReceiptSkips = 0;
+  MISSING_RECEIPTS.clear();
+}
+
 /** IDEA-1067/1194: measured install receipt; null when no receipt was written. */
 export async function readInstallReceipt(modelsDir, fileName) {
+  const file = receiptPath(modelsDir, fileName);
+  const missedAt = MISSING_RECEIPTS.get(file);
+  if (missedAt !== undefined && Date.now() - missedAt < MISSING_RECEIPT_TTL_MS) {
+    missingReceiptSkips += 1;
+    return null;
+  }
   try {
     // A BOM written by a Windows editor must not hide the receipt, the same
     // tolerance the settings reader gives its files (ADR-114).
-    const text = await fs.promises.readFile(receiptPath(modelsDir, fileName), "utf8");
+    const text = await fs.promises.readFile(file, "utf8");
     return JSON.parse(withoutBom(text));
   } catch {
+    MISSING_RECEIPTS.set(file, Date.now());
     return null;
   }
 }
@@ -620,6 +645,7 @@ export class DownloadManager {
           downloadedAt: new Date().toISOString(),
         }),
       ).catch(() => {});
+      invalidateReceiptCache(this.#modelsDir, job.fileName);
       moveTo(job, DOWNLOAD_MACHINE, "complete");
       job.finishedAt = new Date().toISOString();
       job.received = job.size;

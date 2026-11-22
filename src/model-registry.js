@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { AppError } from "./errors.js";
+import { invalidateReceiptCache } from "./downloader.js";
 import { assertDiskSpace, ensureDirectory, formatBytes } from "./fs-atomic.js";
 import { inspectGgufHeader } from "./gguf-guard.js";
 import { kvShapeFromMetadata } from "./memory-fit.js";
@@ -482,6 +483,7 @@ export function createModelRegistry({
     await fs.promises.unlink(target);
     await fs.promises.unlink(`${target}.part`).catch(() => {});
     await fs.promises.unlink(`${target}.receipt.json`).catch(() => {});
+    invalidateReceiptCache(modelsDir, path.basename(target));
     await fs.promises.unlink(`${target}.part.resume.json`).catch(() => {});
     entries.delete(id);
     samplingOverrides.delete(id);

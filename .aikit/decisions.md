@@ -1499,3 +1499,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Return `null` immediately when stat reports the file absent. A file created later is found by the next call's stat, so no profile is lost; damaged-file quarantine and all other branches are unchanged.
 - **Consequences**: 600 missing lookups drop to **~48 us each (~2.2x)** with stable repeated measurements. Two failing-first tests pin the skipped read and the create-later behavior. End-to-end endpoint timings were noisy under concurrent host load, so the stable microbenchmark is the reported evidence.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests with the functional case preserved, no assertion weakened; G-001/G-003: read-only profile lookup, no tuning or suite change.
+
+### ADR-203: Negative-cache missing install receipts instead of statting every file
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: Continuing the speed work, `readInstallReceipt()` issued a failing `readFile` for each model without a receipt — 1,718 us each on this host. A first attempt that statted before reading was **rejected by measurement**: it sped the missing case but regressed the present-receipt case from ~152 us to ~270 us.
+- **Decision**: Remember only the negative result for 500 ms, so a burst of `/api/models` or `/api/state` reads skips repeated failed reads while the common present-receipt path keeps its single successful read. App downloads and deletes invalidate the mark immediately; an external file creation becomes visible after the short window.
+- **Consequences**: missing receipts drop to **~128 us each (~13x)**; present receipts stay at **~137–178 us** (baseline ~152 us). Two failing-first tests pin the skip and the create-later behavior; `npm test` passes 1,116 tests. The rejected stat-first variant never reached a commit.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened, and a slower variant was reversed; G-001/G-003: read-only receipt lookup, no tuning or suite change.
