@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "static-summaries-cache-1123",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795390499.5399377,
+    "task_id": "registry-prune-fix-1123",
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795391032.4002707,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795397699.5399377,
+    "lease_until": 1795398232.4002707,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,90 +16,12 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; suite and multistep summaries are rebuilt from static definitions on every poll",
-      "benefits": "Bench suite route becomes near-free; no change to summary shape",
-      "risks": "contract: summary values unchanged; dependency: Node Map only; concurrency: none; state: no tuning settings or suite hashes change",
-      "mitigation": "failing-first tests with computation counters and custom-argument coverage, full npm test and strict gates; revert if regression"
-    }
+    "completed_without_impact_assessment": true,
+    "completed_at": 1795391032.8466308,
+    "completed_head": "9a1d60fd7a135673d8cd6773dda66ac9881c06ea",
+    "completed_tree": "9bdddbdaa33b4b4732283c8e553cb08ff017849d"
   },
   "checkpoints": [
-    {
-      "task_id": "receipt-stat-first-1123",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'receipt-stat-first-1123' completed successfully.",
-      "status": "completed",
-      "timestamp": 1795386763.7436726,
-      "timestamp_str": "2026-11-23 01:32:43",
-      "agent": "opencode:hy4-flash-free",
-      "head": "cbbdc4436aab0edfd8a730c4f1e5e7883a8d2bb7",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
-    {
-      "task_id": "run-liveness-cache-1123",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[1/1] DELIVERED: listRuns(50) 176ms -> 10.6ms via per-pid liveness memo; 1118 tests pass",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795387141.7860873,
-      "timestamp_str": "2026-11-23 01:39:01",
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "task_id": "run-liveness-cache-1123",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'run-liveness-cache-1123' completed successfully.",
-      "status": "completed",
-      "timestamp": 1795387143.020419,
-      "timestamp_str": "2026-11-23 01:39:03",
-      "agent": "opencode:hy4-flash-free",
-      "head": "e34259a01348fa6f14f9cff9ab862d1056f1473b",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
-    {
-      "task_id": "judge-cache-size-1123",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/2] Raise the sandbox judge cache bound so repeated answers are not evicted and re-spawned",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795387453.3338237,
-      "timestamp_str": "2026-11-23 01:44:13",
-      "agent": "opencode:hy4-flash-free",
-      "impact_assessment": {
-        "why": "User directive to keep improving speeds; a 700-answer cycle measured 82.8s with 0 hits because the 512-entry cache evicted the first answers, each miss spawning a 76ms child",
-        "benefits": "Repeated answers across tuning variants reuse the verified verdict without re-running the sandbox",
-        "risks": "contract: pure function cache, verdicts unchanged; dependency: Node Map only; concurrency: none; state: no tuning settings or prompts change, bounded memory ~tens of MB",
-        "mitigation": "failing-first test for reuse after a large first cycle, full npm test and strict gates; revert if regression"
-      },
-      "plan_digest": "ed4d620372f2d7002fb0fb56d729b83cccd74ae5e742067c1febd4816c4808fb",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "judge-cache-size-1123",
       "phase": "phase 4",
@@ -405,6 +327,76 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "task_id": "static-summaries-cache-1123",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[2/2] DELIVERED: static suite summaries 879us -> 0.04us; stale override flake fixed, 5/5 consecutive test runs green",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795391019.2100968,
+      "timestamp_str": "2026-11-23 02:43:39",
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "static-summaries-cache-1123",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'static-summaries-cache-1123' completed successfully.",
+      "status": "completed",
+      "timestamp": 1795391019.7129984,
+      "timestamp_str": "2026-11-23 02:43:39",
+      "agent": "opencode:hy4-flash-free",
+      "head": "9a1d60fd7a135673d8cd6773dda66ac9881c06ea",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
+    },
+    {
+      "task_id": "registry-prune-fix-1123",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[1/1] Prune stale sampling overrides on cached scans; 5/5 consecutive full test runs green",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795391032.4002707,
+      "timestamp_str": "2026-11-23 02:43:52",
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "registry-prune-fix-1123",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'registry-prune-fix-1123' completed successfully.",
+      "status": "completed",
+      "timestamp": 1795391032.9087198,
+      "timestamp_str": "2026-11-23 02:43:52",
+      "agent": "opencode:hy4-flash-free",
+      "head": "9a1d60fd7a135673d8cd6773dda66ac9881c06ea",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
     }
   ]
 }
