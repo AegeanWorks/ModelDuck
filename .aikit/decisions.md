@@ -1413,3 +1413,15 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
   2. Move GPU detection to `src/gpu-info.js`: load `node-llama-cpp` once behind a memoized promise, return an empty backend list when the runtime is missing, and keep the route's response shape and note unchanged.
 - **Consequences**: the measured syntax check drops from **47.15 ms to ~0.005 ms per answer**; 20 checks now take ~1.3 ms instead of 1,131 ms. `/api/gpu` answers 200 with an empty list on a source checkout and repeated polls reuse one detection. Three failing-first tests pin the new contracts; `npm test` passes 1,093 tests (1 skipped).
 - **Cross-principle check:** PRINCIPLE-014: no assertion was weakened, and the new tests failed before the code; PRINCIPLE-011: the route gives a usable answer instead of a 500; G-001/G-003: no generation, prompt, settings or UI change, so no tune gate or suite bump.
+
+### ADR-193: Optional in-process Rust GGUF guard, kept behind the JavaScript guard
+- **Date**: 2026-11-22
+- **Status**: Accepted
+- **Context**: App-speed milestone M3 targeted `src/gguf-guard.js::inspectGgufHeader`, which walks every GGUF header on a scan-cache miss; ADR-019 measured 107 ms for a 151k-token vocabulary. A first Rust rewrite as a CLI was **rejected by measurement**: on this Windows host a spawn cost ~104 ms per file versus 7.5 ms for the JavaScript walk, i.e. 14x slower. An in-process N-API addon removes the spawn entirely.
+- **Decision**:
+  1. Add `rust/gguf-guard/` with no crates: a bounded v2/v3 header walker shared by a CLI twin and a hand-written N-API cdylib exposing `inspectGguf(path)`.
+  2. Load it with `process.dlopen` in `src/gguf-native.js`; a rejection returns `null` so the original JavaScript guard still builds the exact `422 gguf_header_rejected` AppError with its Why/Fix text. The addon is optional: without `npm run build:native` the app behaves exactly as before.
+  3. Build statically labelled bounds in Rust (no per-token `format!`) and consume skips through the `BufReader` instead of seeking, so a large vocabulary does not turn into one system call per string.
+  4. Add `npm run bench:gguf`, which builds a synthetic 20k-token / 2k-tensor header and times both implementations.
+- **Consequences**: on that fixture the JavaScript walk takes **8.19 ms** and the in-process Rust guard **1.38 ms (~5.9x faster)**; with a real 151k vocabulary the gap should be larger, but that has not been measured here. Two tests pin native/JavaScript fact parity and the hostile-header fallback; `npm test` passes 1,095 tests. Build host note: Windows GNU needs a tiny `node.def`-generated import library because the Node distribution ships no `node.lib`; `scripts/build-native.mjs` creates it.
+- **Cross-principle check:** PRINCIPLE-014: the CLI variant was dropped because it was slower, and the shipped path has failing-first tests with unchanged assertions; G-006: LICENSE is untouched; G-001/G-003: only scan validation changed, not generation, prompts, settings or suite hashes.

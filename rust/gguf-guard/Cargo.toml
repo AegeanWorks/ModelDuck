@@ -1,0 +1,19 @@
+[package]
+name = "gguf-guard"
+version = "0.1.0"
+edition = "2021"
+description = "Bounded GGUF v2/v3 header validator for ModelDuck (stdlib only)"
+
+[dependencies]
+
+[lib]
+name = "gguf_guard"
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "gguf-guard"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = 3
+strip = true

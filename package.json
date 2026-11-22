@@ -38,7 +38,9 @@
     "bench:repair": "node benchmarks/repair-run.mjs",
     "perf:settings": "node benchmarks/settings-perf.mjs",
     "perf:multistep": "node benchmarks/multi-step-perf.mjs",
-    "verify:manifest": "node benchmarks/verify-manifest.mjs"
+    "verify:manifest": "node benchmarks/verify-manifest.mjs",
+    "build:native": "node scripts/build-native.mjs",
+    "bench:gguf": "node benchmarks/gguf-guard-perf.mjs"
   },
   "dependencies": {
     "node-llama-cpp": "3.22.2"

@@ -1,6 +1,7 @@
 import fs from "node:fs";
 
 import { AppError } from "./errors.js";
+import { inspectGgufHeaderNative } from "./gguf-native.js";
 import { estimateLoad, FIT_LIMIT_RATIO, fitVerdict } from "./memory-fit.js";
 
 /**
@@ -114,6 +115,14 @@ async function skipValue(reader, type, depth, key) {
 }
 
 export async function inspectGgufHeader(file) {
+  // A valid header takes the native path when the optional binary is built; a
+  // rejection falls through so the JavaScript guard still builds the same AppError.
+  const native = await inspectGgufHeaderNative(file);
+  if (native) return native;
+  return inspectGgufHeaderJs(file);
+}
+
+export async function inspectGgufHeaderJs(file) {
   const handle = await fs.promises.open(file, "r");
   try {
     const { size } = await handle.stat();

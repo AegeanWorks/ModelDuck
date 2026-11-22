@@ -5,7 +5,7 @@ import path from "node:path";
 import test from "node:test";
 
 import { AppError } from "../src/errors.js";
-import { inspectGgufHeader } from "../src/gguf-guard.js";
+import { inspectGgufHeader, inspectGgufHeaderJs } from "../src/gguf-guard.js";
 import { createModelRegistry } from "../src/model-registry.js";
 
 const u32 = (value) => {
@@ -87,4 +87,21 @@ test("a header-rejected file is listed as blocked and cannot be imported", async
   t.after(() => rm(source, { force: true }));
   await assert.rejects(() => registry.importFromPath(source), rejected);
   assert.equal((await registry.scan()).length, 1, "the hostile copy is removed again");
+});
+
+// --- native (Rust) guard -----------------------------------------------------------------------
+
+test("the native guard returns the same header facts as the JavaScript guard when built", async (t) => {
+  const { inspectGgufHeaderNative, nativeGuardAvailable } = await import("../src/gguf-native.js");
+  if (!nativeGuardAvailable()) t.skip("build the optional binary with npm run build:native");
+  const file = await tempFile(t, validGguf());
+  assert.deepEqual(await inspectGgufHeaderNative(file), { version: 3, tensorCount: 1, kvCount: 3 });
+  assert.deepEqual(await inspectGgufHeader(file), await inspectGgufHeaderJs(file));
+});
+
+test("a hostile header still produces the JavaScript Why/Fix error with the native guard built", async (t) => {
+  const { nativeGuardAvailable } = await import("../src/gguf-native.js");
+  if (!nativeGuardAvailable()) t.skip("build the optional binary with npm run build:native");
+  const file = await tempFile(t, header({ tensors: 1n << 62n }));
+  await assert.rejects(() => inspectGgufHeader(file), rejected);
 });

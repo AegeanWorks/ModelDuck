@@ -507,6 +507,7 @@ modelduck/
 │   ├── engine-errors.js
 │   ├── model-registry.js
 │   ├── gguf-guard.js
+│   ├── gguf-native.js <- optional in-process Rust header guard
 │   ├── gpu-info.js
 │   ├── downloader.js
 │   ├── settings.js
@@ -553,6 +554,7 @@ modelduck/
 │   ├── install-engines.mjs <- npm run engines:install
 │   ├── add-engine.mjs <- npm run engines:add
 │   ├── test-parallel.mjs <- sharded parallel `npm test` runner
+│   ├── build-native.mjs <- npm run build:native (optional Rust GGUF guard)
 │   └── ui-smoke.mjs <- control-panel check
 ├── benchmarks/ <- seeded quality, speed and history gate
 │   ├── README.md
@@ -604,6 +606,7 @@ modelduck/
 │   ├── context-curve.mjs
 │   ├── stats-util.mjs
 │   ├── settings-perf.mjs     <- settings code timings (npm run perf:settings; PERF.md)
+│   ├── gguf-guard-perf.mjs   <- JS vs Rust header timings (npm run bench:gguf)
 │   ├── multi-step-perf.mjs
 │   ├── multistep-items.mjs   <- opt-in multistep chains (not tuned or gated)
 │   ├── multistep-evaluate.mjs
@@ -733,6 +736,13 @@ modelduck/
 │   ├── cache-truncate.test.js
 │   ├── recommend.test.js
 │   └── server.test.js
+├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
+│   └── gguf-guard/
+│       ├── Cargo.toml
+│       ├── node.def
+│       └── src/
+│           ├── lib.rs
+│           └── main.rs
 ├── assets/
 │   ├── screenshots/
 │   ├── logo.svg

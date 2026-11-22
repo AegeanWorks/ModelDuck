@@ -5,9 +5,9 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1795372428.240046,
+    "updated_at": 1795374683.924272,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795379628.240046,
+    "lease_until": 1795381883.924272,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -18,24 +18,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "task_id": "tune-system-prompt-optional",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "adaptive informative rungs as an opt-in experiment (ADR-188)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795124614.0759442,
-      "timestamp_str": "2026-11-20 00:43:34",
-      "agent": "claude:sonnet-5.5",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "tune-system-prompt-optional",
       "phase": "phase 4",
@@ -346,6 +328,24 @@
       "status": "in_progress",
       "timestamp": 1795372428.240046,
       "timestamp_str": "2026-11-22 21:33:48",
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "app-speed-rust",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[3/4] M3 verified: optional in-process Rust GGUF guard 1.38ms vs JS 8.19ms (~5.9x) on a 20k-token/2k-tensor header; CLI variant rejected as 14x slower; native fact parity and hostile-header fallback tested; 1095 tests pass, 4/4 gates green",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795374683.924272,
+      "timestamp_str": "2026-11-22 22:11:23",
       "agent": "opencode:hy4-flash-free",
       "checklists": "passed",
       "workspaces": [

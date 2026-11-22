@@ -50,3 +50,6 @@ secrets.*
 engines/bin/
 engines/.cache/
 .aikit/*.log
+
+# Optional Rust GGUF guard is built locally with npm run build:native.
+rust/**/target/
