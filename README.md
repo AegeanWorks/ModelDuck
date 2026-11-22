@@ -507,6 +507,7 @@ modelduck/
 │   ├── engine-errors.js
 │   ├── model-registry.js
 │   ├── gguf-guard.js
+│   ├── gpu-info.js
 │   ├── downloader.js
 │   ├── settings.js
 │   ├── generation-manifest.js
@@ -712,6 +713,8 @@ modelduck/
 │   ├── engine-errors.test.js
 │   ├── engine-runtime.test.js
 │   ├── gguf-guard.test.js
+│   ├── gpu-info.test.js
+│   ├── js-syntax-speed.test.js
 │   ├── memory-fit.test.js
 │   ├── server-settings.test.js
 │   ├── engine-correctness.test.js

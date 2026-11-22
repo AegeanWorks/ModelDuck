@@ -9,6 +9,7 @@ import { publicPrompts } from "./public-items.mjs";
 import { codeComprehensionPrompts } from "./comprehension-items.mjs";
 import { paraphrasePrompts } from "./paraphrase-items.mjs";
 import { SANDBOX_HEAP_MB, SANDBOX_PRELUDE, SANDBOX_WRITE_ALL, sandboxCwd, sandboxEnv, sandboxFlag } from "./sandbox.mjs";
+import { Script } from "node:vm";
 
 export const SUITE_VERSION = 18;
 
@@ -773,6 +774,19 @@ export function evaluateTextCheck(check, text) {
 }
 
 export async function checkJavaScriptSyntax(text) {
+  const code = stripFence(text);
+  // V8 parses a plain script with `new Script` exactly as `node --check` does, without spawning a
+  // process, a temp file or an fsync per answer. Module syntax needs `node --check`'s module-mode
+  // parse, so those rare replies keep the original path. Both report the same detail string so a
+  // suite-version bump is not needed: the verdict, not the mechanism, is what a baseline records.
+  if (!/^\s*(?:import|export)\b/m.test(code)) {
+    try {
+      new Script(code, { filename: "answer.js" });
+      return { passed: true, detail: "node --check" };
+    } catch {
+      return { passed: false, detail: "syntax error" };
+    }
+  }
   const { execFile } = await import("node:child_process");
   const { mkdtemp, rm, writeFile } = await import("node:fs/promises");
   const os = await import("node:os");
@@ -780,7 +794,7 @@ export async function checkJavaScriptSyntax(text) {
   const directory = await mkdtemp(path.join(os.tmpdir(), "modelduck-bench-"));
   const file = path.join(directory, "answer.js");
   try {
-    await writeFile(file, stripFence(text), "utf8");
+    await writeFile(file, code, "utf8");
     await new Promise((resolve, reject) => {
       execFile(process.execPath, ["--check", file], { timeout: 5000 }, (error) => {
         if (error) reject(error);

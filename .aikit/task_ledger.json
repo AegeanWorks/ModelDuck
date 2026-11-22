@@ -1,85 +1,23 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "retune-profiles-engine-stage",
-    "last_phase": "in_progress",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795255111.6084375,
-    "owner": "kilo:1",
-    "lease_until": 1795262311.6084375,
-    "started_by": "kilo:1",
+    "task_id": "app-speed-rust",
+    "last_phase": "phase 4",
+    "active_phase": 4,
+    "status": "in_progress",
+    "updated_at": 1795372428.240046,
+    "owner": "opencode:hy4-flash-free",
+    "lease_until": 1795379628.240046,
+    "started_by": "opencode:hy4-flash-free",
     "continuations": [],
-    "completed_at": 1795255184.3774679,
-    "completed_head": "4cebe0b4cf41f9ff779bcad2b9a5adc26f3b280a",
-    "completed_tree": "8630564aca290e31c590c41afddabc64215b979e"
+    "workspaces": [
+      {
+        "name": "modelduck",
+        "path": "projects/modelduck"
+      }
+    ]
   },
   "checkpoints": [
-    {
-      "task_id": "chore-1795119820",
-      "phase": "chore",
-      "phase_num": 1,
-      "description": "docs: fast-branded engine candidates (ADR-183)",
-      "status": "completed",
-      "chore": true,
-      "timestamp": 1795119820.59777,
-      "timestamp_str": "2026-11-19 23:23:40",
-      "agent": "claude-code:bba617e6"
-    },
-    {
-      "task_id": "tune-system-prompt-optional",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "answer reuse verified per family (ADR-185)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795122111.9951031,
-      "timestamp_str": "2026-11-20 00:01:51",
-      "agent": "claude:sonnet-5.5",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "task_id": "tune-system-prompt-optional",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "F10 analysis, repro scripts, ADR-186 proposal",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795123333.0284173,
-      "timestamp_str": "2026-11-20 00:22:13",
-      "agent": "claude:sonnet-5.5",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "task_id": "tune-system-prompt-optional",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "kinetic tried, not faster; engine verdict names decode-only winners (ADR-187)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795124134.3626077,
-      "timestamp_str": "2026-11-20 00:35:34",
-      "agent": "claude:sonnet-5.5",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "tune-system-prompt-optional",
       "phase": "phase 4",
@@ -346,6 +284,76 @@
         ],
         "forced": false
       }
+    },
+    {
+      "task_id": "retune-core-models",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/3] re-tune qwen2.5-coder-1.5b and smollm2-135m through the engine stage at tuner v12; [2/3] phi-3.5-mini decided on measured value; [3/3] ADR-192, gates, commit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795255251.6402807,
+      "timestamp_str": "2026-11-21 13:00:51",
+      "agent": "kilo:1",
+      "impact_assessment": {
+        "why": "the two strongest core gate models still carry tuner v11 profiles with no measured engine, so the app would serve them through settings no engine stage confirmed",
+        "benefits": "every core gate model profile names the engine it serves with, closing report follow-up F4",
+        "risks": "contract: the coder and smol profiles move to tuner v12 and name llama-server:vulkan; dependency: none, llama-server b12521 is installed; concurrency: one tune writer on profiles and tune-runs while other projects run on the machine; state: an interrupted run keeps finished stages and is resumed with --continue",
+        "mitigation": "keep .before-tuner-v12 backups, resume rather than restart, and record any timing decided under load in the ADR"
+      },
+      "plan_digest": "d28b675630a598cfa69725501241531510161bc7828634f484c5c3ac7d101ef1"
+    },
+    {
+      "task_id": "retune-core-models",
+      "phase": "suspended",
+      "phase_num": 2,
+      "description": "Task 'retune-core-models' suspended: user instructed to stop all tuning on 2026-11-21; no engine re-tune wave continues",
+      "status": "suspended",
+      "timestamp": 1795255815.4785426,
+      "timestamp_str": "2026-11-21 13:10:15",
+      "agent": "kilo:1"
+    },
+    {
+      "task_id": "app-speed-rust",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/4] Speed the app without tuning: in-process JS syntax check, memoized GPU detection, Rust GGUF header guard with JS fallback",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795371532.8870513,
+      "timestamp_str": "2026-11-22 21:18:52",
+      "agent": "opencode:hy4-flash-free",
+      "impact_assessment": {
+        "why": "User directive to improve ModelDuck app speed (explicitly not tuning); measured 47ms spawn per JS syntax check, a 500 /api/gpu endpoint, and 6.4ms+ GGUF header validation on a synthetic large header",
+        "benefits": "No process spawn per syntax check, repeatable GPU info without re-import, and a native bounded GGUF header scan that scales to real vocabularies",
+        "risks": "contract: judge verdicts, API shapes and guard reject reasons must stay identical; dependency: Rust stdlib only and Node stdlib only, no new npm packages; concurrency: GGUF guard is called by scans and must remain bounded; state: no settings, prompts or generation paths are touched",
+        "mitigation": "failing-first tests for each path, keep the JS guard as a fallback, compare verdicts on the same fixtures, run npm test and the project gates before each commit"
+      },
+      "plan_digest": "54e3b6628f58baffca8ff824acecc31e5920c7ae3aaf5c8fe3f6eb5cd99fac77",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "app-speed-rust",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[2/4] M1+M2 verified: vm.Script syntax check 47.15ms -> ~0.005ms per answer, /api/gpu 200 with memoized detection; npm test 1093 tests pass, 4/4 project gates green",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795372428.240046,
+      "timestamp_str": "2026-11-22 21:33:48",
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }

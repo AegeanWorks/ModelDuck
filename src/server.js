@@ -4,6 +4,7 @@ import http from "node:http";
 import { fileURLToPath } from "node:url";
 
 import { AppError } from "./errors.js";
+import { detectGpuBackends } from "./gpu-info.js";
 import { selectChatBase } from "./benchmark-base.js";
 import { loadBenchmarkReport } from "./benchmark-report.js";
 import { manifestSummary } from "./generation-manifest.js";
@@ -269,8 +270,7 @@ export function createHttpServer({
     }
 
     if (pathname === "/api/gpu" && method === "GET") {
-      const module = await import("node-llama-cpp");
-      const backends = await module.getLlamaGpuTypes();
+      const backends = await detectGpuBackends();
       sendJson(res, 200, {
         backends,
         rocm: false,
