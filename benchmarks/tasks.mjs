@@ -2,16 +2,10 @@ import { createHash } from "node:crypto";
 
 import { AppError } from "../src/errors.js";
 import { PROMPTS, SUITE_VERSION } from "./suite.mjs";
+import { TASKS } from "./task-ids.mjs";
 
-/**
- * The kinds of work a tuned profile has a preset for. Every suite item belongs
- * to exactly one task, so a tune never scores the same item twice.
- */
-export const TASKS = Object.freeze([
-  Object.freeze({ id: "code", label: "Code", categories: Object.freeze(["code", "code-long", "code-repo", "bugfix", "bugfix-long", "bugfix-repo", "public-code"]) }),
-  Object.freeze({ id: "comprehension", label: "Code comprehension", categories: Object.freeze(["code-comprehension"]) }),
-  Object.freeze({ id: "recall", label: "Long context", categories: Object.freeze(["context", "recall"]) }),
-]);
+/** The same frozen vocabulary the server uses, without loading this module. */
+export { TASKS };
 
 /** Item counts of the successive-halving rungs; a rung stops at the task's tuning items. */
 export const TASK_RUNGS = Object.freeze([12, 24, 48]);

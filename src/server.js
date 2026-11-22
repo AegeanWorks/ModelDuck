@@ -41,8 +41,7 @@ import { recommendCatalog, recommendModels } from "./recommend.js";
 import { restartRequiredFor } from "./server-settings.js";
 import { machineCatalog } from "./state-machine.js";
 import { systemInfo } from "./system.js";
-import { TASKS, suiteSummary } from "../benchmarks/tasks.mjs";
-import { multistepSummary } from "../benchmarks/multistep-items.mjs";
+import { TASKS } from "../benchmarks/task-ids.mjs";
 
 function validateTuneSelection(tasks, stages) {
   const unknownTasks = (tasks ?? []).filter((id) => !TASKS.some((task) => task.id === id));
@@ -285,6 +284,12 @@ export function createHttpServer({
     }
 
     if (pathname === "/api/benchmarks/suite" && method === "GET") {
+      // Only this route needs the full prompt suite; loading it here keeps the
+      // server's startup import graph free of every benchmark item module.
+      const [{ suiteSummary }, { multistepSummary }] = await Promise.all([
+        import("../benchmarks/tasks.mjs"),
+        import("../benchmarks/multistep-items.mjs"),
+      ]);
       // The opt-in multistep chains sit beside the tuned tasks; they are not one of them.
       sendJson(res, 200, { ...suiteSummary(), multistep: multistepSummary() });
       return;

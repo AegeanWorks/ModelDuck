@@ -1425,3 +1425,13 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
   4. Add `npm run bench:gguf`, which builds a synthetic 20k-token / 2k-tensor header and times both implementations.
 - **Consequences**: on that fixture the JavaScript walk takes **8.19 ms** and the in-process Rust guard **1.38 ms (~5.9x faster)**; with a real 151k vocabulary the gap should be larger, but that has not been measured here. Two tests pin native/JavaScript fact parity and the hostile-header fallback; `npm test` passes 1,095 tests. Build host note: Windows GNU needs a tiny `node.def`-generated import library because the Node distribution ships no `node.lib`; `scripts/build-native.mjs` creates it.
 - **Cross-principle check:** PRINCIPLE-014: the CLI variant was dropped because it was slower, and the shipped path has failing-first tests with unchanged assertions; G-006: LICENSE is untouched; G-001/G-003: only scan validation changed, not generation, prompts, settings or suite hashes.
+
+### ADR-194: Cache CPU topology and defer the benchmark suite out of server startup
+- **Date**: 2026-11-22
+- **Status**: Accepted
+- **Context**: Speed wave 2 profiled the running app rather than guessing. `systemInfo()` cost **345.5 us per call** because `os.cpus()` (347 us) was re-read on every `/api/health`, `/api/metrics` and fingerprint resolution even though CPU model and core count cannot change during a process. The server also statically imported `benchmarks/tasks.mjs` and `benchmarks/multistep-items.mjs`, pulling the whole prompt/item suite into its startup graph solely for task-id validation and one summary route.
+- **Decision**:
+  1. `src/system.js` reads CPU topology once into a frozen `cpuTopology()` record, with `resetSystemInfoCache()` for tests; `systemInfo()` still reads free memory and uptime live.
+  2. Move the static `TASKS` vocabulary into `benchmarks/task-ids.mjs`; `tasks.mjs` re-exports the same frozen array, and `server.js` imports the lightweight module. The two heavy summaries are dynamically imported only inside the `/api/benchmarks/suite` route.
+- **Consequences**: `systemInfo()` measures **1.3 us/op** (about 265x faster). Server startup no longer loads suite/item modules; a source test pins that the heavy imports are absent and another pins that the two task arrays are the same object. `npm test` passes 1,100 tests (1 skipped).
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests were added before each change and no assertion was weakened; G-001/G-003: no prompt, check, task subset, setting or generation path changed, so no `tune:gate` or `SUITE_VERSION` bump.

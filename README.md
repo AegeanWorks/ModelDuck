@@ -575,6 +575,7 @@ modelduck/
 │   ├── paraphrase-items.mjs
 │   ├── recommend.mjs
 │   ├── stats.mjs
+│   ├── task-ids.mjs      <- static task vocabulary, safe for server startup
 │   ├── tasks.mjs
 │   ├── tune.mjs
 │   ├── tune-measure.mjs
@@ -735,7 +736,9 @@ modelduck/
 │   ├── test-parallel-shards.test.js
 │   ├── cache-truncate.test.js
 │   ├── recommend.test.js
-│   └── server.test.js
+│   ├── server.test.js
+│   ├── system-info-speed.test.js
+│   └── server-startup-speed.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml
