@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "plaintext-memo-1123",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795472926.473904,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795473485.7569497,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795480126.473904,
+    "lease_until": 1795480685.7569497,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,56 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; plainText re-stripped fences and ran two regexes on every text check and on repeated answers across load variants",
-      "benefits": "Repeated replies skip the fence and marker cleanup while values stay identical",
-      "risks": "contract: same cleaned text; dependency: Map; concurrency: none; state: bounded 4096-entry cache keyed by immutable string",
-      "mitigation": "failing-first counter test plus output equivalence, full npm test and strict gates; revert if regression"
-    }
+    "completed_at": 1795473486.4826295,
+    "completed_head": "c9e85b88d71d1a0a002b4f1572d74a2adb379495",
+    "completed_tree": "380b5c8be0b9ca0beba2f2f51d7d820a2e4fab8a"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Memoize outputLimit by cases-array identity: 2.368us -> 0.011us (215x)",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Judge misses skip repeated expected-value stringification while the byte limit stays identical",
-        "mitigation": "failing-first counter test plus value equivalence, full npm test and strict gates; revert if regression",
-        "risks": "contract: same byte limit; dependency: WeakMap; concurrency: none; state: cases arrays are static per check, new arrays get their own entry",
-        "why": "User directive to keep improving speeds; outputLimit re-stringified every expected value on each judge miss for static case arrays"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "3f8138779de13fd01af814cd0701f465d0c7b0b946df0214bb2cd56bd64a6fe1",
-      "status": "in_progress",
-      "task_id": "outputlimit-memo-1123",
-      "timestamp": 1795469588.4666302,
-      "timestamp_str": "2026-11-24 00:33:08",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[2/2] DELIVERED: outputLimit 2.368us -> 0.011us (215x); 1202 tests pass",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "outputlimit-memo-1123",
-      "timestamp": 1795469826.7022116,
-      "timestamp_str": "2026-11-24 00:37:06",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "delivery": {
@@ -425,6 +380,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: plainText 0.84us -> 0.14us (6x); 1211 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "plaintext-memo-1123",
+      "timestamp": 1795473485.7569497,
+      "timestamp_str": "2026-11-24 01:38:05",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'plaintext-memo-1123' completed successfully.",
+      "head": "c9e85b88d71d1a0a002b4f1572d74a2adb379495",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "plaintext-memo-1123",
+      "timestamp": 1795473486.6983626,
+      "timestamp_str": "2026-11-24 01:38:06"
     }
   ]
 }
