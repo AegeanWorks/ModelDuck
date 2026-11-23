@@ -2120,5 +2120,35 @@
     "final_snapshot_entries": 0,
     "surface_digest": "c92468acec385d1ac4160513f4c9e86cb6ec1f7b5d536b7006906a8f669f2b07",
     "baseline_digest": "c92468acec385d1ac4160513f4c9e86cb6ec1f7b5d536b7006906a8f669f2b07"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [],
+    "no_visual_reason": "",
+    "no_change_reason": "Judge cache-key memo and one test determinism fix; no rendered view touched",
+    "baseline_commit": "bbeaf1cdc63be0e6e5670d2ac42882b4f28d3f0c",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1795393646.2281504,
+    "finished_at": 1795393659.90636,
+    "strikes": 0,
+    "reviewer": "opencode:hy4-flash-free",
+    "review": {
+      "reviewer": "opencode:hy4-flash-free",
+      "surface": "app",
+      "surface_digest": "c92468acec385d1ac4160513f4c9e86cb6ec1f7b5d536b7006906a8f669f2b07",
+      "snapshot_digest": "",
+      "snapshot_entries": 0,
+      "visual": true,
+      "reviewed_at": 1795393659.9063616
+    },
+    "allowed_removals": [],
+    "allowed_tests": [],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "c92468acec385d1ac4160513f4c9e86cb6ec1f7b5d536b7006906a8f669f2b07",
+    "baseline_digest": "c92468acec385d1ac4160513f4c9e86cb6ec1f7b5d536b7006906a8f669f2b07"
   }
 ]
