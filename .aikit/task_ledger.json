@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "score-map-init-1123",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795468775.8017929,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795468938.8507106,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795475975.8017929,
+    "lease_until": 1795476138.8507106,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,56 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; score() built two zeroed maps via intermediate arrays of pairs on every tuning rung",
-      "benefits": "Per-setting aggregation skips two temporary arrays while map contents stay identical",
-      "risks": "contract: same map keys and zero values; five other maps stay empty as before; dependency: none; concurrency: none; state: pure locals",
-      "mitigation": "failing-first counter test plus map-equivalence and empty-map checks, full npm test and strict gates; revert if regression"
-    }
+    "completed_at": 1795468939.667008,
+    "completed_head": "e07f13a74a73f0e416cc4151a95d3d9bdfb14529",
+    "completed_tree": "b4fbb5c74fe473969de480c8f306cf6af54f9adb"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Incremental logChoose recurrence for McNemar tails: 526us -> 6.7us (~78x), identical p-values",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Gate statistics compute the same p-values with an O(k) running log-binomial recurrence",
-        "mitigation": "failing-first counter test plus value equivalence, full npm test and strict gates; revert if regression",
-        "risks": "contract: identical p-values verified over 8 discordant-pair shapes; dependency: none; concurrency: none; state: pure locals",
-        "why": "User directive to keep improving speeds; mcnemarExact recomputed logChoose from scratch each iteration, an O(k^2) total"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "f64d62979a76024b0d8885ab05676001ebbfdac6b5f4992cd5e05db8c86f7b62",
-      "status": "in_progress",
-      "task_id": "mcnemar-recurrence-1123",
-      "timestamp": 1795461826.911609,
-      "timestamp_str": "2026-11-23 22:23:46",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[2/2] DELIVERED: McNemar tail 526us -> 6.7us (~78x); 1190 tests pass",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "mcnemar-recurrence-1123",
-      "timestamp": 1795462812.5113895,
-      "timestamp_str": "2026-11-23 22:40:12",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "delivery": {
@@ -438,6 +393,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: score map init 6.16us -> 3.42us (1.8x); 1201 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "score-map-init-1123",
+      "timestamp": 1795468938.8507106,
+      "timestamp_str": "2026-11-24 00:22:18",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'score-map-init-1123' completed successfully.",
+      "head": "e07f13a74a73f0e416cc4151a95d3d9bdfb14529",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "score-map-init-1123",
+      "timestamp": 1795468939.7438436,
+      "timestamp_str": "2026-11-24 00:22:19"
     }
   ]
 }
