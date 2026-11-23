@@ -2180,5 +2180,35 @@
     "final_snapshot_entries": 0,
     "surface_digest": "c92468acec385d1ac4160513f4c9e86cb6ec1f7b5d536b7006906a8f669f2b07",
     "baseline_digest": "c92468acec385d1ac4160513f4c9e86cb6ec1f7b5d536b7006906a8f669f2b07"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [],
+    "no_visual_reason": "",
+    "no_change_reason": "Test timing seam and receipts helper; no rendered view touched",
+    "baseline_commit": "4f4c8b8cbc54b9feb261b800dd3c1ed500399cc8",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1795394192.229899,
+    "finished_at": 1795394205.3487372,
+    "strikes": 0,
+    "reviewer": "opencode:hy4-flash-free",
+    "review": {
+      "reviewer": "opencode:hy4-flash-free",
+      "surface": "app",
+      "surface_digest": "6f8b414bca95a9ed2b27225938a55e9b7c1a9339c08d3a8ef7992b6f753a7b93",
+      "snapshot_digest": "",
+      "snapshot_entries": 0,
+      "visual": true,
+      "reviewed_at": 1795394205.3487391
+    },
+    "allowed_removals": [],
+    "allowed_tests": [],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "6f8b414bca95a9ed2b27225938a55e9b7c1a9339c08d3a8ef7992b6f753a7b93",
+    "baseline_digest": "6f8b414bca95a9ed2b27225938a55e9b7c1a9339c08d3a8ef7992b6f753a7b93"
   }
 ]
