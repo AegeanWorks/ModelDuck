@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "parallel-scan-stat-1123",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795455278.1032205,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795455528.6866539,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795462478.1032205,
+    "lease_until": 1795462728.6866539,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,56 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; the first scan of a 200-model library did 200 sequential stat calls costing ~12ms on Windows",
-      "benefits": "Full scans of large libraries gather file stats concurrently while preserving per-file error handling",
-      "risks": "contract: same models listed in the same order; dependency: none; concurrency: independent read-only stat calls, no shared mutation; state: stats are indexed by position so insertion order is unchanged",
-      "mitigation": "failing-first mode seam plus behavioral equivalence over valid/missing/non-GGUF files, full npm test and strict gates; revert if regression"
-    }
+    "completed_at": 1795455529.373382,
+    "completed_head": "38f0efe5cbf97bf438643852efe64196f4130847",
+    "completed_tree": "03a693f09da3c59d63258f2b6d8a77bf20b41f6b"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Memoize settingPresets(): 0.24us -> ~0.05us on /api/state",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Preset rows built once from static definitions while callers get a fresh array",
-        "mitigation": "failing-first computation counter test plus caller-isolation check, full npm test and strict gates; revert if regression",
-        "risks": "contract: preset values and order unchanged; dependency: Node only; concurrency: none; state: SETTING_PRESETS is a module constant",
-        "why": "User directive to keep improving speeds; settingPresets rebuilt preset objects with nested settings copies on every state request"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "f90ca8a54f31c96358645678b160e70f5e1667fa0e44c4ff18666e12022a1c86",
-      "status": "in_progress",
-      "task_id": "setting-presets-cache-1123",
-      "timestamp": 1795452064.7114644,
-      "timestamp_str": "2026-11-23 19:41:04",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[2/2] DELIVERED: settingPresets 0.24us -> 0.02us (~12x); 1168 tests pass",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "setting-presets-cache-1123",
-      "timestamp": 1795452282.7071028,
-      "timestamp_str": "2026-11-23 19:44:42",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "delivery": {
@@ -412,6 +367,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: first scan 200 models 63.4->5.9ms (A/B 3.28x); 1178 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "parallel-scan-stat-1123",
+      "timestamp": 1795455528.686654,
+      "timestamp_str": "2026-11-23 20:38:48",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'parallel-scan-stat-1123' completed successfully.",
+      "head": "38f0efe5cbf97bf438643852efe64196f4130847",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "parallel-scan-stat-1123",
+      "timestamp": 1795455529.603395,
+      "timestamp_str": "2026-11-23 20:38:49"
     }
   ]
 }
