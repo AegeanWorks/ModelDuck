@@ -18,10 +18,13 @@ test("a receipt written later is still read and parsed", async (t) => {
   const dir = await mkdtemp(os.tmpdir() + "/md-receipt-test-");
   t.after(() => rm(dir, { recursive: true, force: true }));
   resetReceiptCounters();
-  assert.equal(await readInstallReceipt(dir, "model.gguf"), null);
+  let now = 1000;
+  const clock = () => now;
+  assert.equal(await readInstallReceipt(dir, "model.gguf", { clock }), null);
   await writeFile(dir + "/model.gguf.receipt.json", JSON.stringify({ digest: "abc", sha256: "def" }));
   // The negative result is cached for a short burst; an external write shows up
   // on the next read after that window (an app download invalidates immediately).
-  await new Promise((resolve) => setTimeout(resolve, 600));
-  assert.deepEqual(await readInstallReceipt(dir, "model.gguf"), { digest: "abc", sha256: "def" });
+  // An injected clock proves the same expiry without a 600ms real-time wait.
+  now = 1600;
+  assert.deepEqual(await readInstallReceipt(dir, "model.gguf", { clock }), { digest: "abc", sha256: "def" });
 });

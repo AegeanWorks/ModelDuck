@@ -54,10 +54,11 @@ export function resetReceiptCounters() {
 }
 
 /** IDEA-1067/1194: measured install receipt; null when no receipt was written. */
-export async function readInstallReceipt(modelsDir, fileName) {
+export async function readInstallReceipt(modelsDir, fileName, { clock = Date.now, ttlMs = MISSING_RECEIPT_TTL_MS } = {}) {
   const file = receiptPath(modelsDir, fileName);
+  const now = clock();
   const missedAt = MISSING_RECEIPTS.get(file);
-  if (missedAt !== undefined && Date.now() - missedAt < MISSING_RECEIPT_TTL_MS) {
+  if (missedAt !== undefined && now - missedAt < ttlMs) {
     missingReceiptSkips += 1;
     return null;
   }
@@ -67,7 +68,7 @@ export async function readInstallReceipt(modelsDir, fileName) {
     const text = await fs.promises.readFile(file, "utf8");
     return JSON.parse(withoutBom(text));
   } catch {
-    MISSING_RECEIPTS.set(file, Date.now());
+    MISSING_RECEIPTS.set(file, now);
     return null;
   }
 }

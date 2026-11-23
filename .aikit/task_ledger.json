@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "single-pass-chain-summary-1123",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795393894.619602,
+    "task_id": "receipt-clock-seam-1123",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795394061.8535464,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795401094.619602,
+    "lease_until": 1795401261.8535464,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,29 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795393895.0532086,
-    "completed_head": "3885630fc0b77d6cab965fbf41283f2ad723c51d",
-    "completed_tree": "26b9d2c6079114f619c1c53fadbdb689ce0ed5b6"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds across tests; one test spends 600ms of real time waiting for a 500ms TTL window",
+      "benefits": "Test suite drops ~595ms while verifying the exact same expiry behavior deterministically",
+      "risks": "contract: production readInstallReceipt behavior unchanged when no options passed; dependency: none; concurrency: none; state: optional clock param only",
+      "mitigation": "failing-first test with an injected clock, unchanged existing assertions, full npm test and strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "task_id": "recommendations-profile-probe-1123",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[2/2] DELIVERED: /api/recommendations with 60 models 8.7ms -> 1.34ms; 1127 tests pass",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795391545.7369516,
-      "timestamp_str": "2026-11-23 02:52:25",
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "recommendations-profile-probe-1123",
       "phase": "completed",
@@ -409,6 +394,30 @@
         ],
         "forced": false
       }
+    },
+    {
+      "task_id": "receipt-clock-seam-1123",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/2] Make the receipt negative-cache TTL clock injectable so the 600ms sleep test runs in ~5ms without weakening its assertion",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795394061.8535464,
+      "timestamp_str": "2026-11-23 03:34:21",
+      "agent": "opencode:hy4-flash-free",
+      "impact_assessment": {
+        "why": "User directive to keep improving speeds across tests; one test spends 600ms of real time waiting for a 500ms TTL window",
+        "benefits": "Test suite drops ~595ms while verifying the exact same expiry behavior deterministically",
+        "risks": "contract: production readInstallReceipt behavior unchanged when no options passed; dependency: none; concurrency: none; state: optional clock param only",
+        "mitigation": "failing-first test with an injected clock, unchanged existing assertions, full npm test and strict gates; revert if regression"
+      },
+      "plan_digest": "19d489ddc96848873d54a7514b4c5f7c1d622ca3cd4266d1dd82b4df785a1ef3",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }

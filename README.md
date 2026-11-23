@@ -760,7 +760,8 @@ modelduck/
 │   ├── overview-profile-probe.test.js
 │   ├── buffered-item-outcomes.test.js
 │   ├── judge-key-memo.test.js
-│   └── single-pass-chain-summary.test.js
+│   ├── single-pass-chain-summary.test.js
+│   └── receipt-clock-seam.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml

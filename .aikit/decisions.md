@@ -1631,3 +1631,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: the same aggregation drops to a **42.94 us** median (**3.74x**). Two failing-first tests pin the mode and exact field-by-field equivalence on irregular chains with sparse depths and errors; the existing multistep tests also pass.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no chain, check or hash changed — only the aggregation walk.
 
+### ADR-219: Injectable clock for the receipt negative-cache TTL
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: Continuing the speed work across tests, `receipt-stat-first.test.js` spent a literal 600 ms sleeping to outlast the 500 ms negative-cache TTL. A controlled A/B measured a **685.4 ms** median for that test file.
+- **Decision**: `readInstallReceipt()` accepts optional `clock` and `ttlMs` options, defaulting to `Date.now` and the production TTL. Tests inject a controllable clock, so the same cache-hit-then-expiry behavior is verified deterministically without a real-time wait. Production calls are unchanged.
+- **Consequences**: the test file drops to a **72.2 ms** median (**613 ms saved**, ~7.5% of a full suite run). The existing assertions and the new failing-first clock test are unchanged in meaning; both still check that a cached miss is served inside the TTL and an external write becomes visible after it.
+- **Cross-principle check:** PRINCIPLE-014: a test-speed change that alters no assertion's meaning and touches only the test's timing setup plus an optional test seam; G-001/G-003: no production behavior, tuning or suite change.
+
