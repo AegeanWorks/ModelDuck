@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "noentry-shortcut-1123",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795467724.13643,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795468119.2163055,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795474924.13643,
+    "lease_until": 1795475319.2163055,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,55 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; valid code defining other functions still spawned a child to report the deterministic 'function not found' verdict",
-      "benefits": "Wrong-function answers judged in-process with byte-identical verdicts and no spawn",
-      "risks": "contract: verdicts identical when entry name absent; guarded against setup/harness and eval/Function/globalThis/window/this; dependency: none; concurrency: none; state: same cache insertion",
-      "mitigation": "failing-first counter test plus exact-verdict and guard tests, end-to-end A/B, full npm test and strict gates; revert if regression"
-    }
+    "completed_at": 1795468119.8228807,
+    "completed_head": "14e0846255e99b79f8267221e6d21cbb50e9af95",
+    "completed_tree": "eb1abc282b7a3dfc805e6967806a25d845fc9bc3"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'given-number-exec-1123' completed successfully.",
-      "head": "76ad6c06fddb0969f115c7776e6de2a5d9c55a77",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "given-number-exec-1123",
-      "timestamp": 1795459503.065629,
-      "timestamp_str": "2026-11-23 21:45:03"
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Subset-sum recurrence for exact sign-flip enumeration: 64.4ms -> 5.0ms (13x), identical p-values",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Tune gate statistics compute the same p-values with an O(1) per-mask recurrence",
-        "mitigation": "failing-first counter test plus p-value equivalence, end-to-end A/B via stats tests, full npm test and strict gates; revert if regression",
-        "risks": "contract: identical p-values, verified over 200 randomized inputs plus existing stats tests; dependency: none; concurrency: none; state: Float64Array scratch per call",
-        "why": "User directive to keep improving speeds; the exact path enumerated 2^20 masks with an O(count) inner loop"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "2c9ab5e899e5d1fa82f32699fe6d7f073b096cf46e7343c0ac533de5d17b8e02",
-      "status": "in_progress",
-      "task_id": "signflip-recurrence-1123",
-      "timestamp": 1795460767.3457904,
-      "timestamp_str": "2026-11-23 22:06:07",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "checklists": "passed",
@@ -431,6 +387,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: no-entry answers judged in-process, end-to-end A/B 6.2x, byte-identical verdicts; 1200 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "noentry-shortcut-1123",
+      "timestamp": 1795468119.2163055,
+      "timestamp_str": "2026-11-24 00:08:39",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'noentry-shortcut-1123' completed successfully.",
+      "head": "14e0846255e99b79f8267221e6d21cbb50e9af95",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "noentry-shortcut-1123",
+      "timestamp": 1795468120.080459,
+      "timestamp_str": "2026-11-24 00:08:40"
     }
   ]
 }
