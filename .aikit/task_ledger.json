@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "setting-names-cache-1123",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795450478.7883613,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795450869.7380865,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795457678.7883613,
+    "lease_until": 1795458069.7380865,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,55 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; settingNames() rebuilds a fixed array from frozen definitions on every tune API request",
-      "benefits": "Tune routes and CLI help skip repeated axis reconstruction",
-      "risks": "contract: returned names and order unchanged, fresh array per caller; dependency: Node only; concurrency: none; state: definitions are deep-frozen so the result cannot change",
-      "mitigation": "failing-first computation counter test plus value/order checks, full npm test and strict gates; revert if regression"
-    }
+    "completed_at": 1795450870.675796,
+    "completed_head": "087a36626b7d55754ff2e9a75adbe62350d2a29f",
+    "completed_tree": "2e915ad31d3657fd37fdba259bb9d22090f966c7"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'plain-candidate-normalize-1123' completed successfully.",
-      "head": "232491a782c5bece95c4086c391020efeb736c16",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "plain-candidate-normalize-1123",
-      "timestamp": 1795395877.9841716,
-      "timestamp_str": "2026-11-23 04:04:37"
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Replace two regex passes in normalizePlain with exact two-phase char-code trimming: 3.62x on that helper",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Exact and oneOf checks avoid two regex engines per candidate",
-        "mitigation": "failing-first mode seam plus equivalence test over 15 edge cases, full npm test and strict gates; revert if regression",
-        "risks": "contract: normalized strings byte-identical including quote/dot ordering; dependency: none; concurrency: none; state: pure function",
-        "why": "User directive to keep improving speeds; a CPU profile of judge-heavy work showed answerCandidates and normalizePlain as the top in-process functions"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "ef2158d3f340c7fceebb06419f3f865b8c90d5e115c0b404231b697e0ac9e53d",
-      "status": "in_progress",
-      "task_id": "manual-plain-normalize-1123",
-      "timestamp": 1795412392.8440845,
-      "timestamp_str": "2026-11-23 08:39:52",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "checklists": "passed",
@@ -418,6 +374,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: settingNames 13.03us -> 0.03us (~434x); 1164 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "setting-names-cache-1123",
+      "timestamp": 1795450869.7380865,
+      "timestamp_str": "2026-11-23 19:21:09",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'setting-names-cache-1123' completed successfully.",
+      "head": "087a36626b7d55754ff2e9a75adbe62350d2a29f",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "setting-names-cache-1123",
+      "timestamp": 1795450870.7531984,
+      "timestamp_str": "2026-11-23 19:21:10"
     }
   ]
 }
