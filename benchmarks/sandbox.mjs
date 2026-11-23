@@ -37,12 +37,30 @@ const WINDOWS_REQUIRED = Object.freeze(["HOMEDRIVE", "HOMEPATH", "LOGONSERVER", 
  * instead: no user name, profile path, PATH or token reaches the child, and
  * SystemRoot (which Node needs to start) is kept.
  */
+// process.env and the platform do not change while the app runs. Building the
+// neutral env costs ~31us (an Object.keys scan of every env var), so cache the
+// default-argument result; callers still get a fresh object each time.
+let defaultEnv = null;
+let sandboxEnvComputes = 0;
+export function sandboxEnvComputations() {
+  return sandboxEnvComputes;
+}
+export function resetSandboxEnvCounter() {
+  sandboxEnvComputes = 0;
+}
 export function sandboxEnv(env = process.env, platform = process.platform) {
-  if (platform !== "win32") return {};
-  const key = Object.keys(env).find((name) => name.toLowerCase() === "systemroot");
-  const root = key ? env[key] : "C:\\Windows";
-  const neutral = Object.fromEntries(WINDOWS_REQUIRED.map((name) => [name, "sandbox"]));
-  return { ...neutral, SystemRoot: root, WINDIR: root, SYSTEMDRIVE: root.slice(0, 2), TEMP: `${root}\\Temp` };
+  const isDefault = env === process.env && platform === process.platform;
+  if (isDefault && defaultEnv !== null) return { ...defaultEnv };
+  sandboxEnvComputes += 1;
+  const built = (() => {
+    if (platform !== "win32") return {};
+    const key = Object.keys(env).find((name) => name.toLowerCase() === "systemroot");
+    const root = key ? env[key] : "C:\\Windows";
+    const neutral = Object.fromEntries(WINDOWS_REQUIRED.map((name) => [name, "sandbox"]));
+    return { ...neutral, SystemRoot: root, WINDIR: root, SYSTEMDRIVE: root.slice(0, 2), TEMP: `${root}\\Temp` };
+  })();
+  if (isDefault) defaultEnv = built;
+  return { ...built };
 }
 
 /**

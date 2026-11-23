@@ -762,7 +762,8 @@ modelduck/
 │   ├── judge-key-memo.test.js
 │   ├── single-pass-chain-summary.test.js
 │   ├── receipt-clock-seam.test.js
-│   └── judge-hit-reuse.test.js
+│   ├── judge-hit-reuse.test.js
+│   └── sandbox-env-memo.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml

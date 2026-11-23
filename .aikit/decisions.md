@@ -1647,3 +1647,12 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: a 40-case hit drops from a **0.76 us** to a **0.17 us** median (**4.47x**) in a 5-round controlled A/B. Two failing-first tests pin object reuse between hits and array-level isolation. A `spawn`-vs-`execFile` A/B and a temp-file-entry A/B were also run this pass and rejected: `execFile` is faster under controlled load, and the temp-file variant was noisy with no reliable gain, so the sandbox was left unchanged.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no prompt, check, suite version or hash changed.
 
+### ADR-221: Memoize the default sandbox environment
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: Continuing the speed work, `sandboxEnv()` rebuilt the neutral child environment on every uncached judge, scanning every variable in `process.env` with a `toLowerCase` search. A controlled 5-round A/B measured a **27.45 us** median.
+- **Decision**: Cache the result for the default `process.env`/`process.platform` arguments, which are stable for the life of the process, and return a fresh shallow copy to each caller. Custom arguments still build a fresh value. The child gets the same neutral env, so isolation is unchanged.
+- **Consequences**: the helper drops to a **0.07 us** median (**392x**). Two failing-first tests pin single construction, value equality, fresh-object return and custom-argument behavior; all sandbox-hardening tests pass.
+- **Warm-child pool rejected this pass**: a feasibility probe showed a child pre-started ~400 ms ahead runs a judge in ~16.7 ms vs ~50 ms cold, but the benefit requires module-load spawning plus a custom reimplementation of `execFile`'s timeout, maxBuffer and error semantics in a security-critical path, and cannot be A/B'd end-to-end without a full tune run (forbidden). The sandbox process model was left unchanged.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: child environment values unchanged, no tuning or suite change.
+

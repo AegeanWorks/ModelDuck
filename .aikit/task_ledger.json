@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "judge-hit-reuse-1123",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795394698.9432948,
+    "task_id": "sandbox-env-memo-1123",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795394988.5643852,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795401898.9432948,
+    "lease_until": 1795402188.5643852,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,29 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795394699.379909,
-    "completed_head": "cf6ab44aa7c44f6f83e3b95d359c3b251474559e",
-    "completed_tree": "9a0ac11a227f60ae6fb4fa7640e3083baed3b37a"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; sandboxEnv() rebuilt a neutral env object on every uncached judge, doing Object.keys(process.env) and ~50 toLowerCase calls each time",
+      "benefits": "Every uncached judge call skips the stable env construction while custom-argument callers still compute fresh",
+      "risks": "contract: returned env values identical, fresh object per call; dependency: none; concurrency: none; state: memo only for default process.env/platform",
+      "mitigation": "failing-first counter test plus value equality, full npm test and strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "task_id": "cached-public-list-1123",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[2/2] DELIVERED: listPublic 21.37us -> 0.083us (258x) in same-process A/B; 1132 tests pass",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795392546.59481,
-      "timestamp_str": "2026-11-23 03:09:06",
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "cached-public-list-1123",
       "phase": "completed",
@@ -409,6 +394,30 @@
         ],
         "forced": false
       }
+    },
+    {
+      "task_id": "sandbox-env-memo-1123",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/2] Memoize sandboxEnv() for the stable default process env: 31us -> ~0.5us per uncached judge spawn",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795394988.5643852,
+      "timestamp_str": "2026-11-23 03:49:48",
+      "agent": "opencode:hy4-flash-free",
+      "impact_assessment": {
+        "why": "User directive to keep improving speeds; sandboxEnv() rebuilt a neutral env object on every uncached judge, doing Object.keys(process.env) and ~50 toLowerCase calls each time",
+        "benefits": "Every uncached judge call skips the stable env construction while custom-argument callers still compute fresh",
+        "risks": "contract: returned env values identical, fresh object per call; dependency: none; concurrency: none; state: memo only for default process.env/platform",
+        "mitigation": "failing-first counter test plus value equality, full npm test and strict gates; revert if regression"
+      },
+      "plan_digest": "b7abffe130525c936b8305075f9921a53c2c153eee85de1eb41105ae0caee4d6",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }
