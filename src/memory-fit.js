@@ -98,8 +98,13 @@ export function kvShapeFromMetadata(architectureMetadata) {
   const kvHeads = Number(architectureMetadata?.attention?.head_count_kv ?? heads);
   const keyLength = Number(architectureMetadata?.attention?.key_length); // aikit:allow-secret attention size
   const headDim = keyLength || Number(architectureMetadata?.embedding_length) / heads;
-  const shape = { layers, kvHeads, headDim };
-  return Object.values(shape).every((value) => Number.isFinite(value) && value > 0) ? shape : null;
+  // Validate the three numbers directly; the old Object.values(shape).every()
+  // allocated an extra array per model during every scan.
+  return Number.isFinite(layers) && layers > 0
+    && Number.isFinite(kvHeads) && kvHeads > 0
+    && Number.isFinite(headDim) && headDim > 0
+    ? { layers, kvHeads, headDim }
+    : null;
 }
 
 export function kvBytesPerToken(shape, kvCache = "f16") {

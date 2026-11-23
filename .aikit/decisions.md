@@ -1939,3 +1939,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: a controlled 5-round end-to-end A/B on two text checks over the same reply measured **2.198 us → 0.213 us (10.32x)** with identical verdicts. Two failing-first tests (confirmed against HEAD) pin the single computation and unchanged verdicts.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no check or verdict changed.
 
+### ADR-257: Direct validation in kvShapeFromMetadata
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: `kvShapeFromMetadata()` allocated a shape object plus an `Object.values` array just to validate three numbers on every model scanned.
+- **Decision**: Validate `layers`, `kvHeads` and `headDim` directly and construct the shape object only on success.
+- **Consequences**: **0.075 us → 0.017 us (4.4x)** with identical shapes or null. A failing-first equivalence test (confirmed against HEAD) covers six metadata shapes.
+- **Cross-principle check:** PRINCIPLE-014: failing-first test, no assertion weakened; G-003: no model summary changed.
+
