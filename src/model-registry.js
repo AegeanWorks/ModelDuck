@@ -150,7 +150,14 @@ function hashId(relativePath) {
     .slice(0, 12);
 }
 
+// Test seam: how often the four-byte GGUF header was actually read.
+let magicHeaderReadCount = 0;
+export function magicHeaderReads() {
+  return magicHeaderReadCount;
+}
+
 async function hasGgufMagic(file) {
+  magicHeaderReadCount += 1;
   let handle;
   try {
     handle = await fs.promises.open(file, "r");
@@ -310,10 +317,13 @@ export function createModelRegistry({
         continue;
       }
       if (!stats.isFile() || stats.size < 8) continue;
-      if (!(await hasGgufMagic(file))) continue;
 
       const cacheKey = `${file}|${stats.size}|${stats.mtimeMs}`;
-      let summary = cache.get(cacheKey);
+      // A cached summary means this exact (size, mtime) already passed the magic
+      // header guard, so skip reopening the file just to read those four bytes.
+      const cachedSummary = cache.get(cacheKey);
+      if (!cachedSummary && !(await hasGgufMagic(file))) continue;
+      let summary = cachedSummary;
       if (!summary) {
         try {
           const info = await readMetadata(file);

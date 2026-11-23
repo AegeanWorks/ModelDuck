@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "rejection-adr-1123",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795454495.996113,
+    "task_id": "scan-magic-skip-1123",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795454909.319535,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795461695.996113,
+    "lease_until": 1795462109.319535,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,30 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_without_impact_assessment": true,
-    "completed_at": 1795454496.8791935,
-    "completed_head": "eec2384fbc7ee2a4958a4c4683e91027ba18033e",
-    "completed_tree": "670189b58715e98db1eceff297c5ca19d9e09bf2"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; a 200-model forced rescan reopened every file for four-byte header validation even when metadata was cached",
+      "benefits": "Import/delete rescans on large libraries avoid one file open+read per unchanged model",
+      "risks": "contract: same models listed; dependency: none; concurrency: none; state: cache key already trusts size+mtime so a cached file is known valid; non-GGUF files still checked every time",
+      "mitigation": "failing-first header-read counter test plus non-GGUF rejection check, full npm test and strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[2/2] DELIVERED: publicCatalog 0.29us -> 0.02us (~15x); 1166 tests pass",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "public-catalog-cache-1123",
-      "timestamp": 1795451484.913544,
-      "timestamp_str": "2026-11-23 19:31:24",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "delivery": {
@@ -397,6 +381,30 @@
       "task_id": "rejection-adr-1123",
       "timestamp": 1795454496.9630246,
       "timestamp_str": "2026-11-23 20:21:36"
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Skip GGUF magic re-read for cached files on forced rescans: 59.3ms -> 12.5ms, controlled A/B 2.43x",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Import/delete rescans on large libraries avoid one file open+read per unchanged model",
+        "mitigation": "failing-first header-read counter test plus non-GGUF rejection check, full npm test and strict gates; revert if regression",
+        "risks": "contract: same models listed; dependency: none; concurrency: none; state: cache key already trusts size+mtime so a cached file is known valid; non-GGUF files still checked every time",
+        "why": "User directive to keep improving speeds; a 200-model forced rescan reopened every file for four-byte header validation even when metadata was cached"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "4354d582a9c273f0d04bf1894122fc1b72dbeaf71c00856f963d740b92c4d1f5",
+      "status": "in_progress",
+      "task_id": "scan-magic-skip-1123",
+      "timestamp": 1795454909.319535,
+      "timestamp_str": "2026-11-23 20:28:29",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }

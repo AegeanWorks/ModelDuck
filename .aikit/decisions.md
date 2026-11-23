@@ -1779,3 +1779,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: all three paths were left untouched. Earlier profile flags `parseHistory` (~20 ms) are a one-time cost after a file stamp change; the report cache keeps later requests fast.
 - **Cross-principle check:** PRINCIPLE-014: A/B-tested alternatives with identical outputs; no assertion weakened, no regression shipped.
 
+### ADR-237: Skip GGUF magic re-reads for cached models
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: A forced rescan of 200 models took **59.3 ms** because every file was reopened to read its four-byte magic header even when the metadata cache already held a summary keyed by `(path, size, mtime)`.
+- **Decision**: Compute the cache key from the stat result first. If a summary is cached, trust that this exact file already passed the header guard and skip `hasGgufMagic()`. Uncached and non-GGUF files are still checked on every scan.
+- **Consequences**: a cached forced rescan drops from **59.3 ms to 12.5 ms**; a controlled 5-round A/B measured **34.5 ms → 14.2 ms (2.43x)**. Two failing-first tests pin that cached rescans skip header reads and non-GGUF files are still rejected.
+- **Cross-principle check:** PRINCIPLE-003: trust is keyed on size+mtime, the same assumption the metadata cache already makes; PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: no model listing or registry contract changed.
+
