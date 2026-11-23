@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "receipt-clock-seam-1123",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795394061.8535464,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795394221.1108592,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795401261.8535464,
+    "lease_until": 1795401421.1108592,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,55 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds across tests; one test spends 600ms of real time waiting for a 500ms TTL window",
-      "benefits": "Test suite drops ~595ms while verifying the exact same expiry behavior deterministically",
-      "risks": "contract: production readInstallReceipt behavior unchanged when no options passed; dependency: none; concurrency: none; state: optional clock param only",
-      "mitigation": "failing-first test with an injected clock, unchanged existing assertions, full npm test and strict gates; revert if regression"
-    }
+    "completed_at": 1795394221.539877,
+    "completed_head": "9dd50d07e44d2316e406e4730ffe479dd06016ea",
+    "completed_tree": "a7142d9ae5f80851018e470d5997ec224c26e4c7"
   },
   "checkpoints": [
-    {
-      "task_id": "recommendations-profile-probe-1123",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'recommendations-profile-probe-1123' completed successfully.",
-      "status": "completed",
-      "timestamp": 1795391546.2084596,
-      "timestamp_str": "2026-11-23 02:52:26",
-      "agent": "opencode:hy4-flash-free",
-      "head": "b21e7f01dd01cf4585ab5f8f4c228922edc591eb",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
-    {
-      "task_id": "buffered-answer-summary-1123",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/2] Read answers.jsonl once with a buffered line scan instead of readline streaming: 4.64ms -> 3.59ms per 10k rows",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795391840.4641593,
-      "timestamp_str": "2026-11-23 02:57:20",
-      "agent": "opencode:hy4-flash-free",
-      "impact_assessment": {
-        "why": "User directive to keep improving speeds; /api/tune/runs/:id re-parses every answer line through readline at 4.64ms for 10k rows",
-        "benefits": "Buffered line scan is ~23% faster on the on-demand run-summary route and the tests that summarize answers",
-        "risks": "contract: summary values and malformed-line handling unchanged including CRLF; dependency: Node fs only; concurrency: none; state: app-written bounded answers file read fully like cachedAnswers already does",
-        "mitigation": "equivalence test over CRLF, truncated final line and unreadable examples, full npm test and strict gates; revert if regression"
-      },
-      "plan_digest": "0601eda7a11778d830175a28585e04511334b998474c089e4c8efd921f2e855a",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "buffered-answer-summary-1123",
       "phase": "phase 4",
@@ -418,6 +374,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "task_id": "receipt-clock-seam-1123",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[2/2] DELIVERED: receipt TTL test 685ms -> 72ms (613ms saved) via injected clock; 1142 tests pass",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795394221.1108592,
+      "timestamp_str": "2026-11-23 03:37:01",
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "receipt-clock-seam-1123",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'receipt-clock-seam-1123' completed successfully.",
+      "status": "completed",
+      "timestamp": 1795394221.7156436,
+      "timestamp_str": "2026-11-23 03:37:01",
+      "agent": "opencode:hy4-flash-free",
+      "head": "9dd50d07e44d2316e406e4730ffe479dd06016ea",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
     }
   ]
 }
