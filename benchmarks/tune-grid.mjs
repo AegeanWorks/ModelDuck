@@ -370,10 +370,22 @@ export function promptAxes(steps = DEFAULT_STEPS.prompt, task = null, { only = n
   ]);
 }
 
+// Every input below is a frozen static definition, so the name list never
+// changes during a run. Build it once and hand out a copy to callers.
+let cachedSettingNames = null;
+let settingNamesComputes = 0;
+export function settingNamesComputations() {
+  return settingNamesComputes;
+}
+
 /** Every setting name a tune can run on its own (`--settings`), in stage order. */
 export function settingNames() {
-  const load = { ...DEFAULT_STEPS.load, checkpointing: { ...DEFAULT_STEPS.load.checkpointing, enabled: true } };
-  return ["device", ...qualityAxes(load), ...speedAxes({ logicalCores: 64 }, load), ...samplingAxes("code"), ...promptAxes(DEFAULT_STEPS.prompt, null, { only: ["systemPrompt"] })].map((axis) => axis.name ?? axis);
+  if (cachedSettingNames === null) {
+    settingNamesComputes += 1;
+    const load = { ...DEFAULT_STEPS.load, checkpointing: { ...DEFAULT_STEPS.load.checkpointing, enabled: true } };
+    cachedSettingNames = ["device", ...qualityAxes(load), ...speedAxes({ logicalCores: 64 }, load), ...samplingAxes("code"), ...promptAxes(DEFAULT_STEPS.prompt, null, { only: ["systemPrompt"] })].map((axis) => axis.name ?? axis);
+  }
+  return cachedSettingNames.slice();
 }
 
 /** Answers one axis costs under successive halving: every value on the first rung, the better half on each next one. */

@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "normalize-answer-value-cache-1123",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795450200.1015785,
+    "task_id": "setting-names-cache-1123",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795450478.7883613,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795457400.1015785,
+    "lease_until": 1795457678.7883613,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,29 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795450200.684071,
-    "completed_head": "72b6627717bffc2b2ee914bdcebc40f085658ebf",
-    "completed_tree": "b318b12588a890bd967303bf5f271de315cd82eb"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; settingNames() rebuilds a fixed array from frozen definitions on every tune API request",
+      "benefits": "Tune routes and CLI help skip repeated axis reconstruction",
+      "risks": "contract: returned names and order unchanged, fresh array per caller; dependency: Node only; concurrency: none; state: definitions are deep-frozen so the result cannot change",
+      "mitigation": "failing-first computation counter test plus value/order checks, full npm test and strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[2/2] DELIVERED: exact 1.39->1.32us, oneOf 1.92->1.88us (small but consistent A/B); 1150 tests pass",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "plain-candidate-normalize-1123",
-      "timestamp": 1795395877.2037792,
-      "timestamp_str": "2026-11-23 04:04:37",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "delivery": {
@@ -409,6 +394,30 @@
       "task_id": "normalize-answer-value-cache-1123",
       "timestamp": 1795450200.895362,
       "timestamp_str": "2026-11-23 19:10:00"
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Cache the static settingNames() array: 13us -> ~0.1us per call on tune API routes",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Tune routes and CLI help skip repeated axis reconstruction",
+        "mitigation": "failing-first computation counter test plus value/order checks, full npm test and strict gates; revert if regression",
+        "risks": "contract: returned names and order unchanged, fresh array per caller; dependency: Node only; concurrency: none; state: definitions are deep-frozen so the result cannot change",
+        "why": "User directive to keep improving speeds; settingNames() rebuilds a fixed array from frozen definitions on every tune API request"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "df3ee6fcaebef13976adf0f3b3dd9acd46c1fbda32b81243a0d861e395df0ce7",
+      "status": "in_progress",
+      "task_id": "setting-names-cache-1123",
+      "timestamp": 1795450478.7883613,
+      "timestamp_str": "2026-11-23 19:14:38",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }

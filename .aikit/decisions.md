@@ -1720,3 +1720,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: the isolated helper improves **9.58x**; controlled end-to-end A/B shows exact checks dropping from **0.57 us to 0.49 us**, faster in 9/9 rounds, with the `choice` control flat. Two failing-first tests pin single normalization per value and unchanged verdicts.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no prompt, check or expected value changed.
 
+### ADR-230: Cache the static setting-name list
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: Several tune API routes and the CLI call `settingNames()`, which rebuilt a fixed 16-name list from deep-frozen definitions at **13.03 us** per call.
+- **Decision**: Build the list once on first use and return a slice to callers. `DEFAULT_STEPS` and the axis definitions are deep-frozen, so the result cannot change during a run.
+- **Consequences**: the helper drops to **0.03 us** per call (~434x). Two failing-first tests pin single construction, stage order, content and caller-mutation isolation. An initial test that guessed non-existent names was corrected to assert the real static list.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no tune step, axis or setting changed.
+
