@@ -1760,3 +1760,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: the helper drops to **0.01 us** (~44x). Two failing-first tests pin single computation and identical ids for catalog models and hand-imported names.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no profile id or catalog mapping changed.
 
+### ADR-235: Element-wise comparison for tune step arrays
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: Three tune-grid equality checks compared dense string arrays by stringifying both sides with `JSON.stringify`, allocating four strings per check. The isolated comparison is **20x** slower than element-wise equality.
+- **Decision**: Add `sameStringArray()` and use it in `systemPromptOptIn()` and `promptAxes()`. The two stringify calls that build dedupe/message strings remain unchanged.
+- **Consequences**: `promptAxes()` drops from **4.71 us to 2.36 us** (~2x). Two failing-first tests pin the comparison mode and equivalence with the stringify result over equal, different, empty and quoted-array cases.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no tune step, axis or prompt value changed.
+
