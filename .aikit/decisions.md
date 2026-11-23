@@ -1891,3 +1891,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: the helper drops from **2.368 us to 0.011 us (215x)**. The absolute saving per judge is small next to the spawn, but the change is safe and behavior-preserving. A failing-first counter test (confirmed against HEAD) pins one computation per case array.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no check or byte limit changed.
 
+### ADR-251: Blank-line check without per-line trim in history parsing
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: `parseHistory()` called `.trim()` on every line of a 6.75 MB history file just to detect blank lines, copying ~50 KB per line.
+- **Decision**: Detect empty and lone-CR lines by length/charCode; any other whitespace-only line is still rejected by the existing `JSON.parse` try/catch.
+- **Consequences**: parsing the real file drops from **21.3 ms to 16.5 ms (1.29x)** with identical runs and links. Two failing-first tests (confirmed against HEAD) pin the trim avoidance and result equivalence across blank lines.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no report value changed.
+

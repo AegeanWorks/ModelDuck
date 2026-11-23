@@ -87,11 +87,22 @@ function summarizePhase(result, commit) {
   };
 }
 
+// Test seam: blank lines detected without copying the whole line via trim().
+let historyTrimAvoidances = 0;
+export function historyTrimAvoidanceCount() {
+  return historyTrimAvoidances;
+}
 function parseHistory(text) {
   const runs = [];
   const links = new Map();
   for (const line of String(text ?? "").split("\n")) {
-    if (!line.trim()) continue;
+    // Blank lines are common at the end of a history file. Trim would copy
+    // each ~50 KB line just to test emptiness; a length check is enough, and
+    // any other whitespace-only line is rejected by JSON.parse below.
+    if (line.length === 0 || (line.length === 1 && line.charCodeAt(0) === 13)) {
+      historyTrimAvoidances += 1;
+      continue;
+    }
     let record;
     try {
       record = JSON.parse(line);

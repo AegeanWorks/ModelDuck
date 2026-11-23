@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "outputlimit-memo-1123",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795469826.7022116,
+    "task_id": "history-trim-skip-1123",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795470483.7223883,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795477026.7022116,
+    "lease_until": 1795477683.7223883,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,52 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795469827.4856584,
-    "completed_head": "352d0270d21840863e781033e65e871c00f3720d",
-    "completed_tree": "b1dc3865275cf883d7623d3f00e2746e65dff6fd"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; parseHistory trimmed every ~50KB history line, copying the whole file, just to detect blank lines",
+      "benefits": "Blank-line detection uses length/charCode without allocating; JSON.parse still rejects other whitespace lines",
+      "risks": "contract: identical runs and links, verified on real file plus appended blanks; dependency: none; concurrency: none; state: pure function",
+      "mitigation": "failing-first counter test plus parsed-result equivalence, full npm test and strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'signflip-monte-carlo-1123' completed successfully.",
-      "head": "cead6eda6c45d867bd0ff4efbe103a8babb20f97",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "signflip-monte-carlo-1123",
-      "timestamp": 1795464576.673452,
-      "timestamp_str": "2026-11-23 23:09:36"
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Map-based lookup for smoke-item comparison in recommend: 111us -> 21us (5.3x)",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Report recommendations build one id map instead of rescanning the variant prompts",
-        "mitigation": "failing-first counter test plus verdict equivalence, end-to-end A/B on recommend(), full npm test and strict gates; revert if regression",
-        "risks": "contract: same kept verdict and speedTuning; dependency: none; concurrency: none; state: local Map only",
-        "why": "User directive to keep improving speeds; the smoke comparison did a .some() and .find() per base prompt, an O(n^2) scan over ~300 items"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "8a630f3c23e5393d2d971f7f780d095cf489da9330d9ac0b9046f3808996ebb6",
-      "status": "in_progress",
-      "task_id": "recommend-smoke-map-1123",
-      "timestamp": 1795464965.5564375,
-      "timestamp_str": "2026-11-23 23:16:05",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "description": "[1/2] Map-based lookup for smoke-item comparison in recommend: isolated 5.3x, end-to-end A/B 208.7us to 32.4us (6.44x)",
@@ -428,6 +390,54 @@
       "task_id": "outputlimit-memo-1123",
       "timestamp": 1795469827.5681565,
       "timestamp_str": "2026-11-24 00:37:07"
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Skip the per-line trim in parseHistory: 21.3ms -> 16.5ms (1.29x) on 6.75MB history",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Blank-line detection uses length/charCode without allocating; JSON.parse still rejects other whitespace-only lines",
+        "mitigation": "failing-first counter test plus parsed-result equivalence, full npm test and strict gates; revert if regression",
+        "risks": "contract: identical runs/links, verified on the real 6.75MB file plus appended blank lines; dependency: none; concurrency: none; state: pure function",
+        "why": "User directive to keep improving speeds; parseHistory trimmed every ~50KB history line, copying the whole file, just to detect blank lines"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "ebe1ad0c17bd4fb978ec8151e8500ac1c6c17642f45e03a811769fa75b0c31a5",
+      "status": "in_progress",
+      "task_id": "history-trim-skip-1123",
+      "timestamp": 1795470303.4080718,
+      "timestamp_str": "2026-11-24 00:45:03",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Skip per-line trim in parseHistory: 21.3ms -> 16.5ms (1.29x) on 6.75MB history",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Blank-line detection uses length/charCode without allocating; JSON.parse still rejects other whitespace lines",
+        "mitigation": "failing-first counter test plus parsed-result equivalence, full npm test and strict gates; revert if regression",
+        "risks": "contract: identical runs and links, verified on real file plus appended blanks; dependency: none; concurrency: none; state: pure function",
+        "why": "User directive to keep improving speeds; parseHistory trimmed every ~50KB history line, copying the whole file, just to detect blank lines"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "d9475be9529cd790a80b25c88579238fe0eefd0f6ef10f710fbebe9c815422f1",
+      "status": "in_progress",
+      "task_id": "history-trim-skip-1123",
+      "timestamp": 1795470483.7223885,
+      "timestamp_str": "2026-11-24 00:48:03",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }

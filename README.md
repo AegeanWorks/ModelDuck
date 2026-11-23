@@ -790,7 +790,8 @@ modelduck/
 │   ├── syntax-shortcut.test.js
 │   ├── noentry-shortcut.test.js
 │   ├── score-map-init.test.js
-│   └── outputlimit-memo.test.js
+│   ├── outputlimit-memo.test.js
+│   └── history-trim-skip.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml
