@@ -788,7 +788,8 @@ modelduck/
 │   ├── signflip-monte-carlo.test.js
 │   ├── recommend-smoke-map.test.js
 │   ├── syntax-shortcut.test.js
-│   └── noentry-shortcut.test.js
+│   ├── noentry-shortcut.test.js
+│   └── score-map-init.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml

@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "noentry-shortcut-1123",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795468119.2163055,
+    "task_id": "score-map-init-1123",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795468775.8017929,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795475319.2163055,
+    "lease_until": 1795475975.8017929,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,46 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795468119.8228807,
-    "completed_head": "14e0846255e99b79f8267221e6d21cbb50e9af95",
-    "completed_tree": "eb1abc282b7a3dfc805e6967806a25d845fc9bc3"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; score() built two zeroed maps via intermediate arrays of pairs on every tuning rung",
+      "benefits": "Per-setting aggregation skips two temporary arrays while map contents stay identical",
+      "risks": "contract: same map keys and zero values; five other maps stay empty as before; dependency: none; concurrency: none; state: pure locals",
+      "mitigation": "failing-first counter test plus map-equivalence and empty-map checks, full npm test and strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[2/2] DELIVERED: exact sign-flip 64.4->5.0ms (13x); 1188 tests pass",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "signflip-recurrence-1123",
-      "timestamp": 1795461227.8212712,
-      "timestamp_str": "2026-11-23 22:13:47",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'signflip-recurrence-1123' completed successfully.",
-      "head": "69dc1ff2a7a84647bdc99ff71aa5893797d01ebd",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "signflip-recurrence-1123",
-      "timestamp": 1795461229.4517236,
-      "timestamp_str": "2026-11-23 22:13:49"
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "description": "[1/2] Incremental logChoose recurrence for McNemar tails: 526us -> 6.7us (~78x), identical p-values",
@@ -422,6 +390,54 @@
       "task_id": "noentry-shortcut-1123",
       "timestamp": 1795468120.080459,
       "timestamp_str": "2026-11-24 00:08:40"
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Initialize score() per-item Maps without intermediate arrays: 19.6us -> 11.3us (1.7x)",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Per-setting aggregation skips seven temporary arrays while map contents stay identical",
+        "mitigation": "failing-first counter test plus map equivalence, full npm test and strict gates; revert if regression",
+        "risks": "contract: same map keys and zero values; dependency: none; concurrency: none; state: pure locals",
+        "why": "User directive to keep improving speeds; score() built seven maps via intermediate arrays of pairs for every tuning rung"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "c4162030fe8eec5cb49122629973284bf2b207aad3e66873df02a7ef0b277008",
+      "status": "in_progress",
+      "task_id": "score-map-init-1123",
+      "timestamp": 1795468397.25975,
+      "timestamp_str": "2026-11-24 00:13:17",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Initialize score()'s two zeroed Maps without intermediate pair arrays: 6.16us -> 3.42us (1.8x)",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Per-setting aggregation skips two temporary arrays while map contents stay identical",
+        "mitigation": "failing-first counter test plus map-equivalence and empty-map checks, full npm test and strict gates; revert if regression",
+        "risks": "contract: same map keys and zero values; five other maps stay empty as before; dependency: none; concurrency: none; state: pure locals",
+        "why": "User directive to keep improving speeds; score() built two zeroed maps via intermediate arrays of pairs on every tuning rung"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "3efe2f91d04a6e3818c31c2cc0dd05d9e0652b306a779fd3d18da4c11149aab6",
+      "status": "in_progress",
+      "task_id": "score-map-init-1123",
+      "timestamp": 1795468575.6357014,
+      "timestamp_str": "2026-11-24 00:16:15",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }

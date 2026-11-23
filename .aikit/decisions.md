@@ -1875,3 +1875,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: a controlled 5-round end-to-end A/B on a mixed workload measured **1639.8 ms → 264.3 ms (6.2x)**. Verdicts were verified byte-identical, and failing-first tests (confirmed against HEAD) pin the shortcut, its guards and that valid code still spawns.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no prompt, check or verdict changed; no answer code is executed in-process.
 
+### ADR-249: Direct initialization for score's zeroed maps
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: `score()` built its `fractions` and `credit` maps with `new Map(ids.map(id => [id, 0]))`, allocating an intermediate pair array for each on every tuning rung.
+- **Decision**: A `zeroed()` helper fills the two maps directly. The other five per-item maps stay empty as before — an initial attempt to zero them too changed the result shape and failed six existing tests, and was corrected before shipping.
+- **Consequences**: the two-map init drops from **6.16 us to 3.42 us (1.8x)**. A failing-first counter test (confirmed against HEAD) pins two builds and that the other maps stay empty.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no statistic or result shape changed.
+

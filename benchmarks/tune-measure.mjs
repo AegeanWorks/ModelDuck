@@ -305,14 +305,27 @@ export class Measurements {
  * one settings combination on one item set. Resolves null when the run budget
  * is spent. Internal per-item maps are removed by `publicStats`.
  */
+let zeroedMapBuilds = 0;
+export function zeroedMapBuildCount() {
+  return zeroedMapBuilds;
+}
+
 export async function score(measurements, settings, itemIds, seeds) {
   const used = settings.temperature > 0 ? seeds : seeds.slice(0, 1);
-  const fractions = new Map(itemIds.map((id) => [id, 0]));
+  // Fill each map directly: `new Map(ids.map(id => [id, 0]))` allocates an
+  // intermediate array of pairs for every map, on every tuning rung.
+  const zeroed = () => {
+    zeroedMapBuilds += 1;
+    const map = new Map();
+    for (const id of itemIds) map.set(id, 0);
+    return map;
+  };
+  const fractions = zeroed();
   // Partial credit per item (G6): the share of checks passed, averaged over
   // seeds. Code items have 2-7 cases but count only when all pass; the
   // fraction of cases is a finer signal for the paired test. The headline
   // rate stays all-or-nothing.
-  const credit = new Map(itemIds.map((id) => [id, 0]));
+  const credit = zeroed();
   const itemLatency = new Map();
   const itemTokens = new Map();
   const itemPrompt = new Map();
