@@ -38,6 +38,15 @@ export function recommendationProfileReadsCount() {
 export function resetRecommendationProfileReads() {
   recommendationProfileReads = 0;
 }
+
+// Test seam: how many profile files the tune-overview route actually opened.
+let overviewProfileReads = 0;
+export function overviewProfileReadCount() {
+  return overviewProfileReads;
+}
+export function resetOverviewProfileReads() {
+  overviewProfileReads = 0;
+}
 import { TunedSettings, diffSettings } from "./tuned-settings.js";
 import { EngineRebuildLease, reloadFingerprint } from "./settings-reload.js";
 import { readSteps, writeSteps } from "./tune-steps.js";
@@ -416,10 +425,19 @@ export function createHttpServer({
 
     if (pathname === "/api/tune/overview" && method === "GET") {
       // Every installed model with its tuned profile, without the sweep log and resume state.
+      // listProfiles is directory-stamp cached; probe it once so an unprofiled
+      // library does not pay a failing loadProfile per model.
+      const savedOverviewIds = profilesDir
+        ? new Set((await listProfiles(profilesDir)).map((profile) => profile.catalogId))
+        : new Set();
       const models = [];
       for (const model of registry.listPublic()) {
         const profileId = profileIdFor(model.fileName);
-        const loaded = profilesDir ? await loadProfile(profilesDir, profileId, await profileFingerprint(model)).catch(() => null) : null;
+        let loaded = null;
+        if (profilesDir && savedOverviewIds.has(profileId)) {
+          overviewProfileReads += 1;
+          loaded = await loadProfile(profilesDir, profileId, await profileFingerprint(model)).catch(() => null);
+        }
         const { sweeps: _sweeps, progress: _progress, ...profile } = loaded?.profile ?? {};
         models.push({
           id: model.id,

@@ -1598,3 +1598,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: a repeated `listPublic()` drops to **0.083 us (~258x)**. Two failing-first tests pin single rebuild, caller-tamper isolation and delete invalidation. Row values and sort order are unchanged.
 - **Cross-principle check:** PRINCIPLE-009: no new module, tiny role; PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: read-only model listing, no tuning or suite change.
 
+### ADR-215: Probe saved profiles before loading them in /api/tune/overview
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: Continuing the speed work, `/api/tune/overview` called `profileFingerprint()` and `loadProfile()` for every one of 60 installed models even when the library had zero saved profiles. A controlled 5-round A/B measured a **4.36 ms** median.
+- **Decision**: Use the directory-stamp-cached `listProfiles()` once per request to build the set of saved catalog ids, and call `loadProfile()` only for models in that set. Response shape and profile application are unchanged; a profile created during a request is visible on the next poll. Both readers skip the same invalid/corrupt files, so behavior matches on damaged profiles too.
+- **Consequences**: the same 60-model endpoint drops to a **1.03 ms** median (**4.24x**). Two failing-first tests pin zero profile loads for an unprofiled library and full parity when a saved profile exists.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: read-only tune overview, no tuning or suite change.
+
