@@ -1923,3 +1923,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: **23.046 us → 17.617 us (1.31x)** per 100 rows with byte-identical output. Two failing-first tests (confirmed against HEAD) pin the mode and exact bytes.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: answer records unchanged.
 
+### ADR-255: Memoize plainText by reply string
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: `plainText()` re-stripped fences and ran two regexes on every text check and on repeated answers across load variants.
+- **Decision**: A bounded 4096-entry `Map` caches the cleaned text by the immutable reply string.
+- **Consequences**: five repeated cleanings drop from **0.84 us to 0.14 us (6x)** with identical output. Two failing-first tests (confirmed against HEAD) pin the single computation and unchanged verdicts.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no check or verdict changed.
+

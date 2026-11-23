@@ -794,7 +794,8 @@ modelduck/
 │   ├── history-trim-skip.test.js
 │   ├── receiptpath-memo.test.js
 │   ├── pick-loop.test.js
-│   └── answer-rows-loop.test.js
+│   ├── answer-rows-loop.test.js
+│   └── plaintext-memo.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml

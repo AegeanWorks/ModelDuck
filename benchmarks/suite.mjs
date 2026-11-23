@@ -708,11 +708,24 @@ export function extractJson(text) {
 }
 
 /** Text without Markdown emphasis, inline code marks or list and quote markers (ADR-052). */
+const PLAIN_TEXT_CACHE = new Map();
+const PLAIN_TEXT_LIMIT = 4096;
+let plainTextComputes = 0;
+export function plainTextComputations() {
+  return plainTextComputes;
+}
 function plainText(text) {
-  return stripFence(String(text ?? ""))
+  const key = String(text ?? "");
+  const cached = PLAIN_TEXT_CACHE.get(key);
+  if (cached !== undefined) return cached;
+  plainTextComputes += 1;
+  const cleaned = stripFence(key)
     .replace(/[*_`]+/g, "")
     .replace(/^\s*(?:[-+>]|\d+\.)\s+/gm, "")
     .trim();
+  if (PLAIN_TEXT_CACHE.size >= PLAIN_TEXT_LIMIT) PLAIN_TEXT_CACHE.delete(PLAIN_TEXT_CACHE.keys().next().value);
+  PLAIN_TEXT_CACHE.set(key, cleaned);
+  return cleaned;
 }
 
 const LEAD_IN = /^(?:the\s+)?(?:final\s+|correct\s+)?answer(?:\s+is)?\s*[:\-]?\s*/i;
