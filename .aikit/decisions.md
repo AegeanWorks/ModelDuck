@@ -1736,3 +1736,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: the helper drops to **0.02 us** (~15x). Two failing-first tests pin single construction, value/order preservation and array-level caller isolation.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no catalog entry or homepage changed.
 
+### ADR-232: Memoize the setting presets view
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: `/api/state` called `settingPresets()` on every request, which rebuilt preset objects with nested settings copies from a module constant at **0.24 us** per call.
+- **Decision**: Build the preset view once and return a fresh array slice. Callers only read the preset rows.
+- **Consequences**: the helper drops to **0.02 us** (~12x). Two failing-first tests pin single construction, content and array-level caller isolation.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no preset value changed.
+

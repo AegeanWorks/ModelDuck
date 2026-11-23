@@ -218,13 +218,23 @@ export const SETTING_PRESETS = Object.freeze({
   }),
 });
 
+// SETTING_PRESETS is a module constant; callers only read the preset rows.
+let cachedSettingPresets = null;
+let settingPresetsComputes = 0;
+export function settingPresetsComputations() {
+  return settingPresetsComputes;
+}
 export function settingPresets() {
-  return Object.values(SETTING_PRESETS).map((preset) => ({
-    id: preset.id,
-    label: preset.label,
-    description: preset.description,
-    settings: { ...preset.settings },
-  }));
+  if (cachedSettingPresets === null) {
+    settingPresetsComputes += 1;
+    cachedSettingPresets = Object.values(SETTING_PRESETS).map((preset) => ({
+      id: preset.id,
+      label: preset.label,
+      description: preset.description,
+      settings: { ...preset.settings },
+    }));
+  }
+  return cachedSettingPresets.slice();
 }
 
 export function applyPreset(name, current = {}) {
