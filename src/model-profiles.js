@@ -510,9 +510,12 @@ export async function listProfiles(directory) {
   }))).join("|");
   const cached = PROFILE_LIST_CACHE.get(directory);
   if (cached && cached.stamp === stamp) return [...cached.profiles];
+  // The stamp pass above already reads these files; parse them concurrently on
+  // a cache miss. Promise.all preserves the sorted order of `files`.
+  const parsed = await Promise.all(files.map((name) =>
+    readJsonWithQuarantine(path.join(directory, name), null)));
   const profiles = [];
-  for (const name of files) {
-    const profile = await readJsonWithQuarantine(path.join(directory, name), null);
+  for (const profile of parsed) {
     if (profile?.schema !== PROFILE_SCHEMA) continue;
     profiles.push({ catalogId: profile.catalogId, createdAt: profile.createdAt, tasks: Object.keys(profile.tasks ?? {}) });
   }

@@ -597,7 +597,7 @@ modelduck/
 │   ├── gate-cache.mjs
 │   ├── tune-baseline.mjs
 │   ├── tune-prompt.mjs
-│   ├── presets/         <- measured, shareable profile recipes
+│   ├── presets/         <- measured profile recipes
 │   ├── NOTICE-benchmarks.md
 │   ├── test-hash.mjs
 │   ├── verify-manifest.mjs
@@ -798,7 +798,8 @@ modelduck/
 │   ├── plaintext-memo.test.js
 │   ├── answer-candidates-memo.test.js
 │   ├── kvshape-fast.test.js
-│   └── listruns-parallel.test.js
+│   ├── listruns-parallel.test.js
+│   └── profilelist-parallel.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml
@@ -823,7 +824,7 @@ modelduck/
 ├── .gitattributes
 ├── start.bat
 ├── package.json
-├── package-lock.json <- pinned dependencies
+├── package-lock.json
 ├── README.md
 ├── LICENSE
 ├── JUDGES.md <- judges' demo walkthrough

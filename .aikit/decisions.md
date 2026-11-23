@@ -1955,3 +1955,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: the same 50 reads drop to **1.77 ms (3x)** with identical run order. A failing-first test (confirmed against HEAD) pins count, order and repeat listing.
 - **Cross-principle check:** PRINCIPLE-010: concurrency only for independent read-only file reads; PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: no run data changed.
 
+### ADR-259: Parallel profile parses in listProfiles
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: `listProfiles()` stat'ed files in parallel for the stamp but parsed them one at a time on every cache miss; 40 profiles cost **3.39 ms**.
+- **Decision**: Parse all profile files with one `Promise.all`; order and schema filtering are unchanged.
+- **Consequences**: the same 40 parses drop to **0.96 ms (3.5x)** with identical summaries. A failing-first test (confirmed against HEAD) pins sorted order, schema filtering and stamp invalidation.
+- **Cross-principle check:** PRINCIPLE-010: concurrency only for independent read-only parses; PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: no profile data changed.
+
