@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "setting-presets-cache-1123",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795452064.7114644,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795452282.7071028,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795459264.7114644,
+    "lease_until": 1795459482.7071028,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,49 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; settingPresets rebuilt preset objects with nested settings copies on every state request",
-      "benefits": "Preset rows built once from static definitions while callers get a fresh array",
-      "risks": "contract: preset values and order unchanged; dependency: Node only; concurrency: none; state: SETTING_PRESETS is a module constant",
-      "mitigation": "failing-first computation counter test plus caller-isolation check, full npm test and strict gates; revert if regression"
-    }
+    "completed_at": 1795452283.5002828,
+    "completed_head": "525003331abd264022b9d3f91c67fd60f99e384f",
+    "completed_tree": "8e6b3c33287d5a6165ba13c836efb9523562c696"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[2/2] DELIVERED: answerCandidates 1.38x in isolated A/B, exact check 1.25->0.78us end-to-end; 1156 tests pass",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "single-place-fastpath-1123",
-      "timestamp": 1795427996.775574,
-      "timestamp_str": "2026-11-23 12:59:56",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'single-place-fastpath-1123' completed successfully.",
-      "head": "7648b1fbcc1e4042555d0a951638c71025524fe9",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "single-place-fastpath-1123",
-      "timestamp": 1795427997.5009007,
-      "timestamp_str": "2026-11-23 12:59:57"
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "description": "[1/2] Short-circuit the single-place candidate loop when no lead-in, label or sentence applies: 1.31x",
@@ -412,6 +374,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: settingPresets 0.24us -> 0.02us (~12x); 1168 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "setting-presets-cache-1123",
+      "timestamp": 1795452282.7071028,
+      "timestamp_str": "2026-11-23 19:44:42",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'setting-presets-cache-1123' completed successfully.",
+      "head": "525003331abd264022b9d3f91c67fd60f99e384f",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "setting-presets-cache-1123",
+      "timestamp": 1795452283.5821953,
+      "timestamp_str": "2026-11-23 19:44:43"
     }
   ]
 }
