@@ -1712,3 +1712,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: number checks drop from a **0.58 us** to a **0.49 us** median, faster in 8/9 controlled rounds; the separator step alone is **1.42x** faster. Two failing-first tests pin the guard and unchanged number verdicts with and without separators.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no prompt, check or expected value changed.
 
+### ADR-229: Cache normalized expected check values
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: A CPU profile showed `normalizeAnswer()` repeatedly processing the same static expected values from exact and oneOf checks on every answer.
+- **Decision**: Cache the normalized form by the expected string, which is immutable. The cache is bounded at 4096 entries; candidate normalization still uses `normalizePlain()` and is unchanged. Two other ideas were rejected this pass: guarding `plainText`'s emphasis regex was slower, and guarding its list-marker regex with safe line-terminator detection was also slower (a naive `\n`-only guard was found to change behavior for `\r`/`\u2028` inputs and was discarded).
+- **Consequences**: the isolated helper improves **9.58x**; controlled end-to-end A/B shows exact checks dropping from **0.57 us to 0.49 us**, faster in 9/9 rounds, with the `choice` control flat. Two failing-first tests pin single normalization per value and unchanged verdicts.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no prompt, check or expected value changed.
+

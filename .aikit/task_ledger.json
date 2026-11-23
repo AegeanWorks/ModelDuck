@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "separator-guard-1123",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795449073.1359336,
+    "task_id": "normalize-answer-value-cache-1123",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795449584.168478,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795456273.1359336,
+    "lease_until": 1795456784.168478,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,29 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795449074.5363579,
-    "completed_head": "3f41c88089d8eb2bd5b1c25855fce9c443d53337",
-    "completed_tree": "e4b6a6d42857bfd86c9b4878f643ceb7f6c11202"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; a CPU profile showed normalizeAnswer repeatedly processing the same static expected values from exact and oneOf checks",
+      "benefits": "Expected values are normalized once per distinct string while candidate normalization stays unchanged",
+      "risks": "contract: normalized values identical, string keys are immutable; dependency: Node Map only; concurrency: none; state: bounded LRU-style cache",
+      "mitigation": "failing-first cache-hit counter test plus verdict equivalence, full npm test and strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[2/2] DELIVERED: evaluateTextCheck exact 2.64->1.55us (1.70x), oneOf 3.16->2.19us (1.44x); 1148 tests pass",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "answer-candidates-dedup-1123",
-      "timestamp": 1795395528.3946524,
-      "timestamp_str": "2026-11-23 03:58:48",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "delivery": {
@@ -409,6 +394,30 @@
       "task_id": "separator-guard-1123",
       "timestamp": 1795449074.6348777,
       "timestamp_str": "2026-11-23 18:51:14"
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Cache normalizeAnswer for static expected check values: 9.58x on that helper",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Expected values are normalized once per distinct string while candidate normalization stays unchanged",
+        "mitigation": "failing-first cache-hit counter test plus verdict equivalence, full npm test and strict gates; revert if regression",
+        "risks": "contract: normalized values identical, string keys are immutable; dependency: Node Map only; concurrency: none; state: bounded LRU-style cache",
+        "why": "User directive to keep improving speeds; a CPU profile showed normalizeAnswer repeatedly processing the same static expected values from exact and oneOf checks"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "1edd9c562657761771c2d573359ee5a6f766f8bccbec167fa8db1cbc52646178",
+      "status": "in_progress",
+      "task_id": "normalize-answer-value-cache-1123",
+      "timestamp": 1795449584.168478,
+      "timestamp_str": "2026-11-23 18:59:44",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }

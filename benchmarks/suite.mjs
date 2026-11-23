@@ -640,6 +640,33 @@ export function normalizeAnswer(text) {
     .trim();
 }
 
+// Expected check values are static strings repeated across every answer; their
+// normalized forms depend only on the string itself, so cache them by value.
+const NORMALIZED_VALUE_CACHE = new Map();
+const NORMALIZED_VALUE_LIMIT = 4096;
+let normalizedValueComputes = 0;
+let normalizedValueHits = 0;
+export function normalizedValueCacheStats() {
+  return { size: NORMALIZED_VALUE_CACHE.size, hits: normalizedValueHits, computes: normalizedValueComputes };
+}
+export function resetNormalizedValueCache() {
+  NORMALIZED_VALUE_CACHE.clear();
+  normalizedValueHits = 0;
+  normalizedValueComputes = 0;
+}
+function normalizedValue(text) {
+  const cached = NORMALIZED_VALUE_CACHE.get(text);
+  if (cached !== undefined) {
+    normalizedValueHits += 1;
+    return cached;
+  }
+  normalizedValueComputes += 1;
+  const value = normalizeAnswer(text);
+  if (NORMALIZED_VALUE_CACHE.size >= NORMALIZED_VALUE_LIMIT) NORMALIZED_VALUE_CACHE.delete(NORMALIZED_VALUE_CACHE.keys().next().value);
+  NORMALIZED_VALUE_CACHE.set(text, value);
+  return value;
+}
+
 // answerCandidates only ever produces plain strings (plainText already removed
 // the fence), so its candidates skip the fence regex and the duplicate trim.
 // The two passes below are the char-code equivalent of the old regex chain:
@@ -786,7 +813,7 @@ function givenNumber(text) {
 
 export function evaluateTextCheck(check, text) {
   if (check.type === "exact") {
-    const wanted = normalizeAnswer(check.value);
+    const wanted = normalizedValue(check.value);
     return { passed: answerCandidates(text).includes(wanted), unreadable: false, detail: "answer read from the reply" };
   }
   if (check.type === "choice") {
@@ -799,7 +826,7 @@ export function evaluateTextCheck(check, text) {
   }
   if (check.type === "oneOf") {
     const candidates = answerCandidates(text);
-    return { passed: check.values.some((value) => candidates.includes(normalizeAnswer(value))), unreadable: false, detail: `answer: ${candidates[0]?.slice(0, 40) ?? ""}` };
+    return { passed: check.values.some((value) => candidates.includes(normalizedValue(value))), unreadable: false, detail: `answer: ${candidates[0]?.slice(0, 40) ?? ""}` };
   }
   if (check.type === "bulletCount") {
     const bullets = stripFence(text).split("\n").filter((line) => /^\s*(?:[-*+]|\d+[.)])\s+\S/.test(line)).length;
