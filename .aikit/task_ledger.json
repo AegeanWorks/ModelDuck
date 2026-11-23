@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "signflip-monte-carlo-1123",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795464176.8651342,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795464575.9084334,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795471376.8651342,
+    "lease_until": 1795471775.9084334,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,49 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; the Monte Carlo loop called a closure random() per value and divided by 2^32 per draw",
-      "benefits": "The binomial sign draws use an inlined LCG with an exact high-bit test, keeping the seeded sequence and verdicts identical",
-      "risks": "contract: identical p-values verified against the seeded reference; dependency: none; concurrency: none; state: local LCG state",
-      "mitigation": "failing-first draw-counter test plus exact p-value equivalence, controlled end-to-end A/B, full npm test and strict gates; revert if regression"
-    }
+    "completed_at": 1795464576.593902,
+    "completed_head": "cead6eda6c45d867bd0ff4efbe103a8babb20f97",
+    "completed_tree": "46ea36bc351c40557bd47b9ee40ff797dc597d1b"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[2/2] DELIVERED: first scan 200 models 47.7->9.5ms (A/B 3.65x); 1181 tests pass",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "parallel-scan-magic-1123",
-      "timestamp": 1795456894.5685627,
-      "timestamp_str": "2026-11-23 21:01:34",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'parallel-scan-magic-1123' completed successfully.",
-      "head": "1063de03f5a586648724d144b4dc7b1a5d16b662",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "parallel-scan-magic-1123",
-      "timestamp": 1795456895.9310453,
-      "timestamp_str": "2026-11-23 21:01:35"
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "description": "[1/2] Guard the expensive sentence regex with a cheap is/was/are check: 1.12x on answerCandidates",
@@ -412,6 +374,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: Monte Carlo sign flip 15.89->7.24ms (2.19x); 1192 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "signflip-monte-carlo-1123",
+      "timestamp": 1795464575.9084334,
+      "timestamp_str": "2026-11-23 23:09:35",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'signflip-monte-carlo-1123' completed successfully.",
+      "head": "cead6eda6c45d867bd0ff4efbe103a8babb20f97",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "signflip-monte-carlo-1123",
+      "timestamp": 1795464576.673452,
+      "timestamp_str": "2026-11-23 23:09:36"
     }
   ]
 }
