@@ -1811,3 +1811,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: `benchmarks/suite.mjs` is byte-identical to HEAD; no production change shipped. This is why end-to-end A/B is required before shipping, not just isolated helper timings.
 - **Cross-principle check:** PRINCIPLE-014: regression reverted, no assertion weakened; the objective's "reverse anything that worsens speed" was applied.
 
+### ADR-241: Exec loop for the chosen-letter regex
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: A CPU profile flagged the `chosenLetter` regex: `[...plain.matchAll(re)].at(-1)` spread every match into an array just to read the last one.
+- **Decision**: Reuse one module-level global regex and iterate with `exec`, keeping the last capture; reset `lastIndex` before each call. A zero-length match guard prevents an infinite loop.
+- **Consequences**: isolated helper A/B was **6.4x**; the controlled 9-round end-to-end A/B on a realistic choice answer showed **0.75 us → 0.56 us**, faster in 9/9 rounds, while the unrelated exact path stayed flat (noise only). Two failing-first tests (confirmed against HEAD) pin the single scan and identical verdicts across 12 label shapes including multiple named letters.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no check or verdict changed.
+

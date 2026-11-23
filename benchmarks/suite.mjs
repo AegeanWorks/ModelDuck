@@ -782,11 +782,26 @@ function answerCandidates(text) {
   return [...candidates].map(normalizePlain);
 }
 
+// Reuse one global regex and exec in a loop: spreading matchAll just to take
+// the last match allocates an array of every match (6x slower in isolation).
+const NAMED_LETTER = /\b(?:answer|option|choice)(?:\s+is)?\s*[:\-]?\s*\(?([a-h])\)?(?![a-z])/gi;
+let namedLetterRuns = 0;
+export function namedLetterScanCount() {
+  return namedLetterRuns;
+}
+
 /** The option letter a reply chooses, or null: "B", "(B)", "B)", "Answer: B", "Option B", "the answer is (B)"; a hedge such as "B or C" chooses none. */
 function chosenLetter(text) {
   const plain = plainText(text);
   if (/\b[a-h]\s+or\s+\(?[a-h]\b/i.test(plain) && plain.length < 40) return null;
-  const named = [...plain.matchAll(/\b(?:answer|option|choice)(?:\s+is)?\s*[:\-]?\s*\(?([a-h])\)?(?![a-z])/gi)].at(-1)?.[1];
+  namedLetterRuns += 1;
+  NAMED_LETTER.lastIndex = 0;
+  let match;
+  let named;
+  while ((match = NAMED_LETTER.exec(plain)) !== null) {
+    named = match[1];
+    if (!match[0].length) NAMED_LETTER.lastIndex += 1;
+  }
   if (named) return named.toLowerCase();
   return plain.match(/^\(?([a-h])(?:\)|[.:]|$)/im)?.[1]?.toLowerCase() ?? null;
 }
