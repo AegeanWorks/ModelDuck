@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "manual-plain-normalize-1123",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795412392.8440845,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795412578.2208946,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795419592.8440845,
+    "lease_until": 1795419778.2208946,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,55 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; a CPU profile of judge-heavy work showed answerCandidates and normalizePlain as the top in-process functions",
-      "benefits": "Exact and oneOf checks avoid two regex engines per candidate",
-      "risks": "contract: normalized strings byte-identical including quote/dot ordering; dependency: none; concurrency: none; state: pure function",
-      "mitigation": "failing-first mode seam plus equivalence test over 15 edge cases, full npm test and strict gates; revert if regression"
-    }
+    "completed_at": 1795412579.0067577,
+    "completed_head": "c269cc0b4eede3a86790b0674b565ffec63c214e",
+    "completed_tree": "3cd40db446e5df0b568a1b3dd9e2d1344e0ec380"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'judge-key-memo-1123' completed successfully.",
-      "head": "c93fd7e5a916fac2f1e46e2af2fccba38c3f0fd8",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "judge-key-memo-1123",
-      "timestamp": 1795393672.1958337,
-      "timestamp_str": "2026-11-23 03:27:52"
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Aggregate multistep chain results in one pass instead of O(runs x depth) rescans: 160us -> ~30us for 1000x5",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Multistep report aggregation becomes linear with identical summary values including sparse depth and error counts",
-        "mitigation": "failing-first equivalence test over irregular step counts, errors and rates, full npm test and strict gates; revert if regression",
-        "risks": "contract: every returned field identical including sparse byStep slots and rates; dependency: none; concurrency: none; state: pure function",
-        "why": "User directive to keep improving speeds; summarizeChains rescans the whole results array once per step depth"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "5a003bbd3aa692267e1d9d96d84ee3f424e7bf24e6067e583d31831947471fc1",
-      "status": "in_progress",
-      "task_id": "single-pass-chain-summary-1123",
-      "timestamp": 1795393735.713292,
-      "timestamp_str": "2026-11-23 03:28:55",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "checklists": "passed",
@@ -418,6 +374,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: exact 1.57->1.40us, oneOf 2.27->2.05us in 9-round A/B; 1152 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "manual-plain-normalize-1123",
+      "timestamp": 1795412578.2208946,
+      "timestamp_str": "2026-11-23 08:42:58",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'manual-plain-normalize-1123' completed successfully.",
+      "head": "c269cc0b4eede3a86790b0674b565ffec63c214e",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "manual-plain-normalize-1123",
+      "timestamp": 1795412579.1057107,
+      "timestamp_str": "2026-11-23 08:42:59"
     }
   ]
 }
