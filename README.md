@@ -755,7 +755,8 @@ modelduck/
 │   ├── static-summaries-cache.test.js
 │   ├── stale-override-prune.test.js
 │   ├── recommendation-profile-probe.test.js
-│   └── buffered-answer-summary.test.js
+│   ├── buffered-answer-summary.test.js
+│   └── cached-public-list.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml

@@ -1590,3 +1590,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: the same summary loop drops to a **2.48 ms** median (**1.26x**). Three failing-first tests pin the read mode plus CRLF, truncated-line, unreadable-example, error/wrong counts and empty/missing-file equivalence.
 - **Cross-principle check:** PRINCIPLE-010: the file is app-written and row-capped, and `cachedAnswers()` already reads it whole, so this is controlled input; PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: read-only summary, no tuning or suite change.
 
+### ADR-214: Cache the sorted public model list
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: Continuing the speed work, `listPublic()` rebuilt and re-sorted a 60-model public list on every call, and `/api/state` plus 15+ callers invoke it on each poll. A same-process A/B measured **21.37 us** for the rebuild.
+- **Decision**: Build the public list once and return a shallow copy of it; invalidate it when `entries` is reassigned by a scan or a row is removed by `deleteById`. `scan()` already rebuilds it on its return path, so a normal scan keeps the cache warm.
+- **Consequences**: a repeated `listPublic()` drops to **0.083 us (~258x)**. Two failing-first tests pin single rebuild, caller-tamper isolation and delete invalidation. Row values and sort order are unchanged.
+- **Cross-principle check:** PRINCIPLE-009: no new module, tiny role; PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: read-only model listing, no tuning or suite change.
+

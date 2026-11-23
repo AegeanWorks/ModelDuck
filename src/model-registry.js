@@ -11,6 +11,12 @@ import { kvShapeFromMetadata } from "./memory-fit.js";
 const MAX_SCAN_DEPTH = 6;
 const MODEL_EXTENSION = ".gguf";
 
+// Test seam: how often the sorted public model list was rebuilt.
+let publicListRebuilds = 0;
+export function listPublicRebuilds() {
+  return publicListRebuilds;
+}
+
 async function defaultReadMetadata(file) {
   await inspectGgufHeader(file);
   const module = await import("node-llama-cpp");
@@ -240,6 +246,9 @@ export function createModelRegistry({
 }) {
   const cache = new Map();
   let entries = new Map();
+  // The public rows are rebuilt and re-sorted only when entries change. A
+  // shallow copy is returned so a caller cannot mutate the cached list.
+  let publicList = null;
   const samplingOverrides = new Map();
   let lastScanAt = 0;
   let lastDirStamp = null;
@@ -342,6 +351,7 @@ export function createModelRegistry({
     }
 
     entries = nextEntries;
+    publicList = null;
     // A narrowed scan saw only part of the folder: models it left out still exist,
     // so their cached headers and overrides stay until a full scan finds them gone.
     if (!only) cache.clear();
@@ -366,9 +376,13 @@ export function createModelRegistry({
   }
 
   function listPublic() {
-    return [...entries.values()]
-      .map(publicEntry)
-      .sort((left, right) => left.name.localeCompare(right.name));
+    if (publicList === null) {
+      publicListRebuilds += 1;
+      publicList = [...entries.values()]
+        .map(publicEntry)
+        .sort((left, right) => left.name.localeCompare(right.name));
+    }
+    return publicList.slice();
   }
 
   function findById(id) {
@@ -498,6 +512,7 @@ export function createModelRegistry({
     invalidateReceiptCache(modelsDir, path.basename(target));
     await fs.promises.unlink(`${target}.part.resume.json`).catch(() => {});
     entries.delete(id);
+    publicList = null;
     samplingOverrides.delete(id);
     return publicEntry(entry);
   }
