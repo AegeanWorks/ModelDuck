@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "signflip-monte-carlo-1123",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795464575.9084334,
+    "task_id": "recommend-smoke-map-1123",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795465554.1968496,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795471775.9084334,
+    "lease_until": 1795472754.1968496,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,53 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795464576.593902,
-    "completed_head": "cead6eda6c45d867bd0ff4efbe103a8babb20f97",
-    "completed_tree": "46ea36bc351c40557bd47b9ee40ff797dc597d1b"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; the smoke comparison did a .some() and .find() per base prompt, an O(n^2) scan over ~300 items",
+      "benefits": "Report recommendations build one id map instead of rescanning the variant prompts",
+      "risks": "contract: same kept verdict and speedTuning; dependency: none; concurrency: none; state: local Map only",
+      "mitigation": "failing-first lookup-counter test plus verdict equivalence, end-to-end A/B, full npm test and strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Guard the expensive sentence regex with a cheap is/was/are check: 1.12x on answerCandidates",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Short answers without is/was/are skip a backtracking regex while candidate sets stay identical",
-        "mitigation": "failing-first regex-run counter test plus verdict equivalence, full npm test and strict gates; revert if regression",
-        "risks": "contract: candidate arrays identical, verified over nine shapes; dependency: none; concurrency: none; state: pure function",
-        "why": "User directive to keep improving speeds; a CPU profile still shows answerCandidates as the top in-process judge function and the backtracking sentence regex ran on every answer"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "4f4df0628576f396ac42f67ac7474d023d37cb259be154c00e7cbb9158f82982",
-      "status": "in_progress",
-      "task_id": "sentence-regex-guard-1123",
-      "timestamp": 1795457365.4338422,
-      "timestamp_str": "2026-11-23 21:09:25",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[2/2] REVERTED: isolated A/B showed 1.12x but controlled end-to-end A/B regressed (exact 0.82->0.90us, slower 8/9 rounds) on realistic answers containing ' is '; code restored to HEAD, no change shipped",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "sentence-regex-guard-1123",
-      "timestamp": 1795457920.823449,
-      "timestamp_str": "2026-11-23 21:18:40",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "delivery": {
@@ -409,6 +370,54 @@
       "task_id": "signflip-monte-carlo-1123",
       "timestamp": 1795464576.673452,
       "timestamp_str": "2026-11-23 23:09:36"
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Map-based lookup for smoke-item comparison in recommend: 111us -> 21us (5.3x)",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Report recommendations build one id map instead of rescanning the variant prompts",
+        "mitigation": "failing-first counter test plus verdict equivalence, end-to-end A/B on recommend(), full npm test and strict gates; revert if regression",
+        "risks": "contract: same kept verdict and speedTuning; dependency: none; concurrency: none; state: local Map only",
+        "why": "User directive to keep improving speeds; the smoke comparison did a .some() and .find() per base prompt, an O(n^2) scan over ~300 items"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "8a630f3c23e5393d2d971f7f780d095cf489da9330d9ac0b9046f3808996ebb6",
+      "status": "in_progress",
+      "task_id": "recommend-smoke-map-1123",
+      "timestamp": 1795464965.5564375,
+      "timestamp_str": "2026-11-23 23:16:05",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Map-based lookup for smoke-item comparison in recommend: isolated 5.3x, end-to-end A/B 208.7us to 32.4us (6.44x)",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Report recommendations build one id map instead of rescanning the variant prompts",
+        "mitigation": "failing-first lookup-counter test plus verdict equivalence, end-to-end A/B, full npm test and strict gates; revert if regression",
+        "risks": "contract: same kept verdict and speedTuning; dependency: none; concurrency: none; state: local Map only",
+        "why": "User directive to keep improving speeds; the smoke comparison did a .some() and .find() per base prompt, an O(n^2) scan over ~300 items"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "95fee71bd891c25312f01d92095cd827772e359ea43e67e58b59b6e759970b5e",
+      "status": "in_progress",
+      "task_id": "recommend-smoke-map-1123",
+      "timestamp": 1795465286.11159,
+      "timestamp_str": "2026-11-23 23:21:26",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }

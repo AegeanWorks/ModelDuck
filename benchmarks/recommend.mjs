@@ -56,6 +56,12 @@ function describe(model, kind, why) {
 
 const faster = (left, right) => right.tokensPerSecond - left.tokensPerSecond;
 
+// Test seam: how many smoke prompt lookups the recommendation built.
+let smokePromptLookups = 0;
+export function smokeLookupCount() {
+  return smokePromptLookups;
+}
+
 export function recommend(result, { maxLossPoints = DEFAULT_MAX_LOSS_POINTS } = {}) {
   const models = (result?.models ?? []).filter((model) => model.items && model.items.total > 0 && !model.error);
   if (!models.length) return { available: false, items: [] };
@@ -109,9 +115,12 @@ export function recommend(result, { maxLossPoints = DEFAULT_MAX_LOSS_POINTS } = 
       variant.catalogId ? model.catalogId === variant.catalogId : model.key === variant.key;
     const base = full.find((model) => sameBase(model) && /-f16$/.test(model.variantId)) ?? full.find(sameBase);
     if (!base) continue;
-    const baseSmoke = (base.prompts ?? []).filter((prompt) => (variant.prompts ?? []).some((item) => item.id === prompt.id));
+    // One id lookup per prompt instead of a .some() plus .find() scan for each.
+    const variantById = new Map((variant.prompts ?? []).map((item) => [item.id, item]));
+    smokePromptLookups += variantById.size;
+    const baseSmoke = (base.prompts ?? []).filter((prompt) => variantById.has(prompt.id));
     const kept = baseSmoke.every((prompt) => {
-      const now = variant.prompts.find((item) => item.id === prompt.id);
+      const now = variantById.get(prompt.id);
       return !(prompt.passed === prompt.total && now.passed < now.total);
     });
     if (kept && variant.tokensPerSecond > base.tokensPerSecond) {

@@ -1851,3 +1851,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: a controlled 5-round end-to-end A/B measured **15.89 ms → 7.24 ms (2.19x)**; a failing-first draw-counter test (confirmed against HEAD) and an exact p-value equivalence test against the seeded reference both pass.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no statistic or threshold changed.
 
+### ADR-246: Map lookup for smoke-item comparison in recommendations
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: The speed-tuning branch of `recommend()` did a `.some()` plus `.find()` scan over variant prompts for every base prompt — O(n²) across ~300 smoke items.
+- **Decision**: Build one `Map` of variant prompts by id and use `has`/`get` per base prompt, O(n) total.
+- **Consequences**: isolated comparison was **5.3x**; a controlled 5-round end-to-end A/B on `recommend()` measured **208.7 us → 32.4 us (6.44x)**. Two failing-first tests (confirmed against HEAD) pin the single map build and that a variant losing a base item is still rejected.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no recommendation logic or verdict changed.
+
