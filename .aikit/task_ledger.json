@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "answer-candidates-dedup-1123",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795395399.5536265,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795395528.3946524,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795402599.5536265,
+    "lease_until": 1795402728.3946524,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,55 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; a single-line reply was processed three times as the whole text, first line and last line",
-      "benefits": "Exact and oneOf text checks do one pass per distinct place instead of three for the common single-line answer",
-      "risks": "contract: normalized candidate set identical because normalizeAnswer is pure; dependency: none; concurrency: none; state: pure function",
-      "mitigation": "failing-first counter test plus answer-behavior checks, full npm test and strict gates; revert if regression"
-    }
+    "completed_at": 1795395528.792879,
+    "completed_head": "3418760dd829e377e1999421fe1a8d3d26862897",
+    "completed_tree": "65e021c11f578a158820fe91d5b079a56fad5128"
   },
   "checkpoints": [
-    {
-      "task_id": "overview-profile-probe-1123",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'overview-profile-probe-1123' completed successfully.",
-      "status": "completed",
-      "timestamp": 1795392897.642331,
-      "timestamp_str": "2026-11-23 03:14:57",
-      "agent": "opencode:hy4-flash-free",
-      "head": "f46901a27bd9519f83303f719d906d801cca92e6",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
-    {
-      "task_id": "buffered-item-outcomes-1123",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/2] Read answers.jsonl once in itemOutcomes instead of readline streaming: 12.52ms per 20k rows",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795392999.0703692,
-      "timestamp_str": "2026-11-23 03:16:39",
-      "agent": "opencode:hy4-flash-free",
-      "impact_assessment": {
-        "why": "User directive to keep improving speeds; itemOutcomes is the last large JSONL reader still using readline at 12.52ms for 20k rows",
-        "benefits": "Saturating-item analysis for tune restore becomes faster with identical counts",
-        "risks": "contract: saturated set and per-item counts unchanged including malformed/error rows; dependency: Node fs only; concurrency: none; state: app-written bounded answers files read one at a time",
-        "mitigation": "failing-first equivalence test with CRLF, malformed and error rows, full npm test and strict gates; revert if regression"
-      },
-      "plan_digest": "59f1a29cfd7f15a633a1488ff672de3a973810f54313361a6fac697b2f21f83b",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "buffered-item-outcomes-1123",
       "phase": "phase 4",
@@ -418,6 +374,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "task_id": "answer-candidates-dedup-1123",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[2/2] DELIVERED: evaluateTextCheck exact 2.64->1.55us (1.70x), oneOf 3.16->2.19us (1.44x); 1148 tests pass",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795395528.3946524,
+      "timestamp_str": "2026-11-23 03:58:48",
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "answer-candidates-dedup-1123",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'answer-candidates-dedup-1123' completed successfully.",
+      "status": "completed",
+      "timestamp": 1795395528.8548906,
+      "timestamp_str": "2026-11-23 03:58:48",
+      "agent": "opencode:hy4-flash-free",
+      "head": "3418760dd829e377e1999421fe1a8d3d26862897",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
     }
   ]
 }
