@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "sentence-regex-guard-1123",
+    "task_id": "rejection-adr-240-1123",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1795457920.823449,
+    "updated_at": 1795458033.670086,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795465120.823449,
+    "lease_until": 1795465233.670086,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,52 +16,12 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795457921.4130442,
-    "completed_head": "195ee51226a925c4791ef83eccf428e86ec5e5b1",
-    "completed_tree": "70dfc87f451d7a9c9f14c6086205f7fc98703b0e"
+    "completed_without_impact_assessment": true,
+    "completed_at": 1795458034.3929486,
+    "completed_head": "1bc6c3a44b6501ddb3c584a529ed8c8c9275b9ef",
+    "completed_tree": "0ca3b0b9f0325d255598ad45af0b68b56093ed8f"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'profile-id-cache-1123' completed successfully.",
-      "head": "8fa676c3bc38a89b6eb6ca96049c740b91de2808",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "profile-id-cache-1123",
-      "timestamp": 1795453350.2123618,
-      "timestamp_str": "2026-11-23 20:02:30"
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Replace JSON.stringify array comparisons with element-wise equality: 20x on that step",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Prompt axis generation and step normalization skip four string allocations per comparison",
-        "mitigation": "failing-first mode seam plus equivalence test over equal/different/empty arrays, full npm test and strict gates; revert if regression",
-        "risks": "contract: equality results identical for the dense string arrays used by tune steps; dependency: none; concurrency: none; state: pure function",
-        "why": "User directive to keep improving speeds; promptAxes and systemPromptOptIn stringified arrays twice per comparison just to test equality"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "eba44999f2b34ff1f49247ff9880a7cada4b38d53ab0fd44d059575d7eb8c814",
-      "status": "in_progress",
-      "task_id": "array-compare-fast-1123",
-      "timestamp": 1795453755.3536184,
-      "timestamp_str": "2026-11-23 20:09:15",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "checklists": "passed",
@@ -402,6 +362,41 @@
       "task_id": "sentence-regex-guard-1123",
       "timestamp": 1795457921.560873,
       "timestamp_str": "2026-11-23 21:18:41"
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[1/1] Record ADR-240 documenting the reverted sentence-regex guard and the end-to-end A/B that caught it",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "rejection-adr-240-1123",
+      "timestamp": 1795458033.670086,
+      "timestamp_str": "2026-11-23 21:20:33",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'rejection-adr-240-1123' completed successfully.",
+      "head": "1bc6c3a44b6501ddb3c584a529ed8c8c9275b9ef",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "rejection-adr-240-1123",
+      "timestamp": 1795458034.4686253,
+      "timestamp_str": "2026-11-23 21:20:34"
     }
   ]
 }
