@@ -3,11 +3,11 @@
   "active_task": {
     "task_id": "given-number-exec-1123",
     "last_phase": "phase 4",
-    "active_phase": 4,
-    "status": "in_progress",
-    "updated_at": 1795459240.1315742,
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795459502.317524,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795466440.1315742,
+    "lease_until": 1795466702.317524,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -15,26 +15,12 @@
         "name": "modelduck",
         "path": "projects/modelduck"
       }
-    ]
+    ],
+    "completed_at": 1795459502.9465141,
+    "completed_head": "76ad6c06fddb0969f115c7776e6de2a5d9c55a77",
+    "completed_tree": "dd80ec71877743f4e54a34afb4bf349534d50c3a"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'rejection-adr-1123' completed successfully.",
-      "head": "eec2384fbc7ee2a4958a4c4683e91027ba18033e",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "rejection-adr-1123",
-      "timestamp": 1795454496.9630246,
-      "timestamp_str": "2026-11-23 20:21:36"
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "description": "[1/2] Skip GGUF magic re-read for cached files on forced rescans: 59.3ms -> 12.5ms, controlled A/B 2.43x",
@@ -406,6 +392,23 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'given-number-exec-1123' completed successfully.",
+      "head": "76ad6c06fddb0969f115c7776e6de2a5d9c55a77",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "given-number-exec-1123",
+      "timestamp": 1795459503.065629,
+      "timestamp_str": "2026-11-23 21:45:03"
     }
   ]
 }
