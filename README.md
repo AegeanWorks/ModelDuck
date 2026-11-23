@@ -609,10 +609,10 @@ modelduck/
 │   ├── settings-perf.mjs
 │   ├── gguf-guard-perf.mjs
 │   ├── multi-step-perf.mjs
-│   ├── multistep-items.mjs   <- opt-in multistep chains (not tuned or gated)
+│   ├── multistep-items.mjs
 │   ├── multistep-evaluate.mjs
 │   ├── multistep-run.mjs
-│   ├── repair-evaluate.mjs   <- opt-in repair with test feedback (not tuned or gated)
+│   ├── repair-evaluate.mjs
 │   ├── repair-run.mjs
 │   ├── benchmark-advisor.mjs
 │   ├── PERF.md
@@ -792,7 +792,8 @@ modelduck/
 │   ├── score-map-init.test.js
 │   ├── outputlimit-memo.test.js
 │   ├── history-trim-skip.test.js
-│   └── receiptpath-memo.test.js
+│   ├── receiptpath-memo.test.js
+│   └── pick-loop.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml

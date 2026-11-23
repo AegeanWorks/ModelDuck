@@ -1907,3 +1907,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: 60 repeated lookups drop from **45.45 us to 0.58 us (78x)** with identical paths. A failing-first counter test (confirmed against HEAD) pins one derivation per (dir, name) and correct nested/plain names.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: no receipt lookup or invalidation semantics changed.
 
+### ADR-253: Direct loop for per-answer settings selection
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: `pick()` in the tune evaluator used `Object.fromEntries(keys.filter(...).map(...))`, allocating two intermediate arrays per answer.
+- **Decision**: A direct `for` loop fills the object, and `pick` is exported with a computation counter for tests.
+- **Consequences**: **0.536 us → 0.243 us (2.2x)** with identical keys and values. A failing-first equivalence test (confirmed against HEAD) pins the output.
+- **Cross-principle check:** PRINCIPLE-014: failing-first test, no assertion weakened; G-003: no sampling setting or answer changed.
+

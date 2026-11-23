@@ -40,7 +40,16 @@ const SAMPLING_DEFAULTS = Object.freeze({
 
 const digestOf = (text) => createHash("sha256").update(String(text ?? "")).digest("hex").slice(0, 16);
 
-const pick = (settings, keys) => Object.fromEntries(keys.filter((key) => key in settings).map((key) => [key, settings[key]]));
+let pickComputes = 0;
+export function pickComputations() {
+  return pickComputes;
+}
+export const pick = (settings, keys) => {
+  pickComputes += 1;
+  const out = {};
+  for (const key of keys) if (key in settings) out[key] = settings[key];
+  return out;
+};
 
 /** Model-level load keys: changing one costs a full model reload. */
 export const MODEL_LEVEL_KEYS = Object.freeze(["useMmap", "gpuLayers", "gpuBackend"]);
