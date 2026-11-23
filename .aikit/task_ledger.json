@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "buffered-answer-summary-1123",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795391840.4641593,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795392026.5880222,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795399040.4641593,
+    "lease_until": 1795399226.5880222,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,49 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; /api/tune/runs/:id re-parses every answer line through readline at 4.64ms for 10k rows",
-      "benefits": "Buffered line scan is ~23% faster on the on-demand run-summary route and the tests that summarize answers",
-      "risks": "contract: summary values and malformed-line handling unchanged including CRLF; dependency: Node fs only; concurrency: none; state: app-written bounded answers file read fully like cachedAnswers already does",
-      "mitigation": "equivalence test over CRLF, truncated final line and unreadable examples, full npm test and strict gates; revert if regression"
-    }
+    "completed_at": 1795392027.0240374,
+    "completed_head": "7a6b8051182add95ecd725cd23daac9a8c62ac33",
+    "completed_tree": "3f91017cd6a043fc3e999bdeead9edd50e64ee63"
   },
   "checkpoints": [
-    {
-      "task_id": "lazy-cli-start-1123",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'lazy-cli-start-1123' completed successfully.",
-      "status": "completed",
-      "timestamp": 1795388266.6936138,
-      "timestamp_str": "2026-11-23 01:57:46",
-      "agent": "opencode:hy4-flash-free",
-      "head": "54b58aa5e84107b0ec06b2aa7ff38b7bc75a65b5",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
-    {
-      "task_id": "sandbox-flags-ab-1123",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[1/1] Controlled A/B of sandbox startup flags: --disable-source-map invalid, --no-warnings 7.5% slower, 128MB heap flat; all rejected, no code change",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795388690.6072745,
-      "timestamp_str": "2026-11-23 02:04:50",
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "sandbox-flags-ab-1123",
       "phase": "completed",
@@ -405,6 +367,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "task_id": "buffered-answer-summary-1123",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[2/2] DELIVERED: run summary 3.14ms -> 2.48ms (1.26x) in 7-round A/B; 1130 tests pass",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795392026.5880222,
+      "timestamp_str": "2026-11-23 03:00:26",
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "buffered-answer-summary-1123",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'buffered-answer-summary-1123' completed successfully.",
+      "status": "completed",
+      "timestamp": 1795392027.0906246,
+      "timestamp_str": "2026-11-23 03:00:27",
+      "agent": "opencode:hy4-flash-free",
+      "head": "7a6b8051182add95ecd725cd23daac9a8c62ac33",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
     }
   ]
 }
