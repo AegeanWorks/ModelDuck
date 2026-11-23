@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "slot-key-cache-1123",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795452481.4212875,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795452722.5779572,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795459681.4212875,
+    "lease_until": 1795459922.5779572,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,49 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; every measured item re-stringified the same frozen settings object to compute slot and cap-family keys",
-      "benefits": "Per-rung measurement skips repeated key construction while distinct settings objects still get their own keys",
-      "risks": "contract: key strings unchanged; dependency: WeakMap only; concurrency: none; state: settings objects are already used as stable slot keys by the existing slots Map",
-      "mitigation": "failing-first computation counter test plus key-equivalence and distinct-settings checks, full npm test and strict gates; revert if regression"
-    }
+    "completed_at": 1795452723.223187,
+    "completed_head": "ff5eeb7dfdf7cd6ab6cdc540a6fbb205f23db8ab",
+    "completed_tree": "06c0cbd94182a30b83f70d59d5103c959ebbf110"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[2/2] DELIVERED: candidate loop 1.31x isolated, exact 0.72->0.66us end-to-end; 1158 tests pass after multi-line guard fix",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "candidate-loop-shortcut-1123",
-      "timestamp": 1795429481.657968,
-      "timestamp_str": "2026-11-23 13:24:41",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'candidate-loop-shortcut-1123' completed successfully.",
-      "head": "f39f806341ed3e9e3654944300c75828c03d2e4d",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "candidate-loop-shortcut-1123",
-      "timestamp": 1795429482.578376,
-      "timestamp_str": "2026-11-23 13:24:42"
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "description": "[1/2] Skip the thousands-separator regex when the answer has no comma: 1.42x on that step",
@@ -412,6 +374,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: slotKeyOf 1.05->0.03us, capFreeKeyOf 1.11->0.03us (~35x); 1170 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "slot-key-cache-1123",
+      "timestamp": 1795452722.5779572,
+      "timestamp_str": "2026-11-23 19:52:02",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'slot-key-cache-1123' completed successfully.",
+      "head": "ff5eeb7dfdf7cd6ab6cdc540a6fbb205f23db8ab",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "slot-key-cache-1123",
+      "timestamp": 1795452723.2918208,
+      "timestamp_str": "2026-11-23 19:52:03"
     }
   ]
 }
