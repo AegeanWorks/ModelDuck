@@ -1883,3 +1883,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: the two-map init drops from **6.16 us to 3.42 us (1.8x)**. A failing-first counter test (confirmed against HEAD) pins two builds and that the other maps stay empty.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no statistic or result shape changed.
 
+### ADR-250: Memoize judge output limits by case array
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: `outputLimit()` re-stringified every expected value on each judge miss even though the case arrays are static per check.
+- **Decision**: Cache the byte limit in a `WeakMap` keyed by the cases array; new arrays get their own entry.
+- **Consequences**: the helper drops from **2.368 us to 0.011 us (215x)**. The absolute saving per judge is small next to the spawn, but the change is safe and behavior-preserving. A failing-first counter test (confirmed against HEAD) pins one computation per case array.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no check or byte limit changed.
+

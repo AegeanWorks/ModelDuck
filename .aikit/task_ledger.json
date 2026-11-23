@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "score-map-init-1123",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795468938.8507106,
+    "task_id": "outputlimit-memo-1123",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795469672.0294108,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795476138.8507106,
+    "lease_until": 1795476872.0294108,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,28 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795468939.667008,
-    "completed_head": "e07f13a74a73f0e416cc4151a95d3d9bdfb14529",
-    "completed_tree": "b4fbb5c74fe473969de480c8f306cf6af54f9adb"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; outputLimit re-stringified every expected value on each judge miss for static case arrays",
+      "benefits": "Judge misses skip repeated expected-value stringification while the byte limit stays identical",
+      "risks": "contract: same byte limit; dependency: WeakMap; concurrency: none; state: cases arrays static per check, new arrays get their own entry",
+      "mitigation": "failing-first counter test plus value equivalence, full npm test and strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'mcnemar-recurrence-1123' completed successfully.",
-      "head": "c48096eac767483e2c46405f7f34e11e9ffc01b8",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "mcnemar-recurrence-1123",
-      "timestamp": 1795462813.7053475,
-      "timestamp_str": "2026-11-23 22:40:13"
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "description": "[1/2] Inline seeded LCG in the sign-flip Monte Carlo loop: end-to-end A/B 15.89->7.24ms (2.19x), identical p-values",
@@ -428,6 +414,30 @@
       "task_id": "score-map-init-1123",
       "timestamp": 1795468939.7438436,
       "timestamp_str": "2026-11-24 00:22:19"
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Memoize outputLimit by cases-array identity: 2.368us -> 0.011us (215x)",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Judge misses skip repeated expected-value stringification while the byte limit stays identical",
+        "mitigation": "failing-first counter test plus value equivalence, full npm test and strict gates; revert if regression",
+        "risks": "contract: same byte limit; dependency: WeakMap; concurrency: none; state: cases arrays are static per check, new arrays get their own entry",
+        "why": "User directive to keep improving speeds; outputLimit re-stringified every expected value on each judge miss for static case arrays"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "3f8138779de13fd01af814cd0701f465d0c7b0b946df0214bb2cd56bd64a6fe1",
+      "status": "in_progress",
+      "task_id": "outputlimit-memo-1123",
+      "timestamp": 1795469588.4666302,
+      "timestamp_str": "2026-11-24 00:33:08",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }

@@ -1119,9 +1119,19 @@ const OUTPUT_MAX_BYTES = 8 * 1024 * 1024;
  * about twice the length of its expected value: the limit is a base for the
  * framing and small results plus that, capped so a flood stays bounded.
  */
+const OUTPUT_LIMIT_CACHE = new WeakMap();
+let outputLimitComputes = 0;
+export function outputLimitComputations() {
+  return outputLimitComputes;
+}
 function outputLimit(cases) {
+  const cached = OUTPUT_LIMIT_CACHE.get(cases);
+  if (cached !== undefined) return cached;
+  outputLimitComputes += 1;
   const expected = cases.reduce((sum, testCase) => sum + (JSON.stringify(testCase.expect)?.length ?? 0), 0);
-  return Math.min(OUTPUT_MAX_BYTES, OUTPUT_BASE_BYTES + 2 * expected);
+  const limit = Math.min(OUTPUT_MAX_BYTES, OUTPUT_BASE_BYTES + 2 * expected);
+  OUTPUT_LIMIT_CACHE.set(cases, limit);
+  return limit;
 }
 
 export async function runJavaScriptTests(text, check, { timeoutMs = 5000 } = {}) {
