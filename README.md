@@ -797,7 +797,8 @@ modelduck/
 │   ├── answer-rows-loop.test.js
 │   ├── plaintext-memo.test.js
 │   ├── answer-candidates-memo.test.js
-│   └── kvshape-fast.test.js
+│   ├── kvshape-fast.test.js
+│   └── listruns-parallel.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml

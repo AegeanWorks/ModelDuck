@@ -159,6 +159,12 @@ export async function answerPaceByProfile(dir, { perProfile = 3 } = {}) {
   }));
 }
 
+// Test seam: how many run summaries a listing assembled.
+let listRunsReads = 0;
+export function listRunsReadCount() {
+  return listRunsReads;
+}
+
 /** Every saved run without its details, newest first; one left running by a process that has died is "interrupted". */
 export async function listRuns(dir, { isAlive = isAliveDefault } = {}) {
   const names = await fs.promises.readdir(dir).catch(() => []);
@@ -170,12 +176,17 @@ export async function listRuns(dir, { isAlive = isAliveDefault } = {}) {
     if (!aliveByPid.has(pid)) aliveByPid.set(pid, isAlive(pid));
     return aliveByPid.get(pid);
   };
+  // Reading dozens of small summary files is I/O bound and independent; gather
+  // them concurrently and keep positional order for stable presentation.
+  const jsonNames = names.filter((item) => item.endsWith(".json"));
+  const records = await Promise.all(jsonNames.map((name) =>
+    readJsonWithQuarantine(path.join(dir, name), null, { logger: quiet })));
   const runs = [];
-  for (const name of names.filter((item) => item.endsWith(".json"))) {
-    const record = await readJsonWithQuarantine(path.join(dir, name), null, { logger: quiet });
+  for (const record of records) {
     if (record?.schema !== RUN_SCHEMA) continue;
     const { sweeps: _sweeps, result: _result, ...summary } = record;
     runs.push(present(summary, isAliveCached));
+    listRunsReads += 1;
   }
   return runs.sort((left, right) => right.startedAt.localeCompare(left.startedAt));
 }

@@ -1947,3 +1947,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: **0.075 us → 0.017 us (4.4x)** with identical shapes or null. A failing-first equivalence test (confirmed against HEAD) covers six metadata shapes.
 - **Cross-principle check:** PRINCIPLE-014: failing-first test, no assertion weakened; G-003: no model summary changed.
 
+### ADR-258: Parallel run-summary reads in listRuns
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: `/api/tune/runs` read dozens of small run-summary files one at a time; 50 files cost **5.42 ms**.
+- **Decision**: Gather all summary reads with one `Promise.all`, preserving positional order; per-file quiet error handling and the liveness cache are unchanged.
+- **Consequences**: the same 50 reads drop to **1.77 ms (3x)** with identical run order. A failing-first test (confirmed against HEAD) pins count, order and repeat listing.
+- **Cross-principle check:** PRINCIPLE-010: concurrency only for independent read-only file reads; PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: no run data changed.
+
