@@ -618,7 +618,14 @@ export const SMOKE_PROMPT_IDS = Object.freeze([
   "read-sumTo-1", "read-clamp-1", "read-factorial-1", "read-repeatWord-1", "read-isEven-1",
 ]);
 
+// Test seam: how often the fence regex actually ran.
+let fenceStrips = 0;
+export function fenceStripCount() {
+  return fenceStrips;
+}
+
 export function stripFence(text) {
+  fenceStrips += 1;
   const trimmed = text.trim();
   const fence = trimmed.match(/^```[\w-]*\s*\n?([\s\S]*?)\n?```$/);
   return fence ? fence[1].trim() : trimmed;
@@ -631,6 +638,12 @@ export function normalizeAnswer(text) {
     .replace(/^["'`]+|["'`]+$/g, "")
     .replace(/[.!]+$/g, "")
     .trim();
+}
+
+// answerCandidates only ever produces plain strings (plainText already removed
+// the fence), so its candidates skip the fence regex and the duplicate trim.
+function normalizePlain(text) {
+  return text.toLowerCase().replace(/^["'`]+|["'`]+$/g, "").replace(/[.!]+$/g, "").trim();
 }
 
 export function extractJson(text) {
@@ -685,7 +698,7 @@ function answerCandidates(text) {
     const sentence = lead.match(/^(?:the\s+)?[\w\s'-]{1,40}?\s+(?:is|was|are)\s+(.+)$/i)?.[1];
     if (sentence) candidates.add(sentence).add(sentence.replace(/^(?:in|at|on|from|by)\s+/i, ""));
   }
-  return [...candidates].map(normalizeAnswer);
+  return [...candidates].map(normalizePlain);
 }
 
 /** The option letter a reply chooses, or null: "B", "(B)", "B)", "Answer: B", "Option B", "the answer is (B)"; a hedge such as "B or C" chooses none. */

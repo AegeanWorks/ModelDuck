@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "answer-candidates-dedup-1123",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795395528.3946524,
+    "task_id": "plain-candidate-normalize-1123",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795395705.434187,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795402728.3946524,
+    "lease_until": 1795402905.434187,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,29 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795395528.792879,
-    "completed_head": "3418760dd829e377e1999421fe1a8d3d26862897",
-    "completed_tree": "65e021c11f578a158820fe91d5b079a56fad5128"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; answerCandidates normalizes strings already stripped of fences by plainText, so each one re-ran a fence regex for nothing",
+      "benefits": "Exact and oneOf checks avoid one trim + one regex per candidate",
+      "risks": "contract: normalized candidate strings identical because candidates are proven fence-free; dependency: none; concurrency: none; state: pure function",
+      "mitigation": "failing-first fence-strip counter test plus verdict equivalence, full npm test and strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "task_id": "buffered-item-outcomes-1123",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[2/2] DELIVERED: itemOutcomes 11.90->9.53ms (1.25x), cachedAnswers 14.94->13.97ms (1.07x); 1137 tests pass",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795393191.1439247,
-      "timestamp_str": "2026-11-23 03:19:51",
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "buffered-item-outcomes-1123",
       "phase": "completed",
@@ -409,6 +394,30 @@
         ],
         "forced": false
       }
+    },
+    {
+      "task_id": "plain-candidate-normalize-1123",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/2] Skip redundant fence stripping when normalizing already-plain answer candidates: 1.52x on that step",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795395705.434187,
+      "timestamp_str": "2026-11-23 04:01:45",
+      "agent": "opencode:hy4-flash-free",
+      "impact_assessment": {
+        "why": "User directive to keep improving speeds; answerCandidates normalizes strings already stripped of fences by plainText, so each one re-ran a fence regex for nothing",
+        "benefits": "Exact and oneOf checks avoid one trim + one regex per candidate",
+        "risks": "contract: normalized candidate strings identical because candidates are proven fence-free; dependency: none; concurrency: none; state: pure function",
+        "mitigation": "failing-first fence-strip counter test plus verdict equivalence, full npm test and strict gates; revert if regression"
+      },
+      "plan_digest": "be26984fdb8ff6e1e365035fef116cc2406edf638dc0f6c28d10a95240ebebdc",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }

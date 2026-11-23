@@ -1664,3 +1664,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: `evaluateTextCheck` drops from **2.64 us to 1.55 us** for exact checks (**1.70x**) and **3.16 us to 2.19 us** for eight-value oneOf checks (**1.44x**). Two failing-first tests pin one place for a single-line reply and unchanged exact/oneOf verdicts including multi-line replies.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no prompt, check or expected value changed.
 
+### ADR-223: Skip fence stripping for already-plain answer candidates
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: Continuing the speed work, `answerCandidates()` normalized its candidate strings with `normalizeAnswer()`, which re-ran the code-fence regex and trim even though `plainText()` had already removed any fence.
+- **Decision**: Add an internal `normalizePlain()` for those candidates, keeping `normalizeAnswer()` for check values that may legitimately be fenced. A fence-strip counter is exposed for tests.
+- **Consequences**: a controlled 7-round A/B on `evaluateTextCheck` showed exact checks dropping from **1.39 us to 1.32 us** and eight-value oneOf from **1.92 us to 1.88 us** — small but faster in 5/7 and 6/7 rounds respectively. Two failing-first tests pin that candidates skip the fence regex and that fenced/plain verdicts stay identical.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no prompt, check or expected value changed.
+
