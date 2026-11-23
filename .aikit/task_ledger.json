@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "judge-key-memo-1123",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795393671.7536864,
+    "task_id": "single-pass-chain-summary-1123",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795393735.713292,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795400871.7536864,
+    "lease_until": 1795400935.713292,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,29 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795393672.1384504,
-    "completed_head": "c93fd7e5a916fac2f1e46e2af2fccba38c3f0fd8",
-    "completed_tree": "3ce0842744e1f15fc8a79add457491740d490dbc"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; summarizeChains rescans the whole results array once per step depth",
+      "benefits": "Multistep report aggregation becomes linear with identical summary values including sparse depth and error counts",
+      "risks": "contract: every returned field identical including sparse byStep slots and rates; dependency: none; concurrency: none; state: pure function",
+      "mitigation": "failing-first equivalence test over irregular step counts, errors and rates, full npm test and strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "task_id": "registry-prune-fix-1123",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[1/1] Prune stale sampling overrides on cached scans; 5/5 consecutive full test runs green",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795391032.4002707,
-      "timestamp_str": "2026-11-23 02:43:52",
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "registry-prune-fix-1123",
       "phase": "completed",
@@ -409,6 +394,30 @@
         ],
         "forced": false
       }
+    },
+    {
+      "task_id": "single-pass-chain-summary-1123",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/2] Aggregate multistep chain results in one pass instead of O(runs x depth) rescans: 160us -> ~30us for 1000x5",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795393735.713292,
+      "timestamp_str": "2026-11-23 03:28:55",
+      "agent": "opencode:hy4-flash-free",
+      "impact_assessment": {
+        "why": "User directive to keep improving speeds; summarizeChains rescans the whole results array once per step depth",
+        "benefits": "Multistep report aggregation becomes linear with identical summary values including sparse depth and error counts",
+        "risks": "contract: every returned field identical including sparse byStep slots and rates; dependency: none; concurrency: none; state: pure function",
+        "mitigation": "failing-first equivalence test over irregular step counts, errors and rates, full npm test and strict gates; revert if regression"
+      },
+      "plan_digest": "5a003bbd3aa692267e1d9d96d84ee3f424e7bf24e6067e583d31831947471fc1",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }

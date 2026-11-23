@@ -1623,3 +1623,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Stability fix**: the recurring `model-registry.test.js` rescan flake (external add/delete inside the 1 s directory-stamp TTL) was repaired by using `scan({ force: true })` for the two rescans that test *rescan behavior*. No assertion was changed or weakened; three consecutive full runs passed.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests and a determinism fix, no assertion weakened; G-003: no prompt, check, suite version or hash changed.
 
+### ADR-218: Single-pass multistep chain aggregation
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: Continuing the speed work, `summarizeChains()` rescanned the full results array once per step depth. A controlled 5-round A/B on 1000 chains × 5 steps measured a **160.64 us** median.
+- **Decision**: Walk the results once, accumulating totals, all-steps, prefix, errors and per-step counts. Depth still comes from the longest chain, and a step index present in no chain still appears in `byStep` with zero totals. The prior two `allSteps` filters collapse into one counter.
+- **Consequences**: the same aggregation drops to a **42.94 us** median (**3.74x**). Two failing-first tests pin the mode and exact field-by-field equivalence on irregular chains with sparse depths and errors; the existing multistep tests also pass.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no chain, check or hash changed — only the aggregation walk.
+

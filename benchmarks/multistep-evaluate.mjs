@@ -126,25 +126,46 @@ const round = (value) => Math.round(value * 1000) / 10;
  * work adds: a model that holds step 1 but loses step 3 forgets or breaks what
  * it built, which a single-turn suite cannot see.
  */
+export const SUMMARIZE_CHAINS_MODE = "single-pass";
+
 export function summarizeChains(results) {
-  const passed = results.reduce((sum, result) => sum + result.passed, 0);
-  const total = results.reduce((sum, result) => sum + result.total, 0);
-  const depth = Math.max(0, ...results.map((result) => result.steps.length));
+  let passed = 0;
+  let total = 0;
+  let allSteps = 0;
+  let prefixSum = 0;
+  let errors = 0;
+  let depth = 0;
+  // One walk of the results instead of one full rescan per step depth. A step
+  // index missing from every chain still appears in byStep with zero totals.
+  const perStep = [];
+  for (const result of results) {
+    passed += result.passed;
+    total += result.total;
+    if (result.allSteps) allSteps += 1;
+    prefixSum += result.prefix;
+    depth = Math.max(depth, result.steps.length);
+    for (const [index, step] of result.steps.entries()) {
+      if (!step) continue;
+      let slot = perStep[index];
+      if (!slot) slot = perStep[index] = { passed: 0, total: 0 };
+      slot.passed += step.passed;
+      slot.total += step.total;
+      if (step.error) errors += 1;
+    }
+  }
   const byStep = Array.from({ length: depth }, (_value, index) => {
-    const rows = results.map((result) => result.steps[index]).filter(Boolean);
-    const stepPassed = rows.reduce((sum, row) => sum + row.passed, 0);
-    const stepTotal = rows.reduce((sum, row) => sum + row.total, 0);
-    return { step: index + 1, passed: stepPassed, total: stepTotal, rate: stepTotal ? round(stepPassed / stepTotal) : 0 };
+    const slot = perStep[index] ?? { passed: 0, total: 0 };
+    return { step: index + 1, passed: slot.passed, total: slot.total, rate: slot.total ? round(slot.passed / slot.total) : 0 };
   });
   return {
     runs: results.length,
     passed,
     total,
     rate: total ? round(passed / total) : 0,
-    allSteps: results.filter((result) => result.allSteps).length,
-    allStepsRate: results.length ? round(results.filter((result) => result.allSteps).length / results.length) : 0,
-    meanPrefix: results.length ? Math.round((results.reduce((sum, result) => sum + result.prefix, 0) / results.length) * 100) / 100 : 0,
+    allSteps,
+    allStepsRate: results.length ? round(allSteps / results.length) : 0,
+    meanPrefix: results.length ? Math.round((prefixSum / results.length) * 100) / 100 : 0,
     byStep,
-    errors: results.reduce((sum, result) => sum + result.steps.filter((step) => step.error).length, 0),
+    errors,
   };
 }
