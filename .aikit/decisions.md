@@ -1768,3 +1768,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: `promptAxes()` drops from **4.71 us to 2.36 us** (~2x). Two failing-first tests pin the comparison mode and equivalence with the stringify result over equal, different, empty and quoted-array cases.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no tune step, axis or prompt value changed.
 
+### ADR-236: Rejected history, encoding and fit-text micro-variants
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: A continued profiling pass examined the remaining app hot spots after the recent caching wins: `parseHistory()` on the 6.75 MB `history.jsonl`, `sendJson()`'s payload encoding, and `fitText()`'s per-call lookup object.
+- **Decision**: No code change. Three controlled A/Bs rejected the candidate variants:
+  - Replacing `parseHistory()`'s `split("\n")` with an index scan: **16.7 ms → 17.9 ms (0.93x)** on the real file, identical parsed runs/links.
+  - Replacing `sendJson()`'s `Buffer.byteLength(payload)` + string `res.end` with `Buffer.from(payload)` + `res.end(buffer)`: **13.04 us → 22.35 us (0.58x)**, identical bytes. V8 optimizes the current string path.
+  - Hoisting `fitText()`'s lookup object to module scope: **0.004 us both ways** — escape analysis already removes the allocation.
+- **Consequences**: all three paths were left untouched. Earlier profile flags `parseHistory` (~20 ms) are a one-time cost after a file stamp change; the report cache keeps later requests fast.
+- **Cross-principle check:** PRINCIPLE-014: A/B-tested alternatives with identical outputs; no assertion weakened, no regression shipped.
+
