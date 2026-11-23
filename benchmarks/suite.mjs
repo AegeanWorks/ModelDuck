@@ -917,14 +917,29 @@ const JS_TEST_CACHE = new Map();
 export const JAVASCRIPT_TEST_CACHE_LIMIT = 4096;
 let jsTestHits = 0;
 let jsTestMisses = 0;
-const jsTestKey = (text, check, timeoutMs) => JSON.stringify([
-  String(text ?? ""),
-  check.entry ?? null,
-  check.setup ?? null,
-  check.harness ?? null,
-  check.cases ?? [],
-  timeoutMs,
-]);
+let jsTestKeyComputes = 0;
+let lastKeyArgs = null;
+let lastKey = null;
+export function jsTestKeyComputations() {
+  return jsTestKeyComputes;
+}
+const jsTestKey = (text, check, timeoutMs) => {
+  // One-entry memo by argument identity. Repeated calls with the very same
+  // text/check/timeout skip rebuilding a key that may stringify a large check.
+  // Identity comparison means a mutated check still gets a fresh key.
+  if (lastKeyArgs && lastKeyArgs.text === text && lastKeyArgs.check === check && lastKeyArgs.timeoutMs === timeoutMs) return lastKey;
+  jsTestKeyComputes += 1;
+  lastKey = JSON.stringify([
+    String(text ?? ""),
+    check.entry ?? null,
+    check.setup ?? null,
+    check.harness ?? null,
+    check.cases ?? [],
+    timeoutMs,
+  ]);
+  lastKeyArgs = { text, check, timeoutMs };
+  return lastKey;
+};
 export function javascriptTestCacheStats() {
   return { size: JS_TEST_CACHE.size, hits: jsTestHits, misses: jsTestMisses };
 }
@@ -932,6 +947,8 @@ export function resetJavaScriptTestCache() {
   JS_TEST_CACHE.clear();
   jsTestHits = 0;
   jsTestMisses = 0;
+  lastKeyArgs = null;
+  lastKey = null;
 }
 
 const OUTPUT_BASE_BYTES = 1024 * 1024;

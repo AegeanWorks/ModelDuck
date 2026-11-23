@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "buffered-item-outcomes-1123",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795393191.1439247,
+    "task_id": "judge-key-memo-1123",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795393455.7301896,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795400391.1439247,
+    "lease_until": 1795400655.7301896,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,35 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795393191.5543287,
-    "completed_head": "8c9fb614a992d7c047496f1e8353af7da74d4d69",
-    "completed_tree": "4a4971618b57a2866cf55d69f5ad7f5aa8daa849"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; every runJavaScriptTests cache hit re-stringified the whole 40-case check to build its key",
+      "benefits": "Repeated identical (text, check, timeout) judge calls skip key construction while logical dedup stays exact",
+      "risks": "contract: judge verdicts and cache keys unchanged; dependency: none; concurrency: none; state: identity-only memo, so a mutated check still gets a fresh key",
+      "mitigation": "failing-first counter test plus verdict parity, full npm test and strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "task_id": "static-summaries-cache-1123",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/2] Memoize suiteSummary and multistepSummary: 879us + 62us per /api/benchmarks/suite request",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795390499.5399377,
-      "timestamp_str": "2026-11-23 02:34:59",
-      "agent": "opencode:hy4-flash-free",
-      "impact_assessment": {
-        "why": "User directive to keep improving speeds; suite and multistep summaries are rebuilt from static definitions on every poll",
-        "benefits": "Bench suite route becomes near-free; no change to summary shape",
-        "risks": "contract: summary values unchanged; dependency: Node Map only; concurrency: none; state: no tuning settings or suite hashes change",
-        "mitigation": "failing-first tests with computation counters and custom-argument coverage, full npm test and strict gates; revert if regression"
-      },
-      "plan_digest": "cb565eb197a2997b1d88bc8668d0ef8bedf0d15d11cf79b0d8cb7bd9a70877f6",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "static-summaries-cache-1123",
       "phase": "phase 4",
@@ -409,6 +388,30 @@
         ],
         "forced": false
       }
+    },
+    {
+      "task_id": "judge-key-memo-1123",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/2] Memoize the judge cache key by argument identity: 9.37us -> ~0.1us per repeated cache hit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795393455.7301896,
+      "timestamp_str": "2026-11-23 03:24:15",
+      "agent": "opencode:hy4-flash-free",
+      "impact_assessment": {
+        "why": "User directive to keep improving speeds; every runJavaScriptTests cache hit re-stringified the whole 40-case check to build its key",
+        "benefits": "Repeated identical (text, check, timeout) judge calls skip key construction while logical dedup stays exact",
+        "risks": "contract: judge verdicts and cache keys unchanged; dependency: none; concurrency: none; state: identity-only memo, so a mutated check still gets a fresh key",
+        "mitigation": "failing-first counter test plus verdict parity, full npm test and strict gates; revert if regression"
+      },
+      "plan_digest": "cb060381bbc859bdaf3f813a40e2d4af5fef88fffbd9084f03057a54ddda7309",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }

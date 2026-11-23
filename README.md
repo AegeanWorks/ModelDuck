@@ -758,7 +758,8 @@ modelduck/
 │   ├── buffered-answer-summary.test.js
 │   ├── cached-public-list.test.js
 │   ├── overview-profile-probe.test.js
-│   └── buffered-item-outcomes.test.js
+│   ├── buffered-item-outcomes.test.js
+│   └── judge-key-memo.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml

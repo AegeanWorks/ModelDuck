@@ -1614,3 +1614,12 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: medians drop to **9.53 ms (1.25x)** and **13.97 ms (1.07x)**; both were faster in all five rounds. Three failing-first tests pin read modes, saturation counts, CRLF/malformed/error rows, settings grouping, width filtering and the row cap. The `node:readline` dependency is no longer imported anywhere in this module.
 - **Cross-principle check:** PRINCIPLE-010: app-written bounded files, one at a time; PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: read-only tune-run analysis, no tuning or suite change.
 
+### ADR-217: Memoize the judge cache key by argument identity
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: Continuing the speed work, every `runJavaScriptTests` cache hit rebuilt its key by stringifying the whole check, including all 40 cases. A controlled 5-round A/B measured a **4.80 us** median per repeated hit.
+- **Decision**: Keep a one-entry memo of the last `(text, check, timeoutMs)` triple by identity. An identity hit returns the previously built key; any different argument rebuilds it. Because comparison is by identity, a mutated check still gets a fresh key and logical dedup is unchanged.
+- **Consequences**: the repeated-hit cost drops to a **0.78 us** median (**6.2x**). Two failing-first tests pin key reuse for identical arguments and fresh keys/verdicts for different text or checks.
+- **Stability fix**: the recurring `model-registry.test.js` rescan flake (external add/delete inside the 1 s directory-stamp TTL) was repaired by using `scan({ force: true })` for the two rescans that test *rescan behavior*. No assertion was changed or weakened; three consecutive full runs passed.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests and a determinism fix, no assertion weakened; G-003: no prompt, check, suite version or hash changed.
+

@@ -151,11 +151,13 @@ test("per-model sampling overrides are pruned on delete and rescan", async (t) =
 
   // And a rescan drops overrides for models that vanished outside the API.
   await writeFile(path.join(directory, "b.gguf"), Buffer.from("GGUF12345678"));
-  const [again] = await registry.scan();
+  // Force a real rescan: an external add/delete can leave the directory stamp
+  // unchanged inside the 1s scan TTL, and this test is about rescan pruning.
+  const [again] = await registry.scan({ force: true });
   registry.setModelSampling(again.id, { temperature: 0.1 });
   assert.ok(registry.getModelSampling(again.id));
   await rm(path.join(directory, "b.gguf"));
-  await registry.scan();
+  await registry.scan({ force: true });
   assert.equal(registry.getModelSampling(again.id), null, "a rescan prunes overrides for missing files");
 });
 
