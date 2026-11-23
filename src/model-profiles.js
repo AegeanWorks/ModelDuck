@@ -64,12 +64,31 @@ function fileFor(directory, catalogId) {
   return path.join(directory, `${catalogId}.json`);
 }
 
+// File names are immutable strings and the catalog is a module constant, so
+// the derived id can be computed once per name.
+const PROFILE_ID_CACHE = new Map();
+const PROFILE_ID_LIMIT = 4096;
+let profileIdComputes = 0;
+export function profileIdComputations() {
+  return profileIdComputes;
+}
+export function resetProfileIdCache() {
+  PROFILE_ID_CACHE.clear();
+  profileIdComputes = 0;
+}
+
 /** The profile name of an installed model file: its catalog id, or a safe form of the file name. */
 export function profileIdFor(fileName) {
-  const base = path.basename(String(fileName).replace(/\\/g, "/"));
+  const name = String(fileName);
+  const cached = PROFILE_ID_CACHE.get(name);
+  if (cached !== undefined) return cached;
+  profileIdComputes += 1;
+  const base = path.basename(name.replace(/\\/g, "/"));
   const catalog = MODEL_CATALOG.find((model) => model.file.toLowerCase() === base.toLowerCase());
-  if (catalog) return catalog.id;
-  return base.replace(/\.gguf$/i, "").toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^[^a-z0-9]+/, "");
+  const id = catalog ? catalog.id : base.replace(/\.gguf$/i, "").toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^[^a-z0-9]+/, "");
+  if (PROFILE_ID_CACHE.size >= PROFILE_ID_LIMIT) PROFILE_ID_CACHE.delete(PROFILE_ID_CACHE.keys().next().value);
+  PROFILE_ID_CACHE.set(name, id);
+  return id;
 }
 
 const pick = (settings, keys) => Object.fromEntries(keys.filter((key) => key in settings).map((key) => [key, settings[key]]));

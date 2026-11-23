@@ -1752,3 +1752,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: `slotKeyOf()` and `capFreeKeyOf()` drop from **1.05 / 1.11 us to 0.03 us** (~35x). Two failing-first tests pin single construction, seed inclusion and distinct-settings isolation.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no tune grid, axis or decision rule changed.
 
+### ADR-234: Cache profile ids by filename
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: `profileIdFor()` rescanned the 9-model catalog and ran a regex chain per model on `/api/models`, `/api/recommendations` and `/api/tune/overview`, at **0.44 us** per call.
+- **Decision**: Cache the derived id by the immutable filename string in a bounded 4096-entry Map. The catalog is a module constant.
+- **Consequences**: the helper drops to **0.01 us** (~44x). Two failing-first tests pin single computation and identical ids for catalog models and hand-imported names.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no profile id or catalog mapping changed.
+
