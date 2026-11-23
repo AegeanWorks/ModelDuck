@@ -16,7 +16,14 @@ function stdev(values) {
 }
 
 /** Stable identity of one settings object; shared by the measurement cache and the gate answer cache (IDEA-1764). */
-export const settingsKey = (settings) => JSON.stringify(Object.keys(settings).sort().map((key) => [key, settings[key]]));
+let settingsKeyComputes = 0;
+export function slotKeyComputations() {
+  return settingsKeyComputes;
+}
+export const settingsKey = (settings) => {
+  settingsKeyComputes += 1;
+  return JSON.stringify(Object.keys(settings).sort().map((key) => [key, settings[key]]));
+};
 
 /**
  * Whether the thread count can change an answer's text. With every layer on
@@ -28,11 +35,31 @@ export const settingsKey = (settings) => JSON.stringify(Object.keys(settings).so
 export const threadsShapeText = (settings) =>
   settings.timed === true || settings.gpuLayers !== "max" || !settings.gpuBackend || settings.gpuBackend === "cpu";
 
+// One settings object is measured across many items in the same rung, so its
+// keys are built once per object and seed. Identity keys are safe here: the
+// slots Map already treats settings objects as stable measurement keys.
+const SLOT_KEY_CACHE = new WeakMap();
+const CAPFREE_KEY_CACHE = new WeakMap();
+function cachedKey(cache, settings, seed, compute) {
+  let bySeed = cache.get(settings);
+  if (!bySeed) {
+    bySeed = new Map();
+    cache.set(settings, bySeed);
+  }
+  const key = bySeed.get(seed);
+  if (key !== undefined) return key;
+  const built = compute();
+  bySeed.set(seed, built);
+  return built;
+}
+
 /** The measurement cache's slot key for one settings object and seed. */
 export function slotKeyOf(settings, seed) {
-  if (threadsShapeText(settings) || !("threads" in settings)) return `${settingsKey(settings)}|${seed}`;
-  const { threads: _threads, ...rest } = settings;
-  return `${settingsKey(rest)}|${seed}`;
+  return cachedKey(SLOT_KEY_CACHE, settings, seed, () => {
+    if (threadsShapeText(settings) || !("threads" in settings)) return `${settingsKey(settings)}|${seed}`;
+    const { threads: _threads, ...rest } = settings;
+    return `${settingsKey(rest)}|${seed}`;
+  });
 }
 
 /**
@@ -43,8 +70,10 @@ export const capOf = (settings) => (Number(settings.maxTokens) > 0 ? Number(sett
 
 /** The slot key without the cap: slots with the same one differ only in `maxTokens`. */
 export function capFreeKeyOf(settings, seed) {
-  const { maxTokens: _cap, ...rest } = settings;
-  return slotKeyOf(rest, seed);
+  return cachedKey(CAPFREE_KEY_CACHE, settings, seed, () => {
+    const { maxTokens: _cap, ...rest } = settings;
+    return slotKeyOf(rest, seed);
+  });
 }
 
 /** An answer that stopped on its own (cut, aborted and failed ones never do) and how many tokens it took. */

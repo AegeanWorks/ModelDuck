@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "setting-presets-cache-1123",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795452282.7071028,
+    "task_id": "slot-key-cache-1123",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795452481.4212875,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795459482.7071028,
+    "lease_until": 1795459681.4212875,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,35 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795452283.5002828,
-    "completed_head": "525003331abd264022b9d3f91c67fd60f99e384f",
-    "completed_tree": "8e6b3c33287d5a6165ba13c836efb9523562c696"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; every measured item re-stringified the same frozen settings object to compute slot and cap-family keys",
+      "benefits": "Per-rung measurement skips repeated key construction while distinct settings objects still get their own keys",
+      "risks": "contract: key strings unchanged; dependency: WeakMap only; concurrency: none; state: settings objects are already used as stable slot keys by the existing slots Map",
+      "mitigation": "failing-first computation counter test plus key-equivalence and distinct-settings checks, full npm test and strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Short-circuit the single-place candidate loop when no lead-in, label or sentence applies: 1.31x",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Bare-answer checks return one normalized string without Set/array construction",
-        "mitigation": "failing-first shortcut counter test plus 13-case equivalence including uppercase lead-ins, full npm test and strict gates; revert if regression",
-        "risks": "contract: candidate arrays identical for all lead-in, label and sentence shapes; dependency: none; concurrency: none; state: pure function",
-        "why": "User directive to keep improving speeds; answerCandidates remains the top in-process judge function and bare answers still built a Set and ran a colon regex for nothing"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "9c76bad7d6a07b809f7725d17ad8b6780a0f6b5371bd6a2abbd0e6b70ac3963c",
-      "status": "in_progress",
-      "task_id": "candidate-loop-shortcut-1123",
-      "timestamp": 1795428593.294485,
-      "timestamp_str": "2026-11-23 13:09:53",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "checklists": "passed",
@@ -409,6 +388,30 @@
       "task_id": "setting-presets-cache-1123",
       "timestamp": 1795452283.5821953,
       "timestamp_str": "2026-11-23 19:44:43"
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Cache slotKeyOf/capFreeKeyOf by settings identity: ~1us -> ~0.05us per measured item",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Per-rung measurement skips repeated key construction while distinct settings objects still get their own keys",
+        "mitigation": "failing-first computation counter test plus key-equivalence and distinct-settings checks, full npm test and strict gates; revert if regression",
+        "risks": "contract: key strings unchanged; dependency: WeakMap only; concurrency: none; state: settings objects are already used as stable slot keys by the existing slots Map",
+        "why": "User directive to keep improving speeds; every measured item re-stringified the same frozen settings object to compute slot and cap-family keys"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "3567610fc1911b0eba20639c2aa3732d06856f2e5b0ddc93049b833c19774a0a",
+      "status": "in_progress",
+      "task_id": "slot-key-cache-1123",
+      "timestamp": 1795452481.4212875,
+      "timestamp_str": "2026-11-23 19:48:01",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }

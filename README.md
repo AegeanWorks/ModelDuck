@@ -774,7 +774,8 @@ modelduck/
 │   ├── normalize-value-cache.test.js
 │   ├── setting-names-cache.test.js
 │   ├── public-catalog-cache.test.js
-│   └── setting-presets-cache.test.js
+│   ├── setting-presets-cache.test.js
+│   └── slot-key-cache.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml

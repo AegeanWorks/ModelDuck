@@ -1744,3 +1744,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: the helper drops to **0.02 us** (~12x). Two failing-first tests pin single construction, content and array-level caller isolation.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no preset value changed.
 
+### ADR-233: Cache tune slot and cap-family keys by settings identity
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: `Measurements.measure()` is called once per item with the same settings object for a whole rung, and each call re-stringified that object to build its slot key and cap-family key (~1 us each).
+- **Decision**: Cache both key builders in `WeakMap`s keyed by the settings object and the seed. The existing `slots` Map already treats settings objects as stable measurement keys, so identity caching matches that contract.
+- **Consequences**: `slotKeyOf()` and `capFreeKeyOf()` drop from **1.05 / 1.11 us to 0.03 us** (~35x). Two failing-first tests pin single construction, seed inclusion and distinct-settings isolation.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no tune grid, axis or decision rule changed.
+
