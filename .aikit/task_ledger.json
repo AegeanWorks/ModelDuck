@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "parallel-scan-magic-1123",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795456444.6950338,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795456894.5685627,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795463644.6950338,
+    "lease_until": 1795464094.5685627,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,56 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; after stat parallelization, 200 sequential four-byte magic reads still cost ~25ms on a first scan",
-      "benefits": "First scans of large libraries check all headers concurrently while preserving per-file validation",
-      "risks": "contract: same models listed and same files rejected; dependency: none; concurrency: independent read-only four-byte reads, results indexed by position; state: cached files still skip header reads",
-      "mitigation": "failing-first mode seam plus multi-model valid/invalid equivalence test, full npm test and strict gates; revert if regression"
-    }
+    "completed_at": 1795456895.8569334,
+    "completed_head": "1063de03f5a586648724d144b4dc7b1a5d16b662",
+    "completed_tree": "571235d6333bf5c8c58d718c1c3a57105bfb0cc0"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Cache slotKeyOf/capFreeKeyOf by settings identity: ~1us -> ~0.05us per measured item",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Per-rung measurement skips repeated key construction while distinct settings objects still get their own keys",
-        "mitigation": "failing-first computation counter test plus key-equivalence and distinct-settings checks, full npm test and strict gates; revert if regression",
-        "risks": "contract: key strings unchanged; dependency: WeakMap only; concurrency: none; state: settings objects are already used as stable slot keys by the existing slots Map",
-        "why": "User directive to keep improving speeds; every measured item re-stringified the same frozen settings object to compute slot and cap-family keys"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "3567610fc1911b0eba20639c2aa3732d06856f2e5b0ddc93049b833c19774a0a",
-      "status": "in_progress",
-      "task_id": "slot-key-cache-1123",
-      "timestamp": 1795452481.4212875,
-      "timestamp_str": "2026-11-23 19:48:01",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[2/2] DELIVERED: slotKeyOf 1.05->0.03us, capFreeKeyOf 1.11->0.03us (~35x); 1170 tests pass",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "slot-key-cache-1123",
-      "timestamp": 1795452722.5779572,
-      "timestamp_str": "2026-11-23 19:52:02",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "delivery": {
@@ -412,6 +367,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: first scan 200 models 47.7->9.5ms (A/B 3.65x); 1181 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "parallel-scan-magic-1123",
+      "timestamp": 1795456894.5685627,
+      "timestamp_str": "2026-11-23 21:01:34",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'parallel-scan-magic-1123' completed successfully.",
+      "head": "1063de03f5a586648724d144b4dc7b1a5d16b662",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "parallel-scan-magic-1123",
+      "timestamp": 1795456895.9310453,
+      "timestamp_str": "2026-11-23 21:01:35"
     }
   ]
 }
