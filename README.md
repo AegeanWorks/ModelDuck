@@ -779,7 +779,8 @@ modelduck/
 │   ├── profile-id-cache.test.js
 │   ├── array-compare-fast.test.js
 │   ├── scan-magic-skip.test.js
-│   └── parallel-scan-stat.test.js
+│   ├── parallel-scan-stat.test.js
+│   └── parallel-scan-magic.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml

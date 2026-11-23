@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "parallel-scan-stat-1123",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795455528.6866539,
+    "task_id": "parallel-scan-magic-1123",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795456444.6950338,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795462728.6866539,
+    "lease_until": 1795463644.6950338,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,28 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795455529.373382,
-    "completed_head": "38f0efe5cbf97bf438643852efe64196f4130847",
-    "completed_tree": "03a693f09da3c59d63258f2b6d8a77bf20b41f6b"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; after stat parallelization, 200 sequential four-byte magic reads still cost ~25ms on a first scan",
+      "benefits": "First scans of large libraries check all headers concurrently while preserving per-file validation",
+      "risks": "contract: same models listed and same files rejected; dependency: none; concurrency: independent read-only four-byte reads, results indexed by position; state: cached files still skip header reads",
+      "mitigation": "failing-first mode seam plus multi-model valid/invalid equivalence test, full npm test and strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'setting-presets-cache-1123' completed successfully.",
-      "head": "525003331abd264022b9d3f91c67fd60f99e384f",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "setting-presets-cache-1123",
-      "timestamp": 1795452283.5821953,
-      "timestamp_str": "2026-11-23 19:44:43"
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "description": "[1/2] Cache slotKeyOf/capFreeKeyOf by settings identity: ~1us -> ~0.05us per measured item",
@@ -402,6 +388,30 @@
       "task_id": "parallel-scan-stat-1123",
       "timestamp": 1795455529.603395,
       "timestamp_str": "2026-11-23 20:38:49"
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Parallelize uncached magic-header checks in the registry scan: first scan 200 models 47.7ms -> 9.5ms, controlled A/B 3.65x",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "First scans of large libraries check all headers concurrently while preserving per-file validation",
+        "mitigation": "failing-first mode seam plus multi-model valid/invalid equivalence test, full npm test and strict gates; revert if regression",
+        "risks": "contract: same models listed and same files rejected; dependency: none; concurrency: independent read-only four-byte reads, results indexed by position; state: cached files still skip header reads",
+        "why": "User directive to keep improving speeds; after stat parallelization, 200 sequential four-byte magic reads still cost ~25ms on a first scan"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "53ad91121ca2c98c15970265c7fe0ba74edf2099ea04bbadd0ac12e93bcd5b24",
+      "status": "in_progress",
+      "task_id": "parallel-scan-magic-1123",
+      "timestamp": 1795456444.6950338,
+      "timestamp_str": "2026-11-23 20:54:04",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }

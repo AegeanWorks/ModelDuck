@@ -1795,3 +1795,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: a first scan of 200 models drops from **63.4 ms to 5.9 ms**; a controlled 5-round A/B measured **14.1 ms → 4.3 ms (3.28x)**. Two failing-first tests pin the mode and that valid models are still listed in sorted order while bad/tiny/non-GGUF files are skipped.
 - **Cross-principle check:** PRINCIPLE-010: concurrency only for independent read-only syscalls; PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: no registry contract changed.
 
+### ADR-239: Parallelize uncached magic-header checks in the scan
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: After parallelizing stats, the first scan of 200 models still took **47.7 ms** because the four-byte GGUF header of each uncached file was read sequentially (~25 ms for 200 files).
+- **Decision**: Compute all cache keys from the already-parallel stats, then check every uncached header with one `Promise.all`, storing results by position. Cached files keep skipping the read. Metadata reading stays sequential.
+- **Consequences**: a first scan of 200 models drops from **47.7 ms to 9.5 ms**; a controlled 5-round A/B measured **40.2 ms → 11.0 ms (3.65x)**. Three failing-first tests pin the mode, that all headers are checked on a first scan, and that cached rescans skip them.
+- **Cross-principle check:** PRINCIPLE-010: concurrency only for independent read-only four-byte reads; PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: no registry contract changed.
+
