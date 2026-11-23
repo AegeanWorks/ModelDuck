@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "buffered-item-outcomes-1123",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795392999.0703692,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795393191.1439247,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795400199.0703692,
+    "lease_until": 1795400391.1439247,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,49 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; itemOutcomes is the last large JSONL reader still using readline at 12.52ms for 20k rows",
-      "benefits": "Saturating-item analysis for tune restore becomes faster with identical counts",
-      "risks": "contract: saturated set and per-item counts unchanged including malformed/error rows; dependency: Node fs only; concurrency: none; state: app-written bounded answers files read one at a time",
-      "mitigation": "failing-first equivalence test with CRLF, malformed and error rows, full npm test and strict gates; revert if regression"
-    }
+    "completed_at": 1795393191.5543287,
+    "completed_head": "8c9fb614a992d7c047496f1e8353af7da74d4d69",
+    "completed_tree": "4a4971618b57a2866cf55d69f5ad7f5aa8daa849"
   },
   "checkpoints": [
-    {
-      "task_id": "static-catalog-cache-1123",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[2/2] DELIVERED: machineCatalog 8.06us -> 0.03us; sandbox env/flags A/B all rejected; 1122 tests pass",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795390338.6979158,
-      "timestamp_str": "2026-11-23 02:32:18",
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "task_id": "static-catalog-cache-1123",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'static-catalog-cache-1123' completed successfully.",
-      "status": "completed",
-      "timestamp": 1795390341.1644473,
-      "timestamp_str": "2026-11-23 02:32:21",
-      "agent": "opencode:hy4-flash-free",
-      "head": "79a3f5d1bd3d00117fc5024a45ad136429d94db7",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
     {
       "task_id": "static-summaries-cache-1123",
       "phase": "phase 2",
@@ -412,6 +374,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "task_id": "buffered-item-outcomes-1123",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[2/2] DELIVERED: itemOutcomes 11.90->9.53ms (1.25x), cachedAnswers 14.94->13.97ms (1.07x); 1137 tests pass",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795393191.1439247,
+      "timestamp_str": "2026-11-23 03:19:51",
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "buffered-item-outcomes-1123",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'buffered-item-outcomes-1123' completed successfully.",
+      "status": "completed",
+      "timestamp": 1795393191.6422374,
+      "timestamp_str": "2026-11-23 03:19:51",
+      "agent": "opencode:hy4-flash-free",
+      "head": "8c9fb614a992d7c047496f1e8353af7da74d4d69",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
     }
   ]
 }
