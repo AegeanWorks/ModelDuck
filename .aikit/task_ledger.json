@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "array-compare-fast-1123",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795453755.3536184,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795454033.6293333,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795460955.3536184,
+    "lease_until": 1795461233.6293333,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,49 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; promptAxes and systemPromptOptIn stringified arrays twice per comparison just to test equality",
-      "benefits": "Prompt axis generation and step normalization skip four string allocations per comparison",
-      "risks": "contract: equality results identical for the dense string arrays used by tune steps; dependency: none; concurrency: none; state: pure function",
-      "mitigation": "failing-first mode seam plus equivalence test over equal/different/empty arrays, full npm test and strict gates; revert if regression"
-    }
+    "completed_at": 1795454034.2450786,
+    "completed_head": "d2d72bf4ee5b5c35baed9f45da403d998e8f78a8",
+    "completed_tree": "8ecbae8081c3677e4e44dad82bba127d93545205"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[2/2] DELIVERED: normalized expected values cached (9.58x helper); exact 0.57->0.49us in 9/9 rounds; plainText variants rejected; 1162 tests pass",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "normalize-answer-value-cache-1123",
-      "timestamp": 1795450200.1015785,
-      "timestamp_str": "2026-11-23 19:10:00",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'normalize-answer-value-cache-1123' completed successfully.",
-      "head": "72b6627717bffc2b2ee914bdcebc40f085658ebf",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "normalize-answer-value-cache-1123",
-      "timestamp": 1795450200.895362,
-      "timestamp_str": "2026-11-23 19:10:00"
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "description": "[1/2] Cache the static settingNames() array: 13us -> ~0.1us per call on tune API routes",
@@ -412,6 +374,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: array comparison 20x, promptAxes 4.71->2.36us (~2x); 1174 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "array-compare-fast-1123",
+      "timestamp": 1795454033.6293333,
+      "timestamp_str": "2026-11-23 20:13:53",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'array-compare-fast-1123' completed successfully.",
+      "head": "d2d72bf4ee5b5c35baed9f45da403d998e8f78a8",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "array-compare-fast-1123",
+      "timestamp": 1795454034.3271563,
+      "timestamp_str": "2026-11-23 20:13:54"
     }
   ]
 }
