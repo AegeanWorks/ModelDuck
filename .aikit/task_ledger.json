@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "plain-candidate-normalize-1123",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795395705.434187,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795395877.2037792,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795402905.434187,
+    "lease_until": 1795403077.2037792,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,55 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; answerCandidates normalizes strings already stripped of fences by plainText, so each one re-ran a fence regex for nothing",
-      "benefits": "Exact and oneOf checks avoid one trim + one regex per candidate",
-      "risks": "contract: normalized candidate strings identical because candidates are proven fence-free; dependency: none; concurrency: none; state: pure function",
-      "mitigation": "failing-first fence-strip counter test plus verdict equivalence, full npm test and strict gates; revert if regression"
-    }
+    "completed_at": 1795395877.6070101,
+    "completed_head": "232491a782c5bece95c4086c391020efeb736c16",
+    "completed_tree": "ea829eed801b68dad6cfe9d4d9b31bc5d9a6cb51"
   },
   "checkpoints": [
-    {
-      "task_id": "buffered-item-outcomes-1123",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'buffered-item-outcomes-1123' completed successfully.",
-      "status": "completed",
-      "timestamp": 1795393191.6422374,
-      "timestamp_str": "2026-11-23 03:19:51",
-      "agent": "opencode:hy4-flash-free",
-      "head": "8c9fb614a992d7c047496f1e8353af7da74d4d69",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
-    {
-      "task_id": "judge-key-memo-1123",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/2] Memoize the judge cache key by argument identity: 9.37us -> ~0.1us per repeated cache hit",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795393455.7301896,
-      "timestamp_str": "2026-11-23 03:24:15",
-      "agent": "opencode:hy4-flash-free",
-      "impact_assessment": {
-        "why": "User directive to keep improving speeds; every runJavaScriptTests cache hit re-stringified the whole 40-case check to build its key",
-        "benefits": "Repeated identical (text, check, timeout) judge calls skip key construction while logical dedup stays exact",
-        "risks": "contract: judge verdicts and cache keys unchanged; dependency: none; concurrency: none; state: identity-only memo, so a mutated check still gets a fresh key",
-        "mitigation": "failing-first counter test plus verdict parity, full npm test and strict gates; revert if regression"
-      },
-      "plan_digest": "cb060381bbc859bdaf3f813a40e2d4af5fef88fffbd9084f03057a54ddda7309",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "judge-key-memo-1123",
       "phase": "phase 4",
@@ -418,6 +374,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "task_id": "plain-candidate-normalize-1123",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[2/2] DELIVERED: exact 1.39->1.32us, oneOf 1.92->1.88us (small but consistent A/B); 1150 tests pass",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795395877.2037792,
+      "timestamp_str": "2026-11-23 04:04:37",
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "plain-candidate-normalize-1123",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'plain-candidate-normalize-1123' completed successfully.",
+      "status": "completed",
+      "timestamp": 1795395877.9841716,
+      "timestamp_str": "2026-11-23 04:04:37",
+      "agent": "opencode:hy4-flash-free",
+      "head": "232491a782c5bece95c4086c391020efeb736c16",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
     }
   ]
 }
