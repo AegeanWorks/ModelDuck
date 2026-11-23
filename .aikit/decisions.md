@@ -1728,3 +1728,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: the helper drops to **0.03 us** per call (~434x). Two failing-first tests pin single construction, stage order, content and caller-mutation isolation. An initial test that guessed non-existent names was corrected to assert the real static list.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no tune step, axis or setting changed.
 
+### ADR-231: Memoize the public catalog view
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: `publicCatalog()` rebuilt a 9-model array with derived homepage strings on every `/api/state`, `/api/recommendations` and tune request, at **0.29 us** per call.
+- **Decision**: Build the derived view once from the static `MODEL_CATALOG` constant and return a fresh array slice to callers. All callers were checked to only read the rows.
+- **Consequences**: the helper drops to **0.02 us** (~15x). Two failing-first tests pin single construction, value/order preservation and array-level caller isolation.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no catalog entry or homepage changed.
+

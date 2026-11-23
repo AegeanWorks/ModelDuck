@@ -186,9 +186,21 @@ export function modelHomepage(model) {
   return `https://huggingface.co/${model.repo}`;
 }
 
+// The catalog is a static module constant; callers only read its rows. Build
+// the derived view once and hand out a fresh array so a caller cannot change
+// the cache's own list of models.
+let cachedPublicCatalog = null;
+let publicCatalogComputes = 0;
+export function publicCatalogComputations() {
+  return publicCatalogComputes;
+}
 export function publicCatalog() {
-  return MODEL_CATALOG.map((model) => ({
-    ...model,
-    homepage: modelHomepage(model),
-  }));
+  if (cachedPublicCatalog === null) {
+    publicCatalogComputes += 1;
+    cachedPublicCatalog = MODEL_CATALOG.map((model) => ({
+      ...model,
+      homepage: modelHomepage(model),
+    }));
+  }
+  return cachedPublicCatalog.slice();
 }
