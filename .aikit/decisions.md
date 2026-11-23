@@ -1859,3 +1859,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: isolated comparison was **5.3x**; a controlled 5-round end-to-end A/B on `recommend()` measured **208.7 us → 32.4 us (6.44x)**. Two failing-first tests (confirmed against HEAD) pin the single map build and that a variant losing a base item is still rejected.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no recommendation logic or verdict changed.
 
+### ADR-247: In-process syntax short-circuit for judge answers
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: Prose or malformed-code answers still spawned a sandboxed child that immediately failed to parse the script — every case reported "did not run", a verdict fully determined before any process starts.
+- **Decision**: Before spawning, parse the exact embedded code with `new Script()` in-process (the same V8 the child uses). On a parse failure, return the deterministic per-case "did not run" verdict directly, with the same `unreadable = !named` and the same cache insertion. Valid code keeps the child path; no isolation property changes because no code is executed.
+- **Consequences**: a controlled 5-round end-to-end A/B on a mixed workload (80% syntax-error answers) measured **2201.8 ms → 230.2 ms (9.6x)**. Verdicts were verified byte-identical over 7 syntax-error shapes before shipping; a failing-first counter test plus exact-verdict tests pin the shortcut and that valid code still spawns.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no prompt, check or verdict changed; no code from a failing answer is ever executed in-process.
+

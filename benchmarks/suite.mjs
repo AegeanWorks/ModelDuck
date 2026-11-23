@@ -1092,6 +1092,11 @@ const jsTestKey = (text, check, timeoutMs) => {
 export function javascriptTestCacheStats() {
   return { size: JS_TEST_CACHE.size, hits: jsTestHits, misses: jsTestMisses };
 }
+// Test seam: how many answers failed the in-process syntax check.
+let syntaxShortcuts = 0;
+export function syntaxShortcutCount() {
+  return syntaxShortcuts;
+}
 export function resetJavaScriptTestCache() {
   JS_TEST_CACHE.clear();
   jsTestHits = 0;
@@ -1129,6 +1134,24 @@ export async function runJavaScriptTests(text, check, { timeoutMs = 5000 } = {})
   // A change that may touch several functions keeps every code block and runs through a hidden scenario (ADR-061).
   const code = check.harness ? allCode(text) : extractCode(text, check.entry);
   const named = check.harness ? DEFINES_ANY.test(code) : new RegExp(`(?<![\\w$])${escapeRegExp(check.entry)}(?![\\w$])`).test(code);
+  // The child embeds this exact code, so a syntax error here fails the whole
+  // script before any case runs. That verdict is deterministic: every case
+  // reports "did not run" and no child process is needed.
+  try {
+    new Script(code.replace(/^\s*export\s+(default\s+)?/gm, ""), { filename: "answer.js" });
+  } catch {
+    syntaxShortcuts += 1;
+    const checked = cases.map((testCase) => ({
+      type: "jsTests",
+      passed: false,
+      unreadable: !named,
+      detail: `${check.entry}(${JSON.stringify(testCase.args).slice(1, -1)}): did not run (syntax or runtime error)`,
+    }));
+    jsTestMisses += 1;
+    if (JS_TEST_CACHE.size >= JAVASCRIPT_TEST_CACHE_LIMIT) JS_TEST_CACHE.delete(JS_TEST_CACHE.keys().next().value);
+    JS_TEST_CACHE.set(cacheKey, checked.map((item) => ({ ...item })));
+    return checked;
+  }
   const id = randomBytes(12).toString("hex");
   const script = judgeScript({
     id,

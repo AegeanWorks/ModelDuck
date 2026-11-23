@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "recommend-smoke-map-1123",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795465878.658877,
+    "task_id": "syntax-shortcut-1123",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795467017.9585943,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795473078.658877,
+    "lease_until": 1795474217.9585943,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,52 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795465879.3745182,
-    "completed_head": "363afe9c1415f92f3225762cf910ddd25d85109c",
-    "completed_tree": "7068de2492408adfd73ac123d4f045b31821637a"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; prose or malformed-code answers spawned a child that immediately failed to parse the script",
+      "benefits": "Wrong-format answers are judged in-process with identical verdicts and no process spawn",
+      "risks": "contract: verdicts byte-identical, verified over 7 syntax-error shapes; dependency: node:vm already imported; concurrency: none; state: JS_TEST_CACHE stores the same result",
+      "mitigation": "failing-first shortcut-counter test plus exact verdict assertions, end-to-end A/B, full npm test and strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'rejection-adr-240-1123' completed successfully.",
-      "head": "1bc6c3a44b6501ddb3c584a529ed8c8c9275b9ef",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "rejection-adr-240-1123",
-      "timestamp": 1795458034.4686253,
-      "timestamp_str": "2026-11-23 21:20:34"
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Replace matchAll spread with an exec loop in chosenLetter: isolated 6.4x, end-to-end choice 0.75->0.56us (faster 9/9 rounds)",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Choice checks skip the array allocation while the last-match semantics stay identical",
-        "mitigation": "failing-first test (confirmed against HEAD) plus 12 verdict-shape checks, end-to-end A/B, full npm test and strict gates; revert if regression",
-        "risks": "contract: same chosen letter for all label shapes; dependency: none; concurrency: single-threaded synchronous exec with lastIndex reset each call; state: module-level regex lastIndex reset before use",
-        "why": "User directive to keep improving speeds; a CPU profile flagged the choice regex, and matchAll spread allocated an array of all matches just to read the last"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "4da9098e561ea657c914850c83f52243faa6a67ce6b7ad4c5ad26c0374f1a19d",
-      "status": "in_progress",
-      "task_id": "chosen-letter-scan-1123",
-      "timestamp": 1795458490.6558394,
-      "timestamp_str": "2026-11-23 21:28:10",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "checklists": "passed",
@@ -415,6 +377,54 @@
       "task_id": "recommend-smoke-map-1123",
       "timestamp": 1795465879.443369,
       "timestamp_str": "2026-11-23 23:31:19"
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Skip the child spawn for answers whose code has a syntax error: deterministic verdict, ~1-9us vs ~50ms",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Wrong-format answers are judged in-process with byte-identical verdicts and no process spawn",
+        "mitigation": "failing-first shortcut-counter test plus exact verdict assertions, end-to-end A/B on a mixed workload, full npm test and strict gates; revert if regression",
+        "risks": "contract: verdicts byte-identical, verified over 7 syntax-error shapes; dependency: node:vm already imported; concurrency: none; state: JS_TEST_CACHE stores the same result",
+        "why": "User directive to keep improving speeds; prose or malformed-code answers still spawned a child that immediately failed to parse the script"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "d86beec4ae8d012ad46ea61a510977aa427b62f46104878c18b1012079e672ab",
+      "status": "in_progress",
+      "task_id": "syntax-shortcut-1123",
+      "timestamp": 1795466584.126373,
+      "timestamp_str": "2026-11-23 23:43:04",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Skip the child spawn for syntax-error answers: byte-identical verdicts, end-to-end A/B 2201.8ms -> 230.2ms (9.6x) on mixed workload",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Wrong-format answers are judged in-process with identical verdicts and no process spawn",
+        "mitigation": "failing-first shortcut-counter test plus exact verdict assertions, end-to-end A/B, full npm test and strict gates; revert if regression",
+        "risks": "contract: verdicts byte-identical, verified over 7 syntax-error shapes; dependency: node:vm already imported; concurrency: none; state: JS_TEST_CACHE stores the same result",
+        "why": "User directive to keep improving speeds; prose or malformed-code answers spawned a child that immediately failed to parse the script"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "591c4f70f01e266aff36e6b4ddb5ae6f6970c06504b9d96a036983095e88d1cd",
+      "status": "in_progress",
+      "task_id": "syntax-shortcut-1123",
+      "timestamp": 1795467017.9585943,
+      "timestamp_str": "2026-11-23 23:50:17",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }
