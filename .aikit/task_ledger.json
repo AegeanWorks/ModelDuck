@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "overview-profile-probe-1123",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795392896.318593,
+    "task_id": "buffered-item-outcomes-1123",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795392999.0703692,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795400096.318593,
+    "lease_until": 1795400199.0703692,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,35 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795392897.4930925,
-    "completed_head": "f46901a27bd9519f83303f719d906d801cca92e6",
-    "completed_tree": "32a6413e2c30d1f6ae93d073506aa0171e744a4d"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; itemOutcomes is the last large JSONL reader still using readline at 12.52ms for 20k rows",
+      "benefits": "Saturating-item analysis for tune restore becomes faster with identical counts",
+      "risks": "contract: saturated set and per-item counts unchanged including malformed/error rows; dependency: Node fs only; concurrency: none; state: app-written bounded answers files read one at a time",
+      "mitigation": "failing-first equivalence test with CRLF, malformed and error rows, full npm test and strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "task_id": "static-catalog-cache-1123",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/2] Compute the static state-machine catalog once; health route rebuilt it at 8us/call",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795390035.2727866,
-      "timestamp_str": "2026-11-23 02:27:15",
-      "agent": "opencode:hy4-flash-free",
-      "impact_assessment": {
-        "why": "User directive to keep improving speeds; after larger wins, machineCatalog() still cost 8us per /api/health poll",
-        "benefits": "Read-only health route stops rebuilding an immutable catalog",
-        "risks": "contract: returned shape and values unchanged; dependency: Node only; concurrency: none; state: no tuning settings or prompts change",
-        "mitigation": "failing-first test with computation counter, full npm test and strict gates; revert if regression"
-      },
-      "plan_digest": "2627a76cf37215820b2dc4f651c8b958f86a58346d58e646ab4407a896452055",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "static-catalog-cache-1123",
       "phase": "phase 4",
@@ -409,6 +388,30 @@
         ],
         "forced": false
       }
+    },
+    {
+      "task_id": "buffered-item-outcomes-1123",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/2] Read answers.jsonl once in itemOutcomes instead of readline streaming: 12.52ms per 20k rows",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795392999.0703692,
+      "timestamp_str": "2026-11-23 03:16:39",
+      "agent": "opencode:hy4-flash-free",
+      "impact_assessment": {
+        "why": "User directive to keep improving speeds; itemOutcomes is the last large JSONL reader still using readline at 12.52ms for 20k rows",
+        "benefits": "Saturating-item analysis for tune restore becomes faster with identical counts",
+        "risks": "contract: saturated set and per-item counts unchanged including malformed/error rows; dependency: Node fs only; concurrency: none; state: app-written bounded answers files read one at a time",
+        "mitigation": "failing-first equivalence test with CRLF, malformed and error rows, full npm test and strict gates; revert if regression"
+      },
+      "plan_digest": "59f1a29cfd7f15a633a1488ff672de3a973810f54313361a6fac697b2f21f83b",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }

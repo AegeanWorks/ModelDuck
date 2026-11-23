@@ -1606,3 +1606,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: the same 60-model endpoint drops to a **1.03 ms** median (**4.24x**). Two failing-first tests pin zero profile loads for an unprofiled library and full parity when a saved profile exists.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: read-only tune overview, no tuning or suite change.
 
+### ADR-216: Buffer the two remaining tune-run JSONL readers
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: Continuing the speed work, `itemOutcomes()` and `cachedAnswers()` were the last large `answers.jsonl` readers still using `readline` streaming. A controlled 5-round A/B on 20k rows measured **11.90 ms** and **14.94 ms** medians.
+- **Decision**: Read each app-written answers file once and scan it by newline index. `cachedAnswers()` keeps its `limitRows` cap via a labeled break, and the now-unused `node:readline` import was removed. One file is buffered at a time, so peak memory stays bounded.
+- **Consequences**: medians drop to **9.53 ms (1.25x)** and **13.97 ms (1.07x)**; both were faster in all five rounds. Three failing-first tests pin read modes, saturation counts, CRLF/malformed/error rows, settings grouping, width filtering and the row cap. The `node:readline` dependency is no longer imported anywhere in this module.
+- **Cross-principle check:** PRINCIPLE-010: app-written bounded files, one at a time; PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: read-only tune-run analysis, no tuning or suite change.
+

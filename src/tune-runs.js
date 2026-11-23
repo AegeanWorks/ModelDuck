@@ -1,6 +1,5 @@
 import fs from "node:fs";
 import path from "node:path";
-import { createInterface } from "node:readline";
 
 import { AppError } from "./errors.js";
 import { ensureDirectory, readJsonWithQuarantine, writeJsonAtomic } from "./fs-atomic.js";
@@ -51,6 +50,10 @@ const ANSWER_SAVE_MS = 15_000;
 // line scan was ~23% faster than readline on 10k rows; answers files are bounded
 // by the tune's row cap and are already read whole by cachedAnswers().
 export const ANSWER_SUMMARY_READ_MODE = "buffered";
+
+// How itemOutcomes and cachedAnswers read app-written answers.jsonl files.
+export const ITEM_OUTCOMES_READ_MODE = "buffered";
+export const CACHED_ANSWERS_READ_MODE = "buffered";
 
 /** Start recording a run; the recorder keeps the summary and appends answers as they come. */
 export async function startRun(dir, { profileId, model, request, fingerprint = null, expectedAnswers = null, now = new Date(), pid = process.pid, clock = Date.now }) {
@@ -285,8 +288,14 @@ export async function cachedAnswers(dir, { profileId, fingerprint = null, limitR
       continue;
     }
     try {
-      const lines = createInterface({ input: fs.createReadStream(file, { encoding: "utf8" }), crlfDelay: Infinity });
-      for await (const line of lines) {
+      const text = await fs.promises.readFile(file, "utf8");
+      let start = 0;
+      scan: while (start < text.length) {
+        let end = text.indexOf("\n", start);
+        if (end === -1) end = text.length;
+        const line = text.slice(start, end);
+        start = end + 1;
+        if (!line.trim()) continue;
         let row;
         try {
           row = JSON.parse(line);
@@ -303,7 +312,7 @@ export async function cachedAnswers(dir, { profileId, fingerprint = null, limitR
         const callWidth = row.parallel ?? 1;
         const tuneWidth = row.tuneParallel ?? callWidth;
         if (want === 1 ? callWidth !== 1 : tuneWidth !== want) continue;
-        if (rows >= limitRows) break;
+        if (rows >= limitRows) break scan;
         rows += 1;
         const key = `${JSON.stringify(row.settings ?? null)}|${row.seed}`;
         const group = groups.get(key) ?? { settings: row.settings ?? {}, seed: row.seed, rows: [] };
@@ -333,8 +342,14 @@ export async function itemOutcomes(dir, { profileId, minObservations = 6, minSet
       continue; // a file name that cannot be a run id
     }
     try {
-      const lines = createInterface({ input: fs.createReadStream(file, { encoding: "utf8" }), crlfDelay: Infinity });
-      for await (const line of lines) {
+      const text = await fs.promises.readFile(file, "utf8");
+      let start = 0;
+      while (start < text.length) {
+        let end = text.indexOf("\n", start);
+        if (end === -1) end = text.length;
+        const line = text.slice(start, end);
+        start = end + 1;
+        if (!line.trim()) continue;
         let row;
         try {
           row = JSON.parse(line);
