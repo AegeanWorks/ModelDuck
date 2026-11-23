@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "history-trim-skip-1123",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795470483.7223883,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795470637.2816334,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795477683.7223883,
+    "lease_until": 1795477837.2816334,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,56 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; parseHistory trimmed every ~50KB history line, copying the whole file, just to detect blank lines",
-      "benefits": "Blank-line detection uses length/charCode without allocating; JSON.parse still rejects other whitespace lines",
-      "risks": "contract: identical runs and links, verified on real file plus appended blanks; dependency: none; concurrency: none; state: pure function",
-      "mitigation": "failing-first counter test plus parsed-result equivalence, full npm test and strict gates; revert if regression"
-    }
+    "completed_at": 1795470638.1608443,
+    "completed_head": "acad87bd60934e0d5d3ef9d49cd0cbe8d7f0b0ef",
+    "completed_tree": "9daee76056cb9f1f4f81a786fceb094da9e2d3a8"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Map-based lookup for smoke-item comparison in recommend: isolated 5.3x, end-to-end A/B 208.7us to 32.4us (6.44x)",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Report recommendations build one id map instead of rescanning the variant prompts",
-        "mitigation": "failing-first lookup-counter test plus verdict equivalence, end-to-end A/B, full npm test and strict gates; revert if regression",
-        "risks": "contract: same kept verdict and speedTuning; dependency: none; concurrency: none; state: local Map only",
-        "why": "User directive to keep improving speeds; the smoke comparison did a .some() and .find() per base prompt, an O(n^2) scan over ~300 items"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "95fee71bd891c25312f01d92095cd827772e359ea43e67e58b59b6e759970b5e",
-      "status": "in_progress",
-      "task_id": "recommend-smoke-map-1123",
-      "timestamp": 1795465286.11159,
-      "timestamp_str": "2026-11-23 23:21:26",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[2/2] DELIVERED: recommend() 208.7->32.4us (6.44x end-to-end); 1194 tests pass",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "recommend-smoke-map-1123",
-      "timestamp": 1795465878.658877,
-      "timestamp_str": "2026-11-23 23:31:18",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "delivery": {
@@ -438,6 +393,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: parseHistory 21.3->16.5ms (1.29x) on 6.75MB history; 1204 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "history-trim-skip-1123",
+      "timestamp": 1795470637.2816334,
+      "timestamp_str": "2026-11-24 00:50:37",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'history-trim-skip-1123' completed successfully.",
+      "head": "acad87bd60934e0d5d3ef9d49cd0cbe8d7f0b0ef",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "history-trim-skip-1123",
+      "timestamp": 1795470638.252837,
+      "timestamp_str": "2026-11-24 00:50:38"
     }
   ]
 }
