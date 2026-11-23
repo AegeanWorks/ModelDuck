@@ -757,7 +757,17 @@ export function answerCandidateShortcuts() {
  * or a short "The X is" sentence start. Never "contains anywhere", so a hedge such as
  * "3546 or 4596" is not read as either (ADR-052).
  */
+const ANSWER_CANDIDATES_CACHE = new Map();
+const ANSWER_CANDIDATES_LIMIT = 4096;
+let answerCandidateComputes = 0;
+export function answerCandidateComputations() {
+  return answerCandidateComputes;
+}
 function answerCandidates(text) {
+  const key = String(text ?? "");
+  const cached = ANSWER_CANDIDATES_CACHE.get(key);
+  if (cached !== undefined) return cached;
+  answerCandidateComputes += 1;
   const plain = plainText(text);
   // Most answers are a single line: without a newline the whole reply is its
   // own one line, so the regex split and two array passes are unnecessary.
@@ -785,14 +795,19 @@ function answerCandidates(text) {
     const sentence = lead.match(/^(?:the\s+)?[\w\s'-]{1,40}?\s+(?:is|was|are)\s+(.+)$/i)?.[1];
     if (places.length === 1 && lead === place && !label && !sentence) {
       candidateShortcuts += 1;
-      return [normalizePlain(place)];
+      const result = [normalizePlain(place)];
+      ANSWER_CANDIDATES_CACHE.set(key, result);
+      return result;
     }
     candidates.add(place);
     candidates.add(lead);
     if (label) candidates.add(label);
     if (sentence) candidates.add(sentence).add(sentence.replace(/^(?:in|at|on|from|by)\s+/i, ""));
   }
-  return [...candidates].map(normalizePlain);
+  const result = [...candidates].map(normalizePlain);
+  if (ANSWER_CANDIDATES_CACHE.size >= ANSWER_CANDIDATES_LIMIT) ANSWER_CANDIDATES_CACHE.delete(ANSWER_CANDIDATES_CACHE.keys().next().value);
+  ANSWER_CANDIDATES_CACHE.set(key, result);
+  return result;
 }
 
 // Reuse one global regex and exec in a loop: spreading matchAll just to take

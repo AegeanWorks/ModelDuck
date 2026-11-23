@@ -1931,3 +1931,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: five repeated cleanings drop from **0.84 us to 0.14 us (6x)** with identical output. Two failing-first tests (confirmed against HEAD) pin the single computation and unchanged verdicts.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no check or verdict changed.
 
+### ADR-256: Memoize answer candidates by reply string
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: `answerCandidates()` is a pure function of the reply text, but it was recomputed for each text check on the same answer and across load variants that reproduce the same greedy text.
+- **Decision**: A bounded 4096-entry `Map` caches the candidate array by the immutable reply string.
+- **Consequences**: a controlled 5-round end-to-end A/B on two text checks over the same reply measured **2.198 us → 0.213 us (10.32x)** with identical verdicts. Two failing-first tests (confirmed against HEAD) pin the single computation and unchanged verdicts.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no check or verdict changed.
+

@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "plaintext-memo-1123",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795473485.7569497,
+    "task_id": "answer-candidates-memo-1123",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795473947.307908,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795480685.7569497,
+    "lease_until": 1795481147.307908,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,28 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795473486.4826295,
-    "completed_head": "c9e85b88d71d1a0a002b4f1572d74a2adb379495",
-    "completed_tree": "380b5c8be0b9ca0beba2f2f51d7d820a2e4fab8a"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; answerCandidates is pure in the reply text but was recomputed for each text check and each load variant",
+      "benefits": "Repeated checks on the same answer reuse the candidate array while verdicts stay identical",
+      "risks": "contract: same candidate array; dependency: Map; concurrency: none; state: bounded 4096-entry cache of a pure function",
+      "mitigation": "failing-first counter test plus verdict equivalence, controlled end-to-end A/B, full npm test and strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'outputlimit-memo-1123' completed successfully.",
-      "head": "352d0270d21840863e781033e65e871c00f3720d",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "outputlimit-memo-1123",
-      "timestamp": 1795469827.5681565,
-      "timestamp_str": "2026-11-24 00:37:07"
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "description": "[1/2] Skip the per-line trim in parseHistory: 21.3ms -> 16.5ms (1.29x) on 6.75MB history",
@@ -415,6 +401,30 @@
       "task_id": "plaintext-memo-1123",
       "timestamp": 1795473486.6983626,
       "timestamp_str": "2026-11-24 01:38:06"
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Memoize answerCandidates by reply string: end-to-end A/B 2.198us -> 0.213us (10.32x) on two text checks",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Repeated checks on the same answer reuse the candidate array while verdicts stay identical",
+        "mitigation": "failing-first counter test plus verdict equivalence, controlled end-to-end A/B, full npm test and strict gates; revert if regression",
+        "risks": "contract: same candidate array; dependency: Map; concurrency: none; state: bounded 4096-entry cache of a pure function",
+        "why": "User directive to keep improving speeds; answerCandidates is pure in the reply text but was recomputed for each text check and each load variant"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "1cd7eab2e3dd71c0207bb10ca21f9d215f16596f02a92f8a1e18031ca2030e83",
+      "status": "in_progress",
+      "task_id": "answer-candidates-memo-1123",
+      "timestamp": 1795473947.307908,
+      "timestamp_str": "2026-11-24 01:45:47",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }
