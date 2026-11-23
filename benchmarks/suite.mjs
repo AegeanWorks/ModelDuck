@@ -812,6 +812,24 @@ export function givenNumberSeparatorRuns() {
   return separatorRuns;
 }
 
+// Reusable global regexes: an exec loop keeps only the last match without the
+// array allocation that `[...matchAll()].at(-1)` performs.
+const MARKED_NUMBER = /answer(?:\s+is)?\s*[:=]?\s*[$€£]?\s*(-?\d+(?:\.\d+)?)/gi;
+const ANY_NUMBER = /-?\d+(?:\.\d+)?/g;
+let numberScanRuns = 0;
+export function numberScanCount() {
+  return numberScanRuns;
+}
+function lastMatch(re, text) {
+  re.lastIndex = 0;
+  let match, last;
+  while ((match = re.exec(text)) !== null) {
+    last = match;
+    if (!match[0].length) re.lastIndex += 1;
+  }
+  return last;
+}
+
 /** The number a reply gives: the one after its last "Answer", else its last number (thousands separators and currency allowed). */
 function givenNumber(text) {
   let plain = plainText(text);
@@ -820,10 +838,11 @@ function givenNumber(text) {
     separatorRuns += 1;
     plain = plain.replace(/(\d),(?=\d{3}\b)/g, "$1");
   }
-  const marked = [...plain.matchAll(/answer(?:\s+is)?\s*[:=]?\s*[$€£]?\s*(-?\d+(?:\.\d+)?)/gi)].at(-1)?.[1];
+  numberScanRuns += 1;
+  const marked = lastMatch(MARKED_NUMBER, plain)?.[1];
   if (marked !== undefined) return Number(marked);
-  const numbers = [...plain.matchAll(/-?\d+(?:\.\d+)?/g)];
-  return numbers.length ? Number(numbers.at(-1)[0]) : null;
+  const last = lastMatch(ANY_NUMBER, plain)?.[0];
+  return last === undefined ? null : Number(last);
 }
 
 export function evaluateTextCheck(check, text) {

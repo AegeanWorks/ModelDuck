@@ -1819,3 +1819,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: isolated helper A/B was **6.4x**; the controlled 9-round end-to-end A/B on a realistic choice answer showed **0.75 us → 0.56 us**, faster in 9/9 rounds, while the unrelated exact path stayed flat (noise only). Two failing-first tests (confirmed against HEAD) pin the single scan and identical verdicts across 12 label shapes including multiple named letters.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no check or verdict changed.
 
+### ADR-242: Exec loops for the number-check regexes
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: A CPU profile flagged `givenNumber()`, whose two `[...matchAll()].at(-1)` spreads allocated arrays of every match just to read the last one.
+- **Decision**: Add a shared `lastMatch()` helper using reusable module-level global regexes with `lastIndex` reset and a zero-length guard; use it for both the "answer is N" and the fallback "last number" scans.
+- **Consequences**: isolated helper A/B was **3.6x**; the controlled 9-round end-to-end A/B showed the number check dropping from **0.60 us to 0.30 us**, faster in 9/9 rounds, with the exact control flat. Two failing-first tests (confirmed against HEAD) pin the single scan and identical verdicts across 8 answer shapes.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no check or verdict changed.
+

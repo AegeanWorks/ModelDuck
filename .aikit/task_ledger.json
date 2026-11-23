@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "chosen-letter-scan-1123",
+    "task_id": "given-number-exec-1123",
     "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795458695.3297544,
+    "active_phase": 4,
+    "status": "in_progress",
+    "updated_at": 1795459240.1315742,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795465895.3297544,
+    "lease_until": 1795466440.1315742,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -15,47 +15,9 @@
         "name": "modelduck",
         "path": "projects/modelduck"
       }
-    ],
-    "completed_at": 1795458696.5037558,
-    "completed_head": "cf8004a74d96bb1711a8ec87ba9da184a6a8721e",
-    "completed_tree": "b28db72da36f6f8ef7bc8819e5a48e1cef7264c6"
+    ]
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'perf-rejections-1123' completed successfully.",
-      "head": "086064e2a59edf9103e32dc94fca55f5dfb15525",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "perf-rejections-1123",
-      "timestamp": 1795454433.4484448,
-      "timestamp_str": "2026-11-23 20:20:33"
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[1/1] Record ADR-236 with three controlled rejection results",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "rejection-adr-1123",
-      "timestamp": 1795454495.996113,
-      "timestamp_str": "2026-11-23 20:21:35",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "delivery": {
@@ -402,6 +364,48 @@
       "task_id": "chosen-letter-scan-1123",
       "timestamp": 1795458696.5757847,
       "timestamp_str": "2026-11-23 21:31:36"
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Exec loops for givenNumber's two regexes: isolated 3.6x, end-to-end number 0.60->0.30us (9/9 rounds)",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Number checks skip two array allocations while the last-match semantics stay identical",
+        "mitigation": "failing-first test confirmed against HEAD plus verdict equivalence, end-to-end A/B, full npm test and strict gates; revert if regression",
+        "risks": "contract: same parsed number for all shapes, verified over 13 cases; dependency: none; concurrency: single-threaded exec with lastIndex reset; state: module-level regexes reset before each use",
+        "why": "User directive to keep improving speeds; a CPU profile flagged givenNumber and both of its matchAll spreads allocated arrays just to read the last match"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "4bed87b15e4bf3d7116235b00d86f7938e324cc87d9623770a03385b4251de9a",
+      "status": "in_progress",
+      "task_id": "given-number-exec-1123",
+      "timestamp": 1795459062.4867675,
+      "timestamp_str": "2026-11-23 21:37:42",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: number check 0.60->0.30us in end-to-end A/B (9/9 rounds); 1185 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "given-number-exec-1123",
+      "timestamp": 1795459240.1315742,
+      "timestamp_str": "2026-11-23 21:40:40",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }
