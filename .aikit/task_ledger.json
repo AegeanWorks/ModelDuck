@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "pick-loop-1123",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795471930.2872844,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795472057.2771633,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795479130.2872844,
+    "lease_until": 1795479257.2771633,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,49 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; pick() allocated two intermediate arrays per answer for keys already enumerated",
-      "benefits": "Per-answer settings selection skips intermediate arrays while output is identical",
-      "risks": "contract: same key set and values; dependency: none; concurrency: none; state: pure function",
-      "mitigation": "failing-first equivalence test, full npm test and strict gates; revert if regression"
-    }
+    "completed_at": 1795472058.1178224,
+    "completed_head": "04aed2427c0ee722d6dcb59b373a5adb0eaf67e1",
+    "completed_tree": "d9dea925c987881be6a74ee71de8745f7063cb23"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[2/2] DELIVERED: no-entry answers judged in-process, end-to-end A/B 6.2x, byte-identical verdicts; 1200 tests pass",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "noentry-shortcut-1123",
-      "timestamp": 1795468119.2163055,
-      "timestamp_str": "2026-11-24 00:08:39",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'noentry-shortcut-1123' completed successfully.",
-      "head": "14e0846255e99b79f8267221e6d21cbb50e9af95",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "noentry-shortcut-1123",
-      "timestamp": 1795468120.080459,
-      "timestamp_str": "2026-11-24 00:08:40"
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "description": "[1/2] Initialize score() per-item Maps without intermediate arrays: 19.6us -> 11.3us (1.7x)",
@@ -425,6 +387,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: pick() 0.536us -> 0.243us (2.2x); 1207 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "pick-loop-1123",
+      "timestamp": 1795472057.2771633,
+      "timestamp_str": "2026-11-24 01:14:17",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'pick-loop-1123' completed successfully.",
+      "head": "04aed2427c0ee722d6dcb59b373a5adb0eaf67e1",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "pick-loop-1123",
+      "timestamp": 1795472058.5310516,
+      "timestamp_str": "2026-11-24 01:14:18"
     }
   ]
 }
