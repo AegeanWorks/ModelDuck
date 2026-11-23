@@ -970,7 +970,9 @@ export async function runJavaScriptTests(text, check, { timeoutMs = 5000 } = {})
   const cached = JS_TEST_CACHE.get(cacheKey);
   if (cached) {
     jsTestHits += 1;
-    return cached.map((item) => ({ ...item }));
+    // Verdict objects are read-only to callers; a fresh array still keeps a
+    // caller from changing the cache's own list of cases.
+    return cached.slice();
   }
   const { execFile } = await import("node:child_process");
   const { randomBytes } = await import("node:crypto");

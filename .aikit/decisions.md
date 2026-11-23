@@ -1639,3 +1639,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: the test file drops to a **72.2 ms** median (**613 ms saved**, ~7.5% of a full suite run). The existing assertions and the new failing-first clock test are unchanged in meaning; both still check that a cached miss is served inside the TTL and an external write becomes visible after it.
 - **Cross-principle check:** PRINCIPLE-014: a test-speed change that alters no assertion's meaning and touches only the test's timing setup plus an optional test seam; G-001/G-003: no production behavior, tuning or suite change.
 
+### ADR-220: Reuse verdict objects on a judge cache hit
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: Continuing the speed work, every `runJavaScriptTests` cache hit cloned every stored verdict object before returning, even though all callers only read `passed`, `detail` and `unreadable`.
+- **Decision**: Return a shallow slice of the cached array. A fresh array still protects the cache's case list from a caller that pushes or pops, while the read-only verdict objects are shared. The one-time clones at cache insertion remain, so the first (uncached) result stays isolated too.
+- **Consequences**: a 40-case hit drops from a **0.76 us** to a **0.17 us** median (**4.47x**) in a 5-round controlled A/B. Two failing-first tests pin object reuse between hits and array-level isolation. A `spawn`-vs-`execFile` A/B and a temp-file-entry A/B were also run this pass and rejected: `execFile` is faster under controlled load, and the temp-file variant was noisy with no reliable gain, so the sandbox was left unchanged.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no prompt, check, suite version or hash changed.
+

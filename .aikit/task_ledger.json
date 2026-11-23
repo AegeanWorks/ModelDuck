@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "receipt-clock-seam-1123",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795394221.1108592,
+    "task_id": "judge-hit-reuse-1123",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795394532.806628,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795401421.1108592,
+    "lease_until": 1795401732.806628,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,29 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795394221.539877,
-    "completed_head": "9dd50d07e44d2316e406e4730ffe479dd06016ea",
-    "completed_tree": "a7142d9ae5f80851018e470d5997ec224c26e4c7"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; every judge cache hit cloned every result object even though no caller mutates them",
+      "benefits": "Repeated judge hits become near-free while array-level isolation is preserved with slice",
+      "risks": "contract: returned check values and array isolation unchanged; dependency: none; concurrency: none; state: result objects shared read-only, all callers verified non-mutating",
+      "mitigation": "failing-first test for reference reuse plus array-isolation check, full npm test and strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "task_id": "buffered-answer-summary-1123",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[2/2] DELIVERED: run summary 3.14ms -> 2.48ms (1.26x) in 7-round A/B; 1130 tests pass",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795392026.5880222,
-      "timestamp_str": "2026-11-23 03:00:26",
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "buffered-answer-summary-1123",
       "phase": "completed",
@@ -409,6 +394,30 @@
         ],
         "forced": false
       }
+    },
+    {
+      "task_id": "judge-hit-reuse-1123",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/2] Reuse cached judge result objects on a hit instead of cloning each one: 0.76us -> 0.17us per 40-case hit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795394532.806628,
+      "timestamp_str": "2026-11-23 03:42:12",
+      "agent": "opencode:hy4-flash-free",
+      "impact_assessment": {
+        "why": "User directive to keep improving speeds; every judge cache hit cloned every result object even though no caller mutates them",
+        "benefits": "Repeated judge hits become near-free while array-level isolation is preserved with slice",
+        "risks": "contract: returned check values and array isolation unchanged; dependency: none; concurrency: none; state: result objects shared read-only, all callers verified non-mutating",
+        "mitigation": "failing-first test for reference reuse plus array-isolation check, full npm test and strict gates; revert if regression"
+      },
+      "plan_digest": "35a3d4247e9a8ea313b8b8b9d162e2a1864ec127e93c344bf0dd6c07d615b396",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }
