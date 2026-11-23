@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "sandbox-env-memo-1123",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795395177.1729112,
+    "task_id": "answer-candidates-dedup-1123",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795395399.5536265,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795402377.1729112,
+    "lease_until": 1795402599.5536265,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,29 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795395177.6010575,
-    "completed_head": "d04cd9a8c9d61c7fa53452314362615da96c6f7f",
-    "completed_tree": "622d2e8d0560c9878781004018ba9b65ac9e24f5"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; a single-line reply was processed three times as the whole text, first line and last line",
+      "benefits": "Exact and oneOf text checks do one pass per distinct place instead of three for the common single-line answer",
+      "risks": "contract: normalized candidate set identical because normalizeAnswer is pure; dependency: none; concurrency: none; state: pure function",
+      "mitigation": "failing-first counter test plus answer-behavior checks, full npm test and strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "task_id": "overview-profile-probe-1123",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[2/2] DELIVERED: /api/tune/overview 4.36ms -> 1.03ms (4.24x) in 5-round A/B; 1134 tests pass",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795392896.318593,
-      "timestamp_str": "2026-11-23 03:14:56",
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "overview-profile-probe-1123",
       "phase": "completed",
@@ -409,6 +394,30 @@
         ],
         "forced": false
       }
+    },
+    {
+      "task_id": "answer-candidates-dedup-1123",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/2] Deduplicate raw answer-candidate places before the regex work: 4.77us -> 3.69us (1.29x)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795395399.5536265,
+      "timestamp_str": "2026-11-23 03:56:39",
+      "agent": "opencode:hy4-flash-free",
+      "impact_assessment": {
+        "why": "User directive to keep improving speeds; a single-line reply was processed three times as the whole text, first line and last line",
+        "benefits": "Exact and oneOf text checks do one pass per distinct place instead of three for the common single-line answer",
+        "risks": "contract: normalized candidate set identical because normalizeAnswer is pure; dependency: none; concurrency: none; state: pure function",
+        "mitigation": "failing-first counter test plus answer-behavior checks, full npm test and strict gates; revert if regression"
+      },
+      "plan_digest": "738be305e986bd7231768dc3a8021aad6cce71ab26b48f8206b43249ee7bf738",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }

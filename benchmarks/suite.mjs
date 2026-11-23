@@ -655,6 +655,12 @@ function plainText(text) {
 
 const LEAD_IN = /^(?:the\s+)?(?:final\s+|correct\s+)?answer(?:\s+is)?\s*[:\-]?\s*/i;
 
+// Test seam: how many distinct places the answer-candidate scan examined.
+let candidatePlaces = 0;
+export function answerCandidatePlaces() {
+  return candidatePlaces;
+}
+
 /**
  * The places a person would look for a short answer: the whole reply, its first and last
  * line and any "Answer:" line, each also without an "Answer is" lead-in, a short "Label:"
@@ -664,7 +670,11 @@ const LEAD_IN = /^(?:the\s+)?(?:final\s+|correct\s+)?answer(?:\s+is)?\s*[:\-]?\s
 function answerCandidates(text) {
   const plain = plainText(text);
   const lines = plain.split(/\n+/).map((line) => line.trim()).filter(Boolean);
-  const places = [plain, lines[0], lines.at(-1), ...lines.filter((line) => /^(?:final\s+)?answer\b/i.test(line))].filter(Boolean);
+  // The whole text, first line and last line are often the same string. Since
+  // normalizeAnswer is pure, duplicate places would only repeat work and be
+  // deduplicated again after normalization.
+  const places = [...new Set([plain, lines[0], lines.at(-1), ...lines.filter((line) => /^(?:final\s+)?answer\b/i.test(line))])].filter(Boolean);
+  candidatePlaces += places.length;
   const candidates = new Set();
   for (const place of places) {
     candidates.add(place);

@@ -1656,3 +1656,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Warm-child pool rejected this pass**: a feasibility probe showed a child pre-started ~400 ms ahead runs a judge in ~16.7 ms vs ~50 ms cold, but the benefit requires module-load spawning plus a custom reimplementation of `execFile`'s timeout, maxBuffer and error semantics in a security-critical path, and cannot be A/B'd end-to-end without a full tune run (forbidden). The sandbox process model was left unchanged.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: child environment values unchanged, no tuning or suite change.
 
+### ADR-222: Deduplicate answer-candidate places before regex work
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: Continuing the speed work, `answerCandidates()` examined the whole reply, its first line and its last line separately; for the common single-line answer these are the same string, so each regex and normalization ran three times.
+- **Decision**: Deduplicate the raw places with a `Set` before the loop. `normalizeAnswer` is pure, so duplicate inputs produced duplicate outputs that were already deduplicated later; the normalized candidate set is identical.
+- **Consequences**: `evaluateTextCheck` drops from **2.64 us to 1.55 us** for exact checks (**1.70x**) and **3.16 us to 2.19 us** for eight-value oneOf checks (**1.44x**). Two failing-first tests pin one place for a single-line reply and unchanged exact/oneOf verdicts including multi-line replies.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no prompt, check or expected value changed.
+
