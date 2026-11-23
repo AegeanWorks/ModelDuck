@@ -46,6 +46,14 @@ function isAliveDefault(pid) {
 // While answers arrive, the summary's count and time are saved at most this often.
 const ANSWER_SAVE_MS = 15_000;
 
+// Test seam: appended answer rows are built with a direct loop, not map+join.
+export const ANSWER_ROWS_MODE = "loop";
+export function serializeAnswerRows(rows) {
+  let out = "";
+  for (const row of rows) out += `${JSON.stringify(row)}\n`;
+  return out;
+}
+
 // How summarizeAnswers reads its app-written answers.jsonl. A single read plus a
 // line scan was ~23% faster than readline on 10k rows; answers files are bounded
 // by the tune's row cap and are already read whole by cachedAnswers().
@@ -86,7 +94,7 @@ export async function startRun(dir, { profileId, model, request, fingerprint = n
     id,
     answers: (rows) => later(async () => {
       if (!rows.length) return;
-      await fs.promises.appendFile(answersFile(dir, id), rows.map((row) => `${JSON.stringify(row)}\n`).join(""));
+      await fs.promises.appendFile(answersFile(dir, id), serializeAnswerRows(rows));
       // Keep the count and time current, so a run stopped inside a long setting still shows them.
       record = { ...record, answers: record.answers + rows.length, updatedAt: new Date(clock()).toISOString() };
       if (clock() - savedAt >= ANSWER_SAVE_MS) {

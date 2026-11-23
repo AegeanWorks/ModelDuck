@@ -1915,3 +1915,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: **0.536 us → 0.243 us (2.2x)** with identical keys and values. A failing-first equivalence test (confirmed against HEAD) pins the output.
 - **Cross-principle check:** PRINCIPLE-014: failing-first test, no assertion weakened; G-003: no sampling setting or answer changed.
 
+### ADR-254: Direct loop for appended answer rows
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: Each answer batch built its JSONL text with `rows.map(...).join("")`, allocating an intermediate string array.
+- **Decision**: A shared `serializeAnswerRows()` fills one string directly; writes remain serialized by the existing queue.
+- **Consequences**: **23.046 us → 17.617 us (1.31x)** per 100 rows with byte-identical output. Two failing-first tests (confirmed against HEAD) pin the mode and exact bytes.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: answer records unchanged.
+
