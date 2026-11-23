@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "chosen-letter-scan-1123",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795458490.6558394,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795458695.3297544,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795465690.6558394,
+    "lease_until": 1795465895.3297544,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,49 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; a CPU profile flagged the choice regex, and matchAll spread allocated an array of all matches just to read the last",
-      "benefits": "Choice checks skip the array allocation while the last-match semantics stay identical",
-      "risks": "contract: same chosen letter for all label shapes; dependency: none; concurrency: single-threaded synchronous exec with lastIndex reset each call; state: module-level regex lastIndex reset before use",
-      "mitigation": "failing-first test (confirmed against HEAD) plus 12 verdict-shape checks, end-to-end A/B, full npm test and strict gates; revert if regression"
-    }
+    "completed_at": 1795458696.5037558,
+    "completed_head": "cf8004a74d96bb1711a8ec87ba9da184a6a8721e",
+    "completed_tree": "b28db72da36f6f8ef7bc8819e5a48e1cef7264c6"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'array-compare-fast-1123' completed successfully.",
-      "head": "d2d72bf4ee5b5c35baed9f45da403d998e8f78a8",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "array-compare-fast-1123",
-      "timestamp": 1795454034.3271563,
-      "timestamp_str": "2026-11-23 20:13:54"
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[1/1] Profiled parseHistory, sendJson encoding and fitText; all three alternatives rejected as slower or flat, no code change",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "perf-rejections-1123",
-      "timestamp": 1795454432.7734284,
-      "timestamp_str": "2026-11-23 20:20:32",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "delivery": {
@@ -405,6 +367,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: choice check 0.75->0.56us in end-to-end A/B (9/9 rounds); 1183 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "chosen-letter-scan-1123",
+      "timestamp": 1795458695.3297544,
+      "timestamp_str": "2026-11-23 21:31:35",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'chosen-letter-scan-1123' completed successfully.",
+      "head": "cf8004a74d96bb1711a8ec87ba9da184a6a8721e",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "chosen-letter-scan-1123",
+      "timestamp": 1795458696.5757847,
+      "timestamp_str": "2026-11-23 21:31:36"
     }
   ]
 }
