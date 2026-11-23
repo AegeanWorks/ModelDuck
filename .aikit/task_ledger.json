@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "plain-candidate-normalize-1123",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795395877.2037792,
+    "task_id": "manual-plain-normalize-1123",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795412392.8440845,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795403077.2037792,
+    "lease_until": 1795419592.8440845,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,63 +16,48 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795395877.6070101,
-    "completed_head": "232491a782c5bece95c4086c391020efeb736c16",
-    "completed_tree": "ea829eed801b68dad6cfe9d4d9b31bc5d9a6cb51"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; a CPU profile of judge-heavy work showed answerCandidates and normalizePlain as the top in-process functions",
+      "benefits": "Exact and oneOf checks avoid two regex engines per candidate",
+      "risks": "contract: normalized strings byte-identical including quote/dot ordering; dependency: none; concurrency: none; state: pure function",
+      "mitigation": "failing-first mode seam plus equivalence test over 15 edge cases, full npm test and strict gates; revert if regression"
+    }
   },
   "checkpoints": [
     {
-      "task_id": "judge-key-memo-1123",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[2/2] DELIVERED: judge cache key 4.80us -> 0.78us (6.2x); rescan flake fixed; 1138 tests pass",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795393671.7536864,
-      "timestamp_str": "2026-11-23 03:27:51",
       "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "task_id": "judge-key-memo-1123",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'judge-key-memo-1123' completed successfully.",
-      "status": "completed",
-      "timestamp": 1795393672.1958337,
-      "timestamp_str": "2026-11-23 03:27:52",
-      "agent": "opencode:hy4-flash-free",
-      "head": "c93fd7e5a916fac2f1e46e2af2fccba38c3f0fd8",
       "delivery": {
+        "forced": false,
         "roots": [
           "."
-        ],
-        "forced": false
-      }
+        ]
+      },
+      "description": "Task 'judge-key-memo-1123' completed successfully.",
+      "head": "c93fd7e5a916fac2f1e46e2af2fccba38c3f0fd8",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "judge-key-memo-1123",
+      "timestamp": 1795393672.1958337,
+      "timestamp_str": "2026-11-23 03:27:52"
     },
     {
-      "task_id": "single-pass-chain-summary-1123",
-      "phase": "phase 2",
-      "phase_num": 2,
+      "agent": "opencode:hy4-flash-free",
       "description": "[1/2] Aggregate multistep chain results in one pass instead of O(runs x depth) rescans: 160us -> ~30us for 1000x5",
       "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Multistep report aggregation becomes linear with identical summary values including sparse depth and error counts",
+        "mitigation": "failing-first equivalence test over irregular step counts, errors and rates, full npm test and strict gates; revert if regression",
+        "risks": "contract: every returned field identical including sparse byStep slots and rates; dependency: none; concurrency: none; state: pure function",
+        "why": "User directive to keep improving speeds; summarizeChains rescans the whole results array once per step depth"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "5a003bbd3aa692267e1d9d96d84ee3f424e7bf24e6067e583d31831947471fc1",
       "status": "in_progress",
+      "task_id": "single-pass-chain-summary-1123",
       "timestamp": 1795393735.713292,
       "timestamp_str": "2026-11-23 03:28:55",
-      "agent": "opencode:hy4-flash-free",
-      "impact_assessment": {
-        "why": "User directive to keep improving speeds; summarizeChains rescans the whole results array once per step depth",
-        "benefits": "Multistep report aggregation becomes linear with identical summary values including sparse depth and error counts",
-        "risks": "contract: every returned field identical including sparse byStep slots and rates; dependency: none; concurrency: none; state: pure function",
-        "mitigation": "failing-first equivalence test over irregular step counts, errors and rates, full npm test and strict gates; revert if regression"
-      },
-      "plan_digest": "5a003bbd3aa692267e1d9d96d84ee3f424e7bf24e6067e583d31831947471fc1",
       "workspaces": [
         {
           "name": "modelduck",
@@ -81,16 +66,16 @@
       ]
     },
     {
-      "task_id": "single-pass-chain-summary-1123",
-      "phase": "phase 4",
-      "phase_num": 4,
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
       "description": "[2/2] DELIVERED: summarizeChains 160.64us -> 42.94us (3.74x); 1141 tests pass",
       "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
       "status": "in_progress",
+      "task_id": "single-pass-chain-summary-1123",
       "timestamp": 1795393894.619602,
       "timestamp_str": "2026-11-23 03:31:34",
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
       "workspaces": [
         {
           "name": "modelduck",
@@ -99,39 +84,39 @@
       ]
     },
     {
-      "task_id": "single-pass-chain-summary-1123",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'single-pass-chain-summary-1123' completed successfully.",
-      "status": "completed",
-      "timestamp": 1795393895.2364118,
-      "timestamp_str": "2026-11-23 03:31:35",
       "agent": "opencode:hy4-flash-free",
-      "head": "3885630fc0b77d6cab965fbf41283f2ad723c51d",
       "delivery": {
+        "forced": false,
         "roots": [
           "."
-        ],
-        "forced": false
-      }
+        ]
+      },
+      "description": "Task 'single-pass-chain-summary-1123' completed successfully.",
+      "head": "3885630fc0b77d6cab965fbf41283f2ad723c51d",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "single-pass-chain-summary-1123",
+      "timestamp": 1795393895.2364118,
+      "timestamp_str": "2026-11-23 03:31:35"
     },
     {
-      "task_id": "receipt-clock-seam-1123",
-      "phase": "phase 2",
-      "phase_num": 2,
+      "agent": "opencode:hy4-flash-free",
       "description": "[1/2] Make the receipt negative-cache TTL clock injectable so the 600ms sleep test runs in ~5ms without weakening its assertion",
       "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Test suite drops ~595ms while verifying the exact same expiry behavior deterministically",
+        "mitigation": "failing-first test with an injected clock, unchanged existing assertions, full npm test and strict gates; revert if regression",
+        "risks": "contract: production readInstallReceipt behavior unchanged when no options passed; dependency: none; concurrency: none; state: optional clock param only",
+        "why": "User directive to keep improving speeds across tests; one test spends 600ms of real time waiting for a 500ms TTL window"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "19d489ddc96848873d54a7514b4c5f7c1d622ca3cd4266d1dd82b4df785a1ef3",
       "status": "in_progress",
+      "task_id": "receipt-clock-seam-1123",
       "timestamp": 1795394061.8535464,
       "timestamp_str": "2026-11-23 03:34:21",
-      "agent": "opencode:hy4-flash-free",
-      "impact_assessment": {
-        "why": "User directive to keep improving speeds across tests; one test spends 600ms of real time waiting for a 500ms TTL window",
-        "benefits": "Test suite drops ~595ms while verifying the exact same expiry behavior deterministically",
-        "risks": "contract: production readInstallReceipt behavior unchanged when no options passed; dependency: none; concurrency: none; state: optional clock param only",
-        "mitigation": "failing-first test with an injected clock, unchanged existing assertions, full npm test and strict gates; revert if regression"
-      },
-      "plan_digest": "19d489ddc96848873d54a7514b4c5f7c1d622ca3cd4266d1dd82b4df785a1ef3",
       "workspaces": [
         {
           "name": "modelduck",
@@ -140,16 +125,16 @@
       ]
     },
     {
-      "task_id": "receipt-clock-seam-1123",
-      "phase": "phase 4",
-      "phase_num": 4,
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
       "description": "[2/2] DELIVERED: receipt TTL test 685ms -> 72ms (613ms saved) via injected clock; 1142 tests pass",
       "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
       "status": "in_progress",
+      "task_id": "receipt-clock-seam-1123",
       "timestamp": 1795394221.1108592,
       "timestamp_str": "2026-11-23 03:37:01",
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
       "workspaces": [
         {
           "name": "modelduck",
@@ -158,39 +143,39 @@
       ]
     },
     {
-      "task_id": "receipt-clock-seam-1123",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'receipt-clock-seam-1123' completed successfully.",
-      "status": "completed",
-      "timestamp": 1795394221.7156436,
-      "timestamp_str": "2026-11-23 03:37:01",
       "agent": "opencode:hy4-flash-free",
-      "head": "9dd50d07e44d2316e406e4730ffe479dd06016ea",
       "delivery": {
+        "forced": false,
         "roots": [
           "."
-        ],
-        "forced": false
-      }
+        ]
+      },
+      "description": "Task 'receipt-clock-seam-1123' completed successfully.",
+      "head": "9dd50d07e44d2316e406e4730ffe479dd06016ea",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "receipt-clock-seam-1123",
+      "timestamp": 1795394221.7156436,
+      "timestamp_str": "2026-11-23 03:37:01"
     },
     {
-      "task_id": "judge-hit-reuse-1123",
-      "phase": "phase 2",
-      "phase_num": 2,
+      "agent": "opencode:hy4-flash-free",
       "description": "[1/2] Reuse cached judge result objects on a hit instead of cloning each one: 0.76us -> 0.17us per 40-case hit",
       "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Repeated judge hits become near-free while array-level isolation is preserved with slice",
+        "mitigation": "failing-first test for reference reuse plus array-isolation check, full npm test and strict gates; revert if regression",
+        "risks": "contract: returned check values and array isolation unchanged; dependency: none; concurrency: none; state: result objects shared read-only, all callers verified non-mutating",
+        "why": "User directive to keep improving speeds; every judge cache hit cloned every result object even though no caller mutates them"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "35a3d4247e9a8ea313b8b8b9d162e2a1864ec127e93c344bf0dd6c07d615b396",
       "status": "in_progress",
+      "task_id": "judge-hit-reuse-1123",
       "timestamp": 1795394532.806628,
       "timestamp_str": "2026-11-23 03:42:12",
-      "agent": "opencode:hy4-flash-free",
-      "impact_assessment": {
-        "why": "User directive to keep improving speeds; every judge cache hit cloned every result object even though no caller mutates them",
-        "benefits": "Repeated judge hits become near-free while array-level isolation is preserved with slice",
-        "risks": "contract: returned check values and array isolation unchanged; dependency: none; concurrency: none; state: result objects shared read-only, all callers verified non-mutating",
-        "mitigation": "failing-first test for reference reuse plus array-isolation check, full npm test and strict gates; revert if regression"
-      },
-      "plan_digest": "35a3d4247e9a8ea313b8b8b9d162e2a1864ec127e93c344bf0dd6c07d615b396",
       "workspaces": [
         {
           "name": "modelduck",
@@ -199,16 +184,16 @@
       ]
     },
     {
-      "task_id": "judge-hit-reuse-1123",
-      "phase": "phase 4",
-      "phase_num": 4,
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
       "description": "[2/2] DELIVERED: judge hit 0.76us -> 0.17us (4.47x); spawn/tempfile sandbox variants rejected; 1144 tests pass",
       "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
       "status": "in_progress",
+      "task_id": "judge-hit-reuse-1123",
       "timestamp": 1795394698.9432948,
       "timestamp_str": "2026-11-23 03:44:58",
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
       "workspaces": [
         {
           "name": "modelduck",
@@ -217,39 +202,39 @@
       ]
     },
     {
-      "task_id": "judge-hit-reuse-1123",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'judge-hit-reuse-1123' completed successfully.",
-      "status": "completed",
-      "timestamp": 1795394699.437965,
-      "timestamp_str": "2026-11-23 03:44:59",
       "agent": "opencode:hy4-flash-free",
-      "head": "cf6ab44aa7c44f6f83e3b95d359c3b251474559e",
       "delivery": {
+        "forced": false,
         "roots": [
           "."
-        ],
-        "forced": false
-      }
+        ]
+      },
+      "description": "Task 'judge-hit-reuse-1123' completed successfully.",
+      "head": "cf6ab44aa7c44f6f83e3b95d359c3b251474559e",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "judge-hit-reuse-1123",
+      "timestamp": 1795394699.437965,
+      "timestamp_str": "2026-11-23 03:44:59"
     },
     {
-      "task_id": "sandbox-env-memo-1123",
-      "phase": "phase 2",
-      "phase_num": 2,
+      "agent": "opencode:hy4-flash-free",
       "description": "[1/2] Memoize sandboxEnv() for the stable default process env: 31us -> ~0.5us per uncached judge spawn",
       "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Every uncached judge call skips the stable env construction while custom-argument callers still compute fresh",
+        "mitigation": "failing-first counter test plus value equality, full npm test and strict gates; revert if regression",
+        "risks": "contract: returned env values identical, fresh object per call; dependency: none; concurrency: none; state: memo only for default process.env/platform",
+        "why": "User directive to keep improving speeds; sandboxEnv() rebuilt a neutral env object on every uncached judge, doing Object.keys(process.env) and ~50 toLowerCase calls each time"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "b7abffe130525c936b8305075f9921a53c2c153eee85de1eb41105ae0caee4d6",
       "status": "in_progress",
+      "task_id": "sandbox-env-memo-1123",
       "timestamp": 1795394988.5643852,
       "timestamp_str": "2026-11-23 03:49:48",
-      "agent": "opencode:hy4-flash-free",
-      "impact_assessment": {
-        "why": "User directive to keep improving speeds; sandboxEnv() rebuilt a neutral env object on every uncached judge, doing Object.keys(process.env) and ~50 toLowerCase calls each time",
-        "benefits": "Every uncached judge call skips the stable env construction while custom-argument callers still compute fresh",
-        "risks": "contract: returned env values identical, fresh object per call; dependency: none; concurrency: none; state: memo only for default process.env/platform",
-        "mitigation": "failing-first counter test plus value equality, full npm test and strict gates; revert if regression"
-      },
-      "plan_digest": "b7abffe130525c936b8305075f9921a53c2c153eee85de1eb41105ae0caee4d6",
       "workspaces": [
         {
           "name": "modelduck",
@@ -258,16 +243,16 @@
       ]
     },
     {
-      "task_id": "sandbox-env-memo-1123",
-      "phase": "phase 4",
-      "phase_num": 4,
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
       "description": "[2/2] DELIVERED: sandboxEnv 27.45us -> 0.07us (392x); warm pool rejected; 1146 tests pass",
       "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
       "status": "in_progress",
+      "task_id": "sandbox-env-memo-1123",
       "timestamp": 1795395177.1729112,
       "timestamp_str": "2026-11-23 03:52:57",
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
       "workspaces": [
         {
           "name": "modelduck",
@@ -276,98 +261,39 @@
       ]
     },
     {
-      "task_id": "sandbox-env-memo-1123",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'sandbox-env-memo-1123' completed successfully.",
-      "status": "completed",
-      "timestamp": 1795395177.6629007,
-      "timestamp_str": "2026-11-23 03:52:57",
       "agent": "opencode:hy4-flash-free",
-      "head": "d04cd9a8c9d61c7fa53452314362615da96c6f7f",
       "delivery": {
+        "forced": false,
         "roots": [
           "."
-        ],
-        "forced": false
-      }
+        ]
+      },
+      "description": "Task 'sandbox-env-memo-1123' completed successfully.",
+      "head": "d04cd9a8c9d61c7fa53452314362615da96c6f7f",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "sandbox-env-memo-1123",
+      "timestamp": 1795395177.6629007,
+      "timestamp_str": "2026-11-23 03:52:57"
     },
     {
-      "task_id": "answer-candidates-dedup-1123",
-      "phase": "phase 2",
-      "phase_num": 2,
+      "agent": "opencode:hy4-flash-free",
       "description": "[1/2] Deduplicate raw answer-candidate places before the regex work: 4.77us -> 3.69us (1.29x)",
       "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795395399.5536265,
-      "timestamp_str": "2026-11-23 03:56:39",
-      "agent": "opencode:hy4-flash-free",
       "impact_assessment": {
-        "why": "User directive to keep improving speeds; a single-line reply was processed three times as the whole text, first line and last line",
         "benefits": "Exact and oneOf text checks do one pass per distinct place instead of three for the common single-line answer",
+        "mitigation": "failing-first counter test plus answer-behavior checks, full npm test and strict gates; revert if regression",
         "risks": "contract: normalized candidate set identical because normalizeAnswer is pure; dependency: none; concurrency: none; state: pure function",
-        "mitigation": "failing-first counter test plus answer-behavior checks, full npm test and strict gates; revert if regression"
+        "why": "User directive to keep improving speeds; a single-line reply was processed three times as the whole text, first line and last line"
       },
-      "plan_digest": "738be305e986bd7231768dc3a8021aad6cce71ab26b48f8206b43249ee7bf738",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "task_id": "answer-candidates-dedup-1123",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[2/2] DELIVERED: evaluateTextCheck exact 2.64->1.55us (1.70x), oneOf 3.16->2.19us (1.44x); 1148 tests pass",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795395528.3946524,
-      "timestamp_str": "2026-11-23 03:58:48",
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "task_id": "answer-candidates-dedup-1123",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'answer-candidates-dedup-1123' completed successfully.",
-      "status": "completed",
-      "timestamp": 1795395528.8548906,
-      "timestamp_str": "2026-11-23 03:58:48",
-      "agent": "opencode:hy4-flash-free",
-      "head": "3418760dd829e377e1999421fe1a8d3d26862897",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
-    {
-      "task_id": "plain-candidate-normalize-1123",
       "phase": "phase 2",
       "phase_num": 2,
-      "description": "[1/2] Skip redundant fence stripping when normalizing already-plain answer candidates: 1.52x on that step",
-      "files_affected": [],
+      "plan_digest": "738be305e986bd7231768dc3a8021aad6cce71ab26b48f8206b43249ee7bf738",
       "status": "in_progress",
-      "timestamp": 1795395705.434187,
-      "timestamp_str": "2026-11-23 04:01:45",
-      "agent": "opencode:hy4-flash-free",
-      "impact_assessment": {
-        "why": "User directive to keep improving speeds; answerCandidates normalizes strings already stripped of fences by plainText, so each one re-ran a fence regex for nothing",
-        "benefits": "Exact and oneOf checks avoid one trim + one regex per candidate",
-        "risks": "contract: normalized candidate strings identical because candidates are proven fence-free; dependency: none; concurrency: none; state: pure function",
-        "mitigation": "failing-first fence-strip counter test plus verdict equivalence, full npm test and strict gates; revert if regression"
-      },
-      "plan_digest": "be26984fdb8ff6e1e365035fef116cc2406edf638dc0f6c28d10a95240ebebdc",
+      "task_id": "answer-candidates-dedup-1123",
+      "timestamp": 1795395399.5536263,
+      "timestamp_str": "2026-11-23 03:56:39",
       "workspaces": [
         {
           "name": "modelduck",
@@ -376,16 +302,16 @@
       ]
     },
     {
-      "task_id": "plain-candidate-normalize-1123",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[2/2] DELIVERED: exact 1.39->1.32us, oneOf 1.92->1.88us (small but consistent A/B); 1150 tests pass",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795395877.2037792,
-      "timestamp_str": "2026-11-23 04:04:37",
       "agent": "opencode:hy4-flash-free",
       "checklists": "passed",
+      "description": "[2/2] DELIVERED: evaluateTextCheck exact 2.64->1.55us (1.70x), oneOf 3.16->2.19us (1.44x); 1148 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "answer-candidates-dedup-1123",
+      "timestamp": 1795395528.3946524,
+      "timestamp_str": "2026-11-23 03:58:48",
       "workspaces": [
         {
           "name": "modelduck",
@@ -394,21 +320,104 @@
       ]
     },
     {
-      "task_id": "plain-candidate-normalize-1123",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'plain-candidate-normalize-1123' completed successfully.",
-      "status": "completed",
-      "timestamp": 1795395877.9841716,
-      "timestamp_str": "2026-11-23 04:04:37",
       "agent": "opencode:hy4-flash-free",
-      "head": "232491a782c5bece95c4086c391020efeb736c16",
       "delivery": {
+        "forced": false,
         "roots": [
           "."
-        ],
-        "forced": false
-      }
+        ]
+      },
+      "description": "Task 'answer-candidates-dedup-1123' completed successfully.",
+      "head": "3418760dd829e377e1999421fe1a8d3d26862897",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "answer-candidates-dedup-1123",
+      "timestamp": 1795395528.8548906,
+      "timestamp_str": "2026-11-23 03:58:48"
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Skip redundant fence stripping when normalizing already-plain answer candidates: 1.52x on that step",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Exact and oneOf checks avoid one trim + one regex per candidate",
+        "mitigation": "failing-first fence-strip counter test plus verdict equivalence, full npm test and strict gates; revert if regression",
+        "risks": "contract: normalized candidate strings identical because candidates are proven fence-free; dependency: none; concurrency: none; state: pure function",
+        "why": "User directive to keep improving speeds; answerCandidates normalizes strings already stripped of fences by plainText, so each one re-ran a fence regex for nothing"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "be26984fdb8ff6e1e365035fef116cc2406edf638dc0f6c28d10a95240ebebdc",
+      "status": "in_progress",
+      "task_id": "plain-candidate-normalize-1123",
+      "timestamp": 1795395705.434187,
+      "timestamp_str": "2026-11-23 04:01:45",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: exact 1.39->1.32us, oneOf 1.92->1.88us (small but consistent A/B); 1150 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "plain-candidate-normalize-1123",
+      "timestamp": 1795395877.2037792,
+      "timestamp_str": "2026-11-23 04:04:37",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'plain-candidate-normalize-1123' completed successfully.",
+      "head": "232491a782c5bece95c4086c391020efeb736c16",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "plain-candidate-normalize-1123",
+      "timestamp": 1795395877.9841716,
+      "timestamp_str": "2026-11-23 04:04:37"
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Replace two regex passes in normalizePlain with exact two-phase char-code trimming: 3.62x on that helper",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Exact and oneOf checks avoid two regex engines per candidate",
+        "mitigation": "failing-first mode seam plus equivalence test over 15 edge cases, full npm test and strict gates; revert if regression",
+        "risks": "contract: normalized strings byte-identical including quote/dot ordering; dependency: none; concurrency: none; state: pure function",
+        "why": "User directive to keep improving speeds; a CPU profile of judge-heavy work showed answerCandidates and normalizePlain as the top in-process functions"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "ef2158d3f340c7fceebb06419f3f865b8c90d5e115c0b404231b697e0ac9e53d",
+      "status": "in_progress",
+      "task_id": "manual-plain-normalize-1123",
+      "timestamp": 1795412392.8440845,
+      "timestamp_str": "2026-11-23 08:39:52",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }

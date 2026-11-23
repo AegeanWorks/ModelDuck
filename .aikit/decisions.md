@@ -1672,3 +1672,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: a controlled 7-round A/B on `evaluateTextCheck` showed exact checks dropping from **1.39 us to 1.32 us** and eight-value oneOf from **1.92 us to 1.88 us** — small but faster in 5/7 and 6/7 rounds respectively. Two failing-first tests pin that candidates skip the fence regex and that fenced/plain verdicts stay identical.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no prompt, check or expected value changed.
 
+### ADR-224: Manual two-phase plain normalization
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: A CPU profile of judge-heavy work showed `answerCandidates()` and `normalizePlain()` as the top in-process functions. The latter ran two regex engines and a trim for every candidate.
+- **Decision**: Replace the regex chain with char-code loops that preserve the exact two-phase order: strip edge quotes, then trailing `.`/`!`, then trim whitespace. A naive combined character class was rejected because it differs on inputs like `'"foo"!!"'`.
+- **Consequences**: a controlled 9-round A/B on `evaluateTextCheck` showed exact checks improving from **1.57 us to 1.40 us** and eight-value oneOf from **2.27 us to 2.05 us**; the helper itself is **3.62x** faster. Two failing-first tests pin the mode and byte-identical output across 22 edge cases including quote/punctuation ordering.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no prompt, check or expected value changed.
+

@@ -642,8 +642,30 @@ export function normalizeAnswer(text) {
 
 // answerCandidates only ever produces plain strings (plainText already removed
 // the fence), so its candidates skip the fence regex and the duplicate trim.
-function normalizePlain(text) {
-  return text.toLowerCase().replace(/^["'`]+|["'`]+$/g, "").replace(/[.!]+$/g, "").trim();
+// The two passes below are the char-code equivalent of the old regex chain:
+// strip edge quotes first, then trailing punctuation, then trim whitespace.
+// Keeping the order matters for inputs like '"foo"!!"'.
+export const NORMALIZE_PLAIN_MODE = "manual";
+export function normalizePlain(text) {
+  let s = text.toLowerCase();
+  let start = 0;
+  let end = s.length;
+  while (start < end) {
+    const c = s.charCodeAt(start);
+    if (c === 34 || c === 39 || c === 96) start += 1; else break;
+  }
+  while (end > start) {
+    const c = s.charCodeAt(end - 1);
+    if (c === 34 || c === 39 || c === 96) end -= 1; else break;
+  }
+  if (start !== 0 || end !== s.length) s = s.slice(start, end);
+  let punctuationEnd = s.length;
+  while (punctuationEnd > 0) {
+    const c = s.charCodeAt(punctuationEnd - 1);
+    if (c === 46 || c === 33) punctuationEnd -= 1; else break;
+  }
+  if (punctuationEnd !== s.length) s = s.slice(0, punctuationEnd);
+  return s.trim();
 }
 
 export function extractJson(text) {
