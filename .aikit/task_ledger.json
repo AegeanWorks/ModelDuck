@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "normalize-answer-value-cache-1123",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795449584.168478,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795450200.1015785,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795456784.168478,
+    "lease_until": 1795457400.1015785,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,55 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; a CPU profile showed normalizeAnswer repeatedly processing the same static expected values from exact and oneOf checks",
-      "benefits": "Expected values are normalized once per distinct string while candidate normalization stays unchanged",
-      "risks": "contract: normalized values identical, string keys are immutable; dependency: Node Map only; concurrency: none; state: bounded LRU-style cache",
-      "mitigation": "failing-first cache-hit counter test plus verdict equivalence, full npm test and strict gates; revert if regression"
-    }
+    "completed_at": 1795450200.684071,
+    "completed_head": "72b6627717bffc2b2ee914bdcebc40f085658ebf",
+    "completed_tree": "b318b12588a890bd967303bf5f271de315cd82eb"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'answer-candidates-dedup-1123' completed successfully.",
-      "head": "3418760dd829e377e1999421fe1a8d3d26862897",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "answer-candidates-dedup-1123",
-      "timestamp": 1795395528.8548906,
-      "timestamp_str": "2026-11-23 03:58:48"
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Skip redundant fence stripping when normalizing already-plain answer candidates: 1.52x on that step",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Exact and oneOf checks avoid one trim + one regex per candidate",
-        "mitigation": "failing-first fence-strip counter test plus verdict equivalence, full npm test and strict gates; revert if regression",
-        "risks": "contract: normalized candidate strings identical because candidates are proven fence-free; dependency: none; concurrency: none; state: pure function",
-        "why": "User directive to keep improving speeds; answerCandidates normalizes strings already stripped of fences by plainText, so each one re-ran a fence regex for nothing"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "be26984fdb8ff6e1e365035fef116cc2406edf638dc0f6c28d10a95240ebebdc",
-      "status": "in_progress",
-      "task_id": "plain-candidate-normalize-1123",
-      "timestamp": 1795395705.434187,
-      "timestamp_str": "2026-11-23 04:01:45",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "checklists": "passed",
@@ -418,6 +374,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: normalized expected values cached (9.58x helper); exact 0.57->0.49us in 9/9 rounds; plainText variants rejected; 1162 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "normalize-answer-value-cache-1123",
+      "timestamp": 1795450200.1015785,
+      "timestamp_str": "2026-11-23 19:10:00",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'normalize-answer-value-cache-1123' completed successfully.",
+      "head": "72b6627717bffc2b2ee914bdcebc40f085658ebf",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "normalize-answer-value-cache-1123",
+      "timestamp": 1795450200.895362,
+      "timestamp_str": "2026-11-23 19:10:00"
     }
   ]
 }
