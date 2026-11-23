@@ -1867,3 +1867,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: a controlled 5-round end-to-end A/B on a mixed workload (80% syntax-error answers) measured **2201.8 ms → 230.2 ms (9.6x)**. Verdicts were verified byte-identical over 7 syntax-error shapes before shipping; a failing-first counter test plus exact-verdict tests pin the shortcut and that valid code still spawns.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no prompt, check or verdict changed; no code from a failing answer is ever executed in-process.
 
+### ADR-248: In-process no-entry short-circuit for judge answers
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: After the syntax short-circuit, valid code that defines some other function still spawned a child only to report the deterministic "function not found" verdict for every case.
+- **Decision**: When the check has no setup or harness, the parsed code contains no occurrence of the entry name, and no dynamic-definition construct (`eval`/`Function`/`globalThis`/`window`/`this`) appears, return the deterministic "function not found" verdict in-process with the same cache insertion. All other answers keep the child path.
+- **Consequences**: a controlled 5-round end-to-end A/B on a mixed workload measured **1639.8 ms → 264.3 ms (6.2x)**. Verdicts were verified byte-identical, and failing-first tests (confirmed against HEAD) pin the shortcut, its guards and that valid code still spawns.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no prompt, check or verdict changed; no answer code is executed in-process.
+

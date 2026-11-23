@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "syntax-shortcut-1123",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795467182.2363443,
+    "task_id": "noentry-shortcut-1123",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795467724.13643,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795474382.2363443,
+    "lease_until": 1795474924.13643,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,53 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795467182.8538697,
-    "completed_head": "d6c84ff5bf0b7d22e90337eeaa723daec1f32be1",
-    "completed_tree": "ab90ed264493f4f3b7eb9fba855e0120d972b438"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; valid code defining other functions still spawned a child to report the deterministic 'function not found' verdict",
+      "benefits": "Wrong-function answers judged in-process with byte-identical verdicts and no spawn",
+      "risks": "contract: verdicts identical when entry name absent; guarded against setup/harness and eval/Function/globalThis/window/this; dependency: none; concurrency: none; state: same cache insertion",
+      "mitigation": "failing-first counter test plus exact-verdict and guard tests, end-to-end A/B, full npm test and strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Exec loops for givenNumber's two regexes: isolated 3.6x, end-to-end number 0.60->0.30us (9/9 rounds)",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Number checks skip two array allocations while the last-match semantics stay identical",
-        "mitigation": "failing-first test confirmed against HEAD plus verdict equivalence, end-to-end A/B, full npm test and strict gates; revert if regression",
-        "risks": "contract: same parsed number for all shapes, verified over 13 cases; dependency: none; concurrency: single-threaded exec with lastIndex reset; state: module-level regexes reset before each use",
-        "why": "User directive to keep improving speeds; a CPU profile flagged givenNumber and both of its matchAll spreads allocated arrays just to read the last match"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "4bed87b15e4bf3d7116235b00d86f7938e324cc87d9623770a03385b4251de9a",
-      "status": "in_progress",
-      "task_id": "given-number-exec-1123",
-      "timestamp": 1795459062.4867675,
-      "timestamp_str": "2026-11-23 21:37:42",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[2/2] DELIVERED: number check 0.60->0.30us in end-to-end A/B (9/9 rounds); 1185 tests pass",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "given-number-exec-1123",
-      "timestamp": 1795459240.1315742,
-      "timestamp_str": "2026-11-23 21:40:40",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "delivery": {
@@ -422,6 +383,54 @@
       "task_id": "syntax-shortcut-1123",
       "timestamp": 1795467182.9254663,
       "timestamp_str": "2026-11-23 23:53:02"
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Skip the child spawn when valid code cannot mention the entry function: deterministic 'function not found' verdict",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Wrong-function answers are judged in-process with byte-identical verdicts and no spawn",
+        "mitigation": "failing-first counter test plus exact-verdict assertions over many shapes, end-to-end A/B, full npm test and strict gates; revert if regression",
+        "risks": "contract: verdicts byte-identical when the entry name is absent; guarded to skip only without setup/harness and without eval/globalThis/Function; dependency: none; concurrency: none; state: same cache insertion",
+        "why": "User directive to keep improving speeds; valid code defining other functions still spawned a child to report the deterministic 'function not found' verdict"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "24e2e536b812317b471d19618001844318364bee048136ef513b7c8ed5506922",
+      "status": "in_progress",
+      "task_id": "noentry-shortcut-1123",
+      "timestamp": 1795467468.795249,
+      "timestamp_str": "2026-11-23 23:57:48",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Skip the child spawn for valid code that cannot mention the entry: deterministic 'function not found', end-to-end A/B 6.2x",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Wrong-function answers judged in-process with byte-identical verdicts and no spawn",
+        "mitigation": "failing-first counter test plus exact-verdict and guard tests, end-to-end A/B, full npm test and strict gates; revert if regression",
+        "risks": "contract: verdicts identical when entry name absent; guarded against setup/harness and eval/Function/globalThis/window/this; dependency: none; concurrency: none; state: same cache insertion",
+        "why": "User directive to keep improving speeds; valid code defining other functions still spawned a child to report the deterministic 'function not found' verdict"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "97b1441a0a73e10cc476c9dc769f3f1a0a4b05b6374e81a8aae05881a837c695",
+      "status": "in_progress",
+      "task_id": "noentry-shortcut-1123",
+      "timestamp": 1795467724.13643,
+      "timestamp_str": "2026-11-24 00:02:04",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }

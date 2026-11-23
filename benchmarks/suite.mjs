@@ -1097,6 +1097,11 @@ let syntaxShortcuts = 0;
 export function syntaxShortcutCount() {
   return syntaxShortcuts;
 }
+// Test seam: how many answers skipped the spawn for having no entry binding.
+let noEntryShortcuts = 0;
+export function noEntryShortcutCount() {
+  return noEntryShortcuts;
+}
 export function resetJavaScriptTestCache() {
   JS_TEST_CACHE.clear();
   jsTestHits = 0;
@@ -1146,6 +1151,24 @@ export async function runJavaScriptTests(text, check, { timeoutMs = 5000 } = {})
       passed: false,
       unreadable: !named,
       detail: `${check.entry}(${JSON.stringify(testCase.args).slice(1, -1)}): did not run (syntax or runtime error)`,
+    }));
+    jsTestMisses += 1;
+    if (JS_TEST_CACHE.size >= JAVASCRIPT_TEST_CACHE_LIMIT) JS_TEST_CACHE.delete(JS_TEST_CACHE.keys().next().value);
+    JS_TEST_CACHE.set(cacheKey, checked.map((item) => ({ ...item })));
+    return checked;
+  }
+  // With no setup or scenario and no occurrence of the entry name anywhere in
+  // the code, no binding for it can be created: the judge reports
+  // "function not found" for every case. Dynamic-definition constructs are
+  // excluded so a string-built binding cannot be misjudged here.
+  if (!check.setup && !check.harness && !code.includes(String(check.entry))
+      && !/\b(?:eval|Function|globalThis|window|this)\b/.test(code)) {
+    noEntryShortcuts += 1;
+    const checked = cases.map((testCase) => ({
+      type: "jsTests",
+      passed: false,
+      unreadable: true,
+      detail: `${check.entry}(${JSON.stringify(testCase.args).slice(1, -1)}): function not found`,
     }));
     jsTestMisses += 1;
     if (JS_TEST_CACHE.size >= JAVASCRIPT_TEST_CACHE_LIMIT) JS_TEST_CACHE.delete(JS_TEST_CACHE.keys().next().value);
