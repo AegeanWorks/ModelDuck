@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "single-pass-chain-summary-1123",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795393735.713292,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795393894.619602,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795400935.713292,
+    "lease_until": 1795401094.619602,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,55 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; summarizeChains rescans the whole results array once per step depth",
-      "benefits": "Multistep report aggregation becomes linear with identical summary values including sparse depth and error counts",
-      "risks": "contract: every returned field identical including sparse byStep slots and rates; dependency: none; concurrency: none; state: pure function",
-      "mitigation": "failing-first equivalence test over irregular step counts, errors and rates, full npm test and strict gates; revert if regression"
-    }
+    "completed_at": 1795393895.0532086,
+    "completed_head": "3885630fc0b77d6cab965fbf41283f2ad723c51d",
+    "completed_tree": "26b9d2c6079114f619c1c53fadbdb689ce0ed5b6"
   },
   "checkpoints": [
-    {
-      "task_id": "registry-prune-fix-1123",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'registry-prune-fix-1123' completed successfully.",
-      "status": "completed",
-      "timestamp": 1795391032.9087198,
-      "timestamp_str": "2026-11-23 02:43:52",
-      "agent": "opencode:hy4-flash-free",
-      "head": "5dce070",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
-    {
-      "task_id": "recommendations-profile-probe-1123",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/2] Use the cached profile list to skip loadProfile for models with no saved profile in /api/recommendations",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795391332.241226,
-      "timestamp_str": "2026-11-23 02:48:52",
-      "agent": "opencode:hy4-flash-free",
-      "impact_assessment": {
-        "why": "User directive to keep improving speeds; 60-model recommendation path still costs 9ms and 8.7ms end-to-end because loadProfile is called for every model",
-        "benefits": "Zero profile reads for an unprofiled library; one cached list read instead",
-        "risks": "contract: response shape and profile loading unchanged; dependency: existing listProfiles/loadProfile APIs; concurrency: none; state: a profile written mid-request is visible on the next poll",
-        "mitigation": "failing-first counter test, parity of response with and without profiles, full npm test and strict gates; revert if regression"
-      },
-      "plan_digest": "c99b2310932d8e998243dcee3d3cd95c620f7bff8d2be500c635034570eafee1",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "task_id": "recommendations-profile-probe-1123",
       "phase": "phase 4",
@@ -418,6 +374,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "task_id": "single-pass-chain-summary-1123",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[2/2] DELIVERED: summarizeChains 160.64us -> 42.94us (3.74x); 1141 tests pass",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795393894.619602,
+      "timestamp_str": "2026-11-23 03:31:34",
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "task_id": "single-pass-chain-summary-1123",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'single-pass-chain-summary-1123' completed successfully.",
+      "status": "completed",
+      "timestamp": 1795393895.2364118,
+      "timestamp_str": "2026-11-23 03:31:35",
+      "agent": "opencode:hy4-flash-free",
+      "head": "3885630fc0b77d6cab965fbf41283f2ad723c51d",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
     }
   ]
 }
