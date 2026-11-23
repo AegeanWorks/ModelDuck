@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "parallel-scan-magic-1123",
+    "task_id": "sentence-regex-guard-1123",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1795456894.5685627,
+    "updated_at": 1795457920.823449,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795464094.5685627,
+    "lease_until": 1795465120.823449,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,70 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795456895.8569334,
-    "completed_head": "1063de03f5a586648724d144b4dc7b1a5d16b662",
-    "completed_tree": "571235d6333bf5c8c58d718c1c3a57105bfb0cc0"
+    "completed_at": 1795457921.4130442,
+    "completed_head": "195ee51226a925c4791ef83eccf428e86ec5e5b1",
+    "completed_tree": "70dfc87f451d7a9c9f14c6086205f7fc98703b0e"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'slot-key-cache-1123' completed successfully.",
-      "head": "ff5eeb7dfdf7cd6ab6cdc540a6fbb205f23db8ab",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "slot-key-cache-1123",
-      "timestamp": 1795452723.2918208,
-      "timestamp_str": "2026-11-23 19:52:03"
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Cache profileIdFor by filename: 0.44us -> ~0.05us per model on several routes",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Repeated models skip the catalog scan and regex chain while values stay identical",
-        "mitigation": "failing-first counter test plus catalog/non-catalog equivalence, full npm test and strict gates; revert if regression",
-        "risks": "contract: profile ids unchanged; dependency: Node Map only; concurrency: none; state: filenames are immutable strings and the catalog is a module constant",
-        "why": "User directive to keep improving speeds; profileIdFor rescanned the catalog and ran regexes per model on /api/models, /api/recommendations and /api/tune/overview"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "ef8ddfcd7c6c4545c375a52023a1df5fb2b554feca3fa76879f29a33ca2aa5bb",
-      "status": "in_progress",
-      "task_id": "profile-id-cache-1123",
-      "timestamp": 1795453151.9611373,
-      "timestamp_str": "2026-11-23 19:59:11",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[2/2] DELIVERED: profileIdFor 0.44us -> 0.01us (~44x); 1172 tests pass",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "profile-id-cache-1123",
-      "timestamp": 1795453349.5440478,
-      "timestamp_str": "2026-11-23 20:02:29",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "delivery": {
@@ -402,6 +343,65 @@
       "task_id": "parallel-scan-magic-1123",
       "timestamp": 1795456895.9310453,
       "timestamp_str": "2026-11-23 21:01:35"
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Guard the expensive sentence regex with a cheap is/was/are check: 1.12x on answerCandidates",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Short answers without is/was/are skip a backtracking regex while candidate sets stay identical",
+        "mitigation": "failing-first regex-run counter test plus verdict equivalence, full npm test and strict gates; revert if regression",
+        "risks": "contract: candidate arrays identical, verified over nine shapes; dependency: none; concurrency: none; state: pure function",
+        "why": "User directive to keep improving speeds; a CPU profile still shows answerCandidates as the top in-process judge function and the backtracking sentence regex ran on every answer"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "4f4df0628576f396ac42f67ac7474d023d37cb259be154c00e7cbb9158f82982",
+      "status": "in_progress",
+      "task_id": "sentence-regex-guard-1123",
+      "timestamp": 1795457365.4338422,
+      "timestamp_str": "2026-11-23 21:09:25",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] REVERTED: isolated A/B showed 1.12x but controlled end-to-end A/B regressed (exact 0.82->0.90us, slower 8/9 rounds) on realistic answers containing ' is '; code restored to HEAD, no change shipped",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "sentence-regex-guard-1123",
+      "timestamp": 1795457920.823449,
+      "timestamp_str": "2026-11-23 21:18:40",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'sentence-regex-guard-1123' completed successfully.",
+      "head": "195ee51226a925c4791ef83eccf428e86ec5e5b1",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "sentence-regex-guard-1123",
+      "timestamp": 1795457921.560873,
+      "timestamp_str": "2026-11-23 21:18:41"
     }
   ]
 }

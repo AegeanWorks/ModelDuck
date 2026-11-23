@@ -1803,3 +1803,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: a first scan of 200 models drops from **47.7 ms to 9.5 ms**; a controlled 5-round A/B measured **40.2 ms → 11.0 ms (3.65x)**. Three failing-first tests pin the mode, that all headers are checked on a first scan, and that cached rescans skip them.
 - **Cross-principle check:** PRINCIPLE-010: concurrency only for independent read-only four-byte reads; PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: no registry contract changed.
 
+### ADR-240: Rejected sentence-regex guard
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: A CPU profile still showed `answerCandidates()` as the top in-process judge function, with a backtracking sentence regex running on every answer. An isolated A/B of a cheap `\s(?:is|was|are)\s` guard showed **1.12x** on short answers.
+- **Decision**: Rejected and fully reverted. A controlled 9-round end-to-end A/B on a realistic answer ("The answer is 42 and option B.") showed the guard **regressed** exact checks from **0.82 us to 0.90 us**, slower in 8/9 rounds: the answer contains " is ", so the guard ran *in addition to* the original regex instead of replacing it. The isolated win came from a test distribution dominated by short answers that lacked the pattern.
+- **Consequences**: `benchmarks/suite.mjs` is byte-identical to HEAD; no production change shipped. This is why end-to-end A/B is required before shipping, not just isolated helper timings.
+- **Cross-principle check:** PRINCIPLE-014: regression reverted, no assertion weakened; the objective's "reverse anything that worsens speed" was applied.
+
