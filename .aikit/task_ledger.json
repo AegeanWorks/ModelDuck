@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "signflip-recurrence-1123",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795461227.8212712,
+    "task_id": "mcnemar-recurrence-1123",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795462438.923237,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795468427.8212712,
+    "lease_until": 1795469638.923237,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,35 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795461229.1896346,
-    "completed_head": "69dc1ff2a7a84647bdc99ff71aa5893797d01ebd",
-    "completed_tree": "4c961352ff64202682aa84bbb6b5a5c11828bd71"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; mcnemarExact recomputed logChoose from scratch each iteration, an O(k^2) total",
+      "benefits": "Gate statistics compute the same p-values with an O(k) running log-binomial recurrence",
+      "risks": "contract: identical p-values within 1e-12 float tolerance; dependency: none; concurrency: none; state: pure locals",
+      "mitigation": "failing-first counter test plus value equivalence, full npm test and strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Parallelize independent stat calls in the registry scan: 63.4ms -> 5.9ms, controlled A/B 3.28x",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Full scans of large libraries gather file stats concurrently while preserving per-file error handling",
-        "mitigation": "failing-first mode seam plus behavioral equivalence over valid/missing/non-GGUF files, full npm test and strict gates; revert if regression",
-        "risks": "contract: same models listed in the same order; dependency: none; concurrency: independent read-only stat calls, no shared mutation; state: stats are indexed by position so insertion order is unchanged",
-        "why": "User directive to keep improving speeds; the first scan of a 200-model library did 200 sequential stat calls costing ~12ms on Windows"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "43a1a7c9b2d6c24b478927d7f56b185c300f7c341e9076bdce0337bd6161a0f6",
-      "status": "in_progress",
-      "task_id": "parallel-scan-stat-1123",
-      "timestamp": 1795455278.1032205,
-      "timestamp_str": "2026-11-23 20:34:38",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "checklists": "passed",
@@ -409,6 +388,30 @@
       "task_id": "signflip-recurrence-1123",
       "timestamp": 1795461229.4517236,
       "timestamp_str": "2026-11-23 22:13:49"
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Incremental logChoose recurrence for McNemar tails: 526us -> 6.7us (~78x), identical p-values",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Gate statistics compute the same p-values with an O(k) running log-binomial recurrence",
+        "mitigation": "failing-first counter test plus value equivalence, full npm test and strict gates; revert if regression",
+        "risks": "contract: identical p-values verified over 8 discordant-pair shapes; dependency: none; concurrency: none; state: pure locals",
+        "why": "User directive to keep improving speeds; mcnemarExact recomputed logChoose from scratch each iteration, an O(k^2) total"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "f64d62979a76024b0d8885ab05676001ebbfdac6b5f4992cd5e05db8c86f7b62",
+      "status": "in_progress",
+      "task_id": "mcnemar-recurrence-1123",
+      "timestamp": 1795461826.911609,
+      "timestamp_str": "2026-11-23 22:23:46",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }

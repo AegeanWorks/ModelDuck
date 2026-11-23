@@ -37,20 +37,30 @@ export function subsetInterval(passed, subsetTotal, populationTotal, z = Z95) {
   return { low: round(mid - half), high: round(mid + half), calibration: true };
 }
 
-function logChoose(n, k) {
-  let sum = 0;
-  for (let index = 1; index <= k; index += 1) sum += Math.log(n - k + index) - Math.log(index);
-  return sum;
+let mcnemarLogSteps = 0;
+export function mcnemarLogStepCount() {
+  return mcnemarLogSteps;
+}
+// log C(n, index) from the previous value: log C(n,i) = log C(n,i-1) + log(n-i+1) - log(i).
+// This makes the binomial tail O(k) instead of recomputing logChoose (O(k^2)) each step.
+function binomialTailLog(n, upTo) {
+  let tail = 0;
+  let logC = 0;
+  for (let index = 0; index <= upTo; index += 1) {
+    if (index > 0) {
+      logC += Math.log(n - index + 1) - Math.log(index);
+      mcnemarLogSteps += 1;
+    }
+    tail += Math.exp(logC - n * Math.LN2);
+  }
+  return tail;
 }
 
 /** Exact two-sided McNemar test on discordant pairs b (pass→fail) and c (fail→pass). */
 export function mcnemarExact(b, c) {
   const n = b + c;
   if (n === 0) return 1;
-  const k = Math.min(b, c);
-  let tail = 0;
-  for (let index = 0; index <= k; index += 1) tail += Math.exp(logChoose(n, index) - n * Math.LN2);
-  return Math.min(1, 2 * tail);
+  return Math.min(1, 2 * binomialTailLog(n, Math.min(b, c)));
 }
 
 /**
@@ -63,9 +73,7 @@ export function mcnemarExact(b, c) {
 export function mcnemarOneSided(b, c) {
   const n = b + c;
   if (n === 0) return 1;
-  let tail = 0;
-  for (let index = 0; index <= c; index += 1) tail += Math.exp(logChoose(n, index) - n * Math.LN2);
-  return Math.min(1, tail);
+  return Math.min(1, binomialTailLog(n, c));
 }
 
 /**

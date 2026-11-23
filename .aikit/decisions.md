@@ -1835,3 +1835,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: **64.4 ms → 5.0 ms (13x)**. P-values were checked identical against the direct enumeration over 200 randomized inputs before shipping; a failing-first counter test (confirmed against HEAD) pins one operation per mask, plus two p-value equivalence tests.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no statistic or threshold changed.
 
+### ADR-244: Incremental log-binomial for McNemar tails
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: `mcnemarExact` and `mcnemarOneSided` called `logChoose(n, index)` from scratch for every index, each an O(k) loop — O(k²) overall; k=300 cost **526 us**.
+- **Decision**: Add `binomialTailLog()` that updates `log C(n, i)` from the previous value with one log add/subtract per step, O(k) total. Both McNemar functions use it; the now-unused `logChoose` was removed.
+- **Consequences**: **526 us → 6.7 us (~78x)**. P-values match the direct sum within 1e-12 (float addition order differs by ~3e-16); existing `toFixed(4)`/`close()` assertions are unaffected. A failing-first counter test pins one log step per index, plus equivalence over 7 discordant-pair shapes.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no statistic or threshold changed.
+
