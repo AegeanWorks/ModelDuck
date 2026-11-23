@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "profilelist-parallel-1123",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795477074.6415513,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795477587.404508,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795484274.6415513,
+    "lease_until": 1795484787.404508,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,55 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; listProfiles stats files in parallel but then parsed them one at a time on every cache miss",
-      "benefits": "Profile listing gathers reads concurrently while preserving sorted order and schema filtering",
-      "risks": "contract: same profile summaries in sorted order; dependency: none; concurrency: independent read-only reads, Promise.all preserves order; state: same cache",
-      "mitigation": "failing-first counter test plus ordering/equivalence checks, full npm test and strict gates; revert if regression"
-    }
+    "completed_at": 1795477588.429706,
+    "completed_head": "534eeb40b375f048f821e22e5596bedaa7b0cbb4",
+    "completed_tree": "9188b2eec92f880214eaec28306ae2da54e175df"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'readme-trim-1123' completed successfully.",
-      "head": "5bf78a5211df8d5f49275235d3ba54f118f7d71f",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "readme-trim-1123",
-      "timestamp": 1795471519.703168,
-      "timestamp_str": "2026-11-24 01:05:19"
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Replace Object.fromEntries in pick() with a direct loop: 0.536us -> 0.243us (2.2x)",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Per-answer settings selection skips intermediate arrays while output is identical",
-        "mitigation": "failing-first counter test plus output equivalence, full npm test and strict gates; revert if regression",
-        "risks": "contract: same key set and values; dependency: none; concurrency: none; state: pure function",
-        "why": "User directive to keep improving speeds; pick() allocates two intermediate arrays per answer for keys that are already enumerated"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "36ad4785c71dd78394d39bffdf699d6577e1c9be15b2d519f780165ef8240b17",
-      "status": "in_progress",
-      "task_id": "pick-loop-1123",
-      "timestamp": 1795471771.595889,
-      "timestamp_str": "2026-11-24 01:09:31",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "checklists": "passed",
@@ -418,6 +374,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: 40 profile parses 3.39ms -> 0.96ms (3.5x); 1216 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "profilelist-parallel-1123",
+      "timestamp": 1795477587.404508,
+      "timestamp_str": "2026-11-24 02:46:27",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'profilelist-parallel-1123' completed successfully.",
+      "head": "534eeb40b375f048f821e22e5596bedaa7b0cbb4",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "profilelist-parallel-1123",
+      "timestamp": 1795477588.5983727,
+      "timestamp_str": "2026-11-24 02:46:28"
     }
   ]
 }
