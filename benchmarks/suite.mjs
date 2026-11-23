@@ -764,9 +764,20 @@ function chosenLetter(text) {
   return plain.match(/^\(?([a-h])(?:\)|[.:]|$)/im)?.[1]?.toLowerCase() ?? null;
 }
 
+// Test seam: how often the thousands-separator regex actually ran.
+let separatorRuns = 0;
+export function givenNumberSeparatorRuns() {
+  return separatorRuns;
+}
+
 /** The number a reply gives: the one after its last "Answer", else its last number (thousands separators and currency allowed). */
 function givenNumber(text) {
-  const plain = plainText(text).replace(/(\d),(?=\d{3}\b)/g, "$1");
+  let plain = plainText(text);
+  // Without a comma the replace is a no-op; skip the regex for the common case.
+  if (plain.includes(",")) {
+    separatorRuns += 1;
+    plain = plain.replace(/(\d),(?=\d{3}\b)/g, "$1");
+  }
   const marked = [...plain.matchAll(/answer(?:\s+is)?\s*[:=]?\s*[$€£]?\s*(-?\d+(?:\.\d+)?)/gi)].at(-1)?.[1];
   if (marked !== undefined) return Number(marked);
   const numbers = [...plain.matchAll(/-?\d+(?:\.\d+)?/g)];

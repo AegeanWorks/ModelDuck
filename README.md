@@ -769,7 +769,8 @@ modelduck/
 │   ├── manual-plain-normalize.test.js
 │   ├── single-line-candidates.test.js
 │   ├── single-place-fastpath.test.js
-│   └── candidate-loop-shortcut.test.js
+│   ├── candidate-loop-shortcut.test.js
+│   └── separator-guard.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml

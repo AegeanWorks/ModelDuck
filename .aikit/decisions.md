@@ -1704,3 +1704,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: an isolated 7-round A/B on the candidate loop showed **1.31x** with identical output over 13 shapes including uppercase lead-ins; the end-to-end median improved from **0.72 us to 0.66 us** on a noisy host. The first implementation returned on the first place of multi-line replies and broke three existing verdict tests; it was corrected with a `places.length === 1` guard before shipping.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests plus three pre-existing regression tests, no assertion weakened; G-003: no prompt, check or expected value changed.
 
+### ADR-228: Guard the thousands-separator regex
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: A CPU profile showed `givenNumber()` among the remaining judge helpers. It ran a `(\d),(?=\d{3}\b)` replace on every reply even when the reply contained no comma.
+- **Decision**: Only run the replace when `plain.includes(",")`. A separator counter is exposed for tests. An alternative that also replaced `[...matchAll()].at(-1)` with a `for...of` loop was measured **2x slower** (V8 optimizes the spread form far better) and was rejected.
+- **Consequences**: number checks drop from a **0.58 us** to a **0.49 us** median, faster in 8/9 controlled rounds; the separator step alone is **1.42x** faster. Two failing-first tests pin the guard and unchanged number verdicts with and without separators.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no prompt, check or expected value changed.
+
