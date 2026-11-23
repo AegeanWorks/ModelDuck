@@ -1696,3 +1696,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: an isolated 7-round A/B showed the candidate pipeline improving **1.38x** with identical output; the controlled end-to-end A/B showed exact checks dropping from **1.25 us to 0.78 us** while the unrelated `choice` path stayed flat. Two failing-first tests pin the path selection and unchanged verdicts.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no prompt, check or expected value changed.
 
+### ADR-227: Short-circuit bare-answer candidate construction
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: `answerCandidates()` remained the top in-process judge function. A bare answer such as "42" still built a Set, ran a colon regex and spread an array even though no lead-in, label or sentence applied.
+- **Decision**: When there is exactly one place and neither a lead-in change, a label nor an "is/was/are" sentence, return the single normalized string directly. A shortcut counter is exposed for tests.
+- **Consequences**: an isolated 7-round A/B on the candidate loop showed **1.31x** with identical output over 13 shapes including uppercase lead-ins; the end-to-end median improved from **0.72 us to 0.66 us** on a noisy host. The first implementation returned on the first place of multi-line replies and broke three existing verdict tests; it was corrected with a `places.length === 1` guard before shipping.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests plus three pre-existing regression tests, no assertion weakened; G-003: no prompt, check or expected value changed.
+

@@ -768,7 +768,8 @@ modelduck/
 │   ├── plain-candidate-normalize.test.js
 │   ├── manual-plain-normalize.test.js
 │   ├── single-line-candidates.test.js
-│   └── single-place-fastpath.test.js
+│   ├── single-place-fastpath.test.js
+│   └── candidate-loop-shortcut.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml

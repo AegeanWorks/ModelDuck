@@ -705,6 +705,11 @@ let candidatePlaceSets = 0;
 export function answerCandidatePlaceSets() {
   return candidatePlaceSets;
 }
+// Test seam: how often a bare answer skipped the general candidate loop.
+let candidateShortcuts = 0;
+export function answerCandidateShortcuts() {
+  return candidateShortcuts;
+}
 
 /**
  * The places a person would look for a short answer: the whole reply, its first and last
@@ -733,12 +738,18 @@ function answerCandidates(text) {
   candidatePlaces += places.length;
   const candidates = new Set();
   for (const place of places) {
-    candidates.add(place);
     const lead = place.replace(LEAD_IN, "");
-    candidates.add(lead);
-    const label = lead.match(/^[\w\s'-]{1,30}:\s*(.+)$/)?.[1];
-    if (label) candidates.add(label);
+    // A bare answer without a label or an "is/was/are" sentence contributes
+    // just one candidate: skip the Set, the colon regex and the array map.
+    const label = lead.includes(":") ? lead.match(/^[\w\s'-]{1,30}:\s*(.+)$/)?.[1] : undefined;
     const sentence = lead.match(/^(?:the\s+)?[\w\s'-]{1,40}?\s+(?:is|was|are)\s+(.+)$/i)?.[1];
+    if (places.length === 1 && lead === place && !label && !sentence) {
+      candidateShortcuts += 1;
+      return [normalizePlain(place)];
+    }
+    candidates.add(place);
+    candidates.add(lead);
+    if (label) candidates.add(label);
     if (sentence) candidates.add(sentence).add(sentence.replace(/^(?:in|at|on|from|by)\s+/i, ""));
   }
   return [...candidates].map(normalizePlain);

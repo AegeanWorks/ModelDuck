@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "single-place-fastpath-1123",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795427996.775574,
+    "task_id": "candidate-loop-shortcut-1123",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795428593.2944853,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795435196.775574,
+    "lease_until": 1795435793.2944853,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,29 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795427997.3016617,
-    "completed_head": "7648b1fbcc1e4042555d0a951638c71025524fe9",
-    "completed_tree": "fa831913242837d83d2441b1918eeeb0a0e824b4"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; answerCandidates remains the top in-process judge function and bare answers still built a Set and ran a colon regex for nothing",
+      "benefits": "Bare-answer checks return one normalized string without Set/array construction",
+      "risks": "contract: candidate arrays identical for all lead-in, label and sentence shapes; dependency: none; concurrency: none; state: pure function",
+      "mitigation": "failing-first shortcut counter test plus 13-case equivalence including uppercase lead-ins, full npm test and strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[2/2] DELIVERED: judge hit 0.76us -> 0.17us (4.47x); spawn/tempfile sandbox variants rejected; 1144 tests pass",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "judge-hit-reuse-1123",
-      "timestamp": 1795394698.9432948,
-      "timestamp_str": "2026-11-23 03:44:58",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "delivery": {
@@ -409,6 +394,30 @@
       "task_id": "single-place-fastpath-1123",
       "timestamp": 1795427997.5009007,
       "timestamp_str": "2026-11-23 12:59:57"
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Short-circuit the single-place candidate loop when no lead-in, label or sentence applies: 1.31x",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Bare-answer checks return one normalized string without Set/array construction",
+        "mitigation": "failing-first shortcut counter test plus 13-case equivalence including uppercase lead-ins, full npm test and strict gates; revert if regression",
+        "risks": "contract: candidate arrays identical for all lead-in, label and sentence shapes; dependency: none; concurrency: none; state: pure function",
+        "why": "User directive to keep improving speeds; answerCandidates remains the top in-process judge function and bare answers still built a Set and ran a colon regex for nothing"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "9c76bad7d6a07b809f7725d17ad8b6780a0f6b5371bd6a2abbd0e6b70ac3963c",
+      "status": "in_progress",
+      "task_id": "candidate-loop-shortcut-1123",
+      "timestamp": 1795428593.294485,
+      "timestamp_str": "2026-11-23 13:09:53",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }
