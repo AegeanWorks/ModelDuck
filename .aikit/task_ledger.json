@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "recommend-smoke-map-1123",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795465554.1968496,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795465878.658877,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795472754.1968496,
+    "lease_until": 1795473078.658877,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,49 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; the smoke comparison did a .some() and .find() per base prompt, an O(n^2) scan over ~300 items",
-      "benefits": "Report recommendations build one id map instead of rescanning the variant prompts",
-      "risks": "contract: same kept verdict and speedTuning; dependency: none; concurrency: none; state: local Map only",
-      "mitigation": "failing-first lookup-counter test plus verdict equivalence, end-to-end A/B, full npm test and strict gates; revert if regression"
-    }
+    "completed_at": 1795465879.3745182,
+    "completed_head": "363afe9c1415f92f3225762cf910ddd25d85109c",
+    "completed_tree": "7068de2492408adfd73ac123d4f045b31821637a"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'sentence-regex-guard-1123' completed successfully.",
-      "head": "195ee51226a925c4791ef83eccf428e86ec5e5b1",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "sentence-regex-guard-1123",
-      "timestamp": 1795457921.560873,
-      "timestamp_str": "2026-11-23 21:18:41"
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[1/1] Record ADR-240 documenting the reverted sentence-regex guard and the end-to-end A/B that caught it",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "rejection-adr-240-1123",
-      "timestamp": 1795458033.670086,
-      "timestamp_str": "2026-11-23 21:20:33",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "delivery": {
@@ -418,6 +380,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: recommend() 208.7->32.4us (6.44x end-to-end); 1194 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "recommend-smoke-map-1123",
+      "timestamp": 1795465878.658877,
+      "timestamp_str": "2026-11-23 23:31:18",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'recommend-smoke-map-1123' completed successfully.",
+      "head": "363afe9c1415f92f3225762cf910ddd25d85109c",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "recommend-smoke-map-1123",
+      "timestamp": 1795465879.443369,
+      "timestamp_str": "2026-11-23 23:31:19"
     }
   ]
 }
