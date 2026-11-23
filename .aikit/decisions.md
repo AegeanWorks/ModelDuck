@@ -1787,3 +1787,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: a cached forced rescan drops from **59.3 ms to 12.5 ms**; a controlled 5-round A/B measured **34.5 ms → 14.2 ms (2.43x)**. Two failing-first tests pin that cached rescans skip header reads and non-GGUF files are still rejected.
 - **Cross-principle check:** PRINCIPLE-003: trust is keyed on size+mtime, the same assumption the metadata cache already makes; PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: no model listing or registry contract changed.
 
+### ADR-238: Parallelize registry scan stats
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: After skipping cached magic re-reads, a first scan of 200 models still paid ~12 ms for 200 sequential `stat` calls (measured 11.7 ms sequential vs 2.0 ms parallel in isolation).
+- **Decision**: Gather all file stats with one `Promise.all` before the per-file loop, indexing results by position so insertion order is unchanged. Per-file stat failures still skip that file. Metadata reading stays sequential.
+- **Consequences**: a first scan of 200 models drops from **63.4 ms to 5.9 ms**; a controlled 5-round A/B measured **14.1 ms → 4.3 ms (3.28x)**. Two failing-first tests pin the mode and that valid models are still listed in sorted order while bad/tiny/non-GGUF files are skipped.
+- **Cross-principle check:** PRINCIPLE-010: concurrency only for independent read-only syscalls; PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: no registry contract changed.
+

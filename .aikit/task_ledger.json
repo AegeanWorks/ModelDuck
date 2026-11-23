@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "scan-magic-skip-1123",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795455035.8413317,
+    "task_id": "parallel-scan-stat-1123",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795455278.1032205,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795462235.8413317,
+    "lease_until": 1795462478.1032205,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,28 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795455036.4962032,
-    "completed_head": "e1b6710a7a378de4509aa4236138ea3dbd49e042",
-    "completed_tree": "792c543264e5f944e2d43b2300c48868f03da739"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; the first scan of a 200-model library did 200 sequential stat calls costing ~12ms on Windows",
+      "benefits": "Full scans of large libraries gather file stats concurrently while preserving per-file error handling",
+      "risks": "contract: same models listed in the same order; dependency: none; concurrency: independent read-only stat calls, no shared mutation; state: stats are indexed by position so insertion order is unchanged",
+      "mitigation": "failing-first mode seam plus behavioral equivalence over valid/missing/non-GGUF files, full npm test and strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'catalog-test-hygiene-1123' completed successfully.",
-      "head": "5aacee18fbdae3a576958c6a067b978605c26177",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "catalog-test-hygiene-1123",
-      "timestamp": 1795451639.023735,
-      "timestamp_str": "2026-11-23 19:33:59"
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "description": "[1/2] Memoize settingPresets(): 0.24us -> ~0.05us on /api/state",
@@ -402,6 +388,30 @@
       "task_id": "scan-magic-skip-1123",
       "timestamp": 1795455036.672122,
       "timestamp_str": "2026-11-23 20:30:36"
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Parallelize independent stat calls in the registry scan: 63.4ms -> 5.9ms, controlled A/B 3.28x",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Full scans of large libraries gather file stats concurrently while preserving per-file error handling",
+        "mitigation": "failing-first mode seam plus behavioral equivalence over valid/missing/non-GGUF files, full npm test and strict gates; revert if regression",
+        "risks": "contract: same models listed in the same order; dependency: none; concurrency: independent read-only stat calls, no shared mutation; state: stats are indexed by position so insertion order is unchanged",
+        "why": "User directive to keep improving speeds; the first scan of a 200-model library did 200 sequential stat calls costing ~12ms on Windows"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "43a1a7c9b2d6c24b478927d7f56b185c300f7c341e9076bdce0337bd6161a0f6",
+      "status": "in_progress",
+      "task_id": "parallel-scan-stat-1123",
+      "timestamp": 1795455278.1032205,
+      "timestamp_str": "2026-11-23 20:34:38",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }
