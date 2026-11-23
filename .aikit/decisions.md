@@ -1688,3 +1688,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: a controlled 9-round A/B on `evaluateTextCheck` showed exact checks improving from **1.35 us to 1.21 us** and eight-value oneOf from **2.02 us to 1.89 us**, faster in 9/9 rounds for both. Two failing-first tests pin the split behavior and unchanged verdicts for single- and multi-line replies.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no prompt, check or expected value changed.
 
+### ADR-226: One place for single-line answers
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: A repeated CPU profile still showed `answerCandidates()` as the top in-process judge function. Even after skipping the line split, a single-line reply still went through the generic `Set` construction, an `answer` regex filter and two array allocations, even though all raw places are the same string.
+- **Decision**: For a newline-free reply, set `places = [plain]` directly. Multi-line replies keep the original dedup/filter path. A place-construction counter is exposed for tests.
+- **Consequences**: an isolated 7-round A/B showed the candidate pipeline improving **1.38x** with identical output; the controlled end-to-end A/B showed exact checks dropping from **1.25 us to 0.78 us** while the unrelated `choice` path stayed flat. Two failing-first tests pin the path selection and unchanged verdicts.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no prompt, check or expected value changed.
+

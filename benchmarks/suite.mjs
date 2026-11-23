@@ -700,6 +700,11 @@ let candidateLineSplits = 0;
 export function answerCandidateLineSplits() {
   return candidateLineSplits;
 }
+// Test seam: how often the generic multi-line place construction ran.
+let candidatePlaceSets = 0;
+export function answerCandidatePlaceSets() {
+  return candidatePlaceSets;
+}
 
 /**
  * The places a person would look for a short answer: the whole reply, its first and last
@@ -711,17 +716,20 @@ function answerCandidates(text) {
   const plain = plainText(text);
   // Most answers are a single line: without a newline the whole reply is its
   // own one line, so the regex split and two array passes are unnecessary.
-  let lines;
+  let places;
   if (plain.includes("\n")) {
     candidateLineSplits += 1;
-    lines = plain.split(/\n+/).map((line) => line.trim()).filter(Boolean);
+    const lines = plain.split(/\n+/).map((line) => line.trim()).filter(Boolean);
+    // The whole text, first line and last line are often the same string. Since
+    // normalizeAnswer is pure, duplicate places would only repeat work and be
+    // deduplicated again after normalization.
+    candidatePlaceSets += 1;
+    places = [...new Set([plain, lines[0], lines.at(-1), ...lines.filter((line) => /^(?:final\s+)?answer\b/i.test(line))])].filter(Boolean);
   } else {
-    lines = plain ? [plain] : [];
+    // Without a newline every raw place is the same string, so its deduplicated
+    // set is just that one string (or nothing at all).
+    places = plain ? [plain] : [];
   }
-  // The whole text, first line and last line are often the same string. Since
-  // normalizeAnswer is pure, duplicate places would only repeat work and be
-  // deduplicated again after normalization.
-  const places = [...new Set([plain, lines[0], lines.at(-1), ...lines.filter((line) => /^(?:final\s+)?answer\b/i.test(line))])].filter(Boolean);
   candidatePlaces += places.length;
   const candidates = new Set();
   for (const place of places) {
