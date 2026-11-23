@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "syntax-shortcut-1123",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795467017.9585943,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795467182.2363443,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795474217.9585943,
+    "lease_until": 1795474382.2363443,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,49 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; prose or malformed-code answers spawned a child that immediately failed to parse the script",
-      "benefits": "Wrong-format answers are judged in-process with identical verdicts and no process spawn",
-      "risks": "contract: verdicts byte-identical, verified over 7 syntax-error shapes; dependency: node:vm already imported; concurrency: none; state: JS_TEST_CACHE stores the same result",
-      "mitigation": "failing-first shortcut-counter test plus exact verdict assertions, end-to-end A/B, full npm test and strict gates; revert if regression"
-    }
+    "completed_at": 1795467182.8538697,
+    "completed_head": "d6c84ff5bf0b7d22e90337eeaa723daec1f32be1",
+    "completed_tree": "ab90ed264493f4f3b7eb9fba855e0120d972b438"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[2/2] DELIVERED: choice check 0.75->0.56us in end-to-end A/B (9/9 rounds); 1183 tests pass",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "chosen-letter-scan-1123",
-      "timestamp": 1795458695.3297544,
-      "timestamp_str": "2026-11-23 21:31:35",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'chosen-letter-scan-1123' completed successfully.",
-      "head": "cf8004a74d96bb1711a8ec87ba9da184a6a8721e",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "chosen-letter-scan-1123",
-      "timestamp": 1795458696.5757847,
-      "timestamp_str": "2026-11-23 21:31:36"
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "description": "[1/2] Exec loops for givenNumber's two regexes: isolated 3.6x, end-to-end number 0.60->0.30us (9/9 rounds)",
@@ -425,6 +387,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: syntax-error answers judged in-process, end-to-end A/B 9.6x, byte-identical verdicts; 1197 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "syntax-shortcut-1123",
+      "timestamp": 1795467182.2363443,
+      "timestamp_str": "2026-11-23 23:53:02",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'syntax-shortcut-1123' completed successfully.",
+      "head": "d6c84ff5bf0b7d22e90337eeaa723daec1f32be1",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "syntax-shortcut-1123",
+      "timestamp": 1795467182.9254663,
+      "timestamp_str": "2026-11-23 23:53:02"
     }
   ]
 }
