@@ -1899,3 +1899,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: parsing the real file drops from **21.3 ms to 16.5 ms (1.29x)** with identical runs and links. Two failing-first tests (confirmed against HEAD) pin the trim avoidance and result equivalence across blank lines.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no report value changed.
 
+### ADR-252: Memoize receipt paths by (dir, name)
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: A CPU profile of 60-model routes showed `receiptPath()` and `path.join` repeatedly deriving the same paths on every state and models request.
+- **Decision**: A two-level `Map` (dir -> name -> path) caches the pure derivation, bounded at 4096 names per dir.
+- **Consequences**: 60 repeated lookups drop from **45.45 us to 0.58 us (78x)** with identical paths. A failing-first counter test (confirmed against HEAD) pins one derivation per (dir, name) and correct nested/plain names.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: no receipt lookup or invalidation semantics changed.
+

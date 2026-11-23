@@ -18,8 +18,28 @@ const MAX_SOURCE_BYTES = 32 * 1024 ** 3;
 // only on Hugging Face infrastructure, never on a third-party host.
 const MAX_REDIRECT_HOPS = 5;
 
+// (dir -> name -> path): the same models are looked up on every state and
+// models request, so derive each receipt path once.
+const RECEIPT_PATH_CACHE = new Map();
+let receiptPathComputes = 0;
+export function receiptPathComputations() {
+  return receiptPathComputes;
+}
 function receiptPath(modelsDir, fileName) {
-  return path.join(modelsDir, `${path.basename(String(fileName ?? ""))}.receipt.json`);
+  let byName = RECEIPT_PATH_CACHE.get(modelsDir);
+  if (!byName) {
+    byName = new Map();
+    RECEIPT_PATH_CACHE.set(modelsDir, byName);
+  }
+  const name = String(fileName ?? "");
+  let built = byName.get(name);
+  if (built === undefined) {
+    receiptPathComputes += 1;
+    built = path.join(modelsDir, `${path.basename(name)}.receipt.json`);
+    if (byName.size >= 4096) byName.delete(byName.keys().next().value);
+    byName.set(name, built);
+  }
+  return built;
 }
 
 function resumeIdentityPath(modelsDir, fileName) {

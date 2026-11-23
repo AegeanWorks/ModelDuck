@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "history-trim-skip-1123",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795470637.2816334,
+    "task_id": "receiptpath-memo-1123",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795471127.7409074,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795477837.2816334,
+    "lease_until": 1795478327.7409074,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,52 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795470638.1608443,
-    "completed_head": "acad87bd60934e0d5d3ef9d49cd0cbe8d7f0b0ef",
-    "completed_tree": "9daee76056cb9f1f4f81a786fceb094da9e2d3a8"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; /api/state and /api/models recomputed receipt paths for every model on every request",
+      "benefits": "Repeated receipt lookups reuse their derived path while invalidation by (dir,name) stays exact",
+      "risks": "contract: identical paths; dependency: Node Map; concurrency: none; state: bounded 4096-entry-per-dir cache of a pure function",
+      "mitigation": "failing-first counter test plus path equivalence, full npm test and strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'recommend-smoke-map-1123' completed successfully.",
-      "head": "363afe9c1415f92f3225762cf910ddd25d85109c",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "recommend-smoke-map-1123",
-      "timestamp": 1795465879.443369,
-      "timestamp_str": "2026-11-23 23:31:19"
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Skip the child spawn for answers whose code has a syntax error: deterministic verdict, ~1-9us vs ~50ms",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Wrong-format answers are judged in-process with byte-identical verdicts and no process spawn",
-        "mitigation": "failing-first shortcut-counter test plus exact verdict assertions, end-to-end A/B on a mixed workload, full npm test and strict gates; revert if regression",
-        "risks": "contract: verdicts byte-identical, verified over 7 syntax-error shapes; dependency: node:vm already imported; concurrency: none; state: JS_TEST_CACHE stores the same result",
-        "why": "User directive to keep improving speeds; prose or malformed-code answers still spawned a child that immediately failed to parse the script"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "d86beec4ae8d012ad46ea61a510977aa427b62f46104878c18b1012079e672ab",
-      "status": "in_progress",
-      "task_id": "syntax-shortcut-1123",
-      "timestamp": 1795466584.126373,
-      "timestamp_str": "2026-11-23 23:43:04",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "description": "[1/2] Skip the child spawn for syntax-error answers: byte-identical verdicts, end-to-end A/B 2201.8ms -> 230.2ms (9.6x) on mixed workload",
@@ -428,6 +390,54 @@
       "task_id": "history-trim-skip-1123",
       "timestamp": 1795470638.252837,
       "timestamp_str": "2026-11-24 00:50:38"
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Memoize receiptPath by (dir, filename) with a two-level Map: 45.45us -> 0.58us per 60 models (78x)",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Repeated receipt lookups reuse their derived path while invalidation by (dir,name) stays exact",
+        "mitigation": "failing-first counter test plus path equivalence, full npm test and strict gates; revert if regression",
+        "risks": "contract: identical paths; dependency: Node Map; concurrency: none; state: bounded cache cleared alongside receipt cache",
+        "why": "User directive to keep improving speeds; /api/state and /api/models recomputed receipt paths for every model on every request via path.basename+path.join"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "0e0314deaa36b0e44c69aa0bd91eb48647c71ab3e8766f2a91b113eb91d3074b",
+      "status": "in_progress",
+      "task_id": "receiptpath-memo-1123",
+      "timestamp": 1795471011.6321316,
+      "timestamp_str": "2026-11-24 00:56:51",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Memoize receiptPath by (dir,name): 45.45us -> 0.58us per 60 models (78x)",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Repeated receipt lookups reuse their derived path while invalidation by (dir,name) stays exact",
+        "mitigation": "failing-first counter test plus path equivalence, full npm test and strict gates; revert if regression",
+        "risks": "contract: identical paths; dependency: Node Map; concurrency: none; state: bounded 4096-entry-per-dir cache of a pure function",
+        "why": "User directive to keep improving speeds; /api/state and /api/models recomputed receipt paths for every model on every request"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "f873a0f33d1b44ba5025a3e2a33fb3c61a3f6f305d406c6ccdafaec730695d9a",
+      "status": "in_progress",
+      "task_id": "receiptpath-memo-1123",
+      "timestamp": 1795471127.7409074,
+      "timestamp_str": "2026-11-24 00:58:47",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }
