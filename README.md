@@ -784,7 +784,8 @@ modelduck/
 │   ├── chosen-letter-scan.test.js
 │   ├── given-number-exec.test.js
 │   ├── signflip-recurrence.test.js
-│   └── mcnemar-recurrence.test.js
+│   ├── mcnemar-recurrence.test.js
+│   └── signflip-monte-carlo.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml

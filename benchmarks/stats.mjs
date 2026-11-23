@@ -149,12 +149,24 @@ export function losslessCeilingGate(result, { ceilingQuant = CEILING_QUANT } = {
 const SIGN_FLIP_EXACT_LIMIT = 20;
 const SIGN_FLIP_PERMUTATIONS = 10000;
 
-function lcg(seed) {
-  let state = seed >>> 0;
-  return () => {
-    state = (state * 1664525 + 1013904223) >>> 0;
-    return state / 2 ** 32;
-  };
+// Seeded LCG inlined into the draw loop: `random() < 0.5` is exactly the
+// high-bit test `state < 0x80000000`, so no division or closure call is needed.
+// The state sequence and every sign choice are identical to the original lcg.
+let monteCarloDraws = 0;
+export function monteCarloDrawCount() {
+  return monteCarloDraws;
+}
+function monteCarloSignedSums(nonzero, permutations, visit) {
+  let state = 0x5EED;
+  for (let draw = 0; draw < permutations; draw += 1) {
+    let sum = 0;
+    for (let index = 0; index < nonzero.length; index += 1) {
+      state = (state * 1664525 + 1013904223) >>> 0;
+      monteCarloDraws += 1;
+      sum += state < 0x80000000 ? nonzero[index] : -nonzero[index];
+    }
+    visit(sum);
+  }
 }
 
 // All signed subset sums, in mask order. The low-bit recurrence computes each
@@ -197,13 +209,10 @@ export function signFlipPValue(differences, { exactLimit = SIGN_FLIP_EXACT_LIMIT
     }
     return extreme / totals.length;
   }
-  const random = lcg(0x5EED);
   let extreme = 0;
-  for (let draw = 0; draw < permutations; draw += 1) {
-    let sum = 0;
-    for (const value of nonzero) sum += random() < 0.5 ? value : -value;
+  monteCarloSignedSums(nonzero, permutations, (sum) => {
     if (Math.abs(sum) >= observed - 1e-12) extreme += 1;
-  }
+  });
   return extreme / permutations;
 }
 
@@ -230,13 +239,10 @@ export function signFlipOneSided(differences, { exactLimit = SIGN_FLIP_EXACT_LIM
     }
     return extreme / totals.length;
   }
-  const random = lcg(0x5EED);
   let extreme = 0;
-  for (let draw = 0; draw < permutations; draw += 1) {
-    let sum = 0;
-    for (const value of nonzero) sum += random() < 0.5 ? value : -value;
+  monteCarloSignedSums(nonzero, permutations, (sum) => {
     if (sum <= observed + 1e-12) extreme += 1;
-  }
+  });
   return extreme / permutations;
 }
 

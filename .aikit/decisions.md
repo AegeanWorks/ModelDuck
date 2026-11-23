@@ -1843,3 +1843,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: **526 us → 6.7 us (~78x)**. P-values match the direct sum within 1e-12 (float addition order differs by ~3e-16); existing `toFixed(4)`/`close()` assertions are unaffected. A failing-first counter test pins one log step per index, plus equivalence over 7 discordant-pair shapes.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no statistic or threshold changed.
 
+### ADR-245: Inline the seeded LCG in Monte Carlo sign flips
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: With more than 20 differences, `signFlipPValue`/`signFlipOneSided` drew 10,000×N signs through a closure that divided the LCG state by 2³² on every call.
+- **Decision**: Inline the LCG into the draw loop and use the exact equivalent test `state < 0x80000000` for `random() < 0.5`. The state sequence and every sign choice remain identical.
+- **Consequences**: a controlled 5-round end-to-end A/B measured **15.89 ms → 7.24 ms (2.19x)**; a failing-first draw-counter test (confirmed against HEAD) and an exact p-value equivalence test against the seeded reference both pass.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no statistic or threshold changed.
+
