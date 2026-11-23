@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "scan-magic-skip-1123",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795454909.319535,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795455035.8413317,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795462109.319535,
+    "lease_until": 1795462235.8413317,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,49 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; a 200-model forced rescan reopened every file for four-byte header validation even when metadata was cached",
-      "benefits": "Import/delete rescans on large libraries avoid one file open+read per unchanged model",
-      "risks": "contract: same models listed; dependency: none; concurrency: none; state: cache key already trusts size+mtime so a cached file is known valid; non-GGUF files still checked every time",
-      "mitigation": "failing-first header-read counter test plus non-GGUF rejection check, full npm test and strict gates; revert if regression"
-    }
+    "completed_at": 1795455036.4962032,
+    "completed_head": "e1b6710a7a378de4509aa4236138ea3dbd49e042",
+    "completed_tree": "792c543264e5f944e2d43b2300c48868f03da739"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'public-catalog-cache-1123' completed successfully.",
-      "head": "90d217f8814f9aa80b58d9128e4ba298575d8b82",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "public-catalog-cache-1123",
-      "timestamp": 1795451485.567109,
-      "timestamp_str": "2026-11-23 19:31:25"
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[1/1] Use modelHomepage() in the catalog-cache test instead of a literal external URL so the hygiene gate passes",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "catalog-test-hygiene-1123",
-      "timestamp": 1795451638.3720565,
-      "timestamp_str": "2026-11-23 19:33:58",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "delivery": {
@@ -405,6 +367,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: cached 200-model force rescan 59.3->12.5ms (A/B 2.43x); 1176 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "scan-magic-skip-1123",
+      "timestamp": 1795455035.8413315,
+      "timestamp_str": "2026-11-23 20:30:35",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'scan-magic-skip-1123' completed successfully.",
+      "head": "e1b6710a7a378de4509aa4236138ea3dbd49e042",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "scan-magic-skip-1123",
+      "timestamp": 1795455036.672122,
+      "timestamp_str": "2026-11-23 20:30:36"
     }
   ]
 }
