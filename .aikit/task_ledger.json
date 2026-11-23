@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "given-number-exec-1123",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795459502.317524,
+    "task_id": "signflip-recurrence-1123",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795461009.6626844,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795466702.317524,
+    "lease_until": 1795468209.6626844,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,35 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795459502.9465141,
-    "completed_head": "76ad6c06fddb0969f115c7776e6de2a5d9c55a77",
-    "completed_tree": "dd80ec71877743f4e54a34afb4bf349534d50c3a"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; the exact path enumerated 2^20 masks with an O(count) inner loop",
+      "benefits": "Tune gate statistics compute the same p-values with an O(1) per-mask recurrence",
+      "risks": "contract: identical p-values verified over 200 randomized inputs plus reference tests; dependency: none; concurrency: none; state: Float64Array scratch per call",
+      "mitigation": "failing-first counter test confirmed against HEAD plus p-value equivalence, full npm test and strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Skip GGUF magic re-read for cached files on forced rescans: 59.3ms -> 12.5ms, controlled A/B 2.43x",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Import/delete rescans on large libraries avoid one file open+read per unchanged model",
-        "mitigation": "failing-first header-read counter test plus non-GGUF rejection check, full npm test and strict gates; revert if regression",
-        "risks": "contract: same models listed; dependency: none; concurrency: none; state: cache key already trusts size+mtime so a cached file is known valid; non-GGUF files still checked every time",
-        "why": "User directive to keep improving speeds; a 200-model forced rescan reopened every file for four-byte header validation even when metadata was cached"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "4354d582a9c273f0d04bf1894122fc1b72dbeaf71c00856f963d740b92c4d1f5",
-      "status": "in_progress",
-      "task_id": "scan-magic-skip-1123",
-      "timestamp": 1795454909.319535,
-      "timestamp_str": "2026-11-23 20:28:29",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "checklists": "passed",
@@ -409,6 +388,30 @@
       "task_id": "given-number-exec-1123",
       "timestamp": 1795459503.065629,
       "timestamp_str": "2026-11-23 21:45:03"
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Subset-sum recurrence for exact sign-flip enumeration: 64.4ms -> 5.0ms (13x), identical p-values",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Tune gate statistics compute the same p-values with an O(1) per-mask recurrence",
+        "mitigation": "failing-first counter test plus p-value equivalence, end-to-end A/B via stats tests, full npm test and strict gates; revert if regression",
+        "risks": "contract: identical p-values, verified over 200 randomized inputs plus existing stats tests; dependency: none; concurrency: none; state: Float64Array scratch per call",
+        "why": "User directive to keep improving speeds; the exact path enumerated 2^20 masks with an O(count) inner loop"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "2c9ab5e899e5d1fa82f32699fe6d7f073b096cf46e7343c0ac533de5d17b8e02",
+      "status": "in_progress",
+      "task_id": "signflip-recurrence-1123",
+      "timestamp": 1795460767.3457904,
+      "timestamp_str": "2026-11-23 22:06:07",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }

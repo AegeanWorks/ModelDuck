@@ -1827,3 +1827,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: isolated helper A/B was **3.6x**; the controlled 9-round end-to-end A/B showed the number check dropping from **0.60 us to 0.30 us**, faster in 9/9 rounds, with the exact control flat. Two failing-first tests (confirmed against HEAD) pin the single scan and identical verdicts across 8 answer shapes.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no check or verdict changed.
 
+### ADR-243: Subset-sum recurrence for exact sign-flip tests
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: The exact sign-flip p-value path enumerated 2²⁰ masks with an `O(count)` inner loop, costing **64.4 ms** for 20 differences in a tune gate.
+- **Decision**: Add `exactSignedSums()` using the low-bit recurrence `sums[mask] = sums[mask ^ low] + value[bit]`, so each signed subset sum is `2*sums[mask] - total`. Both `signFlipPValue` and `signFlipOneSided` use it.
+- **Consequences**: **64.4 ms → 5.0 ms (13x)**. P-values were checked identical against the direct enumeration over 200 randomized inputs before shipping; a failing-first counter test (confirmed against HEAD) pins one operation per mask, plus two p-value equivalence tests.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no statistic or threshold changed.
+

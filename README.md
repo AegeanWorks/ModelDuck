@@ -782,7 +782,8 @@ modelduck/
 │   ├── parallel-scan-stat.test.js
 │   ├── parallel-scan-magic.test.js
 │   ├── chosen-letter-scan.test.js
-│   └── given-number-exec.test.js
+│   ├── given-number-exec.test.js
+│   └── signflip-recurrence.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml

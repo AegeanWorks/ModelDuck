@@ -149,6 +149,29 @@ function lcg(seed) {
   };
 }
 
+// All signed subset sums, in mask order. The low-bit recurrence computes each
+// sum in O(1) from an earlier one, replacing the old O(count) inner loop.
+// A signed sum is 2*(sum of values at set bits) - (sum of all values).
+let signFlipMasks = 0;
+export function signFlipMaskCount() {
+  return signFlipMasks;
+}
+function exactSignedSums(nonzero) {
+  const total = 2 ** nonzero.length;
+  const sums = new Float64Array(total);
+  const all = nonzero.reduce((sum, value) => sum + value, 0);
+  const signed = new Float64Array(total);
+  for (let mask = 0; mask < total; mask += 1) {
+    signFlipMasks += 1;
+    if (mask) {
+      const low = mask & -mask;
+      sums[mask] = sums[mask ^ low] + nonzero[31 - Math.clz32(low)];
+    }
+    signed[mask] = 2 * sums[mask] - all;
+  }
+  return signed;
+}
+
 export function signFlipPValue(differences, { exactLimit = SIGN_FLIP_EXACT_LIMIT, permutations = SIGN_FLIP_PERMUTATIONS } = {}) {
   const nonzero = differences.filter((value) => value !== 0);
   const count = nonzero.length;
@@ -159,14 +182,12 @@ export function signFlipPValue(differences, { exactLimit = SIGN_FLIP_EXACT_LIMIT
   if (nonzero.every((value) => Math.abs(value) === Math.abs(nonzero[0]))) return mcnemarExact(neg, pos);
   const observed = Math.abs(nonzero.reduce((sum, value) => sum + value, 0));
   if (count <= exactLimit) {
-    const total = 2 ** count;
+    const totals = exactSignedSums(nonzero);
     let extreme = 0;
-    for (let mask = 0; mask < total; mask += 1) {
-      let sum = 0;
-      for (let index = 0; index < count; index += 1) sum += (mask >> index) & 1 ? nonzero[index] : -nonzero[index];
-      if (Math.abs(sum) >= observed - 1e-12) extreme += 1;
+    for (let mask = 0; mask < totals.length; mask += 1) {
+      if (Math.abs(totals[mask]) >= observed - 1e-12) extreme += 1;
     }
-    return extreme / total;
+    return extreme / totals.length;
   }
   const random = lcg(0x5EED);
   let extreme = 0;
@@ -194,14 +215,12 @@ export function signFlipOneSided(differences, { exactLimit = SIGN_FLIP_EXACT_LIM
   if (nonzero.every((value) => Math.abs(value) === Math.abs(nonzero[0]))) return mcnemarOneSided(neg, pos);
   const observed = nonzero.reduce((sum, value) => sum + value, 0);
   if (count <= exactLimit) {
-    const total = 2 ** count;
+    const totals = exactSignedSums(nonzero);
     let extreme = 0;
-    for (let mask = 0; mask < total; mask += 1) {
-      let sum = 0;
-      for (let index = 0; index < count; index += 1) sum += (mask >> index) & 1 ? nonzero[index] : -nonzero[index];
-      if (sum <= observed + 1e-12) extreme += 1;
+    for (let mask = 0; mask < totals.length; mask += 1) {
+      if (totals[mask] <= observed + 1e-12) extreme += 1;
     }
-    return extreme / total;
+    return extreme / totals.length;
   }
   const random = lcg(0x5EED);
   let extreme = 0;
