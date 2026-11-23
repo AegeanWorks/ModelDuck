@@ -1680,3 +1680,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: a controlled 9-round A/B on `evaluateTextCheck` showed exact checks improving from **1.57 us to 1.40 us** and eight-value oneOf from **2.27 us to 2.05 us**; the helper itself is **3.62x** faster. Two failing-first tests pin the mode and byte-identical output across 22 edge cases including quote/punctuation ordering.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no prompt, check or expected value changed.
 
+### ADR-225: Skip line splitting for single-line answers
+- **Date**: 2026-11-23
+- **Status**: Accepted
+- **Context**: A repeated CPU profile still showed `answerCandidates()` as the top in-process judge function. Most replies contain no newline, yet every one paid a `split(/\n+/)`, a `map(trim)` and a `filter`.
+- **Decision**: When the plain reply has no newline it is its own single line, so use `[plain]` directly. Multi-line replies keep the original split. A line-split counter is exposed for tests.
+- **Consequences**: a controlled 9-round A/B on `evaluateTextCheck` showed exact checks improving from **1.35 us to 1.21 us** and eight-value oneOf from **2.02 us to 1.89 us**, faster in 9/9 rounds for both. Two failing-first tests pin the split behavior and unchanged verdicts for single- and multi-line replies.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: no prompt, check or expected value changed.
+

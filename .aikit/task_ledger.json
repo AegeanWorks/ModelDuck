@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "manual-plain-normalize-1123",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795412578.2208946,
+    "task_id": "single-line-candidates-1123",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795425429.2990444,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795419778.2208946,
+    "lease_until": 1795432629.2990444,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,29 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795412579.0067577,
-    "completed_head": "c269cc0b4eede3a86790b0674b565ffec63c214e",
-    "completed_tree": "3cd40db446e5df0b568a1b3dd9e2d1344e0ec380"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; a CPU profile still shows answerCandidates as the top in-process function, and most answers are one line",
+      "benefits": "Single-line exact/oneOf checks avoid a regex split plus two array allocations",
+      "risks": "contract: candidate set identical because a newline-free string is exactly its own single line; dependency: none; concurrency: none; state: pure function",
+      "mitigation": "failing-first split counter test plus verdict equivalence, full npm test and strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[2/2] DELIVERED: summarizeChains 160.64us -> 42.94us (3.74x); 1141 tests pass",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "single-pass-chain-summary-1123",
-      "timestamp": 1795393894.619602,
-      "timestamp_str": "2026-11-23 03:31:34",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "delivery": {
@@ -409,6 +394,30 @@
       "task_id": "manual-plain-normalize-1123",
       "timestamp": 1795412579.1057107,
       "timestamp_str": "2026-11-23 08:42:59"
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Skip the newline split and array maps for single-line answers in answerCandidates: 1.19x",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Single-line exact/oneOf checks avoid a regex split plus two array allocations",
+        "mitigation": "failing-first split counter test plus verdict equivalence, full npm test and strict gates; revert if regression",
+        "risks": "contract: candidate set identical because a newline-free string is exactly its own single line; dependency: none; concurrency: none; state: pure function",
+        "why": "User directive to keep improving speeds; a CPU profile still shows answerCandidates as the top in-process function, and most answers are one line"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "679a16ff78731d5dfb3d892e60e2c6b0ebcf81233c9254a8bd1b4ff395e5dd1c",
+      "status": "in_progress",
+      "task_id": "single-line-candidates-1123",
+      "timestamp": 1795425429.2990444,
+      "timestamp_str": "2026-11-23 12:17:09",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }
