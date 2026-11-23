@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "perf-rejections-1123",
+    "task_id": "rejection-adr-1123",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1795454432.7734284,
+    "updated_at": 1795454495.996113,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795461632.7734284,
+    "lease_until": 1795461695.996113,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -17,52 +17,11 @@
       }
     ],
     "completed_without_impact_assessment": true,
-    "completed_at": 1795454433.3756857,
-    "completed_head": "086064e2a59edf9103e32dc94fca55f5dfb15525",
-    "completed_tree": "51e86244d4d781375105301f0a6539473388f72d"
+    "completed_at": 1795454496.8791935,
+    "completed_head": "eec2384fbc7ee2a4958a4c4683e91027ba18033e",
+    "completed_tree": "670189b58715e98db1eceff297c5ca19d9e09bf2"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'setting-names-cache-1123' completed successfully.",
-      "head": "087a36626b7d55754ff2e9a75adbe62350d2a29f",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "setting-names-cache-1123",
-      "timestamp": 1795450870.7531984,
-      "timestamp_str": "2026-11-23 19:21:10"
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Memoize publicCatalog(): 0.29us -> ~0.05us on three API routes",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Catalog rows are built once while callers still get a fresh array",
-        "mitigation": "failing-first computation counter test plus caller-mutation isolation, full npm test and strict gates; revert if regression",
-        "risks": "contract: catalog values and order unchanged; dependency: Node only; concurrency: none; state: MODEL_CATALOG is a static module constant",
-        "why": "User directive to keep improving speeds; publicCatalog rebuilt a 9-model array with derived homepages on every /api/state, /api/recommendations and tune request"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "f0b53a4e72da20242361f507ae497a3ae112a03faa37dbf966cfec35a012f889",
-      "status": "in_progress",
-      "task_id": "public-catalog-cache-1123",
-      "timestamp": 1795451222.8843997,
-      "timestamp_str": "2026-11-23 19:27:02",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "checklists": "passed",
@@ -403,6 +362,41 @@
       "task_id": "perf-rejections-1123",
       "timestamp": 1795454433.4484448,
       "timestamp_str": "2026-11-23 20:20:33"
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[1/1] Record ADR-236 with three controlled rejection results",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "rejection-adr-1123",
+      "timestamp": 1795454495.996113,
+      "timestamp_str": "2026-11-23 20:21:35",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'rejection-adr-1123' completed successfully.",
+      "head": "eec2384fbc7ee2a4958a4c4683e91027ba18033e",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "rejection-adr-1123",
+      "timestamp": 1795454496.9630246,
+      "timestamp_str": "2026-11-23 20:21:36"
     }
   ]
 }
