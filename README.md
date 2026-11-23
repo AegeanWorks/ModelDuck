@@ -606,8 +606,8 @@ modelduck/
 │   ├── link.mjs
 │   ├── context-curve.mjs
 │   ├── stats-util.mjs
-│   ├── settings-perf.mjs     <- settings code timings (npm run perf:settings; PERF.md)
-│   ├── gguf-guard-perf.mjs   <- JS vs Rust header timings (npm run bench:gguf)
+│   ├── settings-perf.mjs
+│   ├── gguf-guard-perf.mjs
 │   ├── multi-step-perf.mjs
 │   ├── multistep-items.mjs   <- opt-in multistep chains (not tuned or gated)
 │   ├── multistep-evaluate.mjs
