@@ -2139,3 +2139,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: isolated **57.7 us → 0.5 us (115x)**; controlled end-to-end A/B over a 60-model cold scan measured **1.567 ms → ~1.24 ms (~1.25x)** with an identical SHA-256 (`afc7c25446aa`). A failing-first test (confirmed against HEAD) pins id equality across slash styles, no re-hash on repeat scans and the counter.
 - **Cross-principle check:** PRINCIPLE-009: cached pure derivation; PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: model ids unchanged.
 
+### ADR-282: Memoized type warnings per profile
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: The tune overview computed `typeWarnings()` for each saved profile on every request; 60 profiles cost **104 us**, repeated for each poll.
+- **Decision**: Cache the pure result in a resettable WeakMap keyed by profile object and task filter. Non-object profiles still use the original path.
+- **Consequences**: 60 profiles **104 us → 0.76 us (~137x)**; controlled A/B **~120 us → ~1 us (~100x)** with an identical SHA-256 (`f4fa714c4e71`). Two failing-first tests (confirmed against HEAD) pin per-filter reuse and warning content. An assertion initially used `equal` on objects and was corrected to `deepEqual` before shipping.
+- **Cross-principle check:** PRINCIPLE-009: cached pure derivation; PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: warning labels unchanged.
+

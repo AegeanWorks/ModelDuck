@@ -179,7 +179,35 @@ export async function saveProfile(directory, profile) {
 }
 
 /** Question types a task's preset answers significantly worse than the defaults (ADR-068). */
+let TYPE_WARNINGS_CACHE = new WeakMap();
+let typeWarningsComputes = 0;
+export function typeWarningsComputations() {
+  return typeWarningsComputes;
+}
+export function resetTypeWarningsCache() {
+  TYPE_WARNINGS_CACHE = new WeakMap();
+  typeWarningsComputes = 0;
+}
+
 export function typeWarnings(profile, onlyTask = null) {
+  if (profile && typeof profile === "object") {
+    const key = onlyTask === null ? "*" : onlyTask;
+    let byKey = TYPE_WARNINGS_CACHE.get(profile);
+    if (!byKey) {
+      byKey = new Map();
+      TYPE_WARNINGS_CACHE.set(profile, byKey);
+    }
+    const cached = byKey.get(key);
+    if (cached !== undefined) return cached;
+    typeWarningsComputes += 1;
+    const computed = computeTypeWarnings(profile, onlyTask);
+    byKey.set(key, computed);
+    return computed;
+  }
+  return computeTypeWarnings(profile, onlyTask);
+}
+
+function computeTypeWarnings(profile, onlyTask = null) {
   const warnings = {};
   for (const [task, preset] of Object.entries(profile?.tasks ?? {})) {
     // Callers that need one task's warnings (chat settings resolution) must not

@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "hashid-memo-1124",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795508918.6251915,
+    "task_id": "typewarnings-memo-1124",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795509371.5943964,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795516118.6251915,
+    "lease_until": 1795516571.5943964,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,29 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795508919.4414423,
-    "completed_head": "03cdaec2ad48ac6f8e1c956be26601b02835b24f",
-    "completed_tree": "0411fcb2dc65cbfbcca6f8a681efee3fe2076554"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; tune overview computes type warnings for each saved profile on every request",
+      "benefits": "60 profiles drop from ~104us to a cache walk",
+      "risks": "contract: same warnings object; dependency: pure function of profile; concurrency: none; state: WeakMap keyed by profile",
+      "mitigation": "failing-first counter + equivalence test, controlled A/B hash, full npm test and 4/4 strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[2/2] DELIVERED: speedItems 585-749us -> 125-245us (~3-6x), identical hash; 1243 tests pass",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "stratified-cursor-1124",
-      "timestamp": 1795490571.9275289,
-      "timestamp_str": "2026-11-24 06:22:51",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "delivery": {
@@ -409,6 +394,30 @@
       "task_id": "hashid-memo-1124",
       "timestamp": 1795508919.816973,
       "timestamp_str": "2026-11-24 11:28:39"
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Memoize typeWarnings by profile identity and task filter",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "60 profiles drop from ~104us to a cache walk",
+        "mitigation": "failing-first counter + equivalence test, controlled A/B hash, full npm test and 4/4 strict gates; revert if regression",
+        "risks": "contract: same warnings object; dependency: pure function of profile; concurrency: none; state: WeakMap keyed by profile",
+        "why": "User directive to keep improving speeds; tune overview computes type warnings for each saved profile on every request"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "ed02528ee5d444866aa11b658d672cbe1bd8554e6de94fbf316e03a69e20d45a",
+      "status": "in_progress",
+      "task_id": "typewarnings-memo-1124",
+      "timestamp": 1795509371.5943964,
+      "timestamp_str": "2026-11-24 11:36:11",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }
