@@ -2210,3 +2210,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Apply the existing only(file, {id, relativePath}) predicate during candidate selection, before per-file stat, cache-key construction and GGUF magic reads; keep discovery, full scans and extensionless-symlink handling unchanged
 - **Consequences**: Interleaved cold-process A/B measured 6.364ms -> 2.035ms (3.13x) and 200 -> 1 magic read per narrowed scan with identical model ids. A 200-file full scan kept an identical normalized output hash and no regression (9.111ms -> 8.901ms, 1.02x). A failing-first test pins one stat, one magic read and one metadata read for the kept file
 - **Cross-principle check:** PRINCIPLE-003: existing predicate and discovery preserved; PRINCIPLE-010: unrelated I/O removed; PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: selected rows and ids unchanged.
+
+### ADR-291: Read Git provenance in two processes
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: currentGitInfo spawned Git five times for hash, subject, branch, date and dirty state; an interleaved probe measured a 215.22ms median and blocked benchmark, merge, link and tune-gate finalization
+- **Decision**: Use one git log format for hash/subject/commit date and one git status --porcelain=v1 --branch --untracked-files=no call for branch and tracked dirtiness; retain the optional injected runner and all-null failure fallback
+- **Consequences**: A qualified interleaved A/B over 21 pairs measured 1285.642ms -> 453.505ms (2.83x) on a loaded host with an identical Git-info object hash; the non-repository fallback control drifted only 0.3%. An earlier run measured 215.22ms -> 100.695ms (2.14x). Failing-first tests pin exactly two calls, explicit refs, detached HEAD, tracked dirtiness, untracked exclusion, timeouts and fail-fast fallback
+- **Cross-principle check:** PRINCIPLE-003: existing Git CLI and timeout retained; PRINCIPLE-010: three process launches removed; PRINCIPLE-014: failing-first tests, no assertion weakened; G-002/G-003: provenance fields and history format unchanged.

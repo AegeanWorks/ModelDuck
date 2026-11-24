@@ -132,20 +132,25 @@ export function deriveRunScope(result = {}) {
   return "standard";
 }
 
-export function currentGitInfo(cwd = process.cwd(), ref = "HEAD") {
+export function currentGitInfo(cwd = process.cwd(), ref = "HEAD", exec = execFileSync) {
   const run = (args) =>
-    execFileSync("git", args, {
+    exec("git", args, {
       cwd,
       encoding: "utf8",
       timeout: 5000,
       stdio: ["ignore", "pipe", "ignore"],
     }).trim();
   try {
-    const hash = run(["rev-parse", ref]);
-    const subject = run(["log", "-1", "--format=%s", ref]);
-    const branch = run(["rev-parse", "--abbrev-ref", "HEAD"]);
-    const committedAt = run(["log", "-1", "--format=%cI", ref]);
-    const dirty = run(["status", "--porcelain", "--untracked-files=no"]).length > 0;
+    // One formatted log supplies the three commit fields; porcelain --branch
+    // supplies both the current branch and tracked dirtiness in a second call.
+    const [hash, subject, committedAt] = run(["log", "-1", "--format=%H%x00%s%x00%cI", ref]).split("\0");
+    const statusLines = run(["status", "--porcelain=v1", "--branch", "--untracked-files=no"]).split(/\r?\n/);
+    const statusHead = statusLines[0] ?? "";
+    const statusBranch = statusHead.startsWith("## ") ? statusHead.slice(3) : "";
+    const branch = !statusBranch || statusBranch.startsWith("HEAD (no branch)")
+      ? "HEAD"
+      : statusBranch.split("...")[0].split(" ")[0];
+    const dirty = statusLines.length > 1;
     return { hash, subject, branch, committedAt, dirty };
   } catch {
     return { hash: null, subject: null, branch: null, committedAt: null, dirty: true };

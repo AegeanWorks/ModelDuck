@@ -5,6 +5,7 @@ import path from "node:path";
 import test from "node:test";
 
 import {
+  currentGitInfo,
   deriveRunScope,
   importHistory,
   linkRun,
@@ -283,4 +284,63 @@ test("flash and single-model runs scope as provenance, never standard", async (t
   } finally {
     db.close();
   }
+});
+
+function gitInfoRunner(outputs, calls) {
+  return (file, args, options) => {
+    calls.push({ file, args, options });
+    if (file !== "git" || !(args[0] in outputs)) throw new Error(`unexpected git call: ${args.join(" ")}`);
+    return outputs[args[0]];
+  };
+}
+
+test("currentGitInfo reads commit metadata and status in two Git calls", () => {
+  const calls = [];
+  const run = gitInfoRunner({
+    log: "abc123\u0000A useful subject\u00002026-11-24T12:34:56+03:00\n",
+    status: "## main...origin/main [ahead 1]\n M src/app.js\n",
+  }, calls);
+  assert.deepEqual(currentGitInfo("C:/repo", "HEAD", run), {
+    hash: "abc123",
+    subject: "A useful subject",
+    branch: "main",
+    committedAt: "2026-11-24T12:34:56+03:00",
+    dirty: true,
+  });
+  assert.deepEqual(calls.map(({ args }) => args), [
+    ["log", "-1", "--format=%H%x00%s%x00%cI", "HEAD"],
+    ["status", "--porcelain=v1", "--branch", "--untracked-files=no"],
+  ]);
+  assert.equal(calls[0].options.timeout, 5000);
+  assert.equal(calls[1].options.timeout, 5000);
+});
+
+test("currentGitInfo preserves detached HEAD, clean status and explicit refs", () => {
+  const calls = [];
+  const run = gitInfoRunner({
+    log: "def456\u0000Earlier commit\u00002026-11-23T10:00:00Z\n",
+    status: "## HEAD (no branch)\n",
+  }, calls);
+  assert.deepEqual(currentGitInfo("C:/repo", "HEAD^", run), {
+    hash: "def456",
+    subject: "Earlier commit",
+    branch: "HEAD",
+    committedAt: "2026-11-23T10:00:00Z",
+    dirty: false,
+  });
+  assert.equal(calls[0].args.at(-1), "HEAD^");
+  assert.ok(calls[1].args.includes("--untracked-files=no"), "untracked-only files do not mark the tree dirty");
+});
+
+test("currentGitInfo keeps its all-null fallback when Git fails", () => {
+  const calls = [];
+  const run = gitInfoRunner({}, calls);
+  assert.deepEqual(currentGitInfo("C:/not-a-repo", "HEAD", run), {
+    hash: null,
+    subject: null,
+    branch: null,
+    committedAt: null,
+    dirty: true,
+  });
+  assert.equal(calls.length, 1, "a failed first command does not launch more processes");
 });
