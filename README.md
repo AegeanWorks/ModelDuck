@@ -575,7 +575,7 @@ modelduck/
 │   ├── paraphrase-items.mjs
 │   ├── recommend.mjs
 │   ├── stats.mjs
-│   ├── task-ids.mjs      <- static task vocabulary, safe for server startup
+│   ├── task-ids.mjs
 │   ├── tasks.mjs
 │   ├── tune.mjs
 │   ├── tune-measure.mjs
@@ -819,7 +819,8 @@ modelduck/
 │   ├── speeditems-cache.test.js
 │   ├── samplingaxes-cache.test.js
 │   ├── axes-memo.test.js
-│   └── profile-stamp-reuse.test.js
+│   ├── profile-stamp-reuse.test.js
+│   └── shippedpresets-parallel.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml

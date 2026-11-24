@@ -2123,3 +2123,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: isolated 60 loads **1.34 ms → 0.70 ms (~1.9x)**; controlled route A/B kept an identical SHA-256 (`8a3e7486bd27`) with tune overview **4.55–4.65 ms → 3.96–4.31 ms** and recommendations **3.89–4.73 ms → 3.29–3.34 ms**. A failing-first test (confirmed against HEAD) pins zero extra stats, equal profiles and the absent-profile case. An initial PowerShell file-swap corrupted `→` in the HEAD copy and produced a false hash mismatch; redoing the A/B with `git stash` confirmed identical output.
 - **Cross-principle check:** PRINCIPLE-010: redundant fs metadata call removed; PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: profile data unchanged.
 
+### ADR-280: Parallel preset reads on cache miss
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: `readShippedPresets()` parsed each preset file one at a time when its directory stamp changed; 30 valid recipes cost **3.75–4.01 ms**.
+- **Decision**: Gather all preset file reads with one `Promise.all` and filter invalid recipes afterwards, preserving the sorted catalog-id order and the per-file read counter.
+- **Consequences**: controlled A/B measured **3.75–4.01 ms → ~1.0 ms (~4x)** with an identical SHA-256 (`72bdf7d55c42`). A failing-first test (confirmed against HEAD) pins concurrent reads, sorted output and cache reuse. The first benchmark used recipes missing the `kind` field and measured an empty list; it was corrected to valid recipes before the reported run.
+- **Cross-principle check:** PRINCIPLE-010: concurrency only for independent read-only reads; PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: recipe list unchanged.
+

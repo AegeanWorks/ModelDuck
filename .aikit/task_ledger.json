@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "profile-stamp-reuse-1124",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795503713.212779,
+    "task_id": "shippedpresets-parallel-1124",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795505728.1591415,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795510913.212779,
+    "lease_until": 1795512928.1591415,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,29 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795503715.217669,
-    "completed_head": "f094e609fd584f54af5054bd2ce5cd53fe9dc9b9",
-    "completed_tree": "ff3b23560904f2fd038a7588007d3b03f93dc2fa"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; readShippedPresets parsed each preset file one at a time on every cache miss",
+      "benefits": "Preset directory refresh gathers independent reads concurrently in name order",
+      "risks": "contract: same valid recipe list in sorted order; dependency: importRecipe is pure per recipe; concurrency: independent read-only reads; state: counters unchanged",
+      "mitigation": "failing-first concurrency test, controlled A/B hash, full npm test and 4/4 strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[2/2] DELIVERED: 4 spawns -> 1 spawn + 3 code hits, ~1.5s -> ~0.3s, identical hash; 1239 tests pass",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "jscode-cache-1124",
-      "timestamp": 1795488211.276007,
-      "timestamp_str": "2026-11-24 05:43:31",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "delivery": {
@@ -409,6 +394,30 @@
       "task_id": "profile-stamp-reuse-1124",
       "timestamp": 1795503716.2981997,
       "timestamp_str": "2026-11-24 10:01:56"
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Parallelize cache-miss preset file reads: 3.78ms for 30 files",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Preset directory refresh gathers independent reads concurrently in name order",
+        "mitigation": "failing-first concurrency test, controlled A/B hash, full npm test and 4/4 strict gates; revert if regression",
+        "risks": "contract: same valid recipe list in sorted order; dependency: importRecipe is pure per recipe; concurrency: independent read-only reads; state: counters unchanged",
+        "why": "User directive to keep improving speeds; readShippedPresets parsed each preset file one at a time on every cache miss"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "bf294b04a78787832893b3f77332d31cad927cc7cc87ba1dca6260d75697a4d4",
+      "status": "in_progress",
+      "task_id": "shippedpresets-parallel-1124",
+      "timestamp": 1795505728.1591415,
+      "timestamp_str": "2026-11-24 10:35:28",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }

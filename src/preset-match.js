@@ -97,17 +97,20 @@ export async function readShippedPresets(dir = SHIPPED_PRESETS_DIR) {
   }))).join("|");
   const cached = PRESET_CACHE.get(dir);
   if (cached && cached.stamp === stamp) return cached.presets;
-  const presets = [];
-  for (const name of files) {
+  // Preset files are independent; gather them concurrently and keep the
+  // sorted order so the returned recipe list is unchanged.
+  const parsed = await Promise.all(files.map(async (name) => {
     try {
       presetReads += 1;
       const recipe = JSON.parse(withoutBom(await fs.promises.readFile(path.join(dir, name), "utf8")));
       importRecipe(recipe);
-      presets.push(recipe);
+      return recipe;
     } catch {
       // A broken preset file must not hide the others.
+      return null;
     }
-  }
+  }));
+  const presets = parsed.filter((recipe) => recipe !== null);
   PRESET_CACHE.set(dir, { stamp, presets });
   return presets;
 }
