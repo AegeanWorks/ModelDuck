@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "historysummary-reverse-1124",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795482619.5934193,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795482931.6070967,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795489819.5934193,
+    "lease_until": 1795490131.6070967,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,55 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; historySummary filtered and mapped every history run just to display the last few",
-      "benefits": "A large history now costs O(limit) instead of O(n) per report rebuild",
-      "risks": "contract: identical summary array and order; dependency: none; concurrency: none; state: pure function",
-      "mitigation": "failing-first equivalence test confirmed against HEAD, controlled A/B hash, full npm test and 4/4 strict gates; revert if regression"
-    }
+    "completed_at": 1795482932.333048,
+    "completed_head": "ce0825baf038057835e29cdeb6ee084a595211d4",
+    "completed_tree": "7d845a95c900924c4c9bbe820732e499c176922f"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'listruns-parallel-1123' completed successfully.",
-      "head": "2cd7712622a7295113cc8dc6727a6ceb92624a6f",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "listruns-parallel-1123",
-      "timestamp": 1795476792.0912666,
-      "timestamp_str": "2026-11-24 02:33:12"
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Parallelize profile file reads in listProfiles: 3.39ms -> 0.96ms (3.5x) for 40 profiles",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Profile listing gathers reads concurrently while preserving sorted order and schema filtering",
-        "mitigation": "failing-first counter test plus ordering/equivalence checks, full npm test and strict gates; revert if regression",
-        "risks": "contract: same profile summaries in sorted order; dependency: none; concurrency: independent read-only reads, Promise.all preserves order; state: same cache",
-        "why": "User directive to keep improving speeds; listProfiles stats files in parallel but then parsed them one at a time on every cache miss"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "79aa5f2b82fe2bc95cabcb5f65f84154bb2939b457f4dc8e5a9b2341e97009c6",
-      "status": "in_progress",
-      "task_id": "profilelist-parallel-1123",
-      "timestamp": 1795477074.6415513,
-      "timestamp_str": "2026-11-24 02:37:54",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "checklists": "passed",
@@ -418,6 +374,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: historySummary 33.51us -> 0.31us (108x), summarizeBenchmark 135->81us, identical hash; 1224 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "historysummary-reverse-1124",
+      "timestamp": 1795482931.607097,
+      "timestamp_str": "2026-11-24 04:15:31",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'historysummary-reverse-1124' completed successfully.",
+      "head": "ce0825baf038057835e29cdeb6ee084a595211d4",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "historysummary-reverse-1124",
+      "timestamp": 1795482933.023213,
+      "timestamp_str": "2026-11-24 04:15:33"
     }
   ]
 }
