@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "profile-parse-cache-1124",
+    "task_id": "health-static-import-1124",
     "last_phase": "phase 2",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795512863.471285,
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795515982.0758123,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795520063.471285,
+    "lease_until": 1795523182.0758123,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -17,45 +17,13 @@
       }
     ],
     "impact_assessment": {
-      "why": "User directive to keep improving speeds; loadProfile re-parsed each saved profile's JSON on every tune route request",
-      "benefits": "60 profile loads skip ~420us of JSON parsing per request",
-      "risks": "contract: same profile object contents; dependency: callers read only; concurrency: none; state: cache holds one parsed object per file",
-      "mitigation": "failing-first parse-count + equivalence test, controlled A/B hash, full npm test and 4/4 strict gates; revert if regression"
-    },
-    "forced_completion": {
-      "agent": "opencode:hy4-flash-free",
-      "reason": "Reverted before delivery: caching the parsed profile aliased nested objects to callers; a safe structuredClone is 3x slower than JSON.parse, so no speedup survives. Code restored to HEAD state; full suite passes.",
-      "at": 1795514848.013801
-    },
-    "completed_at": 1795514848.0138023,
-    "completed_head": "34b53ddcb54218fa50419cb1f350f09e6bf3e82b",
-    "completed_tree": "b335cfd4cd774b9421f573458813b3d016f014cd"
+      "why": "User directive to keep improving speeds; /api/health dynamically imports system.js on every poll although it is already statically imported there for systemInfo",
+      "benefits": "Each health request skips a ~7us dynamic import",
+      "risks": "contract: same health response; dependency: module already loaded; concurrency: none; state: none",
+      "mitigation": "controlled A/B hash, full npm test and 4/4 strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Memoize samplingAxes by task and steps identity for repeated tune estimates",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Tune step estimates skip ~6 axis derivations per request",
-        "mitigation": "failing-first counter test, controlled HEAD-vs-WORK A/B hash, full npm test and 4/4 strict gates; revert if slower",
-        "risks": "contract: same frozen axis objects; dependency: steps object identity; concurrency: none; state: WeakMap keyed by frozen steps",
-        "why": "User directive to keep improving speeds; expectedAnswers and estimateTune rebuild sampling axes for every task on every call"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "18f018ccc9e84faffb9e9b6cf12b5afeb089f3590848923298545ef088571627",
-      "status": "in_progress",
-      "task_id": "samplingaxes-cache-1124",
-      "timestamp": 1795491500.0854452,
-      "timestamp_str": "2026-11-24 06:38:20",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "checklists": "passed",
@@ -426,6 +394,30 @@
       "task_id": "profile-parse-cache-1124",
       "timestamp": 1795514848.1314714,
       "timestamp_str": "2026-11-24 13:07:28"
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Hoist redundant dynamic import of system.js on /api/health",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Each health request skips a ~7us dynamic import",
+        "mitigation": "controlled A/B hash, full npm test and 4/4 strict gates; revert if regression",
+        "risks": "contract: same health response; dependency: module already loaded; concurrency: none; state: none",
+        "why": "User directive to keep improving speeds; /api/health dynamically imports system.js on every poll although it is already statically imported there for systemInfo"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "24afec816b6246e2a9ef5a1eeee653b9eafa7cfdeb5effc5dd8d991b6e764e36",
+      "status": "in_progress",
+      "task_id": "health-static-import-1124",
+      "timestamp": 1795515982.0758123,
+      "timestamp_str": "2026-11-24 13:26:22",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }

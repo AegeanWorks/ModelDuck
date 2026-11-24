@@ -2145,5 +2145,13 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: The tune overview computed `typeWarnings()` for each saved profile on every request; 60 profiles cost **104 us**, repeated for each poll.
 - **Decision**: Cache the pure result in a resettable WeakMap keyed by profile object and task filter. Non-object profiles still use the original path.
 - **Consequences**: 60 profiles **104 us → 0.76 us (~137x)**; controlled A/B **~120 us → ~1 us (~100x)** with an identical SHA-256 (`f4fa714c4e71`). Two failing-first tests (confirmed against HEAD) pin per-filter reuse and warning content. An assertion initially used `equal` on objects and was corrected to `deepEqual` before shipping.
+
+### ADR-283: Static import on the health route
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: `/api/health` dynamically imported `./system.js` on every poll although that module was already statically imported there for `systemInfo`; the import cost **7 us** per request.
+- **Decision**: Add `measureLoopLag` to the existing static import and remove the per-request `await import(...)`.
+- **Consequences**: controlled A/B kept an identical SHA-256 (`90b942574a00`) and measured **0.218-0.225 ms -> 0.189-0.192 ms (~1.15x)** per health request. A failing-first source-guard test (confirmed against HEAD) pins the absence of the dynamic import. One full-suite run had a transient failure that passed on rerun; the final run was clean.
+- **Cross-principle check:** PRINCIPLE-011: no behavior change; PRINCIPLE-014: failing-first test, no assertion weakened; G-003: health payload unchanged.
 - **Cross-principle check:** PRINCIPLE-009: cached pure derivation; PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: warning labels unchanged.
 

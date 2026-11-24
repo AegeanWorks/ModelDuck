@@ -58,7 +58,7 @@ import { settingPresets } from "./config.js";
 import { recommendCatalog, recommendModels } from "./recommend.js";
 import { restartRequiredFor } from "./server-settings.js";
 import { machineCatalog } from "./state-machine.js";
-import { systemInfo } from "./system.js";
+import { measureLoopLag, systemInfo } from "./system.js";
 import { TASKS } from "../benchmarks/task-ids.mjs";
 
 function validateTuneSelection(tasks, stages) {
@@ -971,7 +971,6 @@ export function createHttpServer({
     // IDEA-1198: host-side health receipt. No event-loop monitor, no priority
     // games: one round-trip lag, memory, and what is loaded.
     if (pathname === "/api/health" && method === "GET") {
-      const { measureLoopLag } = await import("./system.js");
       const info = systemInfo();
       const engineState = engine ? await engine.status() : null;
       sendJson(res, 200, {

@@ -553,7 +553,7 @@ modelduck/
 │   ├── capture-screenshots.mjs
 │   ├── install-engines.mjs
 │   ├── add-engine.mjs
-│   ├── test-parallel.mjs <- sharded parallel `npm test` runner
+│   ├── test-parallel.mjs
 │   ├── build-native.mjs <- Rust guard build
 │   └── ui-smoke.mjs
 ├── benchmarks/ <- seeded quality, speed and history gate
@@ -822,7 +822,8 @@ modelduck/
 │   ├── profile-stamp-reuse.test.js
 │   ├── shippedpresets-parallel.test.js
 │   ├── hashid-memo.test.js
-│   └── typewarnings-memo.test.js
+│   ├── typewarnings-memo.test.js
+│   └── health-static-import.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml
