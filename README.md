@@ -535,7 +535,7 @@ modelduck/
 │   ├── THREAT-MODEL.md <- local-inference threat model
 │   ├── ENGINES.md <- inference engines
 │   ├── DEVELOPMENT.md
-│   ├── state-machines.md <- machine inventory
+│   ├── state-machines.md
 │   ├── state-machines.json
 │   ├── state-machine-proposals.md
 │   ├── state-machine-proposals.json
@@ -815,7 +815,8 @@ modelduck/
 │   ├── paramcount-number.test.js
 │   ├── jscode-cache.test.js
 │   ├── tunerungs-cache.test.js
-│   └── stratified-cursor.test.js
+│   ├── stratified-cursor.test.js
+│   └── speeditems-cache.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml

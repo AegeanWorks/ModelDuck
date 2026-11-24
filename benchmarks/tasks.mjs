@@ -248,14 +248,29 @@ export function withDiscriminatingRungs(rungs, saturated = null, taskIds = TASKS
 }
 
 /** The speed stage's fixed workload: the first item of every task, then a second item for each task. Short prompt sets contribute what they have: missing slots are dropped, never undefined holes. Long-context items (M6) stay out: a 16k-token prefill would dominate the workload and is not what the speed settings are chosen for. */
+const SPEED_ITEMS_CACHE = new Map();
+let speedItemsComputes = 0;
+export function speedItemsComputations() {
+  return speedItemsComputes;
+}
+export function resetSpeedItemsCache() {
+  SPEED_ITEMS_CACHE.clear();
+  speedItemsComputes = 0;
+}
+
 export function speedItems(prompts = PROMPTS) {
+  const cached = SPEED_ITEMS_CACHE.get(prompts);
+  if (cached !== undefined) return cached.slice();
+  speedItemsComputes += 1;
   const order = (taskId) => stratified(taskPrompts(taskId, prompts).filter((prompt) => !prompt.longContext));
-  return [
+  const items = [
     ...TASKS.map((task) => order(task.id)[0]),
     order("code")[1],
     order("comprehension")[1],
     order("recall")[1],
   ].filter((id) => typeof id === "string");
+  SPEED_ITEMS_CACHE.set(prompts, items);
+  return items.slice();
 }
 
 /**

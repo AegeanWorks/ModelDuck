@@ -2091,3 +2091,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: isolated `speedItems()` **585–749 us → 125–245 us (~3–6x)** with an identical SHA-256 (`01ab260a60a9`). Two failing-first tests (confirmed against HEAD) pin the exact round-robin selection and 548 → 0 `Array.shift` calls.
 - **Cross-principle check:** PRINCIPLE-010: O(n) instead of O(n^2); PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: item order unchanged.
 
+### ADR-276: Memoized speed workload
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: `expectedAnswers()` and `estimateTune()` call `speedItems()` directly on every invocation, re-deriving the fixed speed workload from the frozen suite even after ADR-274 cached the rungs.
+- **Decision**: Memoize `speedItems()` by prompt-set identity and return a fresh slice to each caller. Computation counter and reset helper are exported.
+- **Consequences**: controlled A/B over `speedItems` plus three estimate calls measured **~795 us → ~46 us (~17x)** with an identical SHA-256 (`a23831a950a4`). Two failing-first tests (confirmed against HEAD) pin the single derivation, caller isolation and reuse across estimates.
+- **Cross-principle check:** PRINCIPLE-009: cached pure derivation; PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: estimates and speed items unchanged.
+
