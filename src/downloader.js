@@ -61,16 +61,28 @@ let missingReceiptSkips = 0;
 // the common present-receipt path stays unchanged; the writer clears the mark.
 const MISSING_RECEIPTS = new Map();
 const MISSING_RECEIPT_TTL_MS = 500;
+const RECEIPT_CACHE = new Map();
+const RECEIPT_CACHE_LIMIT = 2048;
+let receiptCacheHits = 0;
+let receiptCacheComputes = 0;
+export function receiptCacheStats() {
+  return { size: RECEIPT_CACHE.size, hits: receiptCacheHits, computes: receiptCacheComputes };
+}
 
 export function receiptMissingSkips() {
   return missingReceiptSkips;
 }
 export function invalidateReceiptCache(modelsDir, fileName) {
-  MISSING_RECEIPTS.delete(receiptPath(modelsDir, fileName));
+  const file = receiptPath(modelsDir, fileName);
+  MISSING_RECEIPTS.delete(file);
+  RECEIPT_CACHE.delete(file);
 }
 export function resetReceiptCounters() {
   missingReceiptSkips = 0;
+  receiptCacheHits = 0;
+  receiptCacheComputes = 0;
   MISSING_RECEIPTS.clear();
+  RECEIPT_CACHE.clear();
 }
 
 /** IDEA-1067/1194: measured install receipt; null when no receipt was written. */
@@ -82,11 +94,29 @@ export async function readInstallReceipt(modelsDir, fileName, { clock = Date.now
     missingReceiptSkips += 1;
     return null;
   }
+  // Present receipts are stable between polls: keep the parsed object and
+  // validate it with one stat instead of reading and parsing the file again.
+  const cached = RECEIPT_CACHE.get(file);
+  if (cached !== undefined) {
+    const info = await fs.promises.stat(file).catch(() => null);
+    if (info && `${info.mtimeMs}:${info.size}` === cached.stamp) {
+      receiptCacheHits += 1;
+      return cached.receipt;
+    }
+    RECEIPT_CACHE.delete(file);
+  }
   try {
     // A BOM written by a Windows editor must not hide the receipt, the same
     // tolerance the settings reader gives its files (ADR-114).
     const text = await fs.promises.readFile(file, "utf8");
-    return JSON.parse(withoutBom(text));
+    receiptCacheComputes += 1;
+    const receipt = JSON.parse(withoutBom(text));
+    const info = await fs.promises.stat(file).catch(() => null);
+    if (info) {
+      if (RECEIPT_CACHE.size >= RECEIPT_CACHE_LIMIT) RECEIPT_CACHE.delete(RECEIPT_CACHE.keys().next().value);
+      RECEIPT_CACHE.set(file, { stamp: `${info.mtimeMs}:${info.size}`, receipt });
+    }
+    return receipt;
   } catch {
     MISSING_RECEIPTS.set(file, now);
     return null;

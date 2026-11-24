@@ -4250,5 +4250,51 @@
     "final_snapshot_entries": 0,
     "surface_digest": "8b25a8e0e77d856c7f41e62f5a786d4f908fb1a672067abdcb7544280fb4e70c",
     "baseline_digest": "8b25a8e0e77d856c7f41e62f5a786d4f908fb1a672067abdcb7544280fb4e70c"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [
+      ".aikit/codebase_map.md",
+      "README.md",
+      "src/downloader.js",
+      "tests/receipt-cache.test.js"
+    ],
+    "no_visual_reason": "",
+    "baseline_commit": "fde871e",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1795547846.6231065,
+    "finished_at": 1795547892.9439704,
+    "strikes": 1,
+    "reviewer": "HungerG",
+    "review": {
+      "reviewer": "HungerG",
+      "surface": "app",
+      "surface_digest": "513da17dbfe3ea2f9251ffea72b2b874050f75df7e1bdd960522f2f88e5c91fe",
+      "snapshot_digest": "",
+      "snapshot_entries": 0,
+      "visual": true,
+      "reviewed_at": 1795547892.9439747,
+      "scoped_paths": [
+        ".aikit/codebase_map.md",
+        "README.md",
+        "src/downloader.js",
+        "tests/receipt-cache.test.js"
+      ],
+      "scoped_digest": "82d8545962ba0f5c2fcb2de964cb006872d5747376db8f0428fcb57f5ba3e1ba"
+    },
+    "allowed_removals": [],
+    "allowed_tests": [
+      {
+        "path": "tests/receipt-cache.test.js",
+        "reason": "Regression coverage for the backend receipt cache and explicit invalidation"
+      }
+    ],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "513da17dbfe3ea2f9251ffea72b2b874050f75df7e1bdd960522f2f88e5c91fe",
+    "baseline_digest": "8b25a8e0e77d856c7f41e62f5a786d4f908fb1a672067abdcb7544280fb4e70c"
   }
 ]

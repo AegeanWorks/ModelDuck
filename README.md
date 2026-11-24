@@ -489,7 +489,7 @@ modelduck/
 │   ├── engine-env.js
 │   ├── engine-install.js
 │   ├── external-engines.js
-│   ├── server-engine.js <- engine interface
+│   ├── server-engine.js
 │   ├── engine-router.js <- engine selection
 │   ├── inference-engine-adapters.js
 │   ├── inference-engines.js <- engine speed
@@ -543,7 +543,7 @@ modelduck/
 │   ├── tuning-repro/
 │   └── kiroween/
 ├── public/
-│   ├── index.html <- the control panel
+│   ├── index.html
 │   ├── app.js
 │   ├── styles.css
 │   ├── redesign.css
@@ -829,7 +829,8 @@ modelduck/
 │   ├── filefor-memo.test.js
 │   ├── runfile-memo.test.js
 │   ├── formatbytes-memo.test.js
-│   └── scan-strings-memo.test.js
+│   ├── scan-strings-memo.test.js
+│   └── receipt-cache.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml
