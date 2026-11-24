@@ -2099,3 +2099,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: controlled A/B over `speedItems` plus three estimate calls measured **~795 us → ~46 us (~17x)** with an identical SHA-256 (`a23831a950a4`). Two failing-first tests (confirmed against HEAD) pin the single derivation, caller isolation and reuse across estimates.
 - **Cross-principle check:** PRINCIPLE-009: cached pure derivation; PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: estimates and speed items unchanged.
 
+### ADR-277: Memoized sampling axes
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: `samplingAxes()` rebuilt its frozen axis list for every task on every `expectedAnswers()`/`estimateTune()` call; each build cost **3.85 us**.
+- **Decision**: Memoize by `steps` object identity and task id in a resettable WeakMap; the result is frozen and pure. A computation counter is exported.
+- **Consequences**: repeated `samplingAxes` **3.85 us → 0.015 us (~257x)**; controlled A/B over three tune estimates measured **~70 us → ~30–42 us (~2x)** with an identical SHA-256 (`ca4f38fdc9be`). Two failing-first tests (confirmed against HEAD) pin one derivation per task and reuse across passes.
+- **Cross-principle check:** PRINCIPLE-009: cached pure derivation; PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: estimates and axis contents unchanged.
+

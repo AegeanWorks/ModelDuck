@@ -329,7 +329,25 @@ const multiAxis = (name, patches, extra = {}) => Object.freeze({ name, patches: 
  * its min-p/top-p); top-k only drops unlikely tokens, so it is skipped for
  * greedy answers and only tuned when min-p is 0 (G1).
  */
+let SAMPLING_AXES_CACHE = new WeakMap();
+let samplingAxesComputes = 0;
+export function samplingAxesComputations() {
+  return samplingAxesComputes;
+}
+export function resetSamplingAxesCache() {
+  SAMPLING_AXES_CACHE = new WeakMap();
+  samplingAxesComputes = 0;
+}
+
 export function samplingAxes(taskId, steps = DEFAULT_STEPS.sampling) {
+  let byTask = SAMPLING_AXES_CACHE.get(steps);
+  if (!byTask) {
+    byTask = new Map();
+    SAMPLING_AXES_CACHE.set(steps, byTask);
+  }
+  const cached = byTask.get(taskId);
+  if (cached !== undefined) return cached;
+  samplingAxesComputes += 1;
   const axes = [
     multiAxis("sampler", samplerProfiles(steps.temperature, steps.minP, steps.topP)),
     axis("maxTokens", "maxTokens", steps.maxTokens[taskId] ?? steps.maxTokens.code),
@@ -352,7 +370,9 @@ export function samplingAxes(taskId, steps = DEFAULT_STEPS.sampling) {
       skipReason: "top-k is only tuned when min-p is 0",
     }),
   ];
-  return Object.freeze(axes);
+  const frozen = Object.freeze(axes);
+  byTask.set(taskId, frozen);
+  return frozen;
 }
 
 /**
