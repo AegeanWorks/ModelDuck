@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "history-sqlite-transaction-1124",
+    "task_id": "tune-evidence-cache-1124",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1795551343.0999632,
+    "updated_at": 1795551976.2670753,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-    "lease_until": 1795558543.0999632,
+    "lease_until": 1795559176.2670753,
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "continuations": [],
     "workspaces": [
@@ -16,76 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795551398.5344627,
-    "completed_head": "95b4dd9c23ac14a1722b573a20ee306c0e5181e2",
-    "completed_tree": "32f86006e62c0e6e45a7eb9fd7b2e78f359e13e9"
+    "completed_at": 1795552032.236187,
+    "completed_head": "a725e32a1ecc46306a588ba29e3e8b440e630c0c",
+    "completed_tree": "893ef02d3738584622543273d1eeeb83602d9ba6"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Add cached joinPath helper and use it in repeated directory scans: 330us -> 19us for 60",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Directory scans skip repeated path normalization",
-        "mitigation": "failing-first counter + equivalence test, controlled A/B hash, full npm test and 4/4 strict gates; revert if regression",
-        "risks": "contract: identical joined paths; dependency: immutable strings; concurrency: none; state: bounded Map",
-        "why": "User directive to keep improving speeds; listProfiles/listRuns re-join the same directory and file names on every poll"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "de0eac98a533c88f8bf75c74dc4744d6f13b2b30f2fb8ff476d5a945146959db",
-      "status": "in_progress",
-      "task_id": "joinpath-cache-1124",
-      "timestamp": 1795529508.8765483,
-      "timestamp_str": "2026-11-24 17:11:48",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": true,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'joinpath-cache-1124' completed successfully.",
-      "head": "bcbefc2759127f7ab5bd2ef27a867b7afde73320",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "joinpath-cache-1124",
-      "timestamp": 1795529984.0563188,
-      "timestamp_str": "2026-11-24 17:19:44"
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Cache successful install receipts by file stamp: 3.59ms -> sub-ms for 60",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Polls over downloaded models skip 60 readFile+JSON.parse cycles",
-        "mitigation": "failing-first counter + equivalence test, controlled A/B hash, full npm test and 4/4 strict gates; revert if regression",
-        "risks": "contract: same receipt object; dependency: stamp from stat; concurrency: none; state: bounded Map",
-        "why": "User directive to keep improving speeds; successful receipts were re-read and re-parsed on every state poll while only misses were cached"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "a94ccc267921d8002f266483f3751e18446486a77385f761288b897561fe3d17",
-      "status": "in_progress",
-      "task_id": "receipt-positive-cache-1124",
-      "timestamp": 1795530503.9692235,
-      "timestamp_str": "2026-11-24 17:28:23",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "continued_from": "opencode:hy4-flash-free",
@@ -622,6 +557,99 @@
       "task_id": "history-sqlite-transaction-1124",
       "timestamp": 1795551399.2702415,
       "timestamp_str": "2026-11-24 23:16:39"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Memoize sweep-local paired/group evidence by ordered stats identity and clustering mode; preserve directional statistics and release caches after each sweep",
+      "files_affected": [
+        "benchmarks/tune.mjs",
+        "tests/benchmark-tune-stats.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Reuse the chosen comparison and repeated group calculations without changing p-values, winners or guards",
+        "mitigation": "failing-first draw-count/object-identity/reverse-direction test, deterministic full-sweep output hash, interleaved A/B with uncached control, existing statistical regression tests, full npm test and 4/4 strict gates; revert if regression",
+        "risks": "contract: directional b/c and clustered versus item-level evidence stay distinct; dependency: existing pure functions; concurrency: sweep-local only; state: no persisted format or tuner-version change",
+        "why": "User directive to increase tuning speed; a deterministic 96-item clustered sweep recomputed identical paired/group evidence and performed 3.84 million Monte Carlo draws"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "99e88656bcdfa3dfeea2bcf460ab2562a45473ca66a118a92a4bca807a6bd6b5",
+      "status": "in_progress",
+      "task_id": "tune-evidence-cache-1124",
+      "timestamp": 1795551884.8520305,
+      "timestamp_str": "2026-11-24 23:24:44",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: clustered 96-item sweep 55.679ms -> 45.392ms (1.23x), Monte Carlo draws 3.84M -> 2.88M, identical sweep hash; uncached control drift 6.2%; draw/direction tests, full suite and 4/4 gates pass",
+      "files_affected": [
+        "benchmarks/tune.mjs",
+        "tests/benchmark-tune-stats.test.js",
+        ".aikit/decisions.md"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/tune-stats-ab.mjs",
+          "baseline": 55.679,
+          "candidate": 45.392,
+          "command": "node tune-stats-ab.mjs",
+          "control": "uncached groupEvidence 14.553ms vs 15.454ms",
+          "drift": "6.2",
+          "interleaved": "yes",
+          "metric": "clustered tune sweep",
+          "unit": "ms",
+          "workload": "96 items, four repeat-penalty candidates, two coding views, 15 interleaved pairs on win32 Node 26.9.0"
+        },
+        {
+          "artifact": "local-only/tune-stats-ab.mjs",
+          "baseline": 3840000.0,
+          "candidate": 2880000.0,
+          "command": "node tune-stats-ab.mjs",
+          "control": "uncached groupEvidence performs the same 960000 draws in both builds",
+          "drift": "0",
+          "interleaved": "yes",
+          "metric": "Monte Carlo draws per clustered sweep",
+          "unit": "draws",
+          "workload": "96 items, four repeat-penalty candidates, two coding views"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "tune-evidence-cache-1124",
+      "timestamp": 1795551976.2670753,
+      "timestamp_str": "2026-11-24 23:26:16",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'tune-evidence-cache-1124' completed successfully.",
+      "head": "a725e32a1ecc46306a588ba29e3e8b440e630c0c",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "tune-evidence-cache-1124",
+      "timestamp": 1795552034.030614,
+      "timestamp_str": "2026-11-24 23:27:14"
     }
   ]
 }
