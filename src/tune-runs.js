@@ -308,12 +308,167 @@ let tuneRunReads = 0;
 export function tuneRunReadCount() {
   return tuneRunReads;
 }
-async function readRunSummaries(folder, names) {
+async function readRunSummaries(folder, names, cache = null) {
   const jsonNames = names.filter((item) => item.endsWith(".json"));
-  const records = await Promise.all(jsonNames.map((name) =>
-    readJsonWithQuarantine(path.join(folder, name), null, { logger: quiet })));
-  tuneRunReads += records.length;
-  return jsonNames.map((name, index) => ({ name, record: records[index] }));
+  const loaded = await Promise.all(jsonNames.map(async (name) => {
+    const file = path.join(folder, name);
+    if (cache?.readSummary) return cache.readSummary(file);
+    return { record: await readJsonWithQuarantine(file, null, { logger: quiet }), hit: false };
+  }));
+  tuneRunReads += loaded.filter(({ hit }) => !hit).length;
+  return jsonNames.map((name, index) => ({ name, record: loaded[index].record }));
+}
+
+const DEFAULT_ANSWER_CACHE_BYTES = 64 * 1024 ** 2;
+const DEFAULT_SUMMARY_CACHE_BYTES = 16 * 1024 ** 2;
+const DEFAULT_HISTORY_CACHE_ENTRIES = 256;
+const answerStamp = (info) => `${info.mtimeMs}:${info.size}`;
+
+/** A process-local, byte-bounded cache shared by the two tune preflight readers. */
+export function createTuneHistoryCache({ maxBytes = DEFAULT_ANSWER_CACHE_BYTES, maxEntries = DEFAULT_HISTORY_CACHE_ENTRIES } = {}) {
+  const byteLimit = Number.isFinite(maxBytes) ? Math.max(0, Math.floor(maxBytes)) : DEFAULT_ANSWER_CACHE_BYTES;
+  const entryLimit = Number.isFinite(maxEntries) ? Math.max(0, Math.floor(maxEntries)) : DEFAULT_HISTORY_CACHE_ENTRIES;
+  const entries = new Map();
+  const summaries = new Map();
+  let bytes = 0;
+  let hits = 0;
+  let misses = 0;
+  let evictions = 0;
+  let summaryBytes = 0;
+  let summaryHits = 0;
+  let summaryMisses = 0;
+  let summaryEvictions = 0;
+  const drop = (key) => {
+    const entry = entries.get(key);
+    if (!entry) return;
+    bytes -= entry.size;
+    entries.delete(key);
+  };
+  const read = async (file, priority = null) => {
+    const key = path.resolve(file);
+    const cached = entries.get(key);
+    if (cached) {
+      const info = await fs.promises.stat(key).catch(() => null);
+      if (info && answerStamp(info) === cached.stamp) {
+        hits += 1;
+        entries.delete(key);
+        entries.set(key, cached);
+        return { text: cached.text, error: null, hit: true };
+      }
+      drop(key);
+    }
+    misses += 1;
+    let before;
+    try {
+      before = await fs.promises.stat(key);
+    } catch (error) {
+      return { text: null, error, hit: false };
+    }
+    try {
+      const text = await fs.promises.readFile(key, "utf8");
+      const after = await fs.promises.stat(key).catch(() => null);
+      const size = Buffer.byteLength(text, "utf8");
+      // Never pin text read across a concurrent append or atomic rewrite.
+      if (after && answerStamp(before) === answerStamp(after) && size <= byteLimit && entryLimit > 0) {
+        const rank = Number.isFinite(priority) ? priority : after.mtimeMs;
+        while (entries.size >= entryLimit || bytes + size > byteLimit) {
+          if (!entries.size) break;
+          let oldestKey = null;
+          let oldestRank = Infinity;
+          for (const [cachedKey, entry] of entries) {
+            if (entry.rank < oldestRank) {
+              oldestKey = cachedKey;
+              oldestRank = entry.rank;
+            }
+          }
+          // Parallel reads finish out of order; never let an older run displace
+          // a newer one that restore is about to select.
+          if (oldestKey === null || oldestRank > rank) break;
+          drop(oldestKey);
+          evictions += 1;
+        }
+        if (entries.size < entryLimit && bytes + size <= byteLimit) {
+          entries.set(key, { stamp: answerStamp(after), text, size, rank });
+          bytes += size;
+        }
+      }
+      return { text, error: null, hit: false };
+    } catch (error) {
+      return { text: null, error, hit: false };
+    }
+  };
+  const dropSummary = (key) => {
+    const entry = summaries.get(key);
+    if (!entry) return;
+    summaryBytes -= entry.size;
+    summaries.delete(key);
+  };
+  const readSummary = async (file) => {
+    const key = path.resolve(file);
+    const cached = summaries.get(key);
+    if (cached) {
+      const info = await fs.promises.stat(key).catch(() => null);
+      if (info && answerStamp(info) === cached.stamp) {
+        summaryHits += 1;
+        return { record: cached.record, hit: true };
+      }
+      dropSummary(key);
+    }
+    summaryMisses += 1;
+    let before;
+    try {
+      before = await fs.promises.stat(key);
+    } catch {
+      return { record: null, hit: false };
+    }
+    const record = await readJsonWithQuarantine(key, null, { logger: quiet });
+    const after = await fs.promises.stat(key).catch(() => null);
+    if (record && after && answerStamp(before) === answerStamp(after)) {
+      const size = Buffer.byteLength(JSON.stringify(record), "utf8");
+      const rank = Date.parse(record.startedAt) || after.mtimeMs;
+      if (size <= DEFAULT_SUMMARY_CACHE_BYTES && entryLimit > 0) {
+        while (summaries.size >= entryLimit || summaryBytes + size > DEFAULT_SUMMARY_CACHE_BYTES) {
+          if (!summaries.size) break;
+          let oldestKey = null;
+          let oldestRank = Infinity;
+          for (const [cachedKey, entry] of summaries) {
+            if (entry.rank < oldestRank) {
+              oldestKey = cachedKey;
+              oldestRank = entry.rank;
+            }
+          }
+          if (oldestKey === null || oldestRank > rank) break;
+          dropSummary(oldestKey);
+          summaryEvictions += 1;
+        }
+        if (summaries.size < entryLimit && summaryBytes + size <= DEFAULT_SUMMARY_CACHE_BYTES) {
+          summaries.set(key, { stamp: answerStamp(after), record, size, rank });
+          summaryBytes += size;
+        }
+      }
+    }
+    return { record, hit: false };
+  };
+  const clear = () => {
+    entries.clear();
+    summaries.clear();
+    bytes = 0;
+    summaryBytes = 0;
+  };
+  const stats = () => ({
+    answers: { size: entries.size, bytes, hits, misses, evictions },
+    summaries: { size: summaries.size, bytes: summaryBytes, hits: summaryHits, misses: summaryMisses, evictions: summaryEvictions },
+  });
+  return { read, readSummary, clear, stats };
+}
+
+async function readAnswerText(file, cache, priority = null) {
+  if (cache) return cache.read(file, priority);
+  try {
+    return { text: await fs.promises.readFile(file, "utf8"), error: null, hit: false };
+  } catch (error) {
+    return { text: null, error, hit: false };
+  }
 }
 
 // Test seam: how many answer files a single cachedAnswers call read.
@@ -322,12 +477,12 @@ export function cachedAnswersReadCount() {
   return cachedAnswersReads;
 }
 
-export async function cachedAnswers(dir, { profileId, fingerprint = null, limitRuns = 3, limitRows = 20000, parallel = 1 } = {}) {
+export async function cachedAnswers(dir, { profileId, fingerprint = null, limitRuns = 3, limitRows = 20000, parallel = 1, historyCache = null } = {}) {
   const dirs = (Array.isArray(dir) ? dir : [dir]).filter(Boolean);
   const runs = [];
   for (const folder of dirs) {
     const names = await fs.promises.readdir(folder).catch(() => []);
-    for (const { name, record } of await readRunSummaries(folder, names)) {
+    for (const { name, record } of await readRunSummaries(folder, names, historyCache)) {
       if (record?.schema !== RUN_SCHEMA) continue;
       if (profileId && record.profileId !== profileId) continue;
       if (fingerprint && ANSWER_FINGERPRINT_KEYS.some((key) => record.fingerprint?.[key] !== fingerprint[key])) continue;
@@ -350,14 +505,11 @@ export async function cachedAnswers(dir, { profileId, fingerprint = null, limitR
       continue; // a file name that cannot be a run id
     }
   }
-  const loaded = await Promise.all(selected.map(async ({ run, file }) => {
-    try {
-      return { run, text: await fs.promises.readFile(file, "utf8"), error: null };
-    } catch (error) {
-      return { run, text: null, error };
-    }
-  }));
-  cachedAnswersReads += loaded.length;
+  const loaded = await Promise.all(selected.map(async ({ run, file }) => ({
+    run,
+    ...await readAnswerText(file, historyCache, Date.parse(run.startedAt) || 0),
+  })));
+  cachedAnswersReads += loaded.filter(({ hit }) => !hit).length;
   const groups = new Map();
   let rows = 0;
   for (const { run, text, error } of loaded) {
@@ -406,30 +558,27 @@ export function itemOutcomesReadCount() {
   return itemOutcomesReads;
 }
 
-export async function itemOutcomes(dir, { profileId, minObservations = 6, minSettings = 2, fingerprint = null } = {}) {
+export async function itemOutcomes(dir, { profileId, minObservations = 6, minSettings = 2, fingerprint = null, historyCache = null } = {}) {
   const names = await fs.promises.readdir(dir).catch(() => []);
   const counts = new Map();
   // Collect the qualifying answer files, then read them all concurrently. The
   // reads are independent; counting stays sequential in the original file order.
   const files = [];
-  for (const { name, record } of await readRunSummaries(dir, names)) {
+  for (const { name, record } of await readRunSummaries(dir, names, historyCache)) {
     if (record?.schema !== RUN_SCHEMA) continue;
     if (profileId && record.profileId !== profileId) continue;
     if (fingerprint && OUTCOME_FINGERPRINT_KEYS.some((key) => record.fingerprint?.[key] !== fingerprint[key])) continue;
     try {
-      files.push({ runName: name, file: answersFile(dir, name.slice(0, -5)) });
+      files.push({ runName: name, file: answersFile(dir, name.slice(0, -5)), startedAt: record.startedAt ?? "" });
     } catch {
       continue; // a file name that cannot be a run id
     }
   }
-  const loaded = await Promise.all(files.map(async ({ runName, file }) => {
-    try {
-      return { runName, text: await fs.promises.readFile(file, "utf8"), error: null };
-    } catch (error) {
-      return { runName, text: null, error };
-    }
-  }));
-  itemOutcomesReads += loaded.length;
+  const loaded = await Promise.all(files.map(async ({ runName, file, startedAt }) => ({
+    runName,
+    ...await readAnswerText(file, historyCache, Date.parse(startedAt) || 0),
+  })));
+  itemOutcomesReads += loaded.filter(({ hit }) => !hit).length;
   for (const { text, error } of loaded) {
     if (error && error.code !== "ENOENT") throw error;
     if (text === null) continue;

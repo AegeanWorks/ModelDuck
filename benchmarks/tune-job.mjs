@@ -10,7 +10,7 @@ import { createModelRegistry } from "../src/model-registry.js";
 import { systemInfo } from "../src/system.js";
 import { createTimingLock } from "../src/tune-lock.js";
 import { readSteps } from "../src/tune-steps.js";
-import { cachedAnswers, itemOutcomes, startRun } from "../src/tune-runs.js";
+import { cachedAnswers, createTuneHistoryCache, itemOutcomes, startRun } from "../src/tune-runs.js";
 import { PROMPTS, SYSTEM_PROMPT } from "./suite.mjs";
 import { codeGroupOf, taskIdOfCategory, tuneRungs, withDiscriminatingRungs } from "./tasks.mjs";
 import { STAGES, resultFrom, tune } from "./tune.mjs";
@@ -110,8 +110,10 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
   const logicalCores = target.system.parallelism;
   const used = steps ?? (await readSteps(target.paths.tuneGrid)).steps;
   // Items no recorded setting has flipped cannot separate settings for this model, so the
-  // search leaves them out; the final check keeps the whole set (ADR-064, S6).
-  const { saturated } = await itemOutcomes(target.paths.tuneRuns, { profileId: target.profileId, fingerprint: target.fingerprint });
+  // search leaves them out; the final check keeps the whole set (ADR-064, S6). Share the
+  // answer texts with restore below, then release them before generation starts.
+  const historyCache = createTuneHistoryCache();
+  const { saturated } = await itemOutcomes(target.paths.tuneRuns, { profileId: target.profileId, fingerprint: target.fingerprint, historyCache });
   // Public coding items may be in the model's training data: they stay in the final check and
   // the gate, but the search is chosen on ModelDuck's own code items (ADR-070).
   for (const prompt of PROMPTS) if (prompt.category === "public-code") saturated.add(prompt.id);
@@ -200,7 +202,13 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
     }
     // An explicit reuse folder is read whole (still capped by rows): a few short
     // recent runs must not hide the long run that holds most saved answers.
-    restore = await cachedAnswers([target.paths.tuneRuns, ...reuseFrom], { profileId: target.profileId, fingerprint: target.fingerprint, parallel: width, ...(reuseFrom.length && { limitRuns: Infinity }) }).catch(() => []);
+    try {
+      restore = await cachedAnswers([target.paths.tuneRuns, ...reuseFrom], { profileId: target.profileId, fingerprint: target.fingerprint, parallel: width, historyCache, ...(reuseFrom.length && { limitRuns: Infinity }) });
+    } catch {
+      restore = [];
+    } finally {
+      historyCache.clear();
+    }
     // Saved answers are reused only after a few of each family of items are re-asked live and match (ADR-123, ADR-185):
     // a family that came out different is measured again, the others keep their saved answers.
     if (restore.length) {

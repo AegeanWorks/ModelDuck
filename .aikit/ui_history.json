@@ -4342,5 +4342,49 @@
     "final_snapshot_entries": 0,
     "surface_digest": "17fa46c09add41c8b597a7ab2ad4dca79fbb904cf7a6f3d200a2d8516eb169de",
     "baseline_digest": "513da17dbfe3ea2f9251ffea72b2b874050f75df7e1bdd960522f2f88e5c91fe"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [
+      "benchmarks/tune-job.mjs",
+      "src/tune-runs.js",
+      "tests/tunedir-parallel.test.js"
+    ],
+    "no_visual_reason": "",
+    "baseline_commit": "e0c0cda",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1795550497.8148408,
+    "finished_at": 1795550549.2523828,
+    "strikes": 0,
+    "reviewer": "HungerG",
+    "review": {
+      "reviewer": "HungerG",
+      "surface": "app",
+      "surface_digest": "ef366c63638c8a1ff32fc712098bc46038a2be4f7d9a992e1c8607c11a31efeb",
+      "snapshot_digest": "",
+      "snapshot_entries": 0,
+      "visual": true,
+      "reviewed_at": 1795550549.2523854,
+      "scoped_paths": [
+        "benchmarks/tune-job.mjs",
+        "src/tune-runs.js",
+        "tests/tunedir-parallel.test.js"
+      ],
+      "scoped_digest": "54a77a31bafa225b9345e11c7fb78b2756f98d67dc420050a62979398c2430fb"
+    },
+    "allowed_removals": [],
+    "allowed_tests": [
+      {
+        "path": "tests/tunedir-parallel.test.js",
+        "reason": "Failing-first shared-cache read-count, invalidation and eviction regression tests"
+      }
+    ],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "ef366c63638c8a1ff32fc712098bc46038a2be4f7d9a992e1c8607c11a31efeb",
+    "baseline_digest": "17fa46c09add41c8b597a7ab2ad4dca79fbb904cf7a6f3d200a2d8516eb169de"
   }
 ]
