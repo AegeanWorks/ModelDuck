@@ -493,7 +493,7 @@ modelduck/
 │   ├── engine-router.js <- engine selection
 │   ├── inference-engine-adapters.js <- engine detection
 │   ├── inference-engines.js <- engine speed
-│   ├── thinking.js <- <think> block splitter
+│   ├── thinking.js
 │   ├── memory-fit.js
 │   ├── model-profiles.js
 │   ├── preset-match.js
@@ -809,7 +809,8 @@ modelduck/
 │   ├── latestcommit-backward.test.js
 │   ├── summarizephase-lazy.test.js
 │   ├── tuneprofiles-parallel.test.js
-│   └── catalog-why-deferred.test.js
+│   ├── catalog-why-deferred.test.js
+│   └── model-why-deferred.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml

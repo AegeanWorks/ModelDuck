@@ -2043,3 +2043,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: controlled end-to-end A/B measured **26–30 us → 17 us (~1.6x)** with an identical SHA-256 (`df2cdb46b19e`) and identical object key order. A failing-first test (confirmed against HEAD) counts 120 → 5 string interpolations.
 - **Cross-principle check:** PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: recommendation rows unchanged.
 
+### ADR-270: Deferred explanation strings in recommendModels
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: `recommendModels()` built an explanation string for every installed model but returned only the top five; 100 models cost **53 us**.
+- **Decision**: Rows carry a temporary `_hasProfile` flag through filter/sort; the explanation is built for the shown rows only and the temporary key is deleted. A `why: null` placeholder keeps the original key order.
+- **Consequences**: controlled end-to-end A/B measured **53–54 us → 35–39 us (~1.4x)** with an identical SHA-256 (`2dd6d3c0fc2c`). A failing-first test (confirmed against HEAD) counts 200 → 105 task interpolations (100 profile-key lookups in both, plus five vs one hundred explanations).
+- **Cross-principle check:** PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: recommendation rows unchanged.
+

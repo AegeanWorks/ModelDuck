@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "catalog-why-deferred-1124",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795485565.8486998,
+    "task_id": "modelwhy-deferred-1124",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795485675.8176982,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795492765.8486998,
+    "lease_until": 1795492875.8176982,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,29 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795485566.9025404,
-    "completed_head": "f0b6221b27f8ec12c78739ee72baf1283d2cdede",
-    "completed_tree": "e142f811145ba7b630474efe84d605f2e0674c2e"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; recommendModels built a verbose explanation for every installed model but returned only five",
+      "benefits": "Recommendations skip explanation-string work for all but the shown rows",
+      "risks": "contract: identical row objects and key order; dependency: none; concurrency: none; state: local temporary field",
+      "mitigation": "failing-first interpolation-count test, controlled HEAD-vs-WORK A/B hash, full npm test and 4/4 strict gates; revert if slower"
+    }
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[2/2] DELIVERED: cached scan 180us -> 43us (4.2x), identical models hash; 1221 tests pass",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "scan-stamp-1124",
-      "timestamp": 1795481912.5353525,
-      "timestamp_str": "2026-11-24 03:58:32",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "delivery": {
@@ -409,6 +394,30 @@
       "task_id": "catalog-why-deferred-1124",
       "timestamp": 1795485567.2755747,
       "timestamp_str": "2026-11-24 04:59:27"
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Defer recommendModels why strings to the top 5 rows",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Recommendations skip explanation-string work for all but the shown rows",
+        "mitigation": "failing-first interpolation-count test, controlled HEAD-vs-WORK A/B hash, full npm test and 4/4 strict gates; revert if slower",
+        "risks": "contract: identical row objects and key order; dependency: none; concurrency: none; state: local temporary field",
+        "why": "User directive to keep improving speeds; recommendModels built a verbose explanation for every installed model but returned only five"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "0ca8db2f15347f9ffbb73eeff9a054d0cc9d6bda3e07db1ed737d0182602b6a5",
+      "status": "in_progress",
+      "task_id": "modelwhy-deferred-1124",
+      "timestamp": 1795485675.8176982,
+      "timestamp_str": "2026-11-24 05:01:15",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }

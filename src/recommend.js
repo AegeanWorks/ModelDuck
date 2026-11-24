@@ -11,8 +11,8 @@ const DEFAULT_CONTEXT = 2048;
 const LIMIT = 5;
 
 /**
- * IDEA-1623: fixed-total-bytes rule. Memory math is always fixed bytes —
- * weights plus KV plus the runtime reserve — never a ratio or a hidden
+ * IDEA-1623: fixed-total-bytes rule. Memory math is always fixed bytes ÔÇö
+ * weights plus KV plus the runtime reserve ÔÇö never a ratio or a hidden
  * scale. The helper is the single place both recommenders total through,
  * so a weights-only estimate still carries the reserve.
  */
@@ -61,11 +61,8 @@ export function recommendModels({ models, profiles = {}, memory = {}, task = "co
       contextSize,
       memoryBytes: totalBytes,
       fit,
-      why: measured
-        ? `Measured on this PC: ${rate}% on ${task}${Number.isFinite(tokensPerSecond) ? `, ${tokensPerSecond} tok/s` : ""}; ${fitText(fit)}.`
-        : profile
-          ? `Profile present but no measured ${task} rate here; ${fitText(fit)}.`
-          : `Not tuned yet; ${fitText(fit)}.`,
+      why: null,
+      _hasProfile: Boolean(profile),
     };
   });
   const usable = rows.filter((row) => row.fit !== "will_not_fit");
@@ -75,7 +72,18 @@ export function recommendModels({ models, profiles = {}, memory = {}, task = "co
     (right.tokensPerSecond ?? -1) - (left.tokensPerSecond ?? -1) ||
     left.memoryBytes - right.memoryBytes ||
     left.name.localeCompare(right.name));
-  return usable.slice(0, limit);
+  const shown = usable.slice(0, limit);
+  // Explanation strings are only needed for the rows actually returned.
+  for (const row of shown) {
+    const hasProfile = row._hasProfile;
+    delete row._hasProfile;
+    row.why = row.measured
+      ? `Measured on this PC: ${row.rate}% on ${task}${Number.isFinite(row.tokensPerSecond) ? `, ${row.tokensPerSecond} tok/s` : ""}; ${fitText(row.fit)}.`
+      : hasProfile
+        ? `Profile present but no measured ${task} rate here; ${fitText(row.fit)}.`
+        : `Not tuned yet; ${fitText(row.fit)}.`;
+  }
+  return shown;
 }
 
 /**
