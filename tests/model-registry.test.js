@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import { mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
 import { AppError } from "../src/errors.js";
-import { createModelRegistry, resolveModelSettings } from "../src/model-registry.js";
+import { createModelRegistry, magicHeaderReads, resolveModelSettings } from "../src/model-registry.js";
 
 const logger = { warn() {} };
 const INFO = {
@@ -163,15 +164,26 @@ test("per-model sampling overrides are pruned on delete and rescan", async (t) =
 
 // A tune process needs one model: reading every file's GGUF metadata cost 8.1 s
 // for a 16-model library on every start, three times per model in a quick pass.
-test("a narrowed scan reads metadata only for the files it keeps", async (t) => {
+test("a narrowed scan stats and reads metadata and magic only for the files it keeps", async (t) => {
   const read = [];
   const { directory, registry } = await makeRegistry(t, { metadata: async (file) => { read.push(path.basename(file)); return INFO; } });
   await writeFile(path.join(directory, "wanted.gguf"), Buffer.from("GGUF12345678"));
-  await writeFile(path.join(directory, "other-a.gguf"), Buffer.from("GGUF12345678"));
+  await writeFile(path.join(directory, "other-a.gguf"), Buffer.from("NOPE-0123456789"));
   await writeFile(path.join(directory, "other-b.gguf"), Buffer.from("GGUF12345678"));
 
+  const realStat = fs.promises.stat;
+  const statReads = [];
+  fs.promises.stat = async (...args) => {
+    const info = await realStat(...args);
+    if (String(args[0]).endsWith(".gguf")) statReads.push(path.basename(args[0]));
+    return info;
+  };
+  t.after(() => { fs.promises.stat = realStat; });
+  const magicBefore = magicHeaderReads();
   const models = await registry.scan({ only: (file) => path.basename(file) === "wanted.gguf" });
   assert.deepEqual(models.map((model) => model.fileName), ["wanted.gguf"]);
+  assert.deepEqual(statReads.sort(), ["wanted.gguf"], "excluded files are not stat'ed");
+  assert.equal(magicHeaderReads(), magicBefore + 1, "excluded files have no magic-header read");
   assert.deepEqual(read, ["wanted.gguf"], "the other files' metadata is never read");
   const [entry] = models;
   assert.equal(registry.findById(entry.id).fileName, "wanted.gguf", "the kept model is usable by id");

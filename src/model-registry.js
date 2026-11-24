@@ -403,25 +403,30 @@ export function createModelRegistry({
     }
     scanMisses += 1;
     const files = await walkGgufFiles(modelsDir);
-    // Each file's stat is independent; 200 sequential stats cost ~12 ms on
-    // Windows versus ~2 ms in parallel.
-    const fileStats = await Promise.all(files.map((entry) => fs.promises.stat(entry).catch(() => null)));
+    // Apply the existing name/id predicate before any per-file I/O. Discovery
+    // still checks extensionless symlinks, but a one-model tune does not pay for
+    // stats or GGUF headers belonging to the rest of the library.
+    const selected = [];
+    for (const file of files) {
+      const relativePath = path.relative(modelsDir, file);
+      const id = hashId(relativePath);
+      if (!only || only(file, { id, relativePath })) selected.push({ file, id });
+    }
+    // Each selected file's stat is independent; 200 sequential stats cost ~12 ms
+    // on Windows versus ~2 ms in parallel.
+    const fileStats = await Promise.all(selected.map(({ file }) => fs.promises.stat(file).catch(() => null)));
     // Compute cache keys once and check all uncached magic headers in parallel.
     // 200 sequential four-byte reads cost ~25 ms versus ~3 ms in parallel.
-    const cacheKeys = files.map((file, index) => {
+    const cacheKeys = selected.map(({ file }, index) => {
       const stats = fileStats[index];
       return stats && stats.isFile() && stats.size >= 8 ? `${file}|${stats.size}|${stats.mtimeMs}` : null;
     });
-    const magicOk = await Promise.all(files.map((file, index) =>
+    const magicOk = await Promise.all(selected.map(({ file }, index) =>
       cacheKeys[index] && !cache.get(cacheKeys[index]) ? hasGgufMagic(file) : true));
     const nextEntries = new Map();
     const nextCache = new Map();
 
-    for (const [fileIndex, file] of files.entries()) {
-      if (only) {
-        const relativePath = path.relative(modelsDir, file);
-        if (!only(file, { id: hashId(relativePath), relativePath })) continue;
-      }
+    for (const [fileIndex, { file, id }] of selected.entries()) {
       const stats = fileStats[fileIndex];
       if (!stats || !stats.isFile() || stats.size < 8) continue;
 
@@ -458,8 +463,6 @@ export function createModelRegistry({
         }
       }
 
-      const relativePath = path.relative(modelsDir, file);
-      const id = hashId(relativePath);
       const entry = { id, path: file, ...summary };
       nextEntries.set(id, entry);
       nextCache.set(cacheKey, summary);

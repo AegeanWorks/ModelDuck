@@ -2203,3 +2203,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Cross-principle check:** PRINCIPLE-011: no behavior change; PRINCIPLE-014: failing-first test, no assertion weakened; G-003: health payload unchanged.
 - **Cross-principle check:** PRINCIPLE-009: cached pure derivation; PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: warning labels unchanged.
 
+### ADR-290: Filter narrowed model scans before file I/O
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: openTarget asks for one model, but scan stat'ed and magic-readed every discovered GGUF before applying only(); a cold 200-file narrowed scan cost 6.364ms and 200 header reads
+- **Decision**: Apply the existing only(file, {id, relativePath}) predicate during candidate selection, before per-file stat, cache-key construction and GGUF magic reads; keep discovery, full scans and extensionless-symlink handling unchanged
+- **Consequences**: Interleaved cold-process A/B measured 6.364ms -> 2.035ms (3.13x) and 200 -> 1 magic read per narrowed scan with identical model ids. A 200-file full scan kept an identical normalized output hash and no regression (9.111ms -> 8.901ms, 1.02x). A failing-first test pins one stat, one magic read and one metadata read for the kept file
+- **Cross-principle check:** PRINCIPLE-003: existing predicate and discovery preserved; PRINCIPLE-010: unrelated I/O removed; PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: selected rows and ids unchanged.
