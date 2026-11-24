@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "tuneprofiles-parallel-1124",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795484233.5724123,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795484605.429554,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795491433.5724123,
+    "lease_until": 1795491805.429554,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,55 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; both tune routes loaded one model profile per await, costing ~150ms/946ms with 60 profiled models",
-      "benefits": "Profile reads gather concurrently while output order and read counters are unchanged",
-      "risks": "contract: same response arrays/objects in same order; dependency: pure async reads; concurrency: independent read-only profile loads, Promise.all preserves order; state: counters preserved",
-      "mitigation": "failing-first counter + output-hash A/B on both routes, full npm test and 4/4 strict gates; revert if regression"
-    }
+    "completed_at": 1795484606.3502116,
+    "completed_head": "053990a70b03358b6d5b2c07d58d28f68b9a0b91",
+    "completed_tree": "0cf88e6a352d379dd9691dbb408d21470afe1bc1"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'itemoutcomes-reads-1123' completed successfully.",
-      "head": "2063e28d66cdafd8e01ceffe4ba6832be112aed4",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "itemoutcomes-reads-1123",
-      "timestamp": 1795480477.711381,
-      "timestamp_str": "2026-11-24 03:34:37"
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Parallelize answer-file reads in cachedAnswers: 3-file reads 0.47ms -> 0.31ms (1.5x)",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Answer files gathered concurrently while newest-first grouping, limitRows early break and width filters are unchanged",
-        "mitigation": "failing-first counter + output-hash A/B, full npm test and 4/4 strict gates; revert if regression",
-        "risks": "contract: same groups in same order; dependency: none; concurrency: independent read-only reads, sequential processing; state: pure local Map",
-        "why": "User directive to keep improving speeds; cachedAnswers still read its newest run answer files one at a time"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "092652919ef149ce3d1e765b1ae45c00b551dfbdba4c6d34771704d6e478a173",
-      "status": "in_progress",
-      "task_id": "cachedanswers-reads-1124",
-      "timestamp": 1795480768.7882376,
-      "timestamp_str": "2026-11-24 03:39:28",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "checklists": "passed",
@@ -418,6 +374,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: 60 profile loads 14.31ms -> 1.73ms (8.3x), both tune routes ~2.5-3x, identical hash; 1230 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "tuneprofiles-parallel-1124",
+      "timestamp": 1795484605.429554,
+      "timestamp_str": "2026-11-24 04:43:25",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'tuneprofiles-parallel-1124' completed successfully.",
+      "head": "053990a70b03358b6d5b2c07d58d28f68b9a0b91",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "tuneprofiles-parallel-1124",
+      "timestamp": 1795484606.641806,
+      "timestamp_str": "2026-11-24 04:43:26"
     }
   ]
 }
