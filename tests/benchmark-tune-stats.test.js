@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { monteCarloDrawCount } from "../benchmarks/stats.mjs";
 import { Measurements, paired, pairedClustered, score } from "../benchmarks/tune-measure.mjs";
-import { tune } from "../benchmarks/tune.mjs";
+import { createSweepEvidenceCache, tune } from "../benchmarks/tune.mjs";
 
 /**
  * Statistical regression tests (V2): seeded simulations through the real
@@ -126,6 +127,28 @@ test("clustered flips count once per cluster, not once per item (S4)", async () 
     (id) => id,
   );
   assert.equal(spread.pValue, item.pValue, "one item per cluster reduces to the item test");
+});
+
+test("a sweep evidence cache repeats neither Monte Carlo draws nor object identity", () => {
+  const ids = Array.from({ length: 24 }, (_, i) => `s-${i}`);
+  const before = {
+    credit: Object.fromEntries(ids.map((id) => [id, 0])),
+    majority: new Map(ids.map((id) => [id, false])),
+  };
+  const after = {
+    credit: Object.fromEntries(ids.map((id, i) => [id, (i % 7 + 1) / 10])),
+    majority: new Map(ids.map((id, i) => [id, (i % 7 + 1) / 10 >= 0.5])),
+  };
+  const evidence = createSweepEvidenceCache((id) => id);
+  const drawsBefore = monteCarloDrawCount();
+  const first = evidence(before, after);
+  assert.equal(monteCarloDrawCount(), drawsBefore + 24 * 10000, "the first comparison performs the seeded test");
+  assert.strictEqual(evidence(before, after), first, "the chosen comparison reuses the same evidence object");
+  assert.equal(monteCarloDrawCount(), drawsBefore + 24 * 10000, "the repeated comparison performs no draws");
+
+  const reverse = evidence(after, before);
+  assert.deepEqual([reverse.b, reverse.c], [first.c, first.b], "direction remains part of the cache key");
+  assert.equal(monteCarloDrawCount(), drawsBefore + 48 * 10000, "the reverse comparison is computed once");
 });
 
 test("score counts empty answers as give-ups beside truncation (lit §8)", async () => {

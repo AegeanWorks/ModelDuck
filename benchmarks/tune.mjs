@@ -166,6 +166,22 @@ function groupStats(before, after, groups, clusterOf = null) {
   }));
 }
 
+/** Sweep-local evidence reuse; stats objects are immutable for the life of one sweep. */
+export function createSweepEvidenceCache(clusterOf = null) {
+  const cache = new Map();
+  return (before, after) => {
+    let byAfter = cache.get(before);
+    if (!byAfter) {
+      byAfter = new Map();
+      cache.set(before, byAfter);
+    }
+    if (byAfter.has(after)) return byAfter.get(after);
+    const evidence = clusterOf ? pairedClustered(before, after, clusterOf) : paired(before, after);
+    byAfter.set(after, evidence);
+    return evidence;
+  };
+}
+
 /**
  * A coding preset must not buy an overall gain by sacrificing a view (ADR-070). When the
  * chosen candidate is clearly worse than the current setting on one view, a candidate that
@@ -180,15 +196,26 @@ function balancedChoice({ survivors, incumbent, chosen, itemIds, context, floor,
   }
   const usable = Object.fromEntries(Object.entries(groups).filter(([, ids]) => ids.length >= MIN_GROUP_ITEMS));
   if (Object.keys(usable).length < 2) return null;
-  const chosenGroups = groupStats(incumbent.stats, chosen.stats, usable, context.clusterOf);
+  const groupCache = new Map();
+  const groupsFor = (after, clusterOf) => {
+    let byMode = groupCache.get(after);
+    if (!byMode) {
+      byMode = new Map();
+      groupCache.set(after, byMode);
+    }
+    const mode = clusterOf ? "clustered" : "item";
+    if (!byMode.has(mode)) byMode.set(mode, groupStats(incumbent.stats, after, usable, clusterOf));
+    return byMode.get(mode);
+  };
+  const chosenGroups = groupsFor(chosen.stats, context.clusterOf);
   const worse = Object.entries(chosenGroups).filter(([, entry]) => entry.worse).map(([group]) => group);
   if (!worse.length) return { chosen, groups: chosenGroups, guard: null };
-  const safe = survivors.filter((entry) => entry === incumbent || !Object.values(groupStats(incumbent.stats, entry.stats, usable, context.clusterOf)).some((group) => group.worse));
+  const safe = survivors.filter((entry) => entry === incumbent || !Object.values(groupsFor(entry.stats, context.clusterOf)).some((group) => group.worse));
   const eligible = safe.filter((entry) => solvedOf(entry.stats) >= floor - 1e-9);
   const replacement = eligible.length ? choose(eligible, floor, context.options.speedTie, cost) : incumbent;
   return {
     chosen: replacement,
-    groups: groupStats(incumbent.stats, replacement.stats, usable),
+    groups: groupsFor(replacement.stats, null),
     guard: `Kept ${JSON.stringify(Object.values(replacement.patch)[0])}: the higher-scoring ${JSON.stringify(Object.values(chosen.patch)[0])} was clearly worse on ${worse.join(", ")}.`,
   };
 }
@@ -206,7 +233,7 @@ async function sweepCore(context, { stage, task, axis, current, rungs, forced, c
   // Every look spends an equal share of one error budget over the axis (ADR-063). A non-finite
   // stop alpha turns the screen off, which the mechanics tests need.
   // The change gate counts a function's inputs as one witness, not many (S4); the early stop below stays item-level.
-  const sweepPaired = (before, after) => (context.clusterOf ? pairedClustered(before, after, context.clusterOf) : paired(before, after));
+  const sweepPaired = createSweepEvidenceCache(context.clusterOf);
   const stopAlpha = options.stopAlpha ?? options.changeAlpha;
   const lookBudget = Math.max(1, looks.reduce((sum, points) => sum + points.length, 0));
   const alphaPerLook = Number.isFinite(stopAlpha) && stopAlpha > 0 ? stopAlpha / lookBudget : null;
