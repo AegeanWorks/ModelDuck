@@ -1987,3 +1987,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: 3-file reads **0.47 ms → 0.31 ms (1.5x)**; controlled end-to-end A/B over five call configurations measured **~1.33–1.60 ms → ~1.11–1.16 ms (~1.2–1.3x)** with an identical SHA-256 (`e462f484aace`). A failing-first test (confirmed against HEAD) pins read count, newest-first order and the row cap.
 - **Cross-principle check:** PRINCIPLE-010: concurrency only for independent read-only reads; PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: no answer data changed.
 
+### ADR-263: Stat-first directory stamp in registry scan
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: `scan()` called `ensureDirectory()` (a `mkdir -r`) before every TTL stamp check. On an existing folder `mkdir -r` costs ~135 us here, so every `/api/state` poll paid for a redundant syscall.
+- **Decision**: `dirStamp()` now stats first and only calls `ensureDirectory()` when stat reports ENOENT (or the path is not a folder, preserving the old failure). The unconditional `ensureDirectory()` at scan start is removed. `scanStats()` gains a `mkdirs` counter.
+- **Consequences**: isolated stamp **182 us → 47 us (3.9x)**; controlled A/B on repeated cached `scan()` with 60 models measured **180.67 us → 42.96 us (4.2x)**. A stable projection of the `/api/state` models array hashes identically (`a99679780a5f`) before and after. Two failing-first tests (confirmed against HEAD) pin no-mkdir on an existing folder and recreation of a removed one.
+- **Cross-principle check:** PRINCIPLE-013: durable state behaviour unchanged; PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: model summaries unchanged.
+

@@ -484,7 +484,7 @@ modelduck/
 │   ├── hf-reference.js
 │   ├── server.js
 │   ├── engine.js
-│   ├── engine-catalog.js <- engine descriptors
+│   ├── engine-catalog.js
 │   ├── engine-listing.js <- engines the API lists
 │   ├── engine-env.js
 │   ├── engine-install.js
@@ -802,7 +802,8 @@ modelduck/
 │   ├── profilelist-parallel.test.js
 │   ├── tunedir-parallel.test.js
 │   ├── itemoutcomes-reads.test.js
-│   └── cachedanswers-reads.test.js
+│   ├── cachedanswers-reads.test.js
+│   └── scan-stamp.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml

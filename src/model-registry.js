@@ -265,15 +265,32 @@ export function createModelRegistry({
   let lastDirStamp = null;
   let scanHits = 0;
   let scanMisses = 0;
-  const scanStats = () => ({ hits: scanHits, misses: scanMisses });
+  let stampMkdirs = 0;
+  const scanStats = () => ({ hits: scanHits, misses: scanMisses, mkdirs: stampMkdirs });
 
+  // A plain stat is enough when the folder is there. The old scan called
+  // ensureDirectory() before every stamp, and mkdir(recursive) on an existing
+  // folder costs ~135 us here. Only create the folder when stat says it is gone.
   async function dirStamp() {
+    let info;
     try {
-      const info = await fs.promises.stat(modelsDir);
-      return `${info.mtimeMs}:${info.size ?? ""}`;
-    } catch {
+      info = await fs.promises.stat(modelsDir);
+    } catch (error) {
+      if (error?.code !== "ENOENT") return "missing";
+      stampMkdirs += 1;
+      await ensureDirectory(modelsDir);
+      try {
+        info = await fs.promises.stat(modelsDir);
+      } catch {
+        return "missing";
+      }
+    }
+    if (!info.isDirectory()) {
+      // A path that is not a folder still fails the same way ensureDirectory did.
+      await ensureDirectory(modelsDir);
       return "missing";
     }
+    return `${info.mtimeMs}:${info.size ?? ""}`;
   }
 
   /**
@@ -283,7 +300,6 @@ export function createModelRegistry({
    * every file's metadata cost seconds per start on a large library.
    */
   async function scan({ force = false, only = null } = {}) {
-    await ensureDirectory(modelsDir);
     // /api/state polls this. Reuse a scan for one second when the directory
     // stamp has not moved; import/delete pass force, and the TTL still catches
     // an in-place file change. A narrowed scan is never reused.
