@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "jscode-cache-1124",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795487795.277176,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795488211.276007,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795494995.277176,
+    "lease_until": 1795495411.276007,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,55 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; the verdict depends only on extracted code, but the cache key used raw reply text, spawning a child per formatting variant",
-      "benefits": "Fenced/unfenced variants of identical code skip the ~50ms child spawn",
-      "risks": "contract: identical verdict arrays; dependency: none; concurrency: none; state: two bounded caches, text path unchanged",
-      "mitigation": "failing-first code-cache hit test, controlled HEAD-vs-WORK A/B with byte-identical verdicts, full npm test and 4/4 strict gates; revert if regression"
-    }
+    "completed_at": 1795488212.4250271,
+    "completed_head": "b75a9411262feb863a60af0a5953f9072eb25d0e",
+    "completed_tree": "f56a4703da75e980191d799f1644c4b94c22671a"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'latestcommit-backward-1124' completed successfully.",
-      "head": "becc652a5cde050614a8cab249cacc775946cddc",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "latestcommit-backward-1124",
-      "timestamp": 1795483333.756052,
-      "timestamp_str": "2026-11-24 04:22:13"
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Lazy itemSummary + linear max in summarizePhase: 14.07us -> 0.55us (25x) for 200 models",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Report rebuilds skip one sort and one full item derivation per phase",
-        "mitigation": "failing-first equivalence test confirmed against HEAD, controlled A/B hash, full npm test and 4/4 strict gates; revert if regression",
-        "risks": "contract: identical phase summary; dependency: itemSummary is pure; concurrency: none; state: local lazy cache",
-        "why": "User directive to keep improving speeds; summarizePhase sorted the whole model array for a max and derived item summaries even when every field was already present"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "20aa4f83e9a2441c9a82bfa5478125300a2d7262fa749044333907faf109c322",
-      "status": "in_progress",
-      "task_id": "summarizephase-lazy-1124",
-      "timestamp": 1795483466.2813838,
-      "timestamp_str": "2026-11-24 04:24:26",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "checklists": "passed",
@@ -418,6 +374,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: 4 spawns -> 1 spawn + 3 code hits, ~1.5s -> ~0.3s, identical hash; 1239 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "jscode-cache-1124",
+      "timestamp": 1795488211.276007,
+      "timestamp_str": "2026-11-24 05:43:31",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'jscode-cache-1124' completed successfully.",
+      "head": "b75a9411262feb863a60af0a5953f9072eb25d0e",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "jscode-cache-1124",
+      "timestamp": 1795488212.5159771,
+      "timestamp_str": "2026-11-24 05:43:32"
     }
   ]
 }
