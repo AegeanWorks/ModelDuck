@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "catalog-why-deferred-1124",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795485098.7785194,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795485565.8486998,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795492298.7785194,
+    "lease_until": 1795492765.8486998,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,55 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; recommendCatalog built verbose explanation strings for every catalog entry but returned only five",
-      "benefits": "Recommendations skip ~195 template-string builds per request",
-      "risks": "contract: identical row objects and key order; dependency: none; concurrency: none; state: local WeakMap",
-      "mitigation": "failing-first equivalence test confirmed against HEAD, controlled A/B hash, full npm test and 4/4 strict gates; revert if regression"
-    }
+    "completed_at": 1795485566.9025404,
+    "completed_head": "f0b6221b27f8ec12c78739ee72baf1283d2cdede",
+    "completed_tree": "e142f811145ba7b630474efe84d605f2e0674c2e"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'cachedanswers-reads-1124' completed successfully.",
-      "head": "a9179481af46d3e05432d54491527da6dc5c8255",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "cachedanswers-reads-1124",
-      "timestamp": 1795481142.3674288,
-      "timestamp_str": "2026-11-24 03:45:42"
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Drop redundant mkdir from registry scan TTL check: stamp 182us -> 47us (3.9x)",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "One stat replaces mkdir+stat on the common path while directory creation on ENOENT is preserved",
-        "mitigation": "failing-first counter + output equivalence A/B, full npm test and 4/4 strict gates; revert if regression",
-        "risks": "contract: same stamp and same recreated dir; dependency: none; concurrency: none; state: per-instance mkdir counter",
-        "why": "User directive to keep improving speeds; /api/state stats the models dir twice per scan because mkdir(recursive) runs before every stamp check"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "bacf870aef6b5229764833e4463a6fa88d72cc5781aad4a357841683ced615fd",
-      "status": "in_progress",
-      "task_id": "scan-stamp-1124",
-      "timestamp": 1795481531.126623,
-      "timestamp_str": "2026-11-24 03:52:11",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "checklists": "passed",
@@ -418,6 +374,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: recommendCatalog 200 entries 26-30us -> 17us (~1.6x), identical hash; 1232 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "catalog-why-deferred-1124",
+      "timestamp": 1795485565.8486998,
+      "timestamp_str": "2026-11-24 04:59:25",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'catalog-why-deferred-1124' completed successfully.",
+      "head": "f0b6221b27f8ec12c78739ee72baf1283d2cdede",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "catalog-why-deferred-1124",
+      "timestamp": 1795485567.2755747,
+      "timestamp_str": "2026-11-24 04:59:27"
     }
   ]
 }
