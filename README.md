@@ -539,7 +539,7 @@ modelduck/
 │   ├── state-machines.json
 │   ├── state-machine-proposals.md
 │   ├── state-machine-proposals.json
-│   ├── tuning-improvement-report.md <- tuner review
+│   ├── tuning-improvement-report.md
 │   ├── tuning-repro/ <- scripts that reproduce the report's numbers
 │   └── kiroween/ <- Kiroween submission docs
 ├── public/
@@ -807,7 +807,8 @@ modelduck/
 │   ├── walkgguf-parallel.test.js
 │   ├── historysummary-reverse.test.js
 │   ├── latestcommit-backward.test.js
-│   └── summarizephase-lazy.test.js
+│   ├── summarizephase-lazy.test.js
+│   └── tuneprofiles-parallel.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml

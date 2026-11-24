@@ -2027,3 +2027,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: isolated **14.07 us → 0.55 us (25x)**; controlled end-to-end A/B over two 100-model phases measured **31.5 us → 3.05 us (~10x)** with an identical SHA-256 (`db16ee82f8ca`). Two failing-first tests (confirmed against HEAD, including a HEAD-body-plus-export variant) pin breakdown selection, first-max ties and the absent sort/derivation.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: report summary unchanged.
 
+### ADR-268: Parallel profile loads in tune routes
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: `/api/tune/overview` and `/api/recommendations` awaited `loadProfile()` once per profiled model; 60 saved profiles cost **14.31 ms** on the isolated load loop.
+- **Decision**: Gather all per-model profile loads with one `Promise.all`, then build the response in the original model order. Read counters and response key order are preserved.
+- **Consequences**: isolated loads **14.31 ms → 1.73 ms (8.3x)**; controlled end-to-end A/B over both routes with 60 profiles measured **~12–14 ms → ~4–5 ms (~2.5–3x)** with an identical SHA-256 (`8a3e7486bd27`). A failing-first test (confirmed against HEAD) observes overlapping profile content reads. An earlier concurrency test using all stats was rejected because the scan's parallel stats masked the sequential profile loop.
+- **Cross-principle check:** PRINCIPLE-010: concurrency only for independent read-only loads; PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: route responses unchanged.
+

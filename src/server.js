@@ -430,28 +430,30 @@ export function createHttpServer({
       const savedOverviewIds = profilesDir
         ? new Set((await listProfiles(profilesDir)).map((profile) => profile.catalogId))
         : new Set();
-      const models = [];
-      for (const model of registry.listPublic()) {
-        const profileId = profileIdFor(model.fileName);
-        let loaded = null;
-        if (profilesDir && savedOverviewIds.has(profileId)) {
-          overviewProfileReads += 1;
-          loaded = await loadProfile(profilesDir, profileId, await profileFingerprint(model)).catch(() => null);
-        }
-        const { sweeps: _sweeps, progress: _progress, ...profile } = loaded?.profile ?? {};
-        models.push({
+      const listed = registry.listPublic().map((model) => ({ model, profileId: profileIdFor(model.fileName) }));
+      // Saved profiles are independent files; gather them concurrently, then
+      // build the response in the original model order.
+      const loaded = await Promise.all(listed.map(async ({ model, profileId }) => {
+        if (!profilesDir || !savedOverviewIds.has(profileId)) return null;
+        overviewProfileReads += 1;
+        return loadProfile(profilesDir, profileId, await profileFingerprint(model)).catch(() => null);
+      }));
+      const models = listed.map(({ model, profileId }, index) => {
+        const entry = loaded[index];
+        const { sweeps: _sweeps, progress: _progress, ...profile } = entry?.profile ?? {};
+        return {
           id: model.id,
           name: model.name,
           fileName: model.fileName,
           profileId,
-          profile: loaded ? profile : null,
-          stale: loaded?.stale ?? [],
-          staleParts: loaded?.staleParts ?? [],
-          deviceParts: loaded?.deviceParts ?? [],
-          warnings: loaded?.warnings ?? [],
-          typeWarnings: loaded ? typeWarnings(loaded.profile) : {},
-        });
-      }
+          profile: entry ? profile : null,
+          stale: entry?.stale ?? [],
+          staleParts: entry?.staleParts ?? [],
+          deviceParts: entry?.deviceParts ?? [],
+          warnings: entry?.warnings ?? [],
+          typeWarnings: entry ? typeWarnings(entry.profile) : {},
+        };
+      });
       sendJson(res, 200, { models });
       return;
     }
@@ -468,15 +470,17 @@ export function createHttpServer({
       const savedIds = profilesDir
         ? new Set((await listProfiles(profilesDir)).map((profile) => profile.catalogId))
         : new Set();
+      // Independent profile reads; Promise.all keeps the same insertion order
+      // of `profiles` as the original sequential loop.
+      const loaded = await Promise.all(models.map(async (model) => {
+        if (!profilesDir || !savedIds.has(model.profileId)) return null;
+        recommendationProfileReads += 1;
+        return loadProfile(profilesDir, model.profileId, await profileFingerprint(model)).catch(() => null);
+      }));
       const profiles = {};
-      for (const model of models) {
-        let loaded = null;
-        if (profilesDir && savedIds.has(model.profileId)) {
-          recommendationProfileReads += 1;
-          loaded = await loadProfile(profilesDir, model.profileId, await profileFingerprint(model)).catch(() => null);
-        }
-        profiles[model.profileId] = loaded?.profile ?? null;
-      }
+      models.forEach((model, index) => {
+        profiles[model.profileId] = loaded[index]?.profile ?? null;
+      });
       sendJson(res, 200, {
         task,
         memory,
