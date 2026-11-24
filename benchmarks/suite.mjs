@@ -10,6 +10,11 @@ import { codeComprehensionPrompts } from "./comprehension-items.mjs";
 import { paraphrasePrompts } from "./paraphrase-items.mjs";
 import { SANDBOX_HEAP_MB, SANDBOX_PRELUDE, SANDBOX_WRITE_ALL, sandboxCwd, sandboxEnv, sandboxFlag } from "./sandbox.mjs";
 import { Script } from "node:vm";
+import { execFile } from "node:child_process";
+import { randomBytes } from "node:crypto";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 
 export const SUITE_VERSION = 18;
 
@@ -964,10 +969,6 @@ export async function checkJavaScriptSyntax(text) {
       return { passed: false, detail: "syntax error" };
     }
   }
-  const { execFile } = await import("node:child_process");
-  const { mkdtemp, rm, writeFile } = await import("node:fs/promises");
-  const os = await import("node:os");
-  const path = await import("node:path");
   const directory = await mkdtemp(path.join(os.tmpdir(), "modelduck-bench-"));
   const file = path.join(directory, "answer.js");
   try {
@@ -1195,8 +1196,6 @@ export async function runJavaScriptTests(text, check, { timeoutMs = 5000 } = {})
     // caller from changing the cache's own list of cases.
     return cached.slice();
   }
-  const { execFile } = await import("node:child_process");
-  const { randomBytes } = await import("node:crypto");
   const cases = check.cases ?? [];
   // A change that may touch several functions keeps every code block and runs through a hidden scenario (ADR-061).
   const code = check.harness ? allCode(text) : extractCode(text, check.entry);

@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "engine-os-import-1124",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795519805.6981366,
+    "task_id": "judge-static-imports-1124",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795520156.6665306,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795527005.6981366,
+    "lease_until": 1795527356.6665306,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,35 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795519807.9975145,
-    "completed_head": "96f3f2acbbf6a3ac5d19d88af85838609a3ab979",
-    "completed_tree": "cfa5d6eed38decf9c533b1af0eae2489ec30f37e"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; every fresh judge call awaits two imports of already-available built-ins, even on syntax/no-entry shortcuts",
+      "benefits": "Each fresh answer skips ~5us of import plumbing",
+      "risks": "contract: identical verdicts; dependency: built-in modules; concurrency: none; state: none",
+      "mitigation": "controlled A/B hash on shortcut answers, full npm test and 4/4 strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Reuse listProfiles stats in loadProfile to drop one stat per profiled model",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Tune overview and recommendations skip 60 redundant stats per request",
-        "mitigation": "failing-first counter + output-equivalence test, controlled A/B hash, full npm test and 4/4 strict gates; revert if regression",
-        "risks": "contract: same stamp source within one request; dependency: stat results from listProfiles; concurrency: none; state: per-directory stamp map",
-        "why": "User directive to keep improving speeds; listProfiles already stats every profile file, then each loadProfile stats the same file again on every tune route request"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "cc1a2a591ea608364e2aa6084f21d92da11bfa9b35d99bb3f31ba8d3a90e7a70",
-      "status": "in_progress",
-      "task_id": "profile-stamp-reuse-1124",
-      "timestamp": 1795499114.010049,
-      "timestamp_str": "2026-11-24 08:45:14",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "checklists": "passed",
@@ -415,6 +394,30 @@
       "task_id": "engine-os-import-1124",
       "timestamp": 1795519808.9282694,
       "timestamp_str": "2026-11-24 14:30:08"
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Hoist node:child_process and node:crypto imports in runJavaScriptTests",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Each fresh answer skips ~5us of import plumbing",
+        "mitigation": "controlled A/B hash on shortcut answers, full npm test and 4/4 strict gates; revert if regression",
+        "risks": "contract: identical verdicts; dependency: built-in modules; concurrency: none; state: none",
+        "why": "User directive to keep improving speeds; every fresh judge call awaits two imports of already-available built-ins, even on syntax/no-entry shortcuts"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "e6e78dbfae7464f98bca3162fe519b57760ed68371a6215f3b0cc78c5402b287",
+      "status": "in_progress",
+      "task_id": "judge-static-imports-1124",
+      "timestamp": 1795520156.6665306,
+      "timestamp_str": "2026-11-24 14:35:56",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }

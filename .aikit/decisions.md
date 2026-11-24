@@ -2160,6 +2160,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Use the module-level `os.totalmem()` directly; the redundant per-call dynamic import and its try/catch are removed (`totalmem` does not throw for this use).
 - **Consequences**: controlled A/B kept an identical SHA-256 (`248faf9c6809`) and measured **3.59-3.82 us -> 0.43-0.46 us (~8x)** per CPU memory probe. A failing-first source-guard test (confirmed against HEAD) pins the absence of the dynamic import.
 - **Cross-principle check:** PRINCIPLE-011: same value returned; PRINCIPLE-014: failing-first test, no assertion weakened; G-003: memory figures unchanged.
+
+### ADR-285: Static built-in imports in the judge
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: `runJavaScriptTests()` awaited two dynamic imports of already-available built-ins on every fresh call, including syntax-error and no-entry answers that never spawn a child. `checkJavaScriptSyntax()` did the same with four more.
+- **Decision**: Import `node:child_process`, `node:crypto`, `node:fs/promises`, `node:os` and `node:path` at module scope and remove all six per-call dynamic imports.
+- **Consequences**: controlled A/B on a syntax-error shortcut answer kept an identical SHA-256 (`aea8c2b908ad`) and measured **18.7-19.3 us -> 10.8-11.3 us (~1.7x)** per fresh answer. A failing-first source-guard test (confirmed against HEAD) caught the second import site when the first guard was too narrow; the final guard pins both.
+- **Cross-principle check:** PRINCIPLE-011: sandbox isolation and verdicts unchanged; PRINCIPLE-014: failing-first test, no assertion weakened; G-003: verdicts byte-identical.
 - **Cross-principle check:** PRINCIPLE-011: no behavior change; PRINCIPLE-014: failing-first test, no assertion weakened; G-003: health payload unchanged.
 - **Cross-principle check:** PRINCIPLE-009: cached pure derivation; PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: warning labels unchanged.
 
