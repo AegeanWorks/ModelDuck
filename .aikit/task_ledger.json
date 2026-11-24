@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "speeditems-cache-1124",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795490823.034659,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795491284.331586,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795498023.034659,
+    "lease_until": 1795498484.331586,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,55 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; expectedAnswers and estimateTune derive the fixed speed workload on every call even after rungs were cached",
-      "benefits": "Tune step estimates skip repeated suite stratification",
-      "risks": "contract: same id list and order, fresh array per caller; dependency: prompts identity; concurrency: none; state: module-level Map",
-      "mitigation": "failing-first computation counter + value test, controlled HEAD-vs-WORK A/B hash, full npm test and 4/4 strict gates; revert if slower"
-    }
+    "completed_at": 1795491285.6110828,
+    "completed_head": "d6dfd18c0a38a0ebf02104b6f4e009a282bf7d63",
+    "completed_tree": "d14a7f23d688b69a9d77a68825aa551d85e91ddd"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'catalog-why-deferred-1124' completed successfully.",
-      "head": "f0b6221b27f8ec12c78739ee72baf1283d2cdede",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "catalog-why-deferred-1124",
-      "timestamp": 1795485567.2755747,
-      "timestamp_str": "2026-11-24 04:59:27"
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Defer recommendModels why strings to the top 5 rows",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Recommendations skip explanation-string work for all but the shown rows",
-        "mitigation": "failing-first interpolation-count test, controlled HEAD-vs-WORK A/B hash, full npm test and 4/4 strict gates; revert if slower",
-        "risks": "contract: identical row objects and key order; dependency: none; concurrency: none; state: local temporary field",
-        "why": "User directive to keep improving speeds; recommendModels built a verbose explanation for every installed model but returned only five"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "0ca8db2f15347f9ffbb73eeff9a054d0cc9d6bda3e07db1ed737d0182602b6a5",
-      "status": "in_progress",
-      "task_id": "modelwhy-deferred-1124",
-      "timestamp": 1795485675.8176982,
-      "timestamp_str": "2026-11-24 05:01:15",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "checklists": "passed",
@@ -418,6 +374,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: speedItems + estimates 795us -> 46us (~17x), identical hash; 1245 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "speeditems-cache-1124",
+      "timestamp": 1795491284.331586,
+      "timestamp_str": "2026-11-24 06:34:44",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'speeditems-cache-1124' completed successfully.",
+      "head": "d6dfd18c0a38a0ebf02104b6f4e009a282bf7d63",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "speeditems-cache-1124",
+      "timestamp": 1795491285.9467392,
+      "timestamp_str": "2026-11-24 06:34:45"
     }
   ]
 }
