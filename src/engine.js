@@ -495,12 +495,9 @@ export class LlamaEngine {
    */
   async totalMemory({ gpuBackend = "cpu" } = {}) {
     if (gpuBackend === "cpu") {
-      try {
-        const os = await import("node:os");
-        return os.totalmem();
-      } catch {
-        return null;
-      }
+      // node:os is already imported at module scope; importing it again here
+      // only added a per-call await on the preflight path.
+      return os.totalmem();
     }
     if (!this.#llama?.gpu || this.#gpuBackend !== gpuBackend) return null;
     try {

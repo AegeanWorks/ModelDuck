@@ -2152,6 +2152,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: `/api/health` dynamically imported `./system.js` on every poll although that module was already statically imported there for `systemInfo`; the import cost **7 us** per request.
 - **Decision**: Add `measureLoopLag` to the existing static import and remove the per-request `await import(...)`.
 - **Consequences**: controlled A/B kept an identical SHA-256 (`90b942574a00`) and measured **0.218-0.225 ms -> 0.189-0.192 ms (~1.15x)** per health request. A failing-first source-guard test (confirmed against HEAD) pins the absence of the dynamic import. One full-suite run had a transient failure that passed on rerun; the final run was clean.
+
+### ADR-284: Static os import in engine memory probe
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: `LlamaEngine.totalMemory()` dynamically imported `node:os` on every CPU preflight even though `engine.js` already imported it at module scope.
+- **Decision**: Use the module-level `os.totalmem()` directly; the redundant per-call dynamic import and its try/catch are removed (`totalmem` does not throw for this use).
+- **Consequences**: controlled A/B kept an identical SHA-256 (`248faf9c6809`) and measured **3.59-3.82 us -> 0.43-0.46 us (~8x)** per CPU memory probe. A failing-first source-guard test (confirmed against HEAD) pins the absence of the dynamic import.
+- **Cross-principle check:** PRINCIPLE-011: same value returned; PRINCIPLE-014: failing-first test, no assertion weakened; G-003: memory figures unchanged.
 - **Cross-principle check:** PRINCIPLE-011: no behavior change; PRINCIPLE-014: failing-first test, no assertion weakened; G-003: health payload unchanged.
 - **Cross-principle check:** PRINCIPLE-009: cached pure derivation; PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: warning labels unchanged.
 

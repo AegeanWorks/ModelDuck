@@ -491,7 +491,7 @@ modelduck/
 │   ├── external-engines.js
 │   ├── server-engine.js <- engine interface
 │   ├── engine-router.js <- engine selection
-│   ├── inference-engine-adapters.js <- engine detection
+│   ├── inference-engine-adapters.js
 │   ├── inference-engines.js <- engine speed
 │   ├── thinking.js
 │   ├── memory-fit.js
@@ -823,7 +823,8 @@ modelduck/
 │   ├── shippedpresets-parallel.test.js
 │   ├── hashid-memo.test.js
 │   ├── typewarnings-memo.test.js
-│   └── health-static-import.test.js
+│   ├── health-static-import.test.js
+│   └── engine-os-import.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml
