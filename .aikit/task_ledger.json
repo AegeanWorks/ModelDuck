@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "typewarnings-one-1124",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795486406.806836,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795486804.8198564,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795493606.806836,
+    "lease_until": 1795494004.8198564,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,55 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; chat settings resolution computed warnings for every task but used only the selected one",
-      "benefits": "A 12-task profile resolves warnings ~12x cheaper per chat request",
-      "risks": "contract: identical warning array per task; dependency: none; concurrency: none; state: pure function",
-      "mitigation": "failing-first task-filter test, controlled HEAD-vs-WORK A/B hash, full npm test and 4/4 strict gates; revert if slower"
-    }
+    "completed_at": 1795486805.7326155,
+    "completed_head": "86d3d2e8380bffd0dd81cbbe953c76a97c789918",
+    "completed_tree": "d9eb1c96b69de7ccd54205a6e5617e506b3ee13f"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'walkgguf-parallel-1124' completed successfully.",
-      "head": "bfae9beaedb2714de5020f02726840b111748e3e",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "walkgguf-parallel-1124",
-      "timestamp": 1795482487.3314495,
-      "timestamp_str": "2026-11-24 04:08:07"
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Reverse scan in historySummary: 33.51us -> 0.31us (108x) for 5000 runs, limit 8",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "A large history now costs O(limit) instead of O(n) per report rebuild",
-        "mitigation": "failing-first equivalence test confirmed against HEAD, controlled A/B hash, full npm test and 4/4 strict gates; revert if regression",
-        "risks": "contract: identical summary array and order; dependency: none; concurrency: none; state: pure function",
-        "why": "User directive to keep improving speeds; historySummary filtered and mapped every history run just to display the last few"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "3877fd28d1355cbc2a59689b2068934b1f4753454f00115ba1b5eb88a7bae5f4",
-      "status": "in_progress",
-      "task_id": "historysummary-reverse-1124",
-      "timestamp": 1795482619.5934193,
-      "timestamp_str": "2026-11-24 04:10:19",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "checklists": "passed",
@@ -418,6 +374,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: warning lookup 7.4us -> ~1us (7x), resolve ~1.05x, identical hash; 1236 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "typewarnings-one-1124",
+      "timestamp": 1795486804.8198564,
+      "timestamp_str": "2026-11-24 05:20:04",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'typewarnings-one-1124' completed successfully.",
+      "head": "86d3d2e8380bffd0dd81cbbe953c76a97c789918",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "typewarnings-one-1124",
+      "timestamp": 1795486805.8339164,
+      "timestamp_str": "2026-11-24 05:20:05"
     }
   ]
 }
