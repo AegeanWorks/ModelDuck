@@ -133,12 +133,18 @@ function latestCommit(runs, links, phase, testHash) {
   return null;
 }
 
-function historySummary(runs, links, limit) {
-  return runs
-    .filter((run) => run.result?.phase)
-    .slice(-limit)
-    .reverse()
-    .map((run) => ({
+// Exported for the history-truncation test: a pure projection of the panel's
+// newest phased runs, independent of the report-file cache.
+export function historySummary(runs, links, limit) {
+  // The panel shows only the last `limit` phased runs. Scanning backwards and
+  // stopping once the list is full avoids filtering and mapping a multi-MB
+  // history on every report rebuild; the result is the same array in the same
+  // newest-first order.
+  const shown = [];
+  for (let index = runs.length - 1; index >= 0 && shown.length < limit; index -= 1) {
+    const run = runs[index];
+    if (!run.result?.phase) continue;
+    shown.push({
       phase: run.result.phase,
       recordedAt: run.recordedAt ?? run.result.finishedAt ?? null,
       quality: Number(run.result.overall?.score) || 0,
@@ -147,7 +153,9 @@ function historySummary(runs, links, limit) {
       testHash: run.result.testHash ?? null,
       baseline: Boolean(run.baseline),
       commit: compactCommit(commitFor(run, links)),
-    }));
+    });
+  }
+  return shown;
 }
 
 // The Bench panel polls this report; history.jsonl can be several MB. Keep

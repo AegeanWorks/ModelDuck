@@ -2003,3 +2003,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: isolated traversal **2.56 ms → 0.61 ms (4.2x)**; controlled A/B over a 60-file nested tree measured **3.27 ms → 1.57 ms (~2.1x)** with an identical SHA-256 (`fdf29d4b3ba0`) of the full `readMetadata` call order. A failing-first test (confirmed against HEAD) pins concurrent sibling reads.
 - **Cross-principle check:** PRINCIPLE-010: concurrency only for independent read-only readdirs; PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: discovered file list and order unchanged.
 
+### ADR-265: Reverse scan in historySummary
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: `historySummary()` filtered, sliced and mapped every run in a multi-MB history just to show the newest eight; 5000 runs cost **33.51 us**.
+- **Decision**: Walk `runs` backwards and stop once `limit` phased runs are collected, producing the same newest-first array. The pure function is exported as a test seam.
+- **Consequences**: isolated **33.51 us → 0.31 us (108x)**; controlled end-to-end A/B over `summarizeBenchmark` with 5000 runs measured **135 us → 81 us (~1.7x)** with an identical SHA-256 (`559047a742c9`). Two failing-first tests (confirmed against HEAD, including a HEAD-body-plus-export variant) pin order and the absent end-to-end filter.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: report summary unchanged.
+
