@@ -545,7 +545,7 @@ modelduck/
 ├── public/
 │   ├── index.html <- the control panel
 │   ├── app.js <- state and interactions, no framework
-│   ├── styles.css <- dark/light responsive theme
+│   ├── styles.css
 │   ├── redesign.css
 │   └── brand/
 │       └── duck.svg <- the ModelDuck mascot and favicon
@@ -826,7 +826,8 @@ modelduck/
 │   ├── health-static-import.test.js
 │   ├── engine-os-import.test.js
 │   ├── judge-static-imports.test.js
-│   └── filefor-memo.test.js
+│   ├── filefor-memo.test.js
+│   └── runfile-memo.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml

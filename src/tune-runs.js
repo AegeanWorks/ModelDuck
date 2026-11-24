@@ -27,11 +27,36 @@ function checkedId(id) {
   });
 }
 
-const summaryFile = (dir, id) => path.join(dir, `${checkedId(id)}.json`);
+// Validating an id and joining its path costs ~26 us here, and a preflight
+// asks for the same run files several times. Validate on every call but cache
+// the derived path.
+const RUN_FILE_CACHE = new Map();
+const RUN_FILE_LIMIT = 4096;
+let runFileComputes = 0;
+export function runFileComputations() {
+  return runFileComputes;
+}
+export function resetRunFileCache() {
+  RUN_FILE_CACHE.clear();
+  runFileComputes = 0;
+}
+function runFile(dir, id, suffix) {
+  checkedId(id);
+  const key = `${dir}|${id}|${suffix}`;
+  const cached = RUN_FILE_CACHE.get(key);
+  if (cached !== undefined) return cached;
+  runFileComputes += 1;
+  const file = path.join(dir, `${id}${suffix}`);
+  if (RUN_FILE_CACHE.size >= RUN_FILE_LIMIT) RUN_FILE_CACHE.delete(RUN_FILE_CACHE.keys().next().value);
+  RUN_FILE_CACHE.set(key, file);
+  return file;
+}
+
+const summaryFile = (dir, id) => runFile(dir, id, ".json");
 
 /** Where a run's answers are kept, one JSON object per line. */
 export function answersFile(dir, id) {
-  return path.join(dir, `${checkedId(id)}.answers.jsonl`);
+  return runFile(dir, id, ".answers.jsonl");
 }
 
 function isAliveDefault(pid) {

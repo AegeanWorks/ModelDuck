@@ -2176,6 +2176,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Cache the derived path by directory and catalog id in a bounded 4096-entry Map, while keeping validation on every call so invalid ids still throw.
 - **Consequences**: isolated `fileFor` **522 us -> 120 us (4.4x)** for 60 calls; controlled A/B over 60 profile loads kept an identical SHA-256 (`bf0780bf68c6`) and measured **~1.48-1.53 ms -> ~1.38-1.46 ms (~1.07x)**. A failing-first test (confirmed against HEAD) pins one derivation per id, reuse, and refusal of invalid ids.
 - **Cross-principle check:** PRINCIPLE-009: cached pure derivation; PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: profile paths unchanged.
+
+### ADR-287: Memoized tune-run file paths
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: `summaryFile()` and `answersFile()` re-validated an id and re-joined a path for every run on each tune restore; 50 paths cost **~59 us** in the app's shape (up to ~1.3 ms with longer directories).
+- **Decision**: A shared bounded cache keyed by directory, id and suffix; `checkedId()` validation still runs on every call so invalid ids keep throwing.
+- **Consequences**: isolated A/B **~59-61 us -> ~9-11 us (~6x)** with an identical SHA-256 (`521f6b9b4e83`); the 50-run `itemOutcomes` A/B kept an identical hash (`d20f51249a8d`). A failing-first test (confirmed against HEAD) pins one derivation per id, reuse, and continued refusal of invalid ids. An assertion initially matched the wrong AppError text and was corrected before shipping.
+- **Cross-principle check:** PRINCIPLE-009: cached pure derivation; PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: run paths unchanged.
 - **Cross-principle check:** PRINCIPLE-011: no behavior change; PRINCIPLE-014: failing-first test, no assertion weakened; G-003: health payload unchanged.
 - **Cross-principle check:** PRINCIPLE-009: cached pure derivation; PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: warning labels unchanged.
 

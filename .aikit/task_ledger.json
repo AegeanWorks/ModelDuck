@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "filefor-memo-1124",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795525221.7809253,
+    "task_id": "runfile-memo-1124",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795525820.5762503,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795532421.7809253,
+    "lease_until": 1795533020.5762503,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,35 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795525223.4185028,
-    "completed_head": "30157e70b36b3778628a1917d5a71d1f33e0a8fc",
-    "completed_tree": "caaef5026d159e50dfb83a66099be15fa527ead7"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; itemOutcomes and cachedAnswers re-validate ids and re-join paths for every run summary on each preflight",
+      "benefits": "Tune restore skips repeated regex validation and path joins per run",
+      "risks": "contract: same validated paths; dependency: immutable strings; concurrency: none; state: bounded Map",
+      "mitigation": "failing-first counter + equivalence test, controlled A/B hash, full npm test and 4/4 strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Memoize hashId by normalized relative path for repeated model scans",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Cold and repeated scans reuse stable ids for the same paths",
-        "mitigation": "failing-first counter + equivalence test, controlled A/B hash, full npm test and 4/4 strict gates; revert if regression",
-        "risks": "contract: same 12-char id per normalized path; dependency: crypto; concurrency: none; state: bounded 4096-entry cache",
-        "why": "User directive to keep improving speeds; every model scan recomputed a SHA-1 id for each unchanged file path"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "c88a6c4ec1a84ae700795f11c3800ce33374905ca7a794ac11ac919f56f5309b",
-      "status": "in_progress",
-      "task_id": "hashid-memo-1124",
-      "timestamp": 1795508147.9219985,
-      "timestamp_str": "2026-11-24 11:15:47",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "checklists": "passed",
@@ -415,6 +394,30 @@
       "task_id": "filefor-memo-1124",
       "timestamp": 1795525223.5403256,
       "timestamp_str": "2026-11-24 16:00:23"
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Memoize tune-run summary/answers file paths: 1301us -> 223us for 50",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Tune restore skips repeated regex validation and path joins per run",
+        "mitigation": "failing-first counter + equivalence test, controlled A/B hash, full npm test and 4/4 strict gates; revert if regression",
+        "risks": "contract: same validated paths; dependency: immutable strings; concurrency: none; state: bounded Map",
+        "why": "User directive to keep improving speeds; itemOutcomes and cachedAnswers re-validate ids and re-join paths for every run summary on each preflight"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "5006cd57e4ff658a7f5a317c9a8c1fc0e3b651c7fe14b2f60b6825ee9d3191dc",
+      "status": "in_progress",
+      "task_id": "runfile-memo-1124",
+      "timestamp": 1795525820.5762503,
+      "timestamp_str": "2026-11-24 16:10:20",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }
