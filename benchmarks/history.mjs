@@ -238,6 +238,22 @@ async function appendRecord(historyPath, record) {
   await appendFile(historyPath, `${JSON.stringify(record)}\n`, "utf8");
 }
 
+function inTransaction(db, work) {
+  db.exec("BEGIN");
+  try {
+    const value = work();
+    db.exec("COMMIT");
+    return value;
+  } catch (error) {
+    try {
+      db.exec("ROLLBACK");
+    } catch {
+      // Preserve the original write error if the transaction already ended.
+    }
+    throw error;
+  }
+}
+
 function insertCommit(db, git, seenAt) {
   if (!git?.hash) return;
   db.prepare(
@@ -246,7 +262,7 @@ function insertCommit(db, git, seenAt) {
   ).run(git.hash, git.subject ?? null, git.branch ?? null, git.committedAt ?? null, seenAt);
 }
 
-function insertRun(db, record) {
+function insertRunRows(db, record) {
   const result = record.result;
   const git = record.git ?? {};
   const existing = db.prepare("SELECT id FROM runs WHERE uid = ?").get(record.uid);
@@ -296,19 +312,25 @@ function insertRun(db, record) {
     );
   const runId = Number(info.lastInsertRowid);
 
+  const insertModel = db.prepare(
+    `INSERT INTO model_results (
+      run_uid, model_key, variant_id, variant_label, label, kind, file_name, size,
+      params, quant, chat_template_hash, preset, kv_key_type, kv_value_type, flash_attention,
+      requested_context_size, context_size, threads, max_threads, batch_size, sequences,
+      use_mmap, gpu_layers, checkpoints, runtime_ms, score, checks_passed,
+      checks_total, tokens_per_second, first_token_ms, memory_bytes, gpu_vram,
+      by_category_json, prompts_json
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  );
+  const insertPrompt = db.prepare(
+    `INSERT INTO prompt_results (
+      model_result_id, prompt_id, label, category, passed, total, tokens_per_second,
+      first_token_ms, manifest_digest, prompt_fingerprint, chat_template_hash,
+      history_digest, text
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  );
   for (const model of result.models ?? []) {
-    const modelInfo = db
-      .prepare(
-        `INSERT INTO model_results (
-          run_uid, model_key, variant_id, variant_label, label, kind, file_name, size,
-          params, quant, chat_template_hash, preset, kv_key_type, kv_value_type, flash_attention,
-          requested_context_size, context_size, threads, max_threads, batch_size, sequences,
-          use_mmap, gpu_layers, checkpoints, runtime_ms, score, checks_passed,
-          checks_total, tokens_per_second, first_token_ms, memory_bytes, gpu_vram,
-          by_category_json, prompts_json
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      )
-      .run(
+    const modelInfo = insertModel.run(
         record.uid,
         model.key ?? model.modelId ?? model.label,
         model.variantId ?? null,
@@ -346,13 +368,7 @@ function insertRun(db, record) {
       );
     const modelResultId = Number(modelInfo.lastInsertRowid);
     for (const prompt of model.prompts ?? []) {
-      db.prepare(
-        `INSERT INTO prompt_results (
-          model_result_id, prompt_id, label, category, passed, total, tokens_per_second,
-          first_token_ms, manifest_digest, prompt_fingerprint, chat_template_hash,
-          history_digest, text
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      ).run(
+      insertPrompt.run(
         modelResultId,
         prompt.id,
         prompt.label ?? null,
@@ -370,6 +386,10 @@ function insertRun(db, record) {
     }
   }
   return { inserted: true, runId };
+}
+
+function insertRun(db, record) {
+  return inTransaction(db, () => insertRunRows(db, record));
 }
 
 function applyLink(db, link) {
@@ -399,29 +419,31 @@ export async function importHistory(db, historyPath, logger = console) {
     if (error?.code === "ENOENT") return { runs: 0, links: 0 };
     throw error;
   }
-  let runs = 0;
-  let links = 0;
-  const pendingLinks = [];
-  for (const line of text.split("\n")) {
-    if (!line.trim()) continue;
-    let record;
-    try {
-      record = JSON.parse(line);
-    } catch {
-      logger.warn?.("[bench] Skipped a damaged history line.");
-      continue;
+  return inTransaction(db, () => {
+    let runs = 0;
+    let links = 0;
+    const pendingLinks = [];
+    for (const line of text.split("\n")) {
+      if (!line.trim()) continue;
+      let record;
+      try {
+        record = JSON.parse(line);
+      } catch {
+        logger.warn?.("[bench] Skipped a damaged history line.");
+        continue;
+      }
+      if (record.type === "run") {
+        const inserted = insertRunRows(db, record);
+        if (inserted.inserted) runs += 1;
+      } else if (record.type === "link") {
+        pendingLinks.push(record);
+      }
     }
-    if (record.type === "run") {
-      const inserted = insertRun(db, record);
-      if (inserted.inserted) runs += 1;
-    } else if (record.type === "link") {
-      pendingLinks.push(record);
+    for (const link of pendingLinks) {
+      if (applyLink(db, link)) links += 1;
     }
-  }
-  for (const link of pendingLinks) {
-    if (applyLink(db, link)) links += 1;
-  }
-  return { runs, links };
+    return { runs, links };
+  });
 }
 
 export async function recordRun({
@@ -483,7 +505,7 @@ export async function linkRun({ dbPath, historyPath, uid = null, commit, linkedA
       commit,
     };
     await appendRecord(historyPath, link);
-    applyLink(db, link);
+    inTransaction(db, () => applyLink(db, link));
     const scope = db.prepare("SELECT run_scope FROM runs WHERE uid = ?").get(target)?.run_scope ?? null;
     return { linked: true, uid: target, commit, run_scope: scope };
   } finally {

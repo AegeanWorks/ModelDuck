@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -122,6 +122,67 @@ test("a run is recorded in SQLite and append-only JSONL, then linked to a commit
   assert.equal(lines[0].type, "run");
   assert.equal(lines[1].type, "link");
   assert.equal(lines[1].commit.hash, "def456");
+});
+
+test("a failed SQLite run rolls back every row while JSONL keeps the record", async (t) => {
+  const paths = await tempPaths(t);
+  const broken = {
+    ...RESULT,
+    models: [{
+      ...RESULT.models[0],
+      prompts: [{ ...RESULT.models[0].prompts[0], id: null }],
+    }],
+  };
+  const recorded = await recordRun({
+    ...paths,
+    result: broken,
+    git: { hash: "abc123", subject: "parent", branch: "main", dirty: false },
+    logger: { warn() {} },
+  });
+  assert.equal(recorded.runId, null, "the SQLite failure uses the existing JSONL fallback");
+  const lines = (await readFile(paths.historyPath, "utf8")).trim().split("\n").map(JSON.parse);
+  assert.equal(lines.length, 1, "the append-only record is still durable");
+
+  const db = await openDatabase(paths.dbPath);
+  try {
+    const counts = db.prepare(
+      "SELECT (SELECT COUNT(*) FROM runs) AS runs, (SELECT COUNT(*) FROM commits) AS commits, " +
+      "(SELECT COUNT(*) FROM model_results) AS models, (SELECT COUNT(*) FROM prompt_results) AS prompts",
+    ).get();
+    assert.deepEqual({ ...counts }, { runs: 0, commits: 0, models: 0, prompts: 0 });
+  } finally {
+    db.close();
+  }
+});
+
+test("a failed history import rolls back the whole batch", async (t) => {
+  const paths = await tempPaths(t);
+  const base = {
+    type: "run",
+    recordedAt: "2026-11-24T00:00:00.000Z",
+    baseline: false,
+    pending: false,
+    git: { hash: "abc123", subject: "parent", branch: "main", dirty: false },
+  };
+  const broken = {
+    ...RESULT,
+    models: [{
+      ...RESULT.models[0],
+      prompts: [{ ...RESULT.models[0].prompts[0], id: null }],
+    }],
+  };
+  await writeFile(paths.historyPath, `${JSON.stringify({ ...base, uid: "good", result: RESULT })}\n${JSON.stringify({ ...base, uid: "bad", result: broken })}\n`);
+  const db = await openDatabase(paths.dbPath);
+  try {
+    await assert.rejects(importHistory(db, paths.historyPath, { warn() {} }), /NOT NULL/);
+    const counts = db.prepare(
+      "SELECT (SELECT COUNT(*) FROM runs) AS runs, (SELECT COUNT(*) FROM commits) AS commits, " +
+      "(SELECT COUNT(*) FROM model_results) AS models, (SELECT COUNT(*) FROM prompt_results) AS prompts",
+    ).get();
+    assert.deepEqual({ ...counts }, { runs: 0, commits: 0, models: 0, prompts: 0 });
+  } finally {
+    db.close();
+  }
 });
 
 // Partial shard rows and batch-1 repro runs share the history as provenance,
