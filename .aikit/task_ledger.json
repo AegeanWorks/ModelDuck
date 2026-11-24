@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "scan-stamp-1124",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795481912.5353525,
+    "task_id": "walkgguf-parallel-1124",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795482228.1955338,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795489112.5353525,
+    "lease_until": 1795489428.1955338,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,29 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795481913.5314817,
-    "completed_head": "91970b83b9dd7a6ed409ee3cd72dfeb2feddd46c",
-    "completed_tree": "9a0e43feb9d5a4abffe0569ae4b602fa3074f815"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; model discovery recursed into folders one at a time, paying full readdir latency per level",
+      "benefits": "Subdirectory reads and extensionless symlink magic checks run concurrently while found order stays byte-identical",
+      "risks": "contract: same file list in same order; dependency: none; concurrency: independent read-only readdirs; state: local accumulator only",
+      "mitigation": "failing-first counter + found-order equivalence test, controlled A/B, full npm test and 4/4 strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[2/2] DELIVERED: kvShapeFromMetadata 0.075us -> 0.017us (4.4x); 1214 tests pass",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "kvshape-fast-1123",
-      "timestamp": 1795475516.389047,
-      "timestamp_str": "2026-11-24 02:11:56",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "delivery": {
@@ -409,6 +394,30 @@
       "task_id": "scan-stamp-1124",
       "timestamp": 1795481913.6313355,
       "timestamp_str": "2026-11-24 03:58:33"
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Parallelize nested directory reads in walkGgufFiles: 2.56ms -> 0.61ms (4.2x) for 100 nested files",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Subdirectory reads and extensionless symlink magic checks run concurrently while found order stays byte-identical",
+        "mitigation": "failing-first counter + found-order equivalence test, controlled A/B, full npm test and 4/4 strict gates; revert if regression",
+        "risks": "contract: same file list in same order; dependency: none; concurrency: independent read-only readdirs; state: local accumulator only",
+        "why": "User directive to keep improving speeds; model discovery recursed into folders one at a time, paying full readdir latency per level"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "3a990d3abdbb6bbca25dd7bb78b74075c2e19db7f6ea4ab6f855789b54ae8535",
+      "status": "in_progress",
+      "task_id": "walkgguf-parallel-1124",
+      "timestamp": 1795482228.1955338,
+      "timestamp_str": "2026-11-24 04:03:48",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }

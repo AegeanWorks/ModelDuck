@@ -183,33 +183,46 @@ async function walkGgufFiles(directory, depth = 0, found = []) {
   } catch {
     return found;
   }
-  for (const entry of entries) {
-    if (entry.name.startsWith(".")) continue;
+  const visible = entries.filter((entry) => !entry.name.startsWith("."));
+  // Classify once with the exact same branch conditions as before, so the
+  // parallel work below cannot change which files are found.
+  const kinds = visible.map((entry) => {
+    const name = entry.name.toLowerCase();
+    if (entry.isDirectory()) return "dir";
+    if ((entry.isFile() || entry.isSymbolicLink())
+        && name.endsWith(MODEL_EXTENSION)
+        && !name.endsWith(`${MODEL_EXTENSION}.part`)) return "model";
+    if (entry.isSymbolicLink()) return "magic";
+    return "skip";
+  });
+  // Each subdirectory read and each extensionless-symlink magic check is an
+  // independent read. Gather them concurrently, then assemble `found` in the
+  // original depth-first, readdir order.
+  const dirIndexes = kinds.flatMap((kind, index) => (kind === "dir" ? [index] : []));
+  const magicIndexes = kinds.flatMap((kind, index) => (kind === "magic" ? [index] : []));
+  const childLists = await Promise.all(dirIndexes.map((index) =>
+    walkGgufFiles(path.join(directory, visible[index].name), depth + 1)));
+  const magicOk = await Promise.all(magicIndexes.map((index) =>
+    hasGgufMagic(path.join(directory, visible[index].name)).then(() => true, () => false)));
+  const childByIndex = new Map(dirIndexes.map((index, slot) => [index, childLists[slot]]));
+  const magicByIndex = new Map(magicIndexes.map((index, slot) => [index, magicOk[slot]]));
+  for (let index = 0; index < visible.length; index += 1) {
+    const entry = visible[index];
     const full = path.join(directory, entry.name);
-    if (entry.isDirectory()) {
-      await walkGgufFiles(full, depth + 1, found);
-    } else if (
+    if (kinds[index] === "dir") {
+      for (const item of childByIndex.get(index)) found.push(item);
+    } else if (kinds[index] === "model") {
       // IDEA-1070: symlinked models count. The link itself must live in the
       // library; its target is resolved at stat time, and deletes remove the
       // link (deleteById already refuses paths outside the models folder).
       // Symlinked directories are never recursed into, so a link loop cannot
       // trap the scan.
-      (entry.isFile() || entry.isSymbolicLink()) &&
-      entry.name.toLowerCase().endsWith(MODEL_EXTENSION) &&
-      !entry.name.toLowerCase().endsWith(`${MODEL_EXTENSION}.part`)
-    ) {
       found.push(full);
-    } else if (
+    } else if (kinds[index] === "magic" && magicByIndex.get(index)) {
       // IDEA-1072: Hugging Face cache blobs have no extension; a symlink to
       // one still counts when the target carries the GGUF magic. Read-only:
       // the scan never writes to the cache, and deletes remove the link.
-      entry.isSymbolicLink()
-    ) {
-      try {
-        if (await hasGgufMagic(full)) found.push(full);
-      } catch {
-        // Not a GGUF target; ignore it.
-      }
+      found.push(full);
     }
   }
   return found;

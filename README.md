@@ -488,10 +488,10 @@ modelduck/
 │   ├── engine-listing.js <- engines the API lists
 │   ├── engine-env.js
 │   ├── engine-install.js
-│   ├── external-engines.js <- backends for engines outside the process
+│   ├── external-engines.js <- external backends
 │   ├── server-engine.js <- the engine interface over one backend
 │   ├── engine-router.js <- in-process or external, by load
-│   ├── inference-engine-adapters.js <- engine detection and timing
+│   ├── inference-engine-adapters.js <- engine detection
 │   ├── inference-engines.js <- engine speed assessment
 │   ├── thinking.js <- <think> block splitter
 │   ├── memory-fit.js
@@ -803,7 +803,8 @@ modelduck/
 │   ├── tunedir-parallel.test.js
 │   ├── itemoutcomes-reads.test.js
 │   ├── cachedanswers-reads.test.js
-│   └── scan-stamp.test.js
+│   ├── scan-stamp.test.js
+│   └── walkgguf-parallel.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml

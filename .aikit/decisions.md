@@ -1995,3 +1995,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: isolated stamp **182 us → 47 us (3.9x)**; controlled A/B on repeated cached `scan()` with 60 models measured **180.67 us → 42.96 us (4.2x)**. A stable projection of the `/api/state` models array hashes identically (`a99679780a5f`) before and after. Two failing-first tests (confirmed against HEAD) pin no-mkdir on an existing folder and recreation of a removed one.
 - **Cross-principle check:** PRINCIPLE-013: durable state behaviour unchanged; PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: model summaries unchanged.
 
+### ADR-264: Parallel directory reads in walkGgufFiles
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: Model discovery recursed into each subdirectory one at a time; a 100-file nested library cost **2.56 ms** on the traversal portion.
+- **Decision**: Classify visible entries once with the original branch conditions, read all sibling directories and check all extensionless symlinks concurrently, then assemble `found` in the same depth-first readdir order.
+- **Consequences**: isolated traversal **2.56 ms → 0.61 ms (4.2x)**; controlled A/B over a 60-file nested tree measured **3.27 ms → 1.57 ms (~2.1x)** with an identical SHA-256 (`fdf29d4b3ba0`) of the full `readMetadata` call order. A failing-first test (confirmed against HEAD) pins concurrent sibling reads.
+- **Cross-principle check:** PRINCIPLE-010: concurrency only for independent read-only readdirs; PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: discovered file list and order unchanged.
+
