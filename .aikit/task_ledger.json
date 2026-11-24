@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "tunedir-parallel-1123",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795477865.971354,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795479466.2255177,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795485065.971354,
+    "lease_until": 1795486666.2255177,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,55 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; tune restore read every run summary file sequentially before selecting runs",
-      "benefits": "Run selection gathers summaries concurrently while preserving sorted order",
-      "risks": "contract: same runs selected in same order; dependency: none; concurrency: independent read-only reads, Promise.all preserves order; state: none",
-      "mitigation": "failing-first counter test plus restore-equivalence checks, full npm test and strict gates; revert if regression"
-    }
+    "completed_at": 1795479466.9882965,
+    "completed_head": "7c793957af67f489da850beee9ecd7b9a96b95c4",
+    "completed_tree": "24d46f9c22933167a1e58cf72deb7ae49029d5c4"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'pick-loop-1123' completed successfully.",
-      "head": "04aed2427c0ee722d6dcb59b373a5adb0eaf67e1",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "pick-loop-1123",
-      "timestamp": 1795472058.5310516,
-      "timestamp_str": "2026-11-24 01:14:18"
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Build appended answer rows with a loop instead of map+join: 23.046us -> 17.617us (1.31x) per 100 rows",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Answer append during a tune skips one array allocation with identical bytes",
-        "mitigation": "failing-first counter test plus byte-equivalence test, full npm test and strict gates; revert if regression",
-        "risks": "contract: identical JSONL bytes; dependency: none; concurrency: writes remain serialized by the existing queue; state: pure local string",
-        "why": "User directive to keep improving speeds; every answer batch built an intermediate array of strings before joining"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "4ffdd2c4af3e90323dc20b0c509ba25b5e36a4ccf0d9fa70ab350284a0295217",
-      "status": "in_progress",
-      "task_id": "answer-rows-loop-1123",
-      "timestamp": 1795472280.3800943,
-      "timestamp_str": "2026-11-24 01:18:00",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "checklists": "passed",
@@ -418,6 +374,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: 30 run summaries 3.13ms -> 0.75ms (4.2x); 1217 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "tunedir-parallel-1123",
+      "timestamp": 1795479466.2255175,
+      "timestamp_str": "2026-11-24 03:17:46",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'tunedir-parallel-1123' completed successfully.",
+      "head": "7c793957af67f489da850beee9ecd7b9a96b95c4",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "tunedir-parallel-1123",
+      "timestamp": 1795479467.06512,
+      "timestamp_str": "2026-11-24 03:17:47"
     }
   ]
 }
