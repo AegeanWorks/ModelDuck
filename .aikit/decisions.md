@@ -1963,3 +1963,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: the same 40 parses drop to **0.96 ms (3.5x)** with identical summaries. A failing-first test (confirmed against HEAD) pins sorted order, schema filtering and stamp invalidation.
 - **Cross-principle check:** PRINCIPLE-010: concurrency only for independent read-only parses; PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: no profile data changed.
 
+### ADR-260: Parallel run-summary reads in tune restore
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: `cachedAnswers()` and `itemOutcomes()` read every run summary file sequentially before selecting runs; 30 files cost **3.13 ms**.
+- **Decision**: A shared `readRunSummaries()` helper gathers all JSON summaries with one `Promise.all` in name order. An initial edit dropped the `name` binding in `itemOutcomes` and silently skipped all answers; caught by a new test and fixed before shipping.
+- **Consequences**: the same 30 reads drop to **0.75 ms (4.2x)** with identical selected runs. A failing-first test (confirmed against HEAD) pins read counts and restore equivalence.
+- **Cross-principle check:** PRINCIPLE-010: concurrency only for independent read-only reads; PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: no answer data changed.
+

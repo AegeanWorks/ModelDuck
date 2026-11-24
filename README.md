@@ -799,7 +799,8 @@ modelduck/
 │   ├── answer-candidates-memo.test.js
 │   ├── kvshape-fast.test.js
 │   ├── listruns-parallel.test.js
-│   └── profilelist-parallel.test.js
+│   ├── profilelist-parallel.test.js
+│   └── tunedir-parallel.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml
@@ -827,7 +828,7 @@ modelduck/
 ├── package-lock.json
 ├── README.md
 ├── LICENSE
-├── JUDGES.md <- judges' demo walkthrough
+├── JUDGES.md
 ├── LICENSES/
 ├── docs/ <- threat model and design notes
 │   └── THREAT-MODEL.md

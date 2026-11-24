@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "profilelist-parallel-1123",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795477587.404508,
+    "task_id": "tunedir-parallel-1123",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795477865.971354,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795484787.404508,
+    "lease_until": 1795485065.971354,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,29 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795477588.429706,
-    "completed_head": "534eeb40b375f048f821e22e5596bedaa7b0cbb4",
-    "completed_tree": "9188b2eec92f880214eaec28306ae2da54e175df"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; tune restore read every run summary file sequentially before selecting runs",
+      "benefits": "Run selection gathers summaries concurrently while preserving sorted order",
+      "risks": "contract: same runs selected in same order; dependency: none; concurrency: independent read-only reads, Promise.all preserves order; state: none",
+      "mitigation": "failing-first counter test plus restore-equivalence checks, full npm test and strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[2/2] DELIVERED: pick() 0.536us -> 0.243us (2.2x); 1207 tests pass",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "pick-loop-1123",
-      "timestamp": 1795472057.2771633,
-      "timestamp_str": "2026-11-24 01:14:17",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "delivery": {
@@ -409,6 +394,30 @@
       "task_id": "profilelist-parallel-1123",
       "timestamp": 1795477588.5983727,
       "timestamp_str": "2026-11-24 02:46:28"
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Parallelize run-summary reads in cachedAnswers/itemOutcomes: 3.13ms -> 0.75ms (4.2x) for 30 runs",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Run selection gathers summaries concurrently while preserving sorted order",
+        "mitigation": "failing-first counter test plus restore-equivalence checks, full npm test and strict gates; revert if regression",
+        "risks": "contract: same runs selected in same order; dependency: none; concurrency: independent read-only reads, Promise.all preserves order; state: none",
+        "why": "User directive to keep improving speeds; tune restore read every run summary file sequentially before selecting runs"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "7a41984c5eb6f6774017f62a6848fedb408fb2e50ed588b756ae83e32fa2af0d",
+      "status": "in_progress",
+      "task_id": "tunedir-parallel-1123",
+      "timestamp": 1795477865.971354,
+      "timestamp_str": "2026-11-24 02:51:05",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }

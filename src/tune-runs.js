@@ -278,13 +278,25 @@ const OUTCOME_FINGERPRINT_KEYS = Object.freeze(["suiteVersion", "taskHash", "nod
 // answers but never change one, so a re-tune after a rule change replays them.
 const ANSWER_FINGERPRINT_KEYS = Object.freeze(["suiteVersion", "taskHash", "nodeLlamaCpp", "modelFile", "modelSize", "cpu", "platform", "arch"]);
 
+// Run summaries are independent files; gather them concurrently in name order.
+let tuneRunReads = 0;
+export function tuneRunReadCount() {
+  return tuneRunReads;
+}
+async function readRunSummaries(folder, names) {
+  const jsonNames = names.filter((item) => item.endsWith(".json"));
+  const records = await Promise.all(jsonNames.map((name) =>
+    readJsonWithQuarantine(path.join(folder, name), null, { logger: quiet })));
+  tuneRunReads += records.length;
+  return jsonNames.map((name, index) => ({ name, record: records[index] }));
+}
+
 export async function cachedAnswers(dir, { profileId, fingerprint = null, limitRuns = 3, limitRows = 20000, parallel = 1 } = {}) {
   const dirs = (Array.isArray(dir) ? dir : [dir]).filter(Boolean);
   const runs = [];
   for (const folder of dirs) {
     const names = await fs.promises.readdir(folder).catch(() => []);
-    for (const name of names.filter((item) => item.endsWith(".json"))) {
-      const record = await readJsonWithQuarantine(path.join(folder, name), null, { logger: quiet });
+    for (const { name, record } of await readRunSummaries(folder, names)) {
       if (record?.schema !== RUN_SCHEMA) continue;
       if (profileId && record.profileId !== profileId) continue;
       if (fingerprint && ANSWER_FINGERPRINT_KEYS.some((key) => record.fingerprint?.[key] !== fingerprint[key])) continue;
@@ -349,8 +361,7 @@ export async function cachedAnswers(dir, { profileId, fingerprint = null, limitR
 export async function itemOutcomes(dir, { profileId, minObservations = 6, minSettings = 2, fingerprint = null } = {}) {
   const names = await fs.promises.readdir(dir).catch(() => []);
   const counts = new Map();
-  for (const name of names.filter((item) => item.endsWith(".json"))) {
-    const record = await readJsonWithQuarantine(path.join(dir, name), null, { logger: quiet });
+  for (const { name, record } of await readRunSummaries(dir, names)) {
     if (record?.schema !== RUN_SCHEMA) continue;
     if (profileId && record.profileId !== profileId) continue;
     if (fingerprint && OUTCOME_FINGERPRINT_KEYS.some((key) => record.fingerprint?.[key] !== fingerprint[key])) continue;
