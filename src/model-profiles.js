@@ -329,17 +329,23 @@ export function importRecipe(recipe) {
 }
 
 /** The saved profile and the fingerprint keys that changed since it was measured, or null when there is none. */
-export async function loadProfile(directory, catalogId, fingerprint) {
+export async function loadProfile(directory, catalogId, fingerprint, knownStamp = null) {
   const file = fileFor(directory, catalogId);
-  const info = await fs.promises.stat(file).catch(() => null);
-  if (!info) {
+  // A caller that just ran listProfiles already has this stat. Otherwise fetch
+  // it as before; a stale known stamp only means a fresh read, never a wrong
+  // profile.
+  const stamp = knownStamp !== null ? knownStamp : await (async () => {
+    loadProfileStats += 1;
+    const info = await fs.promises.stat(file).catch(() => null);
+    return info ? `${info.mtimeMs}:${info.size}` : null;
+  })();
+  if (stamp === null) {
     // stat already proved the file absent; a second failing readFile per model
     // cost ~50us on a large library. A file created later is found by the next
     // call's stat, so no profile is lost.
     missingProfileSkips += 1;
     return null;
   }
-  const stamp = `${info.mtimeMs}:${info.size}`;
   const cached = PROFILE_TEXT_CACHE.get(file);
   let profile;
   if (cached?.stamp === stamp) {
@@ -486,11 +492,25 @@ export function pendingWork(profile, tasks, stages = TUNE_STAGES) {
  * the stamp and is read fresh on the next poll.
  */
 const PROFILE_LIST_CACHE = new Map();
+// Per-file stamps gathered by listProfiles, reused by loadProfile in the same
+// request so a profile is not stat'ed twice. A new listing replaces these.
+const PROFILE_STAMPS = new Map();
 let profileListReads = 0;
+let loadProfileStats = 0;
+export function loadProfileStatCount() {
+  return loadProfileStats;
+}
 
 export function resetProfileListCache() {
   PROFILE_LIST_CACHE.clear();
+  PROFILE_STAMPS.clear();
   profileListReads = 0;
+  loadProfileStats = 0;
+}
+
+/** The stamp listProfiles just computed for one catalog id, or null when unknown. */
+export function profileStampFor(directory, catalogId) {
+  return PROFILE_STAMPS.get(directory)?.get(catalogId) ?? null;
 }
 
 /** Test seam: how many directory listings actually parsed files since the last reset. */
@@ -507,10 +527,20 @@ export async function listProfiles(directory) {
     throw error;
   }
   const files = names.filter((item) => item.endsWith(".json")).sort();
-  const stamp = (await Promise.all(files.map(async (name) => {
-    const stat = await fs.promises.stat(path.join(directory, name)).catch(() => null);
-    return `${name}:${stat?.mtimeMs ?? ""}:${stat?.size ?? ""}`;
-  }))).join("|");
+  const stats = await Promise.all(files.map(async (name) =>
+    fs.promises.stat(path.join(directory, name)).catch(() => null)));
+  const stamp = files.map((name, index) => {
+    const info = stats[index];
+    return `${name}:${info?.mtimeMs ?? ""}:${info?.size ?? ""}`;
+  }).join("|");
+  // Reuse these stats for loadProfile in the same request: it used to stat each
+  // file a second time just to validate its cached text.
+  const byId = new Map();
+  files.forEach((name, index) => {
+    const info = stats[index];
+    byId.set(name.slice(0, -5), info ? `${info.mtimeMs}:${info.size}` : null);
+  });
+  PROFILE_STAMPS.set(directory, byId);
   const cached = PROFILE_LIST_CACHE.get(directory);
   if (cached && cached.stamp === stamp) return [...cached.profiles];
   // The stamp pass above already reads these files; parse them concurrently on

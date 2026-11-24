@@ -2115,3 +2115,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: repeated builders drop to **0.02–0.06 us**; controlled A/B over three tune estimates measured **~29 us → ~16 us (~1.8x)** with an identical SHA-256 (`ca4f38fdc9be`). Two failing-first tests (confirmed against HEAD) pin per-key reuse and the primitive-input path. The first attempt used a non-object WeakMap key and was caught by the full suite before shipping.
 - **Cross-principle check:** PRINCIPLE-009: cached pure derivations; PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: estimates and axis contents unchanged.
 
+### ADR-279: Reuse listProfiles stamps in loadProfile
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: `listProfiles()` stats every profile file to validate its cache, then each `loadProfile()` stat'ed the same file again — 60 redundant stats per tune route request.
+- **Decision**: `listProfiles()` publishes per-file stamps keyed by directory/catalog id; `loadProfile()` accepts an optional known stamp and falls back to its own stat when none is given. A stale known stamp only forces a fresh read, never a wrong profile.
+- **Consequences**: isolated 60 loads **1.34 ms → 0.70 ms (~1.9x)**; controlled route A/B kept an identical SHA-256 (`8a3e7486bd27`) with tune overview **4.55–4.65 ms → 3.96–4.31 ms** and recommendations **3.89–4.73 ms → 3.29–3.34 ms**. A failing-first test (confirmed against HEAD) pins zero extra stats, equal profiles and the absent-profile case. An initial PowerShell file-swap corrupted `→` in the HEAD copy and produced a false hash mismatch; redoing the A/B with `git stash` confirmed identical output.
+- **Cross-principle check:** PRINCIPLE-010: redundant fs metadata call removed; PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: profile data unchanged.
+

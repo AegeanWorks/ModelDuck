@@ -818,7 +818,8 @@ modelduck/
 │   ├── stratified-cursor.test.js
 │   ├── speeditems-cache.test.js
 │   ├── samplingaxes-cache.test.js
-│   └── axes-memo.test.js
+│   ├── axes-memo.test.js
+│   └── profile-stamp-reuse.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml
@@ -848,10 +849,10 @@ modelduck/
 ├── LICENSE
 ├── JUDGES.md
 ├── LICENSES/
-├── docs/ <- threat model and design notes
+├── docs/
 │   └── THREAT-MODEL.md
 ├── MODELDUCK_IDEA_ANALYSIS.md <- idea audit
-├── MODELDUCK_IMPLEMENT_LIST.md <- implementation waves
+├── MODELDUCK_IMPLEMENT_LIST.md
 └── REUSE.toml
 ```
 
