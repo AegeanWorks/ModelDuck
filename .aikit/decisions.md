@@ -2083,3 +2083,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: a controlled A/B over three estimate calls measured **15–18 ms → ~1 ms (~16x)** with an identical SHA-256 (`ca4f38fdc9be`). Two failing-first tests (confirmed against HEAD) pin result identity, one build for answers-plus-seconds, and reuse on repeats.
 - **Cross-principle check:** PRINCIPLE-009: cached pure derivation, no new module; PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: estimates and rung contents unchanged.
 
+### ADR-275: Cursor-based round robin in stratified
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: `stratified()` dealt items round-robin with `queue.shift()`, which moves every remaining element of a bucket each pass. On the full suite `speedItems()` cost **585–749 us**.
+- **Decision**: Keep one index cursor per bucket and advance it instead of shifting. The deal order is byte-identical. A long diagnostic benchmark that failed to finish in 300 s first exposed the hotspot; an earlier end-to-end A/B was masked by the new rung cache, so the isolated `speedItems()` measurement is the reported one.
+- **Consequences**: isolated `speedItems()` **585–749 us → 125–245 us (~3–6x)** with an identical SHA-256 (`01ab260a60a9`). Two failing-first tests (confirmed against HEAD) pin the exact round-robin selection and 548 → 0 `Array.shift` calls.
+- **Cross-principle check:** PRINCIPLE-010: O(n) instead of O(n^2); PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: item order unchanged.
+

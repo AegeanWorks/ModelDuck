@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "tunerungs-cache-1124",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795489465.48593,
+    "task_id": "stratified-cursor-1124",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795489953.8020203,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795496665.48593,
+    "lease_until": 1795497153.8020203,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,29 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795489472.3842397,
-    "completed_head": "665a4b7539eef992491d543314eb97f68812e70d",
-    "completed_tree": "18f9da8bf7adb3ea03fea35f88413204868738cc"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; stratified uses Array.shift on every bucket each pass, quadratic over the prompt set during rung derivation",
+      "benefits": "Rung derivation and speedItems become linear in prompt count",
+      "risks": "contract: identical stratified order; dependency: none; concurrency: none; state: pure function",
+      "mitigation": "failing-first cursor test, controlled HEAD-vs-WORK A/B hash, full npm test and 4/4 strict gates; revert if slower"
+    }
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[2/2] DELIVERED: 60 profile loads 14.31ms -> 1.73ms (8.3x), both tune routes ~2.5-3x, identical hash; 1230 tests pass",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "tuneprofiles-parallel-1124",
-      "timestamp": 1795484605.429554,
-      "timestamp_str": "2026-11-24 04:43:25",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "delivery": {
@@ -409,6 +394,30 @@
       "task_id": "tunerungs-cache-1124",
       "timestamp": 1795489472.8690174,
       "timestamp_str": "2026-11-24 06:04:32"
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Replace O(n^2) queue.shift round-robin with index cursors in stratified",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Rung derivation and speedItems become linear in prompt count",
+        "mitigation": "failing-first cursor test, controlled HEAD-vs-WORK A/B hash, full npm test and 4/4 strict gates; revert if slower",
+        "risks": "contract: identical stratified order; dependency: none; concurrency: none; state: pure function",
+        "why": "User directive to keep improving speeds; stratified uses Array.shift on every bucket each pass, quadratic over the prompt set during rung derivation"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "7e3d47d670851e70761912f1c4f64b2aaea6c4a59099943397ca6e38b6eef795",
+      "status": "in_progress",
+      "task_id": "stratified-cursor-1124",
+      "timestamp": 1795489953.8020203,
+      "timestamp_str": "2026-11-24 06:12:33",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }

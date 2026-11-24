@@ -77,9 +77,15 @@ function stratified(prompts) {
     buckets.get(key).push(prompt.id);
   }
   const queues = [...buckets.values()];
+  // shift() moves every remaining element, so the old round-robin was quadratic
+  // on a large suite. A cursor per queue keeps the exact same deal order in O(n).
+  const cursors = new Array(queues.length).fill(0);
   const order = [];
   while (order.length < prompts.length) {
-    for (const queue of queues) if (queue.length) order.push(queue.shift());
+    for (let index = 0; index < queues.length; index += 1) {
+      const queue = queues[index];
+      if (cursors[index] < queue.length) order.push(queue[cursors[index]++]);
+    }
   }
   return order;
 }

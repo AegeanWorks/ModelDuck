@@ -550,12 +550,12 @@ modelduck/
 │   └── brand/
 │       └── duck.svg <- the ModelDuck mascot and favicon
 ├── scripts/
-│   ├── capture-screenshots.mjs <- screenshot gallery
+│   ├── capture-screenshots.mjs
 │   ├── install-engines.mjs
 │   ├── add-engine.mjs
 │   ├── test-parallel.mjs <- sharded parallel `npm test` runner
 │   ├── build-native.mjs <- Rust guard build
-│   └── ui-smoke.mjs <- control-panel check
+│   └── ui-smoke.mjs
 ├── benchmarks/ <- seeded quality, speed and history gate
 │   ├── README.md
 │   ├── run.mjs
@@ -814,7 +814,8 @@ modelduck/
 │   ├── typewarnings-one.test.js
 │   ├── paramcount-number.test.js
 │   ├── jscode-cache.test.js
-│   └── tunerungs-cache.test.js
+│   ├── tunerungs-cache.test.js
+│   └── stratified-cursor.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml
