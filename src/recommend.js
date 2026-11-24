@@ -88,19 +88,20 @@ export function recommendModels({ models, profiles = {}, memory = {}, task = "co
 export function recommendCatalog({ catalog = [], installed = [], memory = {}, measured = {}, limit = LIMIT }) {
   const have = new Set(installed);
   const available = Number(memory.free) || 0;
-  return catalog
+  // Only the top `limit` rows are shown. Keep each row's evidence beside it for
+  // sorting, then build the (verbose) explanation string just for those rows.
+  // The temporary key is deleted before return; `why` keeps its original slot.
+  const shown = catalog
     .filter((model) => !have.has(model.id) && Number(model.size) > 0)
     .map((model) => {
       const totalBytes = totalBytesWithReserve({ sizeBytes: model.size });
       const evidence = measured[model.id];
       const measuredRate = Number.isFinite(evidence?.rate) ? evidence.rate : null;
-      return {
+      const row = {
         measuredRate,
         measuredItems: measuredRate === null ? null : evidence.items ?? null,
         measuredOn: measuredRate === null ? null : evidence.measuredOn ?? null,
-        why: measuredRate === null
-          ? "Not measured yet; download and tune it to measure this PC."
-          : `${measuredRate}% on ${evidence.items ?? "?"} items, measured on ${evidence.measuredOn ?? "another machine"} with the shipped preset; tune it to measure this PC.`,
+        why: null,
         id: model.id,
         name: model.name,
         params: model.params ?? null,
@@ -110,6 +111,8 @@ export function recommendCatalog({ catalog = [], installed = [], memory = {}, me
         recommended: model.recommended === true,
         fit: available > 0 && totalBytes <= available * 0.75 ? "fits (weights and runtime only)" : "too large",
       };
+      row._evidence = evidence;
+      return row;
     })
     .filter((model) => model.fit === "fits (weights and runtime only)")
     .sort((left, right) =>
@@ -117,4 +120,12 @@ export function recommendCatalog({ catalog = [], installed = [], memory = {}, me
       (right.measuredRate ?? -1) - (left.measuredRate ?? -1) ||
       Number(right.recommended) - Number(left.recommended) || left.sizeBytes - right.sizeBytes || left.name.localeCompare(right.name))
     .slice(0, limit);
+  for (const row of shown) {
+    const evidence = row._evidence;
+    delete row._evidence;
+    row.why = row.measuredRate === null
+      ? "Not measured yet; download and tune it to measure this PC."
+      : `${row.measuredRate}% on ${evidence.items ?? "?"} items, measured on ${evidence.measuredOn ?? "another machine"} with the shipped preset; tune it to measure this PC.`;
+  }
+  return shown;
 }

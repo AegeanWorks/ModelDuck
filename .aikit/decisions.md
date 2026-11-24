@@ -2035,3 +2035,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: isolated loads **14.31 ms → 1.73 ms (8.3x)**; controlled end-to-end A/B over both routes with 60 profiles measured **~12–14 ms → ~4–5 ms (~2.5–3x)** with an identical SHA-256 (`8a3e7486bd27`). A failing-first test (confirmed against HEAD) observes overlapping profile content reads. An earlier concurrency test using all stats was rejected because the scan's parallel stats masked the sequential profile loop.
 - **Cross-principle check:** PRINCIPLE-010: concurrency only for independent read-only loads; PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: route responses unchanged.
 
+### ADR-269: Deferred explanation strings in recommendCatalog
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: `recommendCatalog()` built a verbose `why` string for every catalog entry, then returned only the top five; 200 entries cost **26–30 us**.
+- **Decision**: Each candidate row carries a temporary `_evidence` reference through filter/sort; after `.slice(0, limit)` the string is built for the shown rows only and the temporary key is deleted. A first attempt using a `WeakMap` was **slower** (120 `set` calls per invocation) and was replaced before shipping.
+- **Consequences**: controlled end-to-end A/B measured **26–30 us → 17 us (~1.6x)** with an identical SHA-256 (`df2cdb46b19e`) and identical object key order. A failing-first test (confirmed against HEAD) counts 120 → 5 string interpolations.
+- **Cross-principle check:** PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: recommendation rows unchanged.
+

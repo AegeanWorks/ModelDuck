@@ -489,8 +489,8 @@ modelduck/
 │   ├── engine-env.js
 │   ├── engine-install.js
 │   ├── external-engines.js <- external backends
-│   ├── server-engine.js <- the engine interface over one backend
-│   ├── engine-router.js <- in-process or external, by load
+│   ├── server-engine.js <- engine interface
+│   ├── engine-router.js <- engine selection
 │   ├── inference-engine-adapters.js <- engine detection
 │   ├── inference-engines.js <- engine speed
 │   ├── thinking.js <- <think> block splitter
@@ -554,7 +554,7 @@ modelduck/
 │   ├── install-engines.mjs <- npm run engines:install
 │   ├── add-engine.mjs <- npm run engines:add
 │   ├── test-parallel.mjs <- sharded parallel `npm test` runner
-│   ├── build-native.mjs <- npm run build:native (optional Rust GGUF guard)
+│   ├── build-native.mjs <- Rust guard build
 │   └── ui-smoke.mjs <- control-panel check
 ├── benchmarks/ <- seeded quality, speed and history gate
 │   ├── README.md
@@ -808,7 +808,8 @@ modelduck/
 │   ├── historysummary-reverse.test.js
 │   ├── latestcommit-backward.test.js
 │   ├── summarizephase-lazy.test.js
-│   └── tuneprofiles-parallel.test.js
+│   ├── tuneprofiles-parallel.test.js
+│   └── catalog-why-deferred.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml

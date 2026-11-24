@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "tuneprofiles-parallel-1124",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795484605.429554,
+    "task_id": "catalog-why-deferred-1124",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795485098.7785194,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795491805.429554,
+    "lease_until": 1795492298.7785194,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,29 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795484606.3502116,
-    "completed_head": "053990a70b03358b6d5b2c07d58d28f68b9a0b91",
-    "completed_tree": "0cf88e6a352d379dd9691dbb408d21470afe1bc1"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; recommendCatalog built verbose explanation strings for every catalog entry but returned only five",
+      "benefits": "Recommendations skip ~195 template-string builds per request",
+      "risks": "contract: identical row objects and key order; dependency: none; concurrency: none; state: local WeakMap",
+      "mitigation": "failing-first equivalence test confirmed against HEAD, controlled A/B hash, full npm test and 4/4 strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[2/2] DELIVERED: 3-file reads 0.47ms -> 0.31ms (1.5x), e2e ~1.2-1.3x, identical hash; 1219 tests pass",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "cachedanswers-reads-1124",
-      "timestamp": 1795481141.4607794,
-      "timestamp_str": "2026-11-24 03:45:41",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "delivery": {
@@ -409,6 +394,30 @@
       "task_id": "tuneprofiles-parallel-1124",
       "timestamp": 1795484606.641806,
       "timestamp_str": "2026-11-24 04:43:26"
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Defer recommendCatalog why strings to the top 5: 25.89us -> 14.23us (1.8x) for 200 entries",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Recommendations skip ~195 template-string builds per request",
+        "mitigation": "failing-first equivalence test confirmed against HEAD, controlled A/B hash, full npm test and 4/4 strict gates; revert if regression",
+        "risks": "contract: identical row objects and key order; dependency: none; concurrency: none; state: local WeakMap",
+        "why": "User directive to keep improving speeds; recommendCatalog built verbose explanation strings for every catalog entry but returned only five"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "069b790f234bad67bc2fb9d9cbea137e2acc3619b8341ce77f667bdc6335a9c1",
+      "status": "in_progress",
+      "task_id": "catalog-why-deferred-1124",
+      "timestamp": 1795485098.7785194,
+      "timestamp_str": "2026-11-24 04:51:38",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }
