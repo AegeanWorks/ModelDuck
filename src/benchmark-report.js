@@ -122,12 +122,15 @@ function commitFor(run, links) {
   return links.get(run.uid) ?? run.git ?? null;
 }
 
-function latestCommit(runs, links, phase, testHash) {
-  const matches = runs.filter(
-    (run) => run.result?.phase === phase && (!testHash || run.result?.testHash === testHash),
-  );
-  for (let index = matches.length - 1; index >= 0; index -= 1) {
-    const commit = commitFor(matches[index], links);
+// Exported for the backward-scan test: a pure lookup of the newest phased run
+// that carries a commit, independent of the report-file cache.
+export function latestCommit(runs, links, phase, testHash) {
+  // Walk straight backwards: the old filter built a matches array of every
+  // qualifying run on each phase, then scanned it a second time.
+  for (let index = runs.length - 1; index >= 0; index -= 1) {
+    const run = runs[index];
+    if (run.result?.phase !== phase || (testHash && run.result?.testHash !== testHash)) continue;
+    const commit = commitFor(run, links);
     if (commit?.hash) return commit;
   }
   return null;

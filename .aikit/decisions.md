@@ -2011,3 +2011,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: isolated **33.51 us → 0.31 us (108x)**; controlled end-to-end A/B over `summarizeBenchmark` with 5000 runs measured **135 us → 81 us (~1.7x)** with an identical SHA-256 (`559047a742c9`). Two failing-first tests (confirmed against HEAD, including a HEAD-body-plus-export variant) pin order and the absent end-to-end filter.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: report summary unchanged.
 
+### ADR-266: Backward scan in latestCommit
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: `latestCommit()` built a `matches` array of every qualifying run once per report phase, then scanned it a second time; 5000 runs cost **19.46 us** per lookup.
+- **Decision**: Walk `runs` backwards once and return the first matching run that carries a commit. The pure function is exported as a test seam.
+- **Consequences**: isolated **19.46 us → 0.105 us (185x)**; controlled end-to-end A/B over `summarizeBenchmark` with 5000 runs measured **118–125 us → 4.4–5.3 us (~25x)** with an identical SHA-256 (`559047a742c9`). Two failing-first tests (confirmed against HEAD, including a HEAD-body-plus-export variant) pin commit selection across 12 phase/hash combinations and the absent end-to-end filter.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: report summary unchanged.
+

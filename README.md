@@ -537,8 +537,8 @@ modelduck/
 │   ├── DEVELOPMENT.md <- what the tests check
 │   ├── state-machines.md <- machine inventory
 │   ├── state-machines.json <- machine inventory checked by tests
-│   ├── state-machine-proposals.md <- judged proposals
-│   ├── state-machine-proposals.json <- proposal evidence links
+│   ├── state-machine-proposals.md
+│   ├── state-machine-proposals.json
 │   ├── tuning-improvement-report.md <- tuner review
 │   ├── tuning-repro/ <- scripts that reproduce the report's numbers
 │   └── kiroween/ <- Kiroween submission docs
@@ -805,7 +805,8 @@ modelduck/
 │   ├── cachedanswers-reads.test.js
 │   ├── scan-stamp.test.js
 │   ├── walkgguf-parallel.test.js
-│   └── historysummary-reverse.test.js
+│   ├── historysummary-reverse.test.js
+│   └── latestcommit-backward.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml

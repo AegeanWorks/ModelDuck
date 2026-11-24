@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "historysummary-reverse-1124",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795482931.6070967,
+    "task_id": "latestcommit-backward-1124",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795483068.6056929,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795490131.6070967,
+    "lease_until": 1795490268.6056929,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,29 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795482932.333048,
-    "completed_head": "ce0825baf038057835e29cdeb6ee084a595211d4",
-    "completed_tree": "7d845a95c900924c4c9bbe820732e499c176922f"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; latestCommit filtered the whole history into a temp array for each report phase",
+      "benefits": "Report rebuilds avoid two full-history allocations per summarize call",
+      "risks": "contract: same commit returned or null; dependency: none; concurrency: none; state: pure function",
+      "mitigation": "failing-first equivalence test confirmed against HEAD, controlled A/B hash, full npm test and 4/4 strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[2/2] DELIVERED: 40 profile parses 3.39ms -> 0.96ms (3.5x); 1216 tests pass",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "profilelist-parallel-1123",
-      "timestamp": 1795477587.404508,
-      "timestamp_str": "2026-11-24 02:46:27",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "delivery": {
@@ -409,6 +394,30 @@
       "task_id": "historysummary-reverse-1124",
       "timestamp": 1795482933.023213,
       "timestamp_str": "2026-11-24 04:15:33"
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Backward scan in latestCommit: 19.46us -> 0.105us (185x) for 5000 runs",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Report rebuilds avoid two full-history allocations per summarize call",
+        "mitigation": "failing-first equivalence test confirmed against HEAD, controlled A/B hash, full npm test and 4/4 strict gates; revert if regression",
+        "risks": "contract: same commit returned or null; dependency: none; concurrency: none; state: pure function",
+        "why": "User directive to keep improving speeds; latestCommit filtered the whole history into a temp array for each report phase"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "1e8c663541799ccbe87514170f84208afe89ef78048ca38bd9ac8ebf67f52e2c",
+      "status": "in_progress",
+      "task_id": "latestcommit-backward-1124",
+      "timestamp": 1795483068.6056929,
+      "timestamp_str": "2026-11-24 04:17:48",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }
