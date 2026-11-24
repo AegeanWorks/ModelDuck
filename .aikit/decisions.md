@@ -2192,6 +2192,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Cache the label by normalized byte value in a bounded 2048-entry Map, with a computation counter and reset seam; the formatting logic itself is unchanged.
 - **Consequences**: isolated A/B over 60 sizes kept an identical SHA-256 (`1b90274f8b9b`) and measured **4.73-4.83 us -> 0.76-0.86 us (~6x)**. Two failing-first tests (confirmed against HEAD) pin one derivation per value and all formatting branches. Initial expected labels were wrong (`1.5 KB` vs `1.50 KB`); corrected from the function's actual output before shipping.
 - **Cross-principle check:** PRINCIPLE-009: cached pure derivation; PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: size labels unchanged.
+
+### ADR-289: Memoized scan string helpers
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: `quantFromName()` and `templateOpensThinking()` redid regex and tail scans per model on every cold scan, although file names and chat templates repeat across polls.
+- **Decision**: Cache each pure result by its string input in bounded 2048-entry Maps, hoist the quant regex, and expose computation counters plus a reset seam.
+- **Consequences**: isolated A/B over 60 templates kept an identical SHA-256 (`59392304eca3`) and measured **3.06-3.21 us -> 0.36-0.49 us (~7x)**. Two failing-first tests (confirmed against HEAD) pin one derivation per string, repeat-scan reuse and all thinking-template branches; the quant test runs a real two-model scan.
+- **Cross-principle check:** PRINCIPLE-009: cached pure derivations; PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: quant labels and thinking flags unchanged.
 - **Cross-principle check:** PRINCIPLE-011: no behavior change; PRINCIPLE-014: failing-first test, no assertion weakened; G-003: health payload unchanged.
 - **Cross-principle check:** PRINCIPLE-009: cached pure derivation; PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: warning labels unchanged.
 

@@ -75,11 +75,23 @@ function formatParameters(count) {
   return `${count}`;
 }
 
+const QUANT_PATTERN = /(IQ\d+_[A-Z0-9_]+|Q\d+_K_[SML]|Q\d+_[01]|Q\d+_K|BF16|F16|F32)/i;
+const QUANT_CACHE = new Map();
+const STRING_CACHE_LIMIT = 2048;
+let quantComputes = 0;
+export function quantFromNameComputations() {
+  return quantComputes;
+}
 function quantFromName(name) {
-  const match = String(name).match(
-    /(IQ\d+_[A-Z0-9_]+|Q\d+_K_[SML]|Q\d+_[01]|Q\d+_K|BF16|F16|F32)/i,
-  );
-  return match ? match[0].toUpperCase() : "GGUF";
+  const key = String(name);
+  const cached = QUANT_CACHE.get(key);
+  if (cached !== undefined) return cached;
+  quantComputes += 1;
+  const match = key.match(QUANT_PATTERN);
+  const quant = match ? match[0].toUpperCase() : "GGUF";
+  if (QUANT_CACHE.size >= STRING_CACHE_LIMIT) QUANT_CACHE.delete(QUANT_CACHE.keys().next().value);
+  QUANT_CACHE.set(key, quant);
+  return quant;
 }
 
 function nameFromFile(file) {
@@ -102,13 +114,32 @@ function nameFromFile(file) {
  * output starts mid-thought. A template that opens and closes the block there
  * (Qwen3 with thinking off) leaves the opening to the model, so it is false.
  */
+const THINKING_CACHE = new Map();
+let thinkingComputes = 0;
+export function templateOpensThinkingComputations() {
+  return thinkingComputes;
+}
+export function resetModelScanStringCaches() {
+  QUANT_CACHE.clear();
+  THINKING_CACHE.clear();
+  quantComputes = 0;
+  thinkingComputes = 0;
+}
+
 export function templateOpensThinking(template) {
   const text = typeof template === "string" ? template : "";
+  const cached = THINKING_CACHE.get(text);
+  if (cached !== undefined) return cached;
+  thinkingComputes += 1;
   const at = text.lastIndexOf("add_generation_prompt");
-  if (at === -1) return false;
-  const tail = text.slice(at);
-  const open = tail.lastIndexOf("<think>");
-  return open !== -1 && !tail.includes("</think>", open);
+  const opens = at === -1 ? false : (() => {
+    const tail = text.slice(at);
+    const open = tail.lastIndexOf("<think>");
+    return open !== -1 && !tail.includes("</think>", open);
+  })();
+  if (THINKING_CACHE.size >= STRING_CACHE_LIMIT) THINKING_CACHE.delete(THINKING_CACHE.keys().next().value);
+  THINKING_CACHE.set(text, opens);
+  return opens;
 }
 
 export function templateCompat(entry) {
