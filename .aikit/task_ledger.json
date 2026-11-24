@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "cachedanswers-reads-1124",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795480768.7882376,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795481141.4607794,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795487968.7882376,
+    "lease_until": 1795488341.4607794,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,55 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; cachedAnswers still read its newest run answer files one at a time",
-      "benefits": "Answer files gathered concurrently while newest-first grouping, limitRows early break and width filters are unchanged",
-      "risks": "contract: same groups in same order; dependency: none; concurrency: independent read-only reads, sequential processing; state: pure local Map",
-      "mitigation": "failing-first counter + output-hash A/B, full npm test and 4/4 strict gates; revert if regression"
-    }
+    "completed_at": 1795481142.2846375,
+    "completed_head": "a9179481af46d3e05432d54491527da6dc5c8255",
+    "completed_tree": "0cf3a45ccf7ca8815163e51081b38a3cd0992a78"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'plaintext-memo-1123' completed successfully.",
-      "head": "c9e85b88d71d1a0a002b4f1572d74a2adb379495",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "plaintext-memo-1123",
-      "timestamp": 1795473486.6983626,
-      "timestamp_str": "2026-11-24 01:38:06"
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Memoize answerCandidates by reply string: end-to-end A/B 2.198us -> 0.213us (10.32x) on two text checks",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Repeated checks on the same answer reuse the candidate array while verdicts stay identical",
-        "mitigation": "failing-first counter test plus verdict equivalence, controlled end-to-end A/B, full npm test and strict gates; revert if regression",
-        "risks": "contract: same candidate array; dependency: Map; concurrency: none; state: bounded 4096-entry cache of a pure function",
-        "why": "User directive to keep improving speeds; answerCandidates is pure in the reply text but was recomputed for each text check and each load variant"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "1cd7eab2e3dd71c0207bb10ca21f9d215f16596f02a92f8a1e18031ca2030e83",
-      "status": "in_progress",
-      "task_id": "answer-candidates-memo-1123",
-      "timestamp": 1795473947.307908,
-      "timestamp_str": "2026-11-24 01:45:47",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "checklists": "passed",
@@ -418,6 +374,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: 3-file reads 0.47ms -> 0.31ms (1.5x), e2e ~1.2-1.3x, identical hash; 1219 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "cachedanswers-reads-1124",
+      "timestamp": 1795481141.4607794,
+      "timestamp_str": "2026-11-24 03:45:41",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'cachedanswers-reads-1124' completed successfully.",
+      "head": "a9179481af46d3e05432d54491527da6dc5c8255",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "cachedanswers-reads-1124",
+      "timestamp": 1795481142.3674288,
+      "timestamp_str": "2026-11-24 03:45:42"
     }
   ]
 }
