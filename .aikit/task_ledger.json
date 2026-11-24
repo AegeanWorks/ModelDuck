@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "itemoutcomes-reads-1123",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795480041.6877747,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795480475.6422231,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795487241.6877747,
+    "lease_until": 1795487675.6422231,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,55 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; itemOutcomes read every answer file sequentially during tune preflight",
-      "benefits": "Answer files are read concurrently while counting stays sequential and ordered",
-      "risks": "contract: same counts/saturation; dependency: none; concurrency: independent read-only reads, ordered processing; state: pure local Map",
-      "mitigation": "failing-first counter test plus equivalence checks, full npm test and strict gates; revert if regression"
-    }
+    "completed_at": 1795480477.1807063,
+    "completed_head": "2063e28d66cdafd8e01ceffe4ba6832be112aed4",
+    "completed_tree": "e3c2f1b5595a29685d4403e1fd6f3009b9aeb47d"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'answer-rows-loop-1123' completed successfully.",
-      "head": "f3025b6c2d88da7fc37978840f6ecb76067091e4",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "answer-rows-loop-1123",
-      "timestamp": 1795472609.9252028,
-      "timestamp_str": "2026-11-24 01:23:29"
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Memoize plainText by reply string: 0.84us -> 0.14us per 5 calls (6x)",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Repeated replies skip the fence and marker cleanup while values stay identical",
-        "mitigation": "failing-first counter test plus output equivalence, full npm test and strict gates; revert if regression",
-        "risks": "contract: same cleaned text; dependency: Map; concurrency: none; state: bounded 4096-entry cache keyed by immutable string",
-        "why": "User directive to keep improving speeds; plainText re-stripped fences and ran two regexes on every text check and on repeated answers across load variants"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "7b53bd462e58cb0ba98373fc08f99c2602179f8be3831524da774212d98ced10",
-      "status": "in_progress",
-      "task_id": "plaintext-memo-1123",
-      "timestamp": 1795472926.473904,
-      "timestamp_str": "2026-11-24 01:28:46",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "checklists": "passed",
@@ -418,6 +374,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: answer-file reads 3.43ms -> 1.64ms (2.1x), e2e ~1.3x, identical hash; 1218 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "itemoutcomes-reads-1123",
+      "timestamp": 1795480475.6422231,
+      "timestamp_str": "2026-11-24 03:34:35",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'itemoutcomes-reads-1123' completed successfully.",
+      "head": "2063e28d66cdafd8e01ceffe4ba6832be112aed4",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "itemoutcomes-reads-1123",
+      "timestamp": 1795480477.711381,
+      "timestamp_str": "2026-11-24 03:34:37"
     }
   ]
 }
