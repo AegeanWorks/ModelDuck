@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "summarizephase-lazy-1124",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795483466.2813838,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795483775.8983727,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795490666.2813838,
+    "lease_until": 1795490975.8983727,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,55 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; summarizePhase sorted the whole model array for a max and derived item summaries even when every field was already present",
-      "benefits": "Report rebuilds skip one sort and one full item derivation per phase",
-      "risks": "contract: identical phase summary; dependency: itemSummary is pure; concurrency: none; state: local lazy cache",
-      "mitigation": "failing-first equivalence test confirmed against HEAD, controlled A/B hash, full npm test and 4/4 strict gates; revert if regression"
-    }
+    "completed_at": 1795483776.6356647,
+    "completed_head": "76d87768cc40bd708ba95fae10ce1bf6ff205630",
+    "completed_tree": "e8c044038914ab177286a53d3c1e39fd840abbfc"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'tunedir-parallel-1123' completed successfully.",
-      "head": "7c793957af67f489da850beee9ecd7b9a96b95c4",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "tunedir-parallel-1123",
-      "timestamp": 1795479467.06512,
-      "timestamp_str": "2026-11-24 03:17:47"
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Parallelize answer-file reads in itemOutcomes: 3.43ms -> 1.64ms (2.1x) for 20 files",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Answer files are read concurrently while counting stays sequential and ordered",
-        "mitigation": "failing-first counter test plus equivalence checks, full npm test and strict gates; revert if regression",
-        "risks": "contract: same counts/saturation; dependency: none; concurrency: independent read-only reads, ordered processing; state: pure local Map",
-        "why": "User directive to keep improving speeds; itemOutcomes read every answer file sequentially during tune preflight"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "2347a6e0fe02ff2bf522128452315efa0ac6741ba796c9dfa6dfd2e05b957347",
-      "status": "in_progress",
-      "task_id": "itemoutcomes-reads-1123",
-      "timestamp": 1795480041.687775,
-      "timestamp_str": "2026-11-24 03:27:21",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "checklists": "passed",
@@ -418,6 +374,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: summarizePhase 14.07us -> 0.55us (25x), e2e 31.5->3.05us (~10x), identical hash; 1228 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "summarizephase-lazy-1124",
+      "timestamp": 1795483775.898373,
+      "timestamp_str": "2026-11-24 04:29:35",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'summarizephase-lazy-1124' completed successfully.",
+      "head": "76d87768cc40bd708ba95fae10ce1bf6ff205630",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "summarizephase-lazy-1124",
+      "timestamp": 1795483776.7196026,
+      "timestamp_str": "2026-11-24 04:29:36"
     }
   ]
 }
