@@ -19,31 +19,47 @@ function compactCommit(commit) {
   };
 }
 
-function summarizePhase(result, commit) {
+// Exported for the lazy-derivation test: a pure projection of one phase.
+export function summarizePhase(result, commit) {
   if (!result || typeof result !== "object") return null;
-  const items = result.overall?.items
-    ? (() => {
-        const derived = result.models?.length
-          ? itemSummary(result.models.flatMap((model) => model.prompts ?? []))
-          : null;
-        return {
-          passed: Number(result.overall.items.passed) || 0,
-          total: Number(result.overall.items.total) || 0,
-          rate: Number(result.overall.items.rate) || 0,
-          ci95: result.overall.items.ci95 ?? null,
-          byCategory: result.overall.items.byCategory ?? derived?.byCategory ?? null,
-          byOrigin: result.overall.items.byOrigin ?? derived?.byOrigin ?? null,
-          byDataset: result.overall.items.byDataset ?? derived?.byDataset ?? null,
-        };
-      })()
+  const source = result.overall?.items;
+  let derived = null;
+  // The breakdowns are usually already in the report. Only derive them from
+  // the model prompts when a field is actually missing; itemSummary walks
+  // every prompt and is pure, so skipping it changes nothing observable.
+  const breakdown = (key) => {
+    if (source[key] != null) return source[key];
+    if (derived === null && result.models?.length) {
+      derived = itemSummary(result.models.flatMap((model) => model.prompts ?? []));
+    }
+    return derived?.[key] ?? null;
+  };
+  const items = source
+    ? {
+        passed: Number(source.passed) || 0,
+        total: Number(source.total) || 0,
+        rate: Number(source.rate) || 0,
+        ci95: source.ci95 ?? null,
+        byCategory: breakdown("byCategory"),
+        byOrigin: breakdown("byOrigin"),
+        byDataset: breakdown("byDataset"),
+      }
     : null;
   const quality = Number(result.overall?.score) || 0;
   const runtimeMs = Number(result.runtimeMs) || 0;
   // The phase card needs the denominator a per-GB claim uses. Take the fastest
   // variant's measured footprint; host RAM and VRAM are both reported.
-  const representative = (result.models ?? [])
-    .slice()
-    .sort((left, right) => (Number(right.tokensPerSecond) || 0) - (Number(left.tokensPerSecond) || 0))[0] ?? null;
+  // A single pass finds the fastest model; sorting copied the whole array to
+  // read its first element. Strict `>` keeps the first model on ties, as the
+  // stable sort did.
+  let representative = null;
+  for (const model of result.models ?? []) {
+    if (representative === null
+        || (Number(model.tokensPerSecond) || 0)
+           > (Number(representative.tokensPerSecond) || 0)) {
+      representative = model;
+    }
+  }
   const memoryBytes = Number(representative?.memoryBytes) || 0;
   const gpuVram = Number(representative?.gpuVram) || 0;
   const totalMemoryBytes = memoryBytes + gpuVram || null;

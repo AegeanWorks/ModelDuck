@@ -536,7 +536,7 @@ modelduck/
 │   ├── ENGINES.md <- inference engines
 │   ├── DEVELOPMENT.md <- what the tests check
 │   ├── state-machines.md <- machine inventory
-│   ├── state-machines.json <- machine inventory checked by tests
+│   ├── state-machines.json
 │   ├── state-machine-proposals.md
 │   ├── state-machine-proposals.json
 │   ├── tuning-improvement-report.md <- tuner review
@@ -806,7 +806,8 @@ modelduck/
 │   ├── scan-stamp.test.js
 │   ├── walkgguf-parallel.test.js
 │   ├── historysummary-reverse.test.js
-│   └── latestcommit-backward.test.js
+│   ├── latestcommit-backward.test.js
+│   └── summarizephase-lazy.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml

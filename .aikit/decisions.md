@@ -2019,3 +2019,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: isolated **19.46 us → 0.105 us (185x)**; controlled end-to-end A/B over `summarizeBenchmark` with 5000 runs measured **118–125 us → 4.4–5.3 us (~25x)** with an identical SHA-256 (`559047a742c9`). Two failing-first tests (confirmed against HEAD, including a HEAD-body-plus-export variant) pin commit selection across 12 phase/hash combinations and the absent end-to-end filter.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: report summary unchanged.
 
+### ADR-267: Lazy derivation and linear max in summarizePhase
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: `summarizePhase()` sorted the whole model array to read its fastest entry, and derived per-category/origin/dataset summaries from every prompt even when all three breakdowns were already in the report; 200 models cost **14.07 us** per phase.
+- **Decision**: Find the representative with one strict-`>` pass (stable-sort tie behaviour preserved) and derive breakdowns lazily only for fields that are actually nullish. The pure function is exported as a test seam.
+- **Consequences**: isolated **14.07 us → 0.55 us (25x)**; controlled end-to-end A/B over two 100-model phases measured **31.5 us → 3.05 us (~10x)** with an identical SHA-256 (`db16ee82f8ca`). Two failing-first tests (confirmed against HEAD, including a HEAD-body-plus-export variant) pin breakdown selection, first-max ties and the absent sort/derivation.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: report summary unchanged.
+
