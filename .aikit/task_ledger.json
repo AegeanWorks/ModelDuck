@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "formatbytes-memo-1124",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795527313.3042536,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795528434.3631668,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795534513.3042536,
+    "lease_until": 1795535634.3631668,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,49 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; model scans reformat the same repeated file sizes on every request",
-      "benefits": "Repeated sizes skip toFixed and unit-loop work",
-      "risks": "contract: identical formatted label; dependency: pure function; concurrency: none; state: bounded Map",
-      "mitigation": "failing-first counter + equivalence test, controlled A/B hash, full npm test and 4/4 strict gates; revert if regression"
-    }
+    "completed_at": 1795528435.0630028,
+    "completed_head": "b53448d4bac1240bf084885713e6504c55208bbe",
+    "completed_tree": "5c0b1cf471fc0118ccdd86570aec1db0c61a474e"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[2/2] DELIVERED: 60 profiles 104us -> 0.76us (~137x), identical hash; 1254 tests pass",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "typewarnings-memo-1124",
-      "timestamp": 1795511285.73387,
-      "timestamp_str": "2026-11-24 12:08:05",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'typewarnings-memo-1124' completed successfully.",
-      "head": "b251d92642d255c55e18c872e3b32e50d54cc393",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "typewarnings-memo-1124",
-      "timestamp": 1795511292.6781323,
-      "timestamp_str": "2026-11-24 12:08:12"
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "description": "[1/2] Cache parsed profile objects instead of re-parsing text on every loadProfile hit",
@@ -418,6 +380,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: 60 sizes 4.73-4.83us -> 0.76-0.86us (~6x), identical hash; 1261 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "formatbytes-memo-1124",
+      "timestamp": 1795528434.3631668,
+      "timestamp_str": "2026-11-24 16:53:54",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'formatbytes-memo-1124' completed successfully.",
+      "head": "b53448d4bac1240bf084885713e6504c55208bbe",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "formatbytes-memo-1124",
+      "timestamp": 1795528435.141147,
+      "timestamp_str": "2026-11-24 16:53:55"
     }
   ]
 }
