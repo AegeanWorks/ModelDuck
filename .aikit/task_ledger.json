@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "axes-memo-1124",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795494257.679217,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795494910.2730913,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795501457.679217,
+    "lease_until": 1795502110.2730913,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,55 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; after rungs/speedItems/sampling axes were cached, the three remaining axis builders still rebuilt per estimate call",
-      "benefits": "Tune step estimates derive each frozen axis list once",
-      "risks": "contract: same frozen axis objects; dependency: steps identity + primitive keys; concurrency: none; state: WeakMap keyed by frozen steps",
-      "mitigation": "failing-first build-count test, controlled HEAD-vs-WORK A/B hash, full npm test and 4/4 strict gates; revert if slower"
-    }
+    "completed_at": 1795494911.0423195,
+    "completed_head": "8bc7fb45b7f76727a685c21dbce151dea9b3aaea",
+    "completed_tree": "610a12431ea89381bb95640ec9f69eef4ec518bb"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'typewarnings-one-1124' completed successfully.",
-      "head": "86d3d2e8380bffd0dd81cbbe953c76a97c789918",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "typewarnings-one-1124",
-      "timestamp": 1795486805.8339164,
-      "timestamp_str": "2026-11-24 05:20:05"
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Number accumulation with BigInt fallback in parameterCount: 33.77us -> 13.28us (2.5x) for 400 tensors",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Cold scans of large GGUF headers skip ~1000 BigInt operations per model",
-        "mitigation": "failing-first equivalence test across edge dimensions, controlled A/B hash, full npm test and 4/4 strict gates; revert if regression",
-        "risks": "contract: exact BigInt count or original throw; dependency: none; concurrency: none; state: pure function",
-        "why": "User directive to keep improving speeds; parameterCount did every dimension multiply as BigInt during every cold model scan"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "ab3b59bca7943afc3e43375c29f6fbe873b3f497d52c1c1d1d0b1cdace8224c3",
-      "status": "in_progress",
-      "task_id": "paramcount-number-1124",
-      "timestamp": 1795487067.0911827,
-      "timestamp_str": "2026-11-24 05:24:27",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "checklists": "passed",
@@ -418,6 +374,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: axis builders 0.29-1.66us -> 0.02-0.06us, 3 estimates ~29 -> ~16us (~1.8x), identical hash; 1249 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "axes-memo-1124",
+      "timestamp": 1795494910.2730913,
+      "timestamp_str": "2026-11-24 07:35:10",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'axes-memo-1124' completed successfully.",
+      "head": "8bc7fb45b7f76727a685c21dbce151dea9b3aaea",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "axes-memo-1124",
+      "timestamp": 1795494911.6973014,
+      "timestamp_str": "2026-11-24 07:35:11"
     }
   ]
 }
