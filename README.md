@@ -488,7 +488,7 @@ modelduck/
 │   ├── engine-listing.js
 │   ├── engine-env.js
 │   ├── engine-install.js
-│   ├── external-engines.js <- external backends
+│   ├── external-engines.js
 │   ├── server-engine.js <- engine interface
 │   ├── engine-router.js <- engine selection
 │   ├── inference-engine-adapters.js <- engine detection
@@ -507,7 +507,7 @@ modelduck/
 │   ├── engine-errors.js
 │   ├── model-registry.js
 │   ├── gguf-guard.js
-│   ├── gguf-native.js <- optional in-process Rust header guard
+│   ├── gguf-native.js <- Rust header guard
 │   ├── gpu-info.js
 │   ├── downloader.js
 │   ├── settings.js
@@ -811,7 +811,8 @@ modelduck/
 │   ├── tuneprofiles-parallel.test.js
 │   ├── catalog-why-deferred.test.js
 │   ├── model-why-deferred.test.js
-│   └── typewarnings-one.test.js
+│   ├── typewarnings-one.test.js
+│   └── paramcount-number.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml

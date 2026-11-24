@@ -2059,3 +2059,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: isolated lookup **7.4 us → ~1 us (~7x)**; controlled A/B on the full `resolve()` measured **113–122 us → 107–112 us (~1.05x)** because profile loading dominates, with an identical SHA-256 (`9c88c5f1c892`). A failing-first test (confirmed against HEAD) counts 12 → 1 task-statistics reads.
 - **Cross-principle check:** PRINCIPLE-014: failing-first test, no assertion weakened; G-003: chat settings and warning labels unchanged.
 
+### ADR-272: Number accumulation in parameterCount
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: `parameterCount()` multiplied every GGUF tensor dimension as BigInt on every cold model scan; a 400-tensor header cost **33.77 us** in the counter alone.
+- **Decision**: Accumulate in Number and convert once, falling back to the exact BigInt loop for non-safe-integer, negative or overflow-vulnerable inputs. The function is exported as a test seam.
+- **Consequences**: isolated counter **33.77 us → 13.28 us (2.5x)**; a cold scan of one 400-tensor model **425 us → 274 us (~1.55x)**; controlled end-to-end A/B over three shapes (including MAX_SAFE_INTEGER overflow) kept an identical SHA-256 (`7df181291934`). Two failing-first tests (confirmed against HEAD, including a HEAD-body-plus-export variant) pin exact counts and 400 → 1 BigInt conversions.
+- **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: model parameter labels unchanged.
+

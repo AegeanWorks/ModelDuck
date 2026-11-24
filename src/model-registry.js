@@ -36,7 +36,10 @@ function safeNumber(value) {
   return Number(value);
 }
 
-function parameterCount(info) {
+// GGUF dimensions are ordinary small integers, so a Number multiply is much
+// cheaper than BigInt. Anything that could lose exactness (a non-integer, a
+// negative or a product past MAX_SAFE_INTEGER) goes back to the exact path.
+function bigintParameterCount(info) {
   let total = 0n;
   for (const tensor of info?.tensorInfo ?? []) {
     let elements = 1n;
@@ -46,6 +49,23 @@ function parameterCount(info) {
     total += elements;
   }
   return total;
+}
+
+// Exported for the BigInt-avoidance test: the exact parameter count of a GGUF.
+export function parameterCount(info) {
+  let total = 0;
+  for (const tensor of info?.tensorInfo ?? []) {
+    let elements = 1;
+    for (const dimension of tensor.dimensions ?? []) {
+      const value = Number(dimension);
+      if (!Number.isSafeInteger(value) || value < 0
+          || elements > Number.MAX_SAFE_INTEGER / (value || 1)) return bigintParameterCount(info);
+      elements *= value;
+    }
+    if (total > Number.MAX_SAFE_INTEGER - elements) return bigintParameterCount(info);
+    total += elements;
+  }
+  return BigInt(total);
 }
 
 function formatParameters(count) {
