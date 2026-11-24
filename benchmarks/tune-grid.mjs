@@ -261,13 +261,43 @@ export function isValidCombination(settings) {
 const axis = (name, key, values, extra = {}) =>
   Object.freeze({ name, patches: Object.freeze(values.map((value) => Object.freeze({ [key]: value }))), ...extra });
 
+// The axis builders are pure functions of frozen step definitions. Estimate
+// helpers ask for the same axes several times per request, so derive each once
+// per steps object and a small primitive key.
+let AXES_CACHE = new WeakMap();
+let axesBuilds = 0;
+export function axesBuildComputations() {
+  return axesBuilds;
+}
+export function resetAxesCache() {
+  AXES_CACHE = new WeakMap();
+  axesBuilds = 0;
+}
+function memoAxes(steps, key, build) {
+  // A few callers pass a primitive or null step set; those are cheap and must
+  // still work, they simply are not cached by identity.
+  if (steps === null || (typeof steps !== "object" && typeof steps !== "function")) return build();
+  let byKey = AXES_CACHE.get(steps);
+  if (!byKey) {
+    byKey = new Map();
+    AXES_CACHE.set(steps, byKey);
+  }
+  const cached = byKey.get(key);
+  if (cached !== undefined) return cached;
+  axesBuilds += 1;
+  const value = build();
+  byKey.set(key, value);
+  return value;
+}
+
 /** Stage 1: load settings that can change answers. Context is fixed at the 16K floor (ADR-089). */
 export function qualityAxes(steps = DEFAULT_STEPS.load) {
-  return Object.freeze([axis("kvCache", "kvCache", steps.kvCache)]);
+  return memoAxes(steps, "quality", () => Object.freeze([axis("kvCache", "kvCache", steps.kvCache)]));
 }
 
 /** Stage 2: load settings that only change speed, measured on a fixed workload. */
 export function speedAxes(hardware = {}, steps = DEFAULT_STEPS.load) {
+  return memoAxes(steps, `speed:${hardware.logicalCores ?? 8}`, () => {
   const axes = [
     axis("flashAttention", "flashAttention", steps.flashAttention),
     axis("useMmap", "useMmap", steps.useMmap),
@@ -282,6 +312,7 @@ export function speedAxes(hardware = {}, steps = DEFAULT_STEPS.load) {
     axes.push(Object.freeze({ name: "checkpointing", patches: Object.freeze(patches.map(Object.freeze)) }));
   }
   return Object.freeze(axes);
+  });
 }
 
 /**
@@ -380,6 +411,7 @@ export function samplingAxes(taskId, steps = DEFAULT_STEPS.sampling) {
  * full score on the task's whole set. Code uses its own directives and also tries reasoning "auto" (ADR-070).
  */
 export function promptAxes(steps = DEFAULT_STEPS.prompt, task = null, { only = null } = {}) {
+  return memoAxes(steps, `prompt:${task ?? ""}:${only?.join(",") ?? ""}`, () => {
   const systemPrompts = Array.isArray(steps.systemPrompt) ? steps.systemPrompt : DEFAULT_STEPS.prompt.systemPrompt;
   const reasoningSteps = Array.isArray(steps.reasoning) ? steps.reasoning : DEFAULT_STEPS.prompt.reasoning;
   const promptRepeats = Array.isArray(steps.promptRepeat) ? steps.promptRepeat : DEFAULT_STEPS.prompt.promptRepeat;
@@ -398,6 +430,7 @@ export function promptAxes(steps = DEFAULT_STEPS.prompt, task = null, { only = n
     // code tests the same counts now (the user asked for code too).
     axis("promptRepeat", "promptRepeat", promptRepeats),
   ]);
+  });
 }
 
 // Every input below is a frozen static definition, so the name list never

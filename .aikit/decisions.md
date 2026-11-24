@@ -2107,3 +2107,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: repeated `samplingAxes` **3.85 us → 0.015 us (~257x)**; controlled A/B over three tune estimates measured **~70 us → ~30–42 us (~2x)** with an identical SHA-256 (`ca4f38fdc9be`). Two failing-first tests (confirmed against HEAD) pin one derivation per task and reuse across passes.
 - **Cross-principle check:** PRINCIPLE-009: cached pure derivation; PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: estimates and axis contents unchanged.
 
+### ADR-278: Memoized quality, speed and prompt axes
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: With rungs, speed items and sampling axes cached, the three remaining builders (`qualityAxes`, `speedAxes`, `promptAxes`) still rebuilt frozen lists on every estimate call: 0.29 us, 1.66 us and 0.81 us respectively.
+- **Decision**: A shared WeakMap memo keyed by the steps object and a small primitive (stage, core count, task/only list). Non-object step inputs are built uncached — a caller in `tune.mjs` passes a task string, which the original accepted. All results stay frozen.
+- **Consequences**: repeated builders drop to **0.02–0.06 us**; controlled A/B over three tune estimates measured **~29 us → ~16 us (~1.8x)** with an identical SHA-256 (`ca4f38fdc9be`). Two failing-first tests (confirmed against HEAD) pin per-key reuse and the primitive-input path. The first attempt used a non-object WeakMap key and was caught by the full suite before shipping.
+- **Cross-principle check:** PRINCIPLE-009: cached pure derivations; PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: estimates and axis contents unchanged.
+

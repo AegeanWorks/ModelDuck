@@ -674,7 +674,7 @@ modelduck/
 │   ├── engine-catalog.test.js
 │   ├── engine-listing.test.js
 │   ├── engine-env.test.js
-│   ├── engine-contract.js <- engine backend check
+│   ├── engine-contract.js
 │   ├── engine-install.test.js
 │   ├── external-engines.test.js
 │   ├── inference-engines.test.js
@@ -817,7 +817,8 @@ modelduck/
 │   ├── tunerungs-cache.test.js
 │   ├── stratified-cursor.test.js
 │   ├── speeditems-cache.test.js
-│   └── samplingaxes-cache.test.js
+│   ├── samplingaxes-cache.test.js
+│   └── axes-memo.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml
