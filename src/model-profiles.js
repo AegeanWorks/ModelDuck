@@ -179,9 +179,12 @@ export async function saveProfile(directory, profile) {
 }
 
 /** Question types a task's preset answers significantly worse than the defaults (ADR-068). */
-export function typeWarnings(profile) {
+export function typeWarnings(profile, onlyTask = null) {
   const warnings = {};
   for (const [task, preset] of Object.entries(profile?.tasks ?? {})) {
+    // Callers that need one task's warnings (chat settings resolution) must not
+    // pay for every other task's type statistics.
+    if (onlyTask !== null && task !== onlyTask) continue;
     const types = preset?.stats?.byType;
     if (!types) continue;
     const worse = Object.entries(types)

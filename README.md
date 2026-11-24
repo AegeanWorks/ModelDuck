@@ -534,7 +534,7 @@ modelduck/
 ├── docs/
 │   ├── THREAT-MODEL.md <- local-inference threat model
 │   ├── ENGINES.md <- inference engines
-│   ├── DEVELOPMENT.md <- what the tests check
+│   ├── DEVELOPMENT.md
 │   ├── state-machines.md <- machine inventory
 │   ├── state-machines.json
 │   ├── state-machine-proposals.md
@@ -810,7 +810,8 @@ modelduck/
 │   ├── summarizephase-lazy.test.js
 │   ├── tuneprofiles-parallel.test.js
 │   ├── catalog-why-deferred.test.js
-│   └── model-why-deferred.test.js
+│   ├── model-why-deferred.test.js
+│   └── typewarnings-one.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml

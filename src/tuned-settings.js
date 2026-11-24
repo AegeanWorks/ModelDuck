@@ -58,7 +58,7 @@ export class TunedSettings {
       stages: profile.stages ?? null,
       // What this preset scored, and the question types it answers clearly worse (ADR-068).
       rate: chosen?.stats?.rate ?? null,
-      typeWarnings: task ? typeWarnings(profile)[task] ?? [] : [],
+      typeWarnings: task ? typeWarnings(profile, task)[task] ?? [] : [],
       stale,
       warnings,
       engineChanged,

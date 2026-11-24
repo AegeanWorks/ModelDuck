@@ -2051,3 +2051,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: controlled end-to-end A/B measured **53–54 us → 35–39 us (~1.4x)** with an identical SHA-256 (`2dd6d3c0fc2c`). A failing-first test (confirmed against HEAD) counts 200 → 105 task interpolations (100 profile-key lookups in both, plus five vs one hundred explanations).
 - **Cross-principle check:** PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: recommendation rows unchanged.
 
+### ADR-271: Single-task type warnings in settings resolution
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: `TunedSettings.resolve()` computed `typeWarnings(profile)` for every task but indexed only the selected one; a 12-task profile cost **7.4 us** per lookup.
+- **Decision**: `typeWarnings(profile, onlyTask)` accepts an optional task filter; `resolve()` passes its selected task. The unfiltered call path is unchanged.
+- **Consequences**: isolated lookup **7.4 us → ~1 us (~7x)**; controlled A/B on the full `resolve()` measured **113–122 us → 107–112 us (~1.05x)** because profile loading dominates, with an identical SHA-256 (`9c88c5f1c892`). A failing-first test (confirmed against HEAD) counts 12 → 1 task-statistics reads.
+- **Cross-principle check:** PRINCIPLE-014: failing-first test, no assertion weakened; G-003: chat settings and warning labels unchanged.
+
