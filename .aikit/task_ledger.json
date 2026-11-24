@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "tune-evidence-cache-1124",
+    "task_id": "tune-list-summary-cache-1124",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1795551976.2670753,
+    "updated_at": 1795553722.3660188,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-    "lease_until": 1795559176.2670753,
+    "lease_until": 1795560922.3660188,
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "continuations": [],
     "workspaces": [
@@ -16,124 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795552032.236187,
-    "completed_head": "a725e32a1ecc46306a588ba29e3e8b440e630c0c",
-    "completed_tree": "893ef02d3738584622543273d1eeeb83602d9ba6"
+    "completed_at": 1795553774.9574533,
+    "completed_head": "ad316410876b1c4aa69a86f00afe5879774df76b",
+    "completed_tree": "14d783c04bb487e233fd118fc367788afa7ee5e3"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "continued_from": "opencode:hy4-flash-free",
-      "description": "Resume interrupted receipt positive cache; inspect surviving implementation and tests before verification",
-      "files_affected": [
-        "src/downloader.js",
-        "tests/receipt-cache.test.js",
-        "README.md",
-        ".aikit/codebase_map.md"
-      ],
-      "phase": "phase 2",
-      "phase_num": 2,
-      "status": "in_progress",
-      "task_id": "receipt-positive-cache-1124",
-      "timestamp": 1795547548.4309163,
-      "timestamp_str": "2026-11-24 22:12:28",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: 60-receipt warm poll 0.903ms -> 0.505ms (1.79x); cold poll 0.802ms -> 1.282ms; 1264 pass, 1 platform skip; 4/4 gates; fixed positive-cache invalidation",
-      "files_affected": [
-        "src/downloader.js",
-        "tests/receipt-cache.test.js",
-        "README.md",
-        ".aikit/codebase_map.md",
-        ".aikit/ui_history.json"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/receipt-cache-ab.mjs",
-          "baseline": 0.903,
-          "candidate": 0.505,
-          "command": "node receipt-cache-ab.mjs (5 interleaved process pairs, 7 inner rounds each)",
-          "metric": "60-receipt warm poll",
-          "qualified": "no",
-          "unit": "ms"
-        },
-        {
-          "artifact": "local-only/receipt-cache-ab.mjs",
-          "baseline": 0.802,
-          "candidate": 1.282,
-          "command": "node receipt-cache-ab.mjs (5 interleaved process pairs, 7 inner rounds each)",
-          "metric": "60-receipt cold poll",
-          "qualified": "no",
-          "unit": "ms"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "receipt-positive-cache-1124",
-      "timestamp": 1795547960.308096,
-      "timestamp_str": "2026-11-24 22:19:20",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: warm 60-receipt poll 0.903ms -> 0.505ms (1.79x); cold 0.802ms -> 1.282ms; 1264 pass, 1 platform skip; 4/4 gates; positive invalidation regression fixed",
-      "files_affected": [
-        "src/downloader.js",
-        "tests/receipt-cache.test.js",
-        "README.md",
-        ".aikit/codebase_map.md",
-        ".aikit/ui_history.json"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/receipt-cache-ab.mjs",
-          "baseline": 0.903,
-          "candidate": 0.505,
-          "command": "node receipt-cache-ab.mjs (5 interleaved pairs, 7 inner rounds)",
-          "drift": "workload=60 present receipt JSON files, win32 Node 26.9.0",
-          "metric": "60-receipt warm poll",
-          "qualified": "no",
-          "unit": "ms"
-        },
-        {
-          "artifact": "local-only/receipt-cache-ab.mjs",
-          "baseline": 0.802,
-          "candidate": 1.282,
-          "command": "node receipt-cache-ab.mjs (5 interleaved pairs, 7 inner rounds)",
-          "drift": "workload=60 present receipt JSON files after cache reset, win32 Node 26.9.0",
-          "metric": "60-receipt cold poll",
-          "qualified": "no",
-          "unit": "ms"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "receipt-positive-cache-1124",
-      "timestamp": 1795547974.1490865,
-      "timestamp_str": "2026-11-24 22:19:34",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "delivery": {
@@ -650,6 +537,100 @@
       "task_id": "tune-evidence-cache-1124",
       "timestamp": 1795552034.030614,
       "timestamp_str": "2026-11-24 23:27:14"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Cache stripped tune-run summaries by exact file stamp, clone them per listing, and keep liveness and unfinished duration live",
+      "files_affected": [
+        "src/tune-runs.js",
+        "tests/listruns-parallel.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Unchanged run summaries are parsed once per process while new or rewritten runs refresh immediately",
+        "mitigation": "failing-first parse-count, caller-mutation, liveness and single-file rewrite tests; before/after stamps and quarantine on misses; real-store controlled A/B hash, full npm test and 4/4 strict gates; revert if regression",
+        "risks": "contract: identical stripped rows and newest-first order; dependency: node fs/path and structuredClone; concurrency: another process may rewrite a summary; state: bounded process-local cache",
+        "why": "User directive to increase non-tuning speed; the real 39-run store parses 16.2MB to return 36KB and listRuns takes a 58.063ms median per UI request"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "9653c482c4b47310592efd44b61f7c5c6c725b0683c70439200eeae951c89cf3",
+      "status": "in_progress",
+      "task_id": "tune-list-summary-cache-1124",
+      "timestamp": 1795552937.9167027,
+      "timestamp_str": "2026-11-24 23:42:17",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: real 39-run listing 60.247ms -> 1.058ms (56.94x), warm summary parses 39 -> 0, identical normalized hash; control drift 0.8%; 1273 tests pass with 1 platform skip and 4/4 gates pass",
+      "files_affected": [
+        "src/tune-runs.js",
+        "tests/listruns-parallel.test.js",
+        ".aikit/decisions.md",
+        ".aikit/ui_history.json"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/tune-list-ab.mjs",
+          "baseline": 60.247,
+          "candidate": 1.058,
+          "command": "node tune-list-ab.mjs",
+          "control": "full loadRun 0.865ms vs 0.872ms",
+          "drift": "0.8",
+          "interleaved": "yes",
+          "metric": "tune-run listing",
+          "unit": "ms",
+          "workload": "real 39-run store, 30 interleaved pairs, fixed liveness and duration-normalized hash on win32 Node 26.9.0"
+        },
+        {
+          "artifact": "local-only/tune-list-ab.mjs",
+          "baseline": 39.0,
+          "candidate": 0.0,
+          "command": "node tune-list-ab.mjs",
+          "control": "full loadRun parses one summary in both builds",
+          "drift": "0",
+          "interleaved": "yes",
+          "metric": "summary parses per warm listing",
+          "unit": "parses",
+          "workload": "real 39-run store after one warmup listing"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "tune-list-summary-cache-1124",
+      "timestamp": 1795553722.3660188,
+      "timestamp_str": "2026-11-24 23:55:22",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'tune-list-summary-cache-1124' completed successfully.",
+      "head": "ad316410876b1c4aa69a86f00afe5879774df76b",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "tune-list-summary-cache-1124",
+      "timestamp": 1795553775.0301323,
+      "timestamp_str": "2026-11-24 23:56:15"
     }
   ]
 }
