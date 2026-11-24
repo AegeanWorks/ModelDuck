@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "typewarnings-memo-1124",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795509371.5943964,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795511285.73387,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795516571.5943964,
+    "lease_until": 1795518485.73387,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,55 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; tune overview computes type warnings for each saved profile on every request",
-      "benefits": "60 profiles drop from ~104us to a cache walk",
-      "risks": "contract: same warnings object; dependency: pure function of profile; concurrency: none; state: WeakMap keyed by profile",
-      "mitigation": "failing-first counter + equivalence test, controlled A/B hash, full npm test and 4/4 strict gates; revert if regression"
-    }
+    "completed_at": 1795511286.6560023,
+    "completed_head": "b251d92642d255c55e18c872e3b32e50d54cc393",
+    "completed_tree": "5473a7731e1b30857410a7d4c7faf9554baa851a"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'stratified-cursor-1124' completed successfully.",
-      "head": "8b9190f9ba6798a92e2fd6b93169f518915df948",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "stratified-cursor-1124",
-      "timestamp": 1795490572.8046188,
-      "timestamp_str": "2026-11-24 06:22:52"
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Memoize speedItems by prompt set; estimate helpers call it on every invocation",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Tune step estimates skip repeated suite stratification",
-        "mitigation": "failing-first computation counter + value test, controlled HEAD-vs-WORK A/B hash, full npm test and 4/4 strict gates; revert if slower",
-        "risks": "contract: same id list and order, fresh array per caller; dependency: prompts identity; concurrency: none; state: module-level Map",
-        "why": "User directive to keep improving speeds; expectedAnswers and estimateTune derive the fixed speed workload on every call even after rungs were cached"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "d7eef77fb85608592c3e57dfc28077cf1cf7104773993250140615e60edb5b6f",
-      "status": "in_progress",
-      "task_id": "speeditems-cache-1124",
-      "timestamp": 1795490823.034659,
-      "timestamp_str": "2026-11-24 06:27:03",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "checklists": "passed",
@@ -418,6 +374,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: 60 profiles 104us -> 0.76us (~137x), identical hash; 1254 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "typewarnings-memo-1124",
+      "timestamp": 1795511285.73387,
+      "timestamp_str": "2026-11-24 12:08:05",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'typewarnings-memo-1124' completed successfully.",
+      "head": "b251d92642d255c55e18c872e3b32e50d54cc393",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "typewarnings-memo-1124",
+      "timestamp": 1795511292.6781323,
+      "timestamp_str": "2026-11-24 12:08:12"
     }
   ]
 }
