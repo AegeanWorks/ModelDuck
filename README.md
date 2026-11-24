@@ -485,7 +485,7 @@ modelduck/
 │   ├── server.js
 │   ├── engine.js
 │   ├── engine-catalog.js <- engine descriptors
-│   ├── engine-listing.js <- engines the API lists and a load may name
+│   ├── engine-listing.js <- engines the API lists
 │   ├── engine-env.js
 │   ├── engine-install.js <- engine installer
 │   ├── external-engines.js <- backends for engines outside the process
@@ -539,7 +539,7 @@ modelduck/
 │   ├── state-machines.json <- machine inventory checked by tests
 │   ├── state-machine-proposals.md <- judged proposals
 │   ├── state-machine-proposals.json <- proposal evidence links
-│   ├── tuning-improvement-report.md <- tuner review (snapshot of 6ece836)
+│   ├── tuning-improvement-report.md <- tuner review
 │   ├── tuning-repro/ <- scripts that reproduce the report's numbers
 │   └── kiroween/ <- Kiroween submission docs
 ├── public/
@@ -800,7 +800,8 @@ modelduck/
 │   ├── kvshape-fast.test.js
 │   ├── listruns-parallel.test.js
 │   ├── profilelist-parallel.test.js
-│   └── tunedir-parallel.test.js
+│   ├── tunedir-parallel.test.js
+│   └── itemoutcomes-reads.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml

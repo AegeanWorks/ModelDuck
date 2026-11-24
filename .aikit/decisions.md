@@ -1971,3 +1971,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: the same 30 reads drop to **0.75 ms (4.2x)** with identical selected runs. A failing-first test (confirmed against HEAD) pins read counts and restore equivalence.
 - **Cross-principle check:** PRINCIPLE-010: concurrency only for independent read-only reads; PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: no answer data changed.
 
+### ADR-261: Parallel answer-file reads in itemOutcomes
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: `itemOutcomes()` read every qualifying answer file one at a time; 20 files cost **3.43 ms** on the read portion.
+- **Decision**: Collect qualifying files, read them all with one `Promise.all`, then count sequentially in the original file order. ENOENT is still skipped and a real read error still throws at the same logical point.
+- **Consequences**: read portion **3.43 ms → 1.64 ms (2.1x)**; controlled end-to-end A/B over 20 files x 500 rows measured **~7.3–8.3 ms → ~5.8 ms (~1.3x)** with an identical SHA-256 of the full result. A failing-first test (confirmed against HEAD) pins read count, counts and saturation.
+- **Cross-principle check:** PRINCIPLE-010: concurrency only for independent read-only reads; PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: no outcome data changed.
+

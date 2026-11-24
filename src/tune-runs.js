@@ -358,21 +358,40 @@ export async function cachedAnswers(dir, { profileId, fingerprint = null, limitR
   return [...groups.values()];
 }
 
+// Test seam: how many answer files a single itemOutcomes call read.
+let itemOutcomesReads = 0;
+export function itemOutcomesReadCount() {
+  return itemOutcomesReads;
+}
+
 export async function itemOutcomes(dir, { profileId, minObservations = 6, minSettings = 2, fingerprint = null } = {}) {
   const names = await fs.promises.readdir(dir).catch(() => []);
   const counts = new Map();
+  // Collect the qualifying answer files, then read them all concurrently. The
+  // reads are independent; counting stays sequential in the original file order.
+  const files = [];
   for (const { name, record } of await readRunSummaries(dir, names)) {
     if (record?.schema !== RUN_SCHEMA) continue;
     if (profileId && record.profileId !== profileId) continue;
     if (fingerprint && OUTCOME_FINGERPRINT_KEYS.some((key) => record.fingerprint?.[key] !== fingerprint[key])) continue;
-    let file;
     try {
-      file = answersFile(dir, name.slice(0, -5));
+      files.push({ runName: name, file: answersFile(dir, name.slice(0, -5)) });
     } catch {
       continue; // a file name that cannot be a run id
     }
+  }
+  const loaded = await Promise.all(files.map(async ({ runName, file }) => {
     try {
-      const text = await fs.promises.readFile(file, "utf8");
+      return { runName, text: await fs.promises.readFile(file, "utf8"), error: null };
+    } catch (error) {
+      return { runName, text: null, error };
+    }
+  }));
+  itemOutcomesReads += loaded.length;
+  for (const { text, error } of loaded) {
+    if (error && error.code !== "ENOENT") throw error;
+    if (text === null) continue;
+    {
       let start = 0;
       while (start < text.length) {
         let end = text.indexOf("\n", start);
@@ -400,8 +419,6 @@ export async function itemOutcomes(dir, { profileId, minObservations = 6, minSet
         }
         counts.set(row.item, entry);
       }
-    } catch (error) {
-      if (error?.code !== "ENOENT") throw error;
     }
   }
   const saturated = new Set();

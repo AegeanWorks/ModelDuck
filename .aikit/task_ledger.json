@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "tunedir-parallel-1123",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795479466.2255177,
+    "task_id": "itemoutcomes-reads-1123",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1795480041.6877747,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795486666.2255177,
+    "lease_until": 1795487241.6877747,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,29 +16,14 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795479466.9882965,
-    "completed_head": "7c793957af67f489da850beee9ecd7b9a96b95c4",
-    "completed_tree": "24d46f9c22933167a1e58cf72deb7ae49029d5c4"
+    "impact_assessment": {
+      "why": "User directive to keep improving speeds; itemOutcomes read every answer file sequentially during tune preflight",
+      "benefits": "Answer files are read concurrently while counting stays sequential and ordered",
+      "risks": "contract: same counts/saturation; dependency: none; concurrency: independent read-only reads, ordered processing; state: pure local Map",
+      "mitigation": "failing-first counter test plus equivalence checks, full npm test and strict gates; revert if regression"
+    }
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[2/2] DELIVERED: answer row serialization 23.046us -> 17.617us (1.31x) per 100 rows; 1209 tests pass",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "answer-rows-loop-1123",
-      "timestamp": 1795472608.8900323,
-      "timestamp_str": "2026-11-24 01:23:28",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "delivery": {
@@ -409,6 +394,30 @@
       "task_id": "tunedir-parallel-1123",
       "timestamp": 1795479467.06512,
       "timestamp_str": "2026-11-24 03:17:47"
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Parallelize answer-file reads in itemOutcomes: 3.43ms -> 1.64ms (2.1x) for 20 files",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Answer files are read concurrently while counting stays sequential and ordered",
+        "mitigation": "failing-first counter test plus equivalence checks, full npm test and strict gates; revert if regression",
+        "risks": "contract: same counts/saturation; dependency: none; concurrency: independent read-only reads, ordered processing; state: pure local Map",
+        "why": "User directive to keep improving speeds; itemOutcomes read every answer file sequentially during tune preflight"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "2347a6e0fe02ff2bf522128452315efa0ac6741ba796c9dfa6dfd2e05b957347",
+      "status": "in_progress",
+      "task_id": "itemoutcomes-reads-1123",
+      "timestamp": 1795480041.687775,
+      "timestamp_str": "2026-11-24 03:27:21",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
     }
   ]
 }
