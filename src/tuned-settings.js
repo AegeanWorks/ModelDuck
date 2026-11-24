@@ -1,6 +1,6 @@
 import { TASKS } from "../benchmarks/tasks.mjs";
 import { AppError } from "./errors.js";
-import { currentFingerprint, loadProfile, presetFor, profileIdFor, typeWarnings } from "./model-profiles.js";
+import { currentFingerprint, loadProfileSlim, presetFor, profileIdFor } from "./model-profiles.js";
 
 /**
  * Applies a model's measured profile (ADR-027, G-004): its load settings at
@@ -39,7 +39,7 @@ export class TunedSettings {
     const entry = modelId ? this.#registry?.findById(modelId) : null;
     if (!entry) return null;
     const catalogId = profileIdFor(entry.fileName);
-    const loaded = await loadProfile(this.#profilesDir, catalogId, await this.#fingerprint(entry));
+    const loaded = await loadProfileSlim(this.#profilesDir, catalogId, await this.#fingerprint(entry));
     if (!loaded) return null;
     const { profile, stale } = loaded;
     // An engine that was updated since the profile was measured is not the engine it was measured on.
@@ -58,7 +58,7 @@ export class TunedSettings {
       stages: profile.stages ?? null,
       // What this preset scored, and the question types it answers clearly worse (ADR-068).
       rate: chosen?.stats?.rate ?? null,
-      typeWarnings: task ? typeWarnings(profile, task)[task] ?? [] : [],
+      typeWarnings: task ? loaded.typeWarnings?.[task] ?? [] : [],
       stale,
       warnings,
       engineChanged,

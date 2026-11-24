@@ -24,7 +24,7 @@ import {
   sseStart,
 } from "./http.js";
 import { publicCatalog } from "./model-catalog.js";
-import { currentFingerprint, importRecipe, isPartRun, launchRecipe, listProfiles, loadProfile, profileIdFor, profileRecipe, profileStampFor, saveProfile, typeWarnings } from "./model-profiles.js";
+import { currentFingerprint, importRecipe, isPartRun, launchRecipe, listProfiles, loadProfile, loadProfileSlim, profileIdFor, profileRecipe, profileStampFor, saveProfile, typeWarnings } from "./model-profiles.js";
 import { SHIPPED_PRESETS_DIR, matchPreset, presetProfile, readShippedPresets } from "./preset-match.js";
 import { parseVerifyRequest, runVerified } from "./verified-code.js";
 import { networkDenied } from "../benchmarks/sandbox.mjs";
@@ -436,7 +436,7 @@ export function createHttpServer({
       const loaded = await Promise.all(listed.map(async ({ model, profileId }) => {
         if (!profilesDir || !savedOverviewIds.has(profileId)) return null;
         overviewProfileReads += 1;
-        return loadProfile(profilesDir, profileId, await profileFingerprint(model), profileStampFor(profilesDir, profileId)).catch(() => null);
+        return loadProfileSlim(profilesDir, profileId, await profileFingerprint(model), profileStampFor(profilesDir, profileId)).catch(() => null);
       }));
       const models = listed.map(({ model, profileId }, index) => {
         const entry = loaded[index];
@@ -451,7 +451,7 @@ export function createHttpServer({
           staleParts: entry?.staleParts ?? [],
           deviceParts: entry?.deviceParts ?? [],
           warnings: entry?.warnings ?? [],
-          typeWarnings: entry ? typeWarnings(entry.profile) : {},
+          typeWarnings: entry?.typeWarnings ?? {},
         };
       });
       sendJson(res, 200, { models });
@@ -475,7 +475,7 @@ export function createHttpServer({
       const loaded = await Promise.all(models.map(async (model) => {
         if (!profilesDir || !savedIds.has(model.profileId)) return null;
         recommendationProfileReads += 1;
-        return loadProfile(profilesDir, model.profileId, await profileFingerprint(model), profileStampFor(profilesDir, model.profileId)).catch(() => null);
+        return loadProfileSlim(profilesDir, model.profileId, await profileFingerprint(model), profileStampFor(profilesDir, model.profileId)).catch(() => null);
       }));
       const profiles = {};
       models.forEach((model, index) => {

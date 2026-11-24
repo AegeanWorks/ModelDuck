@@ -4430,5 +4430,53 @@
     "final_snapshot_entries": 0,
     "surface_digest": "8d023d5e2eac195af5ab595b03bb84169368cc540664f7eed4569c685c89bb28",
     "baseline_digest": "ef366c63638c8a1ff32fc712098bc46038a2be4f7d9a992e1c8607c11a31efeb"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [
+      ".aikit/decisions.md",
+      "src/model-profiles.js",
+      "src/server.js",
+      "src/tuned-settings.js",
+      "tests/profile-stamp-reuse.test.js"
+    ],
+    "no_visual_reason": "",
+    "baseline_commit": "34f0441",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1795555501.1854038,
+    "finished_at": 1795555623.8662622,
+    "strikes": 0,
+    "reviewer": "HungerG",
+    "review": {
+      "reviewer": "HungerG",
+      "surface": "app",
+      "surface_digest": "d9ab64fbdb334c6fc17576e9b6b297d2cdd1ee4a9110966a8d7527193a9c8efa",
+      "snapshot_digest": "",
+      "snapshot_entries": 0,
+      "visual": true,
+      "reviewed_at": 1795555623.8662672,
+      "scoped_paths": [
+        ".aikit/decisions.md",
+        "src/model-profiles.js",
+        "src/server.js",
+        "src/tuned-settings.js",
+        "tests/profile-stamp-reuse.test.js"
+      ],
+      "scoped_digest": "4f59ca031754b1e4d85868a4421a81de539deb6a2db25d94ac90d8f3504d7638"
+    },
+    "allowed_removals": [],
+    "allowed_tests": [
+      {
+        "path": "tests/profile-stamp-reuse.test.js",
+        "reason": "Failing-first slim-cache parse, clone, warning and full-profile preservation tests"
+      }
+    ],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "d9ab64fbdb334c6fc17576e9b6b297d2cdd1ee4a9110966a8d7527193a9c8efa",
+    "baseline_digest": "8d023d5e2eac195af5ab595b03bb84169368cc540664f7eed4569c685c89bb28"
   }
 ]

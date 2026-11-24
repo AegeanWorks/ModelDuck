@@ -20,12 +20,22 @@ export const PROFILE_SCHEMA = 1;
 // sweep log (hundreds of KB), so cache the text by mtime+size and parse a fresh
 // object per call; a save invalidates it explicitly.
 const PROFILE_TEXT_CACHE = new Map();
+const PROFILE_SLIM_CACHE = new Map();
 const PROFILE_TEXT_LIMIT = 16;
 let profileCacheHits = 0;
 let profileCacheMisses = 0;
+let profileSlimHits = 0;
+let profileSlimMisses = 0;
+let profileSlimParseCount = 0;
 let missingProfileSkips = 0;
 export function profileCacheStats() {
   return { size: PROFILE_TEXT_CACHE.size, hits: profileCacheHits, misses: profileCacheMisses };
+}
+export function profileSlimCacheStats() {
+  return { size: PROFILE_SLIM_CACHE.size, hits: profileSlimHits, misses: profileSlimMisses };
+}
+export function profileSlimParses() {
+  return profileSlimParseCount;
 }
 /** How many missing profiles skipped a redundant read after stat (test seam). */
 export function profileMissingSkips() {
@@ -33,8 +43,12 @@ export function profileMissingSkips() {
 }
 export function resetProfileCache() {
   PROFILE_TEXT_CACHE.clear();
+  PROFILE_SLIM_CACHE.clear();
   profileCacheHits = 0;
   profileCacheMisses = 0;
+  profileSlimHits = 0;
+  profileSlimMisses = 0;
+  profileSlimParseCount = 0;
   missingProfileSkips = 0;
 }
 
@@ -197,6 +211,7 @@ export async function saveProfile(directory, profile) {
   const file = fileFor(directory, profile.catalogId);
   await writeJsonAtomic(file, profile);
   PROFILE_TEXT_CACHE.delete(file);
+  PROFILE_SLIM_CACHE.delete(file);
 }
 
 /** Question types a task's preset answers significantly worse than the defaults (ADR-068). */
@@ -377,6 +392,25 @@ export function importRecipe(recipe) {
   };
 }
 
+function profileStatus(profile, fingerprint) {
+  const differs = (print) => (key) => print?.[key] !== fingerprint?.[key];
+  const parts = Object.entries(profile.measuredUnder ?? {});
+  const prints = [profile.fingerprint, ...parts.map(([, print]) => print)];
+  const stale = FINGERPRINT_KEYS.filter((key) => prints.some((print) => differs(print)(key)));
+  const warnings = stale.map((key) => staleWarning(key, prints.find((print) => differs(print)(key))?.[key], fingerprint?.[key]));
+  const staleParts = parts.filter(([, print]) => FINGERPRINT_KEYS.some(differs(print))).map(([part]) => part);
+  if (staleParts.length) warnings.push(`Measured before that: ${staleParts.join(", ")}; the other parts are up to date.`);
+  // Parts measured on another device than the profile now uses; the device part itself decides it.
+  const device = profile.load?.settings?.gpuBackend ?? "cpu";
+  const onOther = Object.entries(profile.measuredOn ?? {}).filter(([part, backend]) => part !== "device" && backend !== device);
+  const deviceParts = onOther.map(([part]) => part);
+  if (deviceParts.length) {
+    const before = [...new Set(onOther.map(([, backend]) => deviceLabel(backend)))].join(" and ");
+    warnings.push(`Measured on ${before}, now on ${deviceLabel(device)}: ${deviceParts.join(", ")}. Run them again so they match the device.`);
+  }
+  return { stale, staleParts, deviceParts, warnings };
+}
+
 /** The saved profile and the fingerprint keys that changed since it was measured, or null when there is none. */
 export async function loadProfile(directory, catalogId, fingerprint, knownStamp = null) {
   const file = fileFor(directory, catalogId);
@@ -432,22 +466,36 @@ export async function loadProfile(directory, catalogId, fingerprint, knownStamp 
       fix: "Update ModelDuck, or tune the model again to replace the profile.",
     });
   }
-  const differs = (print) => (key) => print?.[key] !== fingerprint?.[key];
-  const parts = Object.entries(profile.measuredUnder ?? {});
-  const prints = [profile.fingerprint, ...parts.map(([, print]) => print)];
-  const stale = FINGERPRINT_KEYS.filter((key) => prints.some((print) => differs(print)(key)));
-  const warnings = stale.map((key) => staleWarning(key, prints.find((print) => differs(print)(key))?.[key], fingerprint?.[key]));
-  const staleParts = parts.filter(([, print]) => FINGERPRINT_KEYS.some(differs(print))).map(([part]) => part);
-  if (staleParts.length) warnings.push(`Measured before that: ${staleParts.join(", ")}; the other parts are up to date.`);
-  // Parts measured on another device than the profile now uses; the device part itself decides it.
-  const device = profile.load?.settings?.gpuBackend ?? "cpu";
-  const onOther = Object.entries(profile.measuredOn ?? {}).filter(([part, backend]) => part !== "device" && backend !== device);
-  const deviceParts = onOther.map(([part]) => part);
-  if (deviceParts.length) {
-    const before = [...new Set(onOther.map(([, backend]) => deviceLabel(backend)))].join(" and ");
-    warnings.push(`Measured on ${before}, now on ${deviceLabel(device)}: ${deviceParts.join(", ")}. Run them again so they match the device.`);
+  return { profile, ...profileStatus(profile, fingerprint) };
+}
+
+/** Read-only profile consumers do not need the sweep log or resume state. */
+export async function loadProfileSlim(directory, catalogId, fingerprint, knownStamp = null) {
+  const file = fileFor(directory, catalogId);
+  const stamp = knownStamp !== null ? knownStamp : await (async () => {
+    loadProfileStats += 1;
+    const info = await fs.promises.stat(file).catch(() => null);
+    return info ? `${info.mtimeMs}:${info.size}` : null;
+  })();
+  if (stamp === null) {
+    missingProfileSkips += 1;
+    return null;
   }
-  return { profile, stale, staleParts, deviceParts, warnings };
+  const cached = PROFILE_SLIM_CACHE.get(file);
+  if (cached?.stamp === stamp) {
+    profileSlimHits += 1;
+    const profile = structuredClone(cached.profile);
+    return { profile, typeWarnings: structuredClone(cached.typeWarnings), ...profileStatus(profile, fingerprint) };
+  }
+  profileSlimMisses += 1;
+  profileSlimParseCount += 1;
+  const loaded = await loadProfile(directory, catalogId, fingerprint, stamp);
+  if (!loaded) return null;
+  const { sweeps: _sweeps, progress: _progress, ...profile } = loaded.profile;
+  const typeWarningsByTask = typeWarnings(profile);
+  if (PROFILE_SLIM_CACHE.size >= PROFILE_TEXT_LIMIT) PROFILE_SLIM_CACHE.delete(PROFILE_SLIM_CACHE.keys().next().value);
+  PROFILE_SLIM_CACHE.set(file, { stamp, profile, typeWarnings: typeWarningsByTask });
+  return { ...loaded, profile: structuredClone(profile), typeWarnings: structuredClone(typeWarningsByTask) };
 }
 
 const STALE_REASONS = Object.freeze({
