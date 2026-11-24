@@ -190,6 +190,53 @@ export function listRunsReadCount() {
   return listRunsReads;
 }
 
+const RUN_SUMMARY_CACHE_LIMIT = 4096;
+const RUN_SUMMARY_CACHE = new Map();
+const runSummaryStamp = (info) => `${info.mtimeMs}:${info.size}`;
+let runSummaryHits = 0;
+let runSummaryMisses = 0;
+let runSummaryParses = 0;
+export function listRunsSummaryParses() {
+  return runSummaryParses;
+}
+export function runSummaryCacheStats() {
+  return { size: RUN_SUMMARY_CACHE.size, hits: runSummaryHits, misses: runSummaryMisses };
+}
+export function resetRunSummaryCache() {
+  RUN_SUMMARY_CACHE.clear();
+  runSummaryHits = 0;
+  runSummaryMisses = 0;
+  runSummaryParses = 0;
+}
+
+async function readRunSummary(file) {
+  const key = path.resolve(file);
+  const cached = RUN_SUMMARY_CACHE.get(key);
+  if (cached) {
+    const info = await fs.promises.stat(key).catch(() => null);
+    if (info && runSummaryStamp(info) === cached.stamp) {
+      runSummaryHits += 1;
+      RUN_SUMMARY_CACHE.delete(key);
+      RUN_SUMMARY_CACHE.set(key, cached);
+      return structuredClone(cached.summary);
+    }
+    RUN_SUMMARY_CACHE.delete(key);
+  }
+  runSummaryMisses += 1;
+  runSummaryParses += 1;
+  const before = await fs.promises.stat(key).catch(() => null);
+  const record = await readJsonWithQuarantine(file, null, { logger: quiet });
+  const after = await fs.promises.stat(key).catch(() => null);
+  if (record?.schema !== RUN_SCHEMA) return null;
+  const { sweeps: _sweeps, result: _result, ...summary } = record;
+  // Do not pin a summary read across a concurrent atomic rewrite.
+  if (before && after && runSummaryStamp(before) === runSummaryStamp(after)) {
+    if (RUN_SUMMARY_CACHE.size >= RUN_SUMMARY_CACHE_LIMIT) RUN_SUMMARY_CACHE.delete(RUN_SUMMARY_CACHE.keys().next().value);
+    RUN_SUMMARY_CACHE.set(key, { stamp: runSummaryStamp(after), summary });
+  }
+  return structuredClone(summary);
+}
+
 /** Every saved run without its details, newest first; one left running by a process that has died is "interrupted". */
 export async function listRuns(dir, { isAlive = isAliveDefault } = {}) {
   const names = await fs.promises.readdir(dir).catch(() => []);
@@ -201,15 +248,13 @@ export async function listRuns(dir, { isAlive = isAliveDefault } = {}) {
     if (!aliveByPid.has(pid)) aliveByPid.set(pid, isAlive(pid));
     return aliveByPid.get(pid);
   };
-  // Reading dozens of small summary files is I/O bound and independent; gather
-  // them concurrently and keep positional order for stable presentation.
+  // Validate unchanged summaries with one stat and reuse their slim parsed view;
+  // new or rewritten files still go through the normal quarantine reader.
   const jsonNames = names.filter((item) => item.endsWith(".json"));
-  const records = await Promise.all(jsonNames.map((name) =>
-    readJsonWithQuarantine(path.join(dir, name), null, { logger: quiet })));
+  const summaries = await Promise.all(jsonNames.map((name) => readRunSummary(path.join(dir, name))));
   const runs = [];
-  for (const record of records) {
-    if (record?.schema !== RUN_SCHEMA) continue;
-    const { sweeps: _sweeps, result: _result, ...summary } = record;
+  for (const summary of summaries) {
+    if (!summary) continue;
     runs.push(present(summary, isAliveCached));
     listRunsReads += 1;
   }

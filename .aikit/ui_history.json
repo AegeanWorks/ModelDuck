@@ -4386,5 +4386,49 @@
     "final_snapshot_entries": 0,
     "surface_digest": "ef366c63638c8a1ff32fc712098bc46038a2be4f7d9a992e1c8607c11a31efeb",
     "baseline_digest": "17fa46c09add41c8b597a7ab2ad4dca79fbb904cf7a6f3d200a2d8516eb169de"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [
+      ".aikit/decisions.md",
+      "src/tune-runs.js",
+      "tests/listruns-parallel.test.js"
+    ],
+    "no_visual_reason": "",
+    "baseline_commit": "89c1fed",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1795553347.2117794,
+    "finished_at": 1795553591.989788,
+    "strikes": 1,
+    "reviewer": "HungerG",
+    "review": {
+      "reviewer": "HungerG",
+      "surface": "app",
+      "surface_digest": "8d023d5e2eac195af5ab595b03bb84169368cc540664f7eed4569c685c89bb28",
+      "snapshot_digest": "",
+      "snapshot_entries": 0,
+      "visual": true,
+      "reviewed_at": 1795553591.989791,
+      "scoped_paths": [
+        ".aikit/decisions.md",
+        "src/tune-runs.js",
+        "tests/listruns-parallel.test.js"
+      ],
+      "scoped_digest": "98b6e0237d1582add1259f8817d2663c7303bf9312270f14f81e0d453e5691e0"
+    },
+    "allowed_removals": [],
+    "allowed_tests": [
+      {
+        "path": "tests/listruns-parallel.test.js",
+        "reason": "Failing-first parse-count, mutation, liveness, rewrite and quarantine regression tests"
+      }
+    ],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "8d023d5e2eac195af5ab595b03bb84169368cc540664f7eed4569c685c89bb28",
+    "baseline_digest": "ef366c63638c8a1ff32fc712098bc46038a2be4f7d9a992e1c8607c11a31efeb"
   }
 ]
