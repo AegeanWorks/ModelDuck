@@ -167,11 +167,28 @@ export function resolveModelSettings(globalSettings, override) {
   return merged;
 }
 
+// Ids are a pure function of a file's relative path and the library rarely
+// changes between scans, so avoid re-hashing every unchanged path.
+const HASH_ID_CACHE = new Map();
+const HASH_ID_LIMIT = 4096;
+let hashIdComputes = 0;
+export function hashIdComputations() {
+  return hashIdComputes;
+}
+export function resetHashIdCache() {
+  HASH_ID_CACHE.clear();
+  hashIdComputes = 0;
+}
+
 function hashId(relativePath) {
-  return createHash("sha1")
-    .update(relativePath.replaceAll("\\", "/").toLowerCase())
-    .digest("hex")
-    .slice(0, 12);
+  const key = String(relativePath).replaceAll("\\", "/").toLowerCase();
+  const cached = HASH_ID_CACHE.get(key);
+  if (cached !== undefined) return cached;
+  hashIdComputes += 1;
+  const id = createHash("sha1").update(key).digest("hex").slice(0, 12);
+  if (HASH_ID_CACHE.size >= HASH_ID_LIMIT) HASH_ID_CACHE.delete(HASH_ID_CACHE.keys().next().value);
+  HASH_ID_CACHE.set(key, id);
+  return id;
 }
 
 // Test seam: how often the four-byte GGUF header was actually read.

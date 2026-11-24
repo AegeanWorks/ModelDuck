@@ -2131,3 +2131,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: controlled A/B measured **3.75–4.01 ms → ~1.0 ms (~4x)** with an identical SHA-256 (`72bdf7d55c42`). A failing-first test (confirmed against HEAD) pins concurrent reads, sorted output and cache reuse. The first benchmark used recipes missing the `kind` field and measured an empty list; it was corrected to valid recipes before the reported run.
 - **Cross-principle check:** PRINCIPLE-010: concurrency only for independent read-only reads; PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: recipe list unchanged.
 
+### ADR-281: Memoized model ids
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: `hashId()` recomputed a SHA-1 for every model path on every scan; 60 paths cost **57.7 us**, while the ids never change for an unchanged path.
+- **Decision**: Cache the 12-char id by normalized path in a bounded 4096-entry Map, with a computation counter and reset seam.
+- **Consequences**: isolated **57.7 us → 0.5 us (115x)**; controlled end-to-end A/B over a 60-model cold scan measured **1.567 ms → ~1.24 ms (~1.25x)** with an identical SHA-256 (`afc7c25446aa`). A failing-first test (confirmed against HEAD) pins id equality across slash styles, no re-hash on repeat scans and the counter.
+- **Cross-principle check:** PRINCIPLE-009: cached pure derivation; PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: model ids unchanged.
+

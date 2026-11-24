@@ -820,7 +820,8 @@ modelduck/
 │   ├── samplingaxes-cache.test.js
 │   ├── axes-memo.test.js
 │   ├── profile-stamp-reuse.test.js
-│   └── shippedpresets-parallel.test.js
+│   ├── shippedpresets-parallel.test.js
+│   └── hashid-memo.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml
