@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "git-info-two-spawns-1124",
+    "task_id": "tune-history-answer-cache-1124",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1795549457.200922,
+    "updated_at": 1795550712.9190128,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-    "lease_until": 1795556657.200922,
+    "lease_until": 1795557912.9190128,
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "continuations": [],
     "workspaces": [
@@ -16,87 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795549562.7473128,
-    "completed_head": "701ae03b7c84da4cc2e335c842788d662e6fdf87",
-    "completed_tree": "4a140b62fff9df873e028660bc6c1014244dedf5"
+    "completed_at": 1795550747.7219892,
+    "completed_head": "af248233fd28250648082ed4004993c933a0083d",
+    "completed_tree": "57a378262a3b6974e24afb5ba4fbdaffef397737"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'runfile-memo-1124' completed successfully.",
-      "head": "3c1f48ed2f921284daa88e85f88129a59faa20f2",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "runfile-memo-1124",
-      "timestamp": 1795526831.8513176,
-      "timestamp_str": "2026-11-24 16:27:11"
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Memoize formatBytes by normalized byte value: 3.97us -> 0.63us for 60",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Repeated sizes skip toFixed and unit-loop work",
-        "mitigation": "failing-first counter + equivalence test, controlled A/B hash, full npm test and 4/4 strict gates; revert if regression",
-        "risks": "contract: identical formatted label; dependency: pure function; concurrency: none; state: bounded Map",
-        "why": "User directive to keep improving speeds; model scans reformat the same repeated file sizes on every request"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "e4f96fadb8ac8f0028c4cc008e913f62026c05ebffbf086eff999d253e08f7ec",
-      "status": "in_progress",
-      "task_id": "formatbytes-memo-1124",
-      "timestamp": 1795527313.3042536,
-      "timestamp_str": "2026-11-24 16:35:13",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[2/2] DELIVERED: 60 sizes 4.73-4.83us -> 0.76-0.86us (~6x), identical hash; 1261 tests pass",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "formatbytes-memo-1124",
-      "timestamp": 1795528434.3631668,
-      "timestamp_str": "2026-11-24 16:53:54",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'formatbytes-memo-1124' completed successfully.",
-      "head": "b53448d4bac1240bf084885713e6504c55208bbe",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "formatbytes-memo-1124",
-      "timestamp": 1795528435.141147,
-      "timestamp_str": "2026-11-24 16:53:55"
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "description": "[1/2] Memoize quantFromName and templateOpensThinking by string",
@@ -527,6 +451,143 @@
       "task_id": "git-info-two-spawns-1124",
       "timestamp": 1795549562.8354094,
       "timestamp_str": "2026-11-24 22:46:02"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Share a bounded stamped answer-text cache between tune saturation analysis and answer restore, then release it before generation",
+      "files_affected": [
+        "src/tune-runs.js",
+        "benchmarks/tune-job.mjs",
+        "tests/tunedir-parallel.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Avoid rereading unchanged newest answer files during the same tune startup while preserving each reader's filtering policy",
+        "mitigation": "failing-first physical-read and append-invalidation tests, before/after stamps, 64MB byte cap plus entry cap, real-store controlled A/B hash, full npm test and 4/4 strict gates; revert if regression",
+        "risks": "contract: identical saturation and grouped restore rows; dependency: node fs/path only; concurrency: other tunes may append files; state: process-local bounded cache, cleared before tuning",
+        "why": "User directive to increase tuning speed; the real local store made 39 itemOutcomes plus 3 cachedAnswers reads over 106MB and took a 7.819s median per preflight"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "bfbf234cce06ef2fe1f6812366663d28a8127b5d8908298f23681005c09b2a0e",
+      "status": "in_progress",
+      "task_id": "tune-history-answer-cache-1124",
+      "timestamp": 1795549781.3339696,
+      "timestamp_str": "2026-11-24 22:49:41",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Share bounded stamped summary and answer caches between tune saturation analysis and answer restore, retaining newest runs and releasing both before generation",
+      "files_affected": [
+        "src/tune-runs.js",
+        "benchmarks/tune-job.mjs",
+        "tests/tunedir-parallel.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Avoid duplicate summary and newest-answer I/O while preserving each reader's filtering policy; first cache pass already reduced restore reads 3 -> 0 with identical output",
+        "mitigation": "failing-first physical-read and append-invalidation tests, before/after stamps, newest-run priority eviction, real-store controlled A/B hash, full npm test and 4/4 strict gates; revert if regression",
+        "risks": "contract: identical saturation and grouped restore rows; dependency: node fs/path only; concurrency: other tunes may append files; state: process-local 64MB answer and 16MB summary caps, cleared before tuning",
+        "why": "User directive to increase tuning speed; the real local store reads 39 summaries twice and 39 answer files plus 3 restore files (106MB) per preflight"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "39234377e926609e971fad18bbf5d54d7a6061483ae6756d776f03a1776c3827",
+      "status": "in_progress",
+      "task_id": "tune-history-answer-cache-1124",
+      "timestamp": 1795550107.5580263,
+      "timestamp_str": "2026-11-24 22:55:07",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: real-store answer reads 42 -> 39, summary reads 78 -> 39, identical output hash; qualified preflight 1110.991ms -> 926.643ms (1.20x), control drift 1.2%; invalidation/bounds tests, full suite and 4/4 gates pass",
+      "files_affected": [
+        "src/tune-runs.js",
+        "benchmarks/tune-job.mjs",
+        "tests/tunedir-parallel.test.js",
+        ".aikit/decisions.md",
+        ".aikit/ui_history.json"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/tune-history-ab.mjs",
+          "baseline": 1110.991,
+          "candidate": 926.643,
+          "command": "node tune-history-ab.mjs",
+          "control": "listRuns 121.607ms vs 120.163ms",
+          "drift": "1.2",
+          "interleaved": "yes",
+          "metric": "tune history preflight",
+          "unit": "ms",
+          "workload": "real modelduck store, 33 answer files and 39 summaries, 7 interleaved pairs on win32 Node 26.9.0"
+        },
+        {
+          "artifact": "local-only/tune-history-ab.mjs",
+          "baseline": 42.0,
+          "candidate": 39.0,
+          "command": "node tune-history-ab.mjs",
+          "control": "itemOutcomes alone opens 39 answer files in both builds",
+          "drift": "0",
+          "interleaved": "yes",
+          "metric": "answer files opened per preflight",
+          "unit": "files",
+          "workload": "real modelduck store, itemOutcomes plus default three-run restore"
+        },
+        {
+          "artifact": "local-only/tune-history-ab.mjs",
+          "baseline": 78.0,
+          "candidate": 39.0,
+          "command": "node tune-history-ab.mjs",
+          "control": "itemOutcomes alone opens 39 summaries in both builds",
+          "drift": "0",
+          "interleaved": "yes",
+          "metric": "summaries opened per preflight",
+          "unit": "files",
+          "workload": "real modelduck store, itemOutcomes plus default three-run restore"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "tune-history-answer-cache-1124",
+      "timestamp": 1795550712.9190128,
+      "timestamp_str": "2026-11-24 23:05:12",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'tune-history-answer-cache-1124' completed successfully.",
+      "head": "af248233fd28250648082ed4004993c933a0083d",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "tune-history-answer-cache-1124",
+      "timestamp": 1795550747.7883742,
+      "timestamp_str": "2026-11-24 23:05:47"
     }
   ]
 }
