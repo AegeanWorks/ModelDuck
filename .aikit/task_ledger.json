@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "walkgguf-parallel-1124",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795482228.1955338,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795482486.5318089,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795489428.1955338,
+    "lease_until": 1795489686.5318089,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,55 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; model discovery recursed into folders one at a time, paying full readdir latency per level",
-      "benefits": "Subdirectory reads and extensionless symlink magic checks run concurrently while found order stays byte-identical",
-      "risks": "contract: same file list in same order; dependency: none; concurrency: independent read-only readdirs; state: local accumulator only",
-      "mitigation": "failing-first counter + found-order equivalence test, controlled A/B, full npm test and 4/4 strict gates; revert if regression"
-    }
+    "completed_at": 1795482487.2565913,
+    "completed_head": "bfae9beaedb2714de5020f02726840b111748e3e",
+    "completed_tree": "34e54a5a396a6c2c8429331e4d9081e78b4a5f2d"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'kvshape-fast-1123' completed successfully.",
-      "head": "f318621f6f4b25b057dd5608c9fd6ef464a3cbd4",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "kvshape-fast-1123",
-      "timestamp": 1795475518.69478,
-      "timestamp_str": "2026-11-24 02:11:58"
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Read run summaries in parallel in listRuns: 5.42ms -> 1.77ms (3x) for 50 runs",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Run listing gathers files concurrently while preserving name order and quiet error handling",
-        "mitigation": "failing-first counter test plus ordering/equivalence checks, full npm test and strict gates; revert if regression",
-        "risks": "contract: same runs in same sorted order; dependency: none; concurrency: independent read-only file reads, results indexed by position; state: none",
-        "why": "User directive to keep improving speeds; /api/tune/runs read dozens of run summary files sequentially"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "2ebc7bf5777db8d2193c986866ff7b119a8c87b81bd7a7d1c8262372a223e7da",
-      "status": "in_progress",
-      "task_id": "listruns-parallel-1123",
-      "timestamp": 1795476283.6443238,
-      "timestamp_str": "2026-11-24 02:24:43",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "checklists": "passed",
@@ -418,6 +374,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: nested traversal 2.56ms -> 0.61ms (4.2x), e2e 3.27->1.57ms, identical order hash; 1222 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "walkgguf-parallel-1124",
+      "timestamp": 1795482486.5318089,
+      "timestamp_str": "2026-11-24 04:08:06",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'walkgguf-parallel-1124' completed successfully.",
+      "head": "bfae9beaedb2714de5020f02726840b111748e3e",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "walkgguf-parallel-1124",
+      "timestamp": 1795482487.3314495,
+      "timestamp_str": "2026-11-24 04:08:07"
     }
   ]
 }
