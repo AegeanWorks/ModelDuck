@@ -1,138 +1,32 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "joinpath-cache-1124",
-    "last_phase": "phase 2",
+    "task_id": "receipt-positive-cache-1124",
+    "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1795529508.8765483,
-    "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795536708.8765483,
+    "updated_at": 1795547974.1490865,
+    "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+    "lease_until": 1795555174.1490865,
     "started_by": "opencode:hy4-flash-free",
-    "continuations": [],
+    "continuations": [
+      {
+        "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+        "from": "opencode:hy4-flash-free",
+        "at": 1795547548.4309165
+      }
+    ],
     "workspaces": [
       {
         "name": "modelduck",
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; listProfiles/listRuns re-join the same directory and file names on every poll",
-      "benefits": "Directory scans skip repeated path normalization",
-      "risks": "contract: identical joined paths; dependency: immutable strings; concurrency: none; state: bounded Map",
-      "mitigation": "failing-first counter + equivalence test, controlled A/B hash, full npm test and 4/4 strict gates; revert if regression"
-    },
-    "forced_completion": {
-      "agent": "opencode:hy4-flash-free",
-      "reason": "Reverted before delivery: a cached joinPath helper was 17x faster in isolation, but the controlled end-to-end A/B over listProfiles+listRuns was flat (1.565-1.618ms vs 1.501-1.618ms); the join cost is too small a share of the stat-bound scans to ship. Code restored to HEAD; full suite passes.",
-      "at": 1795529983.9722762
-    },
-    "completed_at": 1795529983.972277,
-    "completed_head": "bcbefc2759127f7ab5bd2ef27a867b7afde73320",
-    "completed_tree": "f8036d89296d7e6dd89ff20013c699b4034f694a"
+    "completed_at": 1795548008.1853545,
+    "completed_head": "490848dc5dbd33dd2514b151ee40c26887ac2130",
+    "completed_tree": "3db5ea80ff472a613bdc6f813b31f94362f25e47"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Use the existing static os import in LlamaEngine.totalMemory",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Each CPU memory probe skips a ~5us dynamic import",
-        "mitigation": "controlled A/B hash, full npm test and 4/4 strict gates; revert if regression",
-        "risks": "contract: same total memory value; dependency: module already loaded; concurrency: none; state: none",
-        "why": "User directive to keep improving speeds; totalMemory dynamically imports node:os on each CPU preflight although engine.js already imports it statically"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "aa99c7b324013dfbf5bcb4d2e14f0858f25d2de6a9bbce8cad19762eeb2e8c2f",
-      "status": "in_progress",
-      "task_id": "engine-os-import-1124",
-      "timestamp": 1795518400.2238498,
-      "timestamp_str": "2026-11-24 14:06:40",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[2/2] DELIVERED: CPU memory probe 3.59-3.82us -> 0.43-0.46us (~8x), identical hash; 1256 tests pass",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "engine-os-import-1124",
-      "timestamp": 1795519805.6981366,
-      "timestamp_str": "2026-11-24 14:30:05",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'engine-os-import-1124' completed successfully.",
-      "head": "96f3f2acbbf6a3ac5d19d88af85838609a3ab979",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "engine-os-import-1124",
-      "timestamp": 1795519808.9282694,
-      "timestamp_str": "2026-11-24 14:30:08"
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Hoist node:child_process and node:crypto imports in runJavaScriptTests",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Each fresh answer skips ~5us of import plumbing",
-        "mitigation": "controlled A/B hash on shortcut answers, full npm test and 4/4 strict gates; revert if regression",
-        "risks": "contract: identical verdicts; dependency: built-in modules; concurrency: none; state: none",
-        "why": "User directive to keep improving speeds; every fresh judge call awaits two imports of already-available built-ins, even on syntax/no-entry shortcuts"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "e6e78dbfae7464f98bca3162fe519b57760ed68371a6215f3b0cc78c5402b287",
-      "status": "in_progress",
-      "task_id": "judge-static-imports-1124",
-      "timestamp": 1795520156.6665306,
-      "timestamp_str": "2026-11-24 14:35:56",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[2/2] DELIVERED: fresh judge answer 18.7-19.3us -> 10.8-11.3us (~1.7x), identical hash; 1257 tests pass",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "judge-static-imports-1124",
-      "timestamp": 1795522085.7525804,
-      "timestamp_str": "2026-11-24 15:08:05",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "delivery": {
@@ -426,6 +320,160 @@
       "task_id": "joinpath-cache-1124",
       "timestamp": 1795529984.0563188,
       "timestamp_str": "2026-11-24 17:19:44"
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "description": "[1/2] Cache successful install receipts by file stamp: 3.59ms -> sub-ms for 60",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Polls over downloaded models skip 60 readFile+JSON.parse cycles",
+        "mitigation": "failing-first counter + equivalence test, controlled A/B hash, full npm test and 4/4 strict gates; revert if regression",
+        "risks": "contract: same receipt object; dependency: stamp from stat; concurrency: none; state: bounded Map",
+        "why": "User directive to keep improving speeds; successful receipts were re-read and re-parsed on every state poll while only misses were cached"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "a94ccc267921d8002f266483f3751e18446486a77385f761288b897561fe3d17",
+      "status": "in_progress",
+      "task_id": "receipt-positive-cache-1124",
+      "timestamp": 1795530503.9692235,
+      "timestamp_str": "2026-11-24 17:28:23",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "continued_from": "opencode:hy4-flash-free",
+      "description": "Resume interrupted receipt positive cache; inspect surviving implementation and tests before verification",
+      "files_affected": [
+        "src/downloader.js",
+        "tests/receipt-cache.test.js",
+        "README.md",
+        ".aikit/codebase_map.md"
+      ],
+      "phase": "phase 2",
+      "phase_num": 2,
+      "status": "in_progress",
+      "task_id": "receipt-positive-cache-1124",
+      "timestamp": 1795547548.4309163,
+      "timestamp_str": "2026-11-24 22:12:28",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: 60-receipt warm poll 0.903ms -> 0.505ms (1.79x); cold poll 0.802ms -> 1.282ms; 1264 pass, 1 platform skip; 4/4 gates; fixed positive-cache invalidation",
+      "files_affected": [
+        "src/downloader.js",
+        "tests/receipt-cache.test.js",
+        "README.md",
+        ".aikit/codebase_map.md",
+        ".aikit/ui_history.json"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/receipt-cache-ab.mjs",
+          "baseline": 0.903,
+          "candidate": 0.505,
+          "command": "node receipt-cache-ab.mjs (5 interleaved process pairs, 7 inner rounds each)",
+          "metric": "60-receipt warm poll",
+          "qualified": "no",
+          "unit": "ms"
+        },
+        {
+          "artifact": "local-only/receipt-cache-ab.mjs",
+          "baseline": 0.802,
+          "candidate": 1.282,
+          "command": "node receipt-cache-ab.mjs (5 interleaved process pairs, 7 inner rounds each)",
+          "metric": "60-receipt cold poll",
+          "qualified": "no",
+          "unit": "ms"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "receipt-positive-cache-1124",
+      "timestamp": 1795547960.308096,
+      "timestamp_str": "2026-11-24 22:19:20",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: warm 60-receipt poll 0.903ms -> 0.505ms (1.79x); cold 0.802ms -> 1.282ms; 1264 pass, 1 platform skip; 4/4 gates; positive invalidation regression fixed",
+      "files_affected": [
+        "src/downloader.js",
+        "tests/receipt-cache.test.js",
+        "README.md",
+        ".aikit/codebase_map.md",
+        ".aikit/ui_history.json"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/receipt-cache-ab.mjs",
+          "baseline": 0.903,
+          "candidate": 0.505,
+          "command": "node receipt-cache-ab.mjs (5 interleaved pairs, 7 inner rounds)",
+          "drift": "workload=60 present receipt JSON files, win32 Node 26.9.0",
+          "metric": "60-receipt warm poll",
+          "qualified": "no",
+          "unit": "ms"
+        },
+        {
+          "artifact": "local-only/receipt-cache-ab.mjs",
+          "baseline": 0.802,
+          "candidate": 1.282,
+          "command": "node receipt-cache-ab.mjs (5 interleaved pairs, 7 inner rounds)",
+          "drift": "workload=60 present receipt JSON files after cache reset, win32 Node 26.9.0",
+          "metric": "60-receipt cold poll",
+          "qualified": "no",
+          "unit": "ms"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "receipt-positive-cache-1124",
+      "timestamp": 1795547974.1490865,
+      "timestamp_str": "2026-11-24 22:19:34",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'receipt-positive-cache-1124' completed successfully.",
+      "head": "490848dc5dbd33dd2514b151ee40c26887ac2130",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "receipt-positive-cache-1124",
+      "timestamp": 1795548008.3882997,
+      "timestamp_str": "2026-11-24 22:20:08"
     }
   ]
 }
