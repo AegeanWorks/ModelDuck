@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "tune-history-answer-cache-1124",
+    "task_id": "history-sqlite-transaction-1124",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1795550712.9190128,
+    "updated_at": 1795551343.0999632,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-    "lease_until": 1795557912.9190128,
+    "lease_until": 1795558543.0999632,
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "continuations": [],
     "workspaces": [
@@ -16,70 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795550747.7219892,
-    "completed_head": "af248233fd28250648082ed4004993c933a0083d",
-    "completed_tree": "57a378262a3b6974e24afb5ba4fbdaffef397737"
+    "completed_at": 1795551398.5344627,
+    "completed_head": "95b4dd9c23ac14a1722b573a20ee306c0e5181e2",
+    "completed_tree": "32f86006e62c0e6e45a7eb9fd7b2e78f359e13e9"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Memoize quantFromName and templateOpensThinking by string",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "60-model scans skip repeated quant regex and template tail scans",
-        "mitigation": "failing-first counter + equivalence tests, controlled A/B hash, full npm test and 4/4 strict gates; revert if regression",
-        "risks": "contract: identical quant labels and thinking flags; dependency: pure functions; concurrency: none; state: two bounded Maps",
-        "why": "User directive to keep improving speeds; both scan helpers redo regex work per model on every cold scan although names/templates repeat"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "6db0561e59560613cf5f6285c2bb72cbd32083e7344a5053ad74f0752ce00ebc",
-      "status": "in_progress",
-      "task_id": "scan-strings-memo-1124",
-      "timestamp": 1795528615.9484315,
-      "timestamp_str": "2026-11-24 16:56:55",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[2/2] DELIVERED: 60 templates 3.06-3.21us -> 0.36-0.49us (~7x), identical hash; 1263 tests pass",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "scan-strings-memo-1124",
-      "timestamp": 1795529171.318462,
-      "timestamp_str": "2026-11-24 17:06:11",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'scan-strings-memo-1124' completed successfully.",
-      "head": "f804abbb0ed702cff6472557669390085c417624",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "scan-strings-memo-1124",
-      "timestamp": 1795529172.4249654,
-      "timestamp_str": "2026-11-24 17:06:12"
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "description": "[1/2] Add cached joinPath helper and use it in repeated directory scans: 330us -> 19us for 60",
@@ -588,6 +529,99 @@
       "task_id": "tune-history-answer-cache-1124",
       "timestamp": 1795550747.7883742,
       "timestamp_str": "2026-11-24 23:05:47"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Write each benchmark run and each history import in one SQLite transaction, reusing model/prompt statements; preserve JSONL-first fallback",
+      "files_affected": [
+        "benchmarks/history.mjs",
+        "tests/benchmark-history.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "One commit per logical run/import instead of per row, with atomic rollback and less statement-preparation overhead",
+        "mitigation": "failing-first mid-run rollback test, duplicate/import/link/integrity tests, synthetic controlled A/B proof, full npm test and 4/4 strict gates; revert if regression",
+        "risks": "contract: identical rows, duplicate UID no-ops, links and JSONL-first fallback; dependency: existing node:sqlite; concurrency: SQLite write locking unchanged; state: no schema or history-format change",
+        "why": "User directive to increase benchmark and tuning speed; a synthetic 50-model x 20-prompt record took a 6.786s median because 1000 plus rows autocommitted separately"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "a591726f947ff850df9a19518b55e194c15d307141cba99110426444f6695f28",
+      "status": "in_progress",
+      "task_id": "history-sqlite-transaction-1124",
+      "timestamp": 1795550889.2671466,
+      "timestamp_str": "2026-11-24 23:08:09",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: 50-model x 20-prompt history write 9498.247ms -> 115.102ms (82.52x), 1052 autocommits -> 1; identical rows/JSONL/integrity; rollback tests, full suite and 4/4 gates pass",
+      "files_affected": [
+        "benchmarks/history.mjs",
+        "tests/benchmark-history.test.js",
+        ".aikit/decisions.md"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/history-write-ab.mjs",
+          "baseline": 9498.247,
+          "candidate": 115.102,
+          "command": "node history-write-ab.mjs",
+          "control": "read-only open/list 4.579ms vs 4.111ms",
+          "drift": "10.2",
+          "interleaved": "yes",
+          "metric": "benchmark history record",
+          "unit": "ms",
+          "workload": "50 models x 20 prompts, 3 interleaved process pairs with 3 writes each on win32 Node 26.9.0"
+        },
+        {
+          "artifact": "local-only/history-write-ab.mjs",
+          "baseline": 1052.0,
+          "candidate": 1.0,
+          "command": "node history-write-ab.mjs",
+          "control": "read-only open/list performs zero writes in both builds",
+          "drift": "0",
+          "interleaved": "yes",
+          "metric": "SQLite commits per synthetic record",
+          "unit": "commits",
+          "workload": "one commit row, one run row, 50 model rows and 1000 prompt rows"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "history-sqlite-transaction-1124",
+      "timestamp": 1795551343.0999632,
+      "timestamp_str": "2026-11-24 23:15:43",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'history-sqlite-transaction-1124' completed successfully.",
+      "head": "95b4dd9c23ac14a1722b573a20ee306c0e5181e2",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "history-sqlite-transaction-1124",
+      "timestamp": 1795551399.2702415,
+      "timestamp_str": "2026-11-24 23:16:39"
     }
   ]
 }
