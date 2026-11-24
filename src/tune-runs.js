@@ -291,6 +291,12 @@ async function readRunSummaries(folder, names) {
   return jsonNames.map((name, index) => ({ name, record: records[index] }));
 }
 
+// Test seam: how many answer files a single cachedAnswers call read.
+let cachedAnswersReads = 0;
+export function cachedAnswersReadCount() {
+  return cachedAnswersReads;
+}
+
 export async function cachedAnswers(dir, { profileId, fingerprint = null, limitRuns = 3, limitRows = 20000, parallel = 1 } = {}) {
   const dirs = (Array.isArray(dir) ? dir : [dir]).filter(Boolean);
   const runs = [];
@@ -309,17 +315,30 @@ export async function cachedAnswers(dir, { profileId, fingerprint = null, limitR
     }
   }
   runs.sort((left, right) => (left.startedAt < right.startedAt ? 1 : -1));
+  // The chosen answer files are independent; read them all concurrently, then
+  // scan in newest-first order so grouping and the limitRows break are unchanged.
+  const selected = [];
+  for (const run of runs.slice(0, limitRuns)) {
+    try {
+      selected.push({ run, file: answersFile(run.folder, run.name) });
+    } catch {
+      continue; // a file name that cannot be a run id
+    }
+  }
+  const loaded = await Promise.all(selected.map(async ({ run, file }) => {
+    try {
+      return { run, text: await fs.promises.readFile(file, "utf8"), error: null };
+    } catch (error) {
+      return { run, text: null, error };
+    }
+  }));
+  cachedAnswersReads += loaded.length;
   const groups = new Map();
   let rows = 0;
-  for (const run of runs.slice(0, limitRuns)) {
-    let file;
-    try {
-      file = answersFile(run.folder, run.name);
-    } catch {
-      continue;
-    }
-    try {
-      const text = await fs.promises.readFile(file, "utf8");
+  for (const { run, text, error } of loaded) {
+    if (error && error.code !== "ENOENT") throw error;
+    if (text === null) continue;
+    {
       let start = 0;
       scan: while (start < text.length) {
         let end = text.indexOf("\n", start);
@@ -350,8 +369,6 @@ export async function cachedAnswers(dir, { profileId, fingerprint = null, limitR
         group.rows.push(row);
         groups.set(key, group);
       }
-    } catch (error) {
-      if (error?.code !== "ENOENT") throw error;
     }
     if (rows >= limitRows) break;
   }

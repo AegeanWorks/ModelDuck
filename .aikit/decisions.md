@@ -1979,3 +1979,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: read portion **3.43 ms → 1.64 ms (2.1x)**; controlled end-to-end A/B over 20 files x 500 rows measured **~7.3–8.3 ms → ~5.8 ms (~1.3x)** with an identical SHA-256 of the full result. A failing-first test (confirmed against HEAD) pins read count, counts and saturation.
 - **Cross-principle check:** PRINCIPLE-010: concurrency only for independent read-only reads; PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: no outcome data changed.
 
+### ADR-262: Parallel answer-file reads in cachedAnswers
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: `cachedAnswers()` read its newest run answer files one at a time; with the default three runs the read portion cost **0.47 ms**.
+- **Decision**: Resolve the `limitRuns` file paths, read them all with one `Promise.all`, then scan in the original newest-first order so grouping, the `limitRows` early break, the `otherTuner` width filter and ENOENT/error handling are unchanged.
+- **Consequences**: 3-file reads **0.47 ms → 0.31 ms (1.5x)**; controlled end-to-end A/B over five call configurations measured **~1.33–1.60 ms → ~1.11–1.16 ms (~1.2–1.3x)** with an identical SHA-256 (`e462f484aace`). A failing-first test (confirmed against HEAD) pins read count, newest-first order and the row cap.
+- **Cross-principle check:** PRINCIPLE-010: concurrency only for independent read-only reads; PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: no answer data changed.
+

@@ -487,7 +487,7 @@ modelduck/
 │   ├── engine-catalog.js <- engine descriptors
 │   ├── engine-listing.js <- engines the API lists
 │   ├── engine-env.js
-│   ├── engine-install.js <- engine installer
+│   ├── engine-install.js
 │   ├── external-engines.js <- backends for engines outside the process
 │   ├── server-engine.js <- the engine interface over one backend
 │   ├── engine-router.js <- in-process or external, by load
@@ -535,7 +535,7 @@ modelduck/
 │   ├── THREAT-MODEL.md <- local-inference threat model
 │   ├── ENGINES.md <- inference engines
 │   ├── DEVELOPMENT.md <- what the tests check
-│   ├── state-machines.md <- the 25-machine inventory and verified gaps
+│   ├── state-machines.md <- machine inventory
 │   ├── state-machines.json <- machine inventory checked by tests
 │   ├── state-machine-proposals.md <- judged proposals
 │   ├── state-machine-proposals.json <- proposal evidence links
@@ -801,7 +801,8 @@ modelduck/
 │   ├── listruns-parallel.test.js
 │   ├── profilelist-parallel.test.js
 │   ├── tunedir-parallel.test.js
-│   └── itemoutcomes-reads.test.js
+│   ├── itemoutcomes-reads.test.js
+│   └── cachedanswers-reads.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml
