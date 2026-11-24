@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "filefor-memo-1124",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795523964.1382985,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795525221.7809253,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795531164.1382985,
+    "lease_until": 1795532421.7809253,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,49 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; fileFor re-validates an id and re-joins a path for every loadProfile on each tune route request",
-      "benefits": "60 profile loads skip repeated regex validation and path joins",
-      "risks": "contract: same validated path; dependency: immutable strings; concurrency: none; state: bounded Map",
-      "mitigation": "failing-first counter + equivalence test, controlled A/B hash, full npm test and 4/4 strict gates; revert if regression"
-    }
+    "completed_at": 1795525223.4185028,
+    "completed_head": "30157e70b36b3778628a1917d5a71d1f33e0a8fc",
+    "completed_tree": "caaef5026d159e50dfb83a66099be15fa527ead7"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[2/2] DELIVERED: 30 preset reads 3.75-4.01ms -> ~1.0ms (~4x), identical hash; 1251 tests pass",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "shippedpresets-parallel-1124",
-      "timestamp": 1795507686.9,
-      "timestamp_str": "2026-11-24 11:08:06",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'shippedpresets-parallel-1124' completed successfully.",
-      "head": "8a18731ab730fed3d05ce713999f1fd86863b05b",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "shippedpresets-parallel-1124",
-      "timestamp": 1795507689.2444718,
-      "timestamp_str": "2026-11-24 11:08:09"
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "description": "[1/2] Memoize hashId by normalized relative path for repeated model scans",
@@ -418,6 +380,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: fileFor 522us -> 120us (4.4x), 60 loads ~1.07x, identical hash; 1258 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "filefor-memo-1124",
+      "timestamp": 1795525221.7809253,
+      "timestamp_str": "2026-11-24 16:00:21",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'filefor-memo-1124' completed successfully.",
+      "head": "30157e70b36b3778628a1917d5a71d1f33e0a8fc",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "filefor-memo-1124",
+      "timestamp": 1795525223.5403256,
+      "timestamp_str": "2026-11-24 16:00:23"
     }
   ]
 }
