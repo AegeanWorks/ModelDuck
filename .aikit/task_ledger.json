@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "tune-list-summary-cache-1124",
+    "task_id": "profile-slim-cache-1125",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1795553722.3660188,
+    "updated_at": 1795555679.3607943,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-    "lease_until": 1795560922.3660188,
+    "lease_until": 1795562879.3607943,
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "continuations": [],
     "workspaces": [
@@ -16,124 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795553774.9574533,
-    "completed_head": "ad316410876b1c4aa69a86f00afe5879774df76b",
-    "completed_tree": "14d783c04bb487e233fd118fc367788afa7ee5e3"
+    "completed_at": 1795555723.4257126,
+    "completed_head": "645d4352c6eff34c3f05bd46f2d1916113c6afd6",
+    "completed_tree": "8708d78708ccbfec3e6246d8f2fed731ece256b0"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'receipt-positive-cache-1124' completed successfully.",
-      "head": "490848dc5dbd33dd2514b151ee40c26887ac2130",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "receipt-positive-cache-1124",
-      "timestamp": 1795548008.3882997,
-      "timestamp_str": "2026-11-24 22:20:08"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Apply the existing narrowed-scan predicate before per-file stat and GGUF magic I/O; pin read counts and benchmark a 200-file library",
-      "files_affected": [
-        "src/model-registry.js",
-        "tests/model-registry.test.js",
-        ".aikit/decisions.md",
-        "README.md"
-      ],
-      "impact_assessment": {
-        "benefits": "A one-model tune avoids unrelated file I/O; baseline 200-file narrowed scan is 8.588ms with 199 magic reads per scan",
-        "mitigation": "failing-first stat/magic read-count test, output equivalence by id, extensionless-symlink discovery tests, controlled A/B, full npm test and 4/4 strict gates; revert if regression",
-        "risks": "contract: identical filtered rows and ids; dependency: node fs/path only; concurrency: preserve parallel I/O for kept files; state: existing metadata cache and overrides unchanged",
-        "why": "User directive to increase tuning speed; openTarget narrows to one model but scan still stats and magic-reads every discovered file before filtering"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "cdd0b0bc6538ee19d8bd045d0c0a222028cac92c0a63748a8f79b84f7d811cff",
-      "status": "in_progress",
-      "task_id": "narrow-scan-io-1124",
-      "timestamp": 1795548372.1525514,
-      "timestamp_str": "2026-11-24 22:26:12",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: cold 200-file narrowed scan 6.364ms -> 2.035ms (3.13x), magic reads 200 -> 1; full scan identical hash and no regression; failing-first read-count test, full suite and 4/4 gates pass",
-      "files_affected": [
-        "src/model-registry.js",
-        "tests/model-registry.test.js",
-        "README.md",
-        ".aikit/decisions.md",
-        ".aikit/ui_history.json"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/narrow-scan-ab.mjs",
-          "baseline": 6.364,
-          "candidate": 2.035,
-          "command": "node narrow-scan-ab.mjs (5 interleaved process pairs, 9 inner scans)",
-          "control": "full 200-file scan 9.111ms vs 8.901ms with identical normalized output hash",
-          "drift": "2.3",
-          "interleaved": "yes",
-          "metric": "cold narrowed scan",
-          "unit": "ms",
-          "workload": "200-file library, one selected model, fresh registry per scan"
-        },
-        {
-          "artifact": "local-only/narrow-scan-ab.mjs",
-          "baseline": 200.0,
-          "candidate": 1.0,
-          "command": "node narrow-scan-ab.mjs (5 interleaved process pairs, 9 inner scans)",
-          "control": "full scan performed 200 magic reads in both builds",
-          "drift": "0",
-          "interleaved": "yes",
-          "metric": "GGUF magic reads per narrowed scan",
-          "unit": "reads",
-          "workload": "200-file library, one selected model, fresh registry per scan"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "narrow-scan-io-1124",
-      "timestamp": 1795548910.9511137,
-      "timestamp_str": "2026-11-24 22:35:10",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'narrow-scan-io-1124' completed successfully.",
-      "head": "702599d612cb11fddebe2138cde8913067c9bde1",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "narrow-scan-io-1124",
-      "timestamp": 1795548938.567009,
-      "timestamp_str": "2026-11-24 22:35:38"
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "description": "[1/2] Collapse currentGitInfo from five synchronous Git spawns to one formatted log plus one porcelain status call; pin parsing and fallback behavior",
@@ -631,6 +518,125 @@
       "task_id": "tune-list-summary-cache-1124",
       "timestamp": 1795553775.0301323,
       "timestamp_str": "2026-11-24 23:56:15"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Add a stamped parsed slim-profile cache for overview, recommendations, tuned-settings resolution and scheduler lane reads; keep full loadProfile for resume/detail/export",
+      "files_affected": [
+        "src/model-profiles.js",
+        "src/tuned-settings.js",
+        "src/tune-scheduler.js",
+        "src/server.js",
+        "tests/profile-stamp-reuse.test.js",
+        "tests/tuned-settings.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Read-only consumers reuse a cloned profile projection without sweeps/progress while tune resume and full detail keep every field",
+        "mitigation": "failing-first parse-count, clone, save-invalidation and full-profile-preservation tests; real-store overview A/B hash, tuned-settings/scheduler equivalence tests, full npm test and 4/4 strict gates; revert if regression",
+        "risks": "contract: identical settings, stats, warnings and lane choice; dependency: node fs/path and structuredClone; concurrency: saves or external rewrites change stamps; state: bounded process-local slim cache alongside existing text cache",
+        "why": "User directive to increase non-tuning speed; eight real profiles occupy 9.4MB and warm overview-like loads took a 16.621ms median because every call reparsed full sweeps/progress"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "e55fba512b54b5988db5a77ffe8e2b15d3a225cc1a12155438f5138b0d388b72",
+      "status": "in_progress",
+      "task_id": "profile-slim-cache-1125",
+      "timestamp": 1795554390.1409993,
+      "timestamp_str": "2026-11-25 00:06:30",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Add a stamped parsed slim-profile cache for overview, recommendations and tuned-settings resolution; keep full loadProfile for resume/detail/export and preserve the schema-less scheduler lane reader",
+      "files_affected": [
+        "src/model-profiles.js",
+        "src/tuned-settings.js",
+        "src/server.js",
+        "tests/profile-stamp-reuse.test.js",
+        "tests/tuned-settings.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Read-only consumers reuse cloned slim profiles and precomputed type warnings without changing settings or resume behavior",
+        "mitigation": "failing-first parse-count, clone, save-invalidation and full-profile-preservation tests; real-store overview A/B hash, tuned-settings/server equivalence tests, full npm test and 4/4 strict gates; revert if regression",
+        "risks": "contract: identical settings, stats, warnings and recommendations; dependency: node fs/path and structuredClone; concurrency: saves or external rewrites change stamps; state: bounded process-local slim cache",
+        "why": "User directive to increase non-tuning speed; eight real profiles occupy 9.4MB and overview-like consumers repeatedly reparsed full sweeps/progress"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "c1a95466e6c9540bad45286f20c0c4784186222478397ecc64fd5742fa77dc0c",
+      "status": "in_progress",
+      "task_id": "profile-slim-cache-1125",
+      "timestamp": 1795555452.4924526,
+      "timestamp_str": "2026-11-25 00:24:12",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: real eight-profile overview 29.546ms -> 3.535ms (8.36x), warm profile parses 8 -> 0, identical overview hash; control drift 11.1%; clone/save/full-resume tests, full suite and 4/4 gates pass",
+      "files_affected": [
+        "src/model-profiles.js",
+        "src/server.js",
+        "src/tuned-settings.js",
+        "tests/profile-stamp-reuse.test.js",
+        ".aikit/decisions.md",
+        ".aikit/ui_history.json"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/profile-overview-ab.mjs",
+          "baseline": 29.546,
+          "candidate": 3.535,
+          "command": "node profile-overview-ab.mjs",
+          "control": "100000 profileIdFor calls 1.047ms vs 1.163ms",
+          "drift": "11.1",
+          "interleaved": "yes",
+          "metric": "read-only profile overview",
+          "unit": "ms",
+          "workload": "eight real profiles, 30 interleaved pairs, fixed fingerprint and exact response hash on win32 Node 26.9.0"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "profile-slim-cache-1125",
+      "timestamp": 1795555679.3607943,
+      "timestamp_str": "2026-11-25 00:27:59",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'profile-slim-cache-1125' completed successfully.",
+      "head": "645d4352c6eff34c3f05bd46f2d1916113c6afd6",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "profile-slim-cache-1125",
+      "timestamp": 1795555723.739385,
+      "timestamp_str": "2026-11-25 00:28:43"
     }
   ]
 }
