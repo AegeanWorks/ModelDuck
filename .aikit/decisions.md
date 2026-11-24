@@ -2075,3 +2075,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: a controlled A/B over four formatting variants of one answer measured **4 child spawns → 1 spawn + 3 code hits**, ~1.5 s → ~0.25–0.4 s (~4–6x), with an identical SHA-256 (`f336072a7ee5`). A failing-first test (confirmed against HEAD) pins 3 → 1 verifications and verdict equality.
 - **Cross-principle check:** PRINCIPLE-011: no in-process execution of answer code, sandbox isolation unchanged; PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: verdicts byte-identical.
 
+### ADR-274: Cached tune rungs for repeated estimates
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: `tuneRungs()` rebuilt the frozen suite's rungs, holdouts, pools and long-context sets on every call. `/api/tune/steps` calls `expectedAnswers()` and `estimateTune()` several times per request, each rebuilding them.
+- **Decision**: Cache rungs by prompt-set identity and joined task list; callers only read the result, and `withDiscriminatingRungs` shallow-copies before modifying. A `tuneRungsComputations()` seam and reset helper are exported.
+- **Consequences**: a controlled A/B over three estimate calls measured **15–18 ms → ~1 ms (~16x)** with an identical SHA-256 (`ca4f38fdc9be`). Two failing-first tests (confirmed against HEAD) pin result identity, one build for answers-plus-seconds, and reuse on repeats.
+- **Cross-principle check:** PRINCIPLE-009: cached pure derivation, no new module; PRINCIPLE-014: failing-first tests, no assertion weakened; G-001/G-003: estimates and rung contents unchanged.
+

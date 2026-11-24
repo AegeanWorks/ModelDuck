@@ -151,7 +151,30 @@ export function taskRungs(taskId, prompts = PROMPTS) {
 }
 
 /** Rungs for `tune()`: each task's own, and for the load stage the union of every task's first two. */
+// Rungs are derived from the frozen suite. /api/tune/steps asks for the same
+// task list several times per request (answers and seconds, quick and full), so
+// build them once per prompt set and task list. Callers only read the result;
+// withDiscriminatingRungs shallow-copies before changing anything.
+const RUNGS_CACHE = new Map();
+let tuneRungsComputes = 0;
+export function tuneRungsComputations() {
+  return tuneRungsComputes;
+}
+export function resetTuneRungsCache() {
+  RUNGS_CACHE.clear();
+  tuneRungsComputes = 0;
+}
+
 export function tuneRungs(taskIds = TASKS.map((task) => task.id), prompts = PROMPTS) {
+  const taskKey = taskIds.join("|");
+  let byKey = RUNGS_CACHE.get(prompts);
+  if (!byKey) {
+    byKey = new Map();
+    RUNGS_CACHE.set(prompts, byKey);
+  }
+  const cached = byKey.get(taskKey);
+  if (cached !== undefined) return cached;
+  tuneRungsComputes += 1;
   const rungs = Object.fromEntries(taskIds.map((taskId) => [taskId, taskRungs(taskId, prompts)]));
   rungs.load = [0, 1].map((index) => taskIds.flatMap((taskId) => rungs[taskId][index] ?? rungs[taskId].at(-1)));
   rungs.speed = [speedItems(prompts)];
@@ -163,6 +186,7 @@ export function tuneRungs(taskIds = TASKS.map((task) => task.id), prompts = PROM
   rungs.pool = Object.fromEntries(taskIds.map((taskId) => [taskId, split(taskId, prompts).tune]));
   // Long-context KV confirmation items (M6): searched never.
   rungs.longContext = Object.fromEntries(taskIds.map((taskId) => [taskId, taskLongContext(taskId, prompts)]));
+  byKey.set(taskKey, rungs);
   return rungs;
 }
 
