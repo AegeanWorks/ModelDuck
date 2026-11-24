@@ -533,7 +533,7 @@ modelduck/
 ├── engines/ <- pinned engine manifest
 ├── docs/
 │   ├── THREAT-MODEL.md
-│   ├── ENGINES.md <- inference engines
+│   ├── ENGINES.md
 │   ├── DEVELOPMENT.md
 │   ├── state-machines.md
 │   ├── state-machines.json
@@ -825,7 +825,8 @@ modelduck/
 │   ├── typewarnings-memo.test.js
 │   ├── health-static-import.test.js
 │   ├── engine-os-import.test.js
-│   └── judge-static-imports.test.js
+│   ├── judge-static-imports.test.js
+│   └── filefor-memo.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml

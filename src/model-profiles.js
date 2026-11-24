@@ -52,6 +52,20 @@ export const FINGERPRINT_KEYS = Object.freeze([
 
 const CATALOG_ID = /^[a-z0-9][a-z0-9._-]*$/i;
 
+// Validation and path joining cost ~8 us per call on this host, while the
+// inputs are immutable strings and usually repeat across a poll. Keep the
+// validation on every call but cache the derived path.
+const FILE_FOR_CACHE = new Map();
+const FILE_FOR_LIMIT = 4096;
+let fileForComputes = 0;
+export function fileForComputations() {
+  return fileForComputes;
+}
+export function resetFileForCache() {
+  FILE_FOR_CACHE.clear();
+  fileForComputes = 0;
+}
+
 function fileFor(directory, catalogId) {
   if (typeof catalogId !== "string" || !CATALOG_ID.test(catalogId) || catalogId.includes("..")) {
     throw new AppError("The model profile name is invalid", {
@@ -61,7 +75,14 @@ function fileFor(directory, catalogId) {
       fix: "Tune a model from the catalog or the Models list.",
     });
   }
-  return path.join(directory, `${catalogId}.json`);
+  const key = `${directory}|${catalogId}`;
+  const cached = FILE_FOR_CACHE.get(key);
+  if (cached !== undefined) return cached;
+  fileForComputes += 1;
+  const file = path.join(directory, `${catalogId}.json`);
+  if (FILE_FOR_CACHE.size >= FILE_FOR_LIMIT) FILE_FOR_CACHE.delete(FILE_FOR_CACHE.keys().next().value);
+  FILE_FOR_CACHE.set(key, file);
+  return file;
 }
 
 // File names are immutable strings and the catalog is a module constant, so

@@ -2168,6 +2168,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Import `node:child_process`, `node:crypto`, `node:fs/promises`, `node:os` and `node:path` at module scope and remove all six per-call dynamic imports.
 - **Consequences**: controlled A/B on a syntax-error shortcut answer kept an identical SHA-256 (`aea8c2b908ad`) and measured **18.7-19.3 us -> 10.8-11.3 us (~1.7x)** per fresh answer. A failing-first source-guard test (confirmed against HEAD) caught the second import site when the first guard was too narrow; the final guard pins both.
 - **Cross-principle check:** PRINCIPLE-011: sandbox isolation and verdicts unchanged; PRINCIPLE-014: failing-first test, no assertion weakened; G-003: verdicts byte-identical.
+
+### ADR-286: Memoized profile file paths
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: `fileFor()` re-validated a catalog id with a regex and re-joined a path on every `loadProfile` call; 60 calls cost **522 us**.
+- **Decision**: Cache the derived path by directory and catalog id in a bounded 4096-entry Map, while keeping validation on every call so invalid ids still throw.
+- **Consequences**: isolated `fileFor` **522 us -> 120 us (4.4x)** for 60 calls; controlled A/B over 60 profile loads kept an identical SHA-256 (`bf0780bf68c6`) and measured **~1.48-1.53 ms -> ~1.38-1.46 ms (~1.07x)**. A failing-first test (confirmed against HEAD) pins one derivation per id, reuse, and refusal of invalid ids.
+- **Cross-principle check:** PRINCIPLE-009: cached pure derivation; PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: profile paths unchanged.
 - **Cross-principle check:** PRINCIPLE-011: no behavior change; PRINCIPLE-014: failing-first test, no assertion weakened; G-003: health payload unchanged.
 - **Cross-principle check:** PRINCIPLE-009: cached pure derivation; PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: warning labels unchanged.
 
