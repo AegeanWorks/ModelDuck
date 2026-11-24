@@ -2067,3 +2067,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: isolated counter **33.77 us → 13.28 us (2.5x)**; a cold scan of one 400-tensor model **425 us → 274 us (~1.55x)**; controlled end-to-end A/B over three shapes (including MAX_SAFE_INTEGER overflow) kept an identical SHA-256 (`7df181291934`). Two failing-first tests (confirmed against HEAD, including a HEAD-body-plus-export variant) pin exact counts and 400 → 1 BigInt conversions.
 - **Cross-principle check:** PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: model parameter labels unchanged.
 
+### ADR-273: Code-level verdict cache for repeated answers
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: `runJavaScriptTests()` keyed its cache on the raw reply text, so a reply that produced the same extracted code in a different format (fences, prose) paid another ~50–76 ms child spawn. The verdict is a pure function of the extracted code plus check and timeout.
+- **Decision**: A bounded code-keyed verdict cache sits behind the existing text-keyed one. Text hits are unchanged; a text miss that matches by code reuses the stored verdict, and every new verdict is stored under both keys. No answer code is executed in-process.
+- **Consequences**: a controlled A/B over four formatting variants of one answer measured **4 child spawns → 1 spawn + 3 code hits**, ~1.5 s → ~0.25–0.4 s (~4–6x), with an identical SHA-256 (`f336072a7ee5`). A failing-first test (confirmed against HEAD) pins 3 → 1 verifications and verdict equality.
+- **Cross-principle check:** PRINCIPLE-011: no in-process execution of answer code, sandbox isolation unchanged; PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: verdicts byte-identical.
+

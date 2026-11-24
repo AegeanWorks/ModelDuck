@@ -1088,6 +1088,12 @@ function judgeCase(reported, expect) {
 // Verification is pure for a given text + check + timeout, so a bounded cache
 // skips the child process without changing a single check result.
 const JS_TEST_CACHE = new Map();
+// The verdict is a pure function of the extracted code, not of the reply's
+// formatting. A second cache behind the text-keyed one lets fenced/unfenced
+// variants of the same code reuse a verification; the common text hit above it
+// still costs nothing extra.
+const CODE_VERDICT_CACHE = new Map();
+let codeVerdictHits = 0;
 // A quick tune asks hundreds of answers and repeats each across load variants.
 // At 512 entries the first answers were evicted before their variants ran, so
 // a verified result was re-judged in a fresh child (~76 ms) for nothing.
@@ -1118,7 +1124,7 @@ const jsTestKey = (text, check, timeoutMs) => {
   return lastKey;
 };
 export function javascriptTestCacheStats() {
-  return { size: JS_TEST_CACHE.size, hits: jsTestHits, misses: jsTestMisses };
+  return { size: JS_TEST_CACHE.size, hits: jsTestHits, misses: jsTestMisses, codeHits: codeVerdictHits };
 }
 // Test seam: how many answers failed the in-process syntax check.
 let syntaxShortcuts = 0;
@@ -1132,8 +1138,10 @@ export function noEntryShortcutCount() {
 }
 export function resetJavaScriptTestCache() {
   JS_TEST_CACHE.clear();
+  CODE_VERDICT_CACHE.clear();
   jsTestHits = 0;
   jsTestMisses = 0;
+  codeVerdictHits = 0;
   lastKeyArgs = null;
   lastKey = null;
 }
@@ -1162,6 +1170,22 @@ function outputLimit(cases) {
   return limit;
 }
 
+const codeKeyFor = (code, check, timeoutMs) => JSON.stringify([
+  code,
+  check.entry ?? null,
+  check.setup ?? null,
+  check.harness ?? null,
+  check.cases ?? [],
+  timeoutMs,
+]);
+function rememberVerdict(cacheKey, codeKey, checked) {
+  const stored = checked.map((item) => ({ ...item }));
+  if (JS_TEST_CACHE.size >= JAVASCRIPT_TEST_CACHE_LIMIT) JS_TEST_CACHE.delete(JS_TEST_CACHE.keys().next().value);
+  JS_TEST_CACHE.set(cacheKey, stored);
+  if (CODE_VERDICT_CACHE.size >= JAVASCRIPT_TEST_CACHE_LIMIT) CODE_VERDICT_CACHE.delete(CODE_VERDICT_CACHE.keys().next().value);
+  CODE_VERDICT_CACHE.set(codeKey, stored);
+}
+
 export async function runJavaScriptTests(text, check, { timeoutMs = 5000 } = {}) {
   const cacheKey = jsTestKey(text, check, timeoutMs);
   const cached = JS_TEST_CACHE.get(cacheKey);
@@ -1177,6 +1201,15 @@ export async function runJavaScriptTests(text, check, { timeoutMs = 5000 } = {})
   // A change that may touch several functions keeps every code block and runs through a hidden scenario (ADR-061).
   const code = check.harness ? allCode(text) : extractCode(text, check.entry);
   const named = check.harness ? DEFINES_ANY.test(code) : new RegExp(`(?<![\\w$])${escapeRegExp(check.entry)}(?![\\w$])`).test(code);
+  const codeKey = codeKeyFor(code, check, timeoutMs);
+  const byCode = CODE_VERDICT_CACHE.get(codeKey);
+  if (byCode) {
+    codeVerdictHits += 1;
+    jsTestHits += 1;
+    if (JS_TEST_CACHE.size >= JAVASCRIPT_TEST_CACHE_LIMIT) JS_TEST_CACHE.delete(JS_TEST_CACHE.keys().next().value);
+    JS_TEST_CACHE.set(cacheKey, byCode);
+    return byCode.slice();
+  }
   // The child embeds this exact code, so a syntax error here fails the whole
   // script before any case runs. That verdict is deterministic: every case
   // reports "did not run" and no child process is needed.
@@ -1191,8 +1224,7 @@ export async function runJavaScriptTests(text, check, { timeoutMs = 5000 } = {})
       detail: `${check.entry}(${JSON.stringify(testCase.args).slice(1, -1)}): did not run (syntax or runtime error)`,
     }));
     jsTestMisses += 1;
-    if (JS_TEST_CACHE.size >= JAVASCRIPT_TEST_CACHE_LIMIT) JS_TEST_CACHE.delete(JS_TEST_CACHE.keys().next().value);
-    JS_TEST_CACHE.set(cacheKey, checked.map((item) => ({ ...item })));
+    rememberVerdict(cacheKey, codeKey, checked);
     return checked;
   }
   // With no setup or scenario and no occurrence of the entry name anywhere in
@@ -1209,8 +1241,7 @@ export async function runJavaScriptTests(text, check, { timeoutMs = 5000 } = {})
       detail: `${check.entry}(${JSON.stringify(testCase.args).slice(1, -1)}): function not found`,
     }));
     jsTestMisses += 1;
-    if (JS_TEST_CACHE.size >= JAVASCRIPT_TEST_CACHE_LIMIT) JS_TEST_CACHE.delete(JS_TEST_CACHE.keys().next().value);
-    JS_TEST_CACHE.set(cacheKey, checked.map((item) => ({ ...item })));
+    rememberVerdict(cacheKey, codeKey, checked);
     return checked;
   }
   const id = randomBytes(12).toString("hex");
@@ -1262,8 +1293,7 @@ export async function runJavaScriptTests(text, check, { timeoutMs = 5000 } = {})
     };
   });
   jsTestMisses += 1;
-  if (JS_TEST_CACHE.size >= JAVASCRIPT_TEST_CACHE_LIMIT) JS_TEST_CACHE.delete(JS_TEST_CACHE.keys().next().value);
-  JS_TEST_CACHE.set(cacheKey, checked.map((item) => ({ ...item })));
+  rememberVerdict(cacheKey, codeKey, checked);
   return checked;
 }
 

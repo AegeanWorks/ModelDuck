@@ -551,7 +551,7 @@ modelduck/
 │       └── duck.svg <- the ModelDuck mascot and favicon
 ├── scripts/
 │   ├── capture-screenshots.mjs <- screenshot gallery
-│   ├── install-engines.mjs <- npm run engines:install
+│   ├── install-engines.mjs
 │   ├── add-engine.mjs <- npm run engines:add
 │   ├── test-parallel.mjs <- sharded parallel `npm test` runner
 │   ├── build-native.mjs <- Rust guard build
@@ -812,7 +812,8 @@ modelduck/
 │   ├── catalog-why-deferred.test.js
 │   ├── model-why-deferred.test.js
 │   ├── typewarnings-one.test.js
-│   └── paramcount-number.test.js
+│   ├── paramcount-number.test.js
+│   └── jscode-cache.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml
