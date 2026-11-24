@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "hashid-memo-1124",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795508147.9219983,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795508918.6251915,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795515347.9219983,
+    "lease_until": 1795516118.6251915,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,55 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; every model scan recomputed a SHA-1 id for each unchanged file path",
-      "benefits": "Cold and repeated scans reuse stable ids for the same paths",
-      "risks": "contract: same 12-char id per normalized path; dependency: crypto; concurrency: none; state: bounded 4096-entry cache",
-      "mitigation": "failing-first counter + equivalence test, controlled A/B hash, full npm test and 4/4 strict gates; revert if regression"
-    }
+    "completed_at": 1795508919.4414423,
+    "completed_head": "03cdaec2ad48ac6f8e1c956be26601b02835b24f",
+    "completed_tree": "0411fcb2dc65cbfbcca6f8a681efee3fe2076554"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'tunerungs-cache-1124' completed successfully.",
-      "head": "665a4b7539eef992491d543314eb97f68812e70d",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "tunerungs-cache-1124",
-      "timestamp": 1795489472.8690174,
-      "timestamp_str": "2026-11-24 06:04:32"
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "description": "[1/2] Replace O(n^2) queue.shift round-robin with index cursors in stratified",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Rung derivation and speedItems become linear in prompt count",
-        "mitigation": "failing-first cursor test, controlled HEAD-vs-WORK A/B hash, full npm test and 4/4 strict gates; revert if slower",
-        "risks": "contract: identical stratified order; dependency: none; concurrency: none; state: pure function",
-        "why": "User directive to keep improving speeds; stratified uses Array.shift on every bucket each pass, quadratic over the prompt set during rung derivation"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "7e3d47d670851e70761912f1c4f64b2aaea6c4a59099943397ca6e38b6eef795",
-      "status": "in_progress",
-      "task_id": "stratified-cursor-1124",
-      "timestamp": 1795489953.8020203,
-      "timestamp_str": "2026-11-24 06:12:33",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "checklists": "passed",
@@ -418,6 +374,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: hashId 57.7us -> 0.5us (115x), cold scan 1.567 -> 1.24ms (~1.25x), identical hash; 1252 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "hashid-memo-1124",
+      "timestamp": 1795508918.6251917,
+      "timestamp_str": "2026-11-24 11:28:38",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'hashid-memo-1124' completed successfully.",
+      "head": "03cdaec2ad48ac6f8e1c956be26601b02835b24f",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "hashid-memo-1124",
+      "timestamp": 1795508919.816973,
+      "timestamp_str": "2026-11-24 11:28:39"
     }
   ]
 }
