@@ -2,12 +2,12 @@
   "version": 1,
   "active_task": {
     "task_id": "runfile-memo-1124",
-    "last_phase": "phase 2",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1795525820.5762503,
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1795526828.6611621,
     "owner": "opencode:hy4-flash-free",
-    "lease_until": 1795533020.5762503,
+    "lease_until": 1795534028.6611621,
     "started_by": "opencode:hy4-flash-free",
     "continuations": [],
     "workspaces": [
@@ -16,49 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "impact_assessment": {
-      "why": "User directive to keep improving speeds; itemOutcomes and cachedAnswers re-validate ids and re-join paths for every run summary on each preflight",
-      "benefits": "Tune restore skips repeated regex validation and path joins per run",
-      "risks": "contract: same validated paths; dependency: immutable strings; concurrency: none; state: bounded Map",
-      "mitigation": "failing-first counter + equivalence test, controlled A/B hash, full npm test and 4/4 strict gates; revert if regression"
-    }
+    "completed_at": 1795526830.11876,
+    "completed_head": "3c1f48ed2f921284daa88e85f88129a59faa20f2",
+    "completed_tree": "5037af37cc9343b2f08cb5a28e008f0db602516f"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:hy4-flash-free",
-      "checklists": "passed",
-      "description": "[2/2] DELIVERED: hashId 57.7us -> 0.5us (115x), cold scan 1.567 -> 1.24ms (~1.25x), identical hash; 1252 tests pass",
-      "files_affected": [],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "hashid-memo-1124",
-      "timestamp": 1795508918.6251917,
-      "timestamp_str": "2026-11-24 11:28:38",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:hy4-flash-free",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'hashid-memo-1124' completed successfully.",
-      "head": "03cdaec2ad48ac6f8e1c956be26601b02835b24f",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "hashid-memo-1124",
-      "timestamp": 1795508919.816973,
-      "timestamp_str": "2026-11-24 11:28:39"
-    },
     {
       "agent": "opencode:hy4-flash-free",
       "description": "[1/2] Memoize typeWarnings by profile identity and task filter",
@@ -418,6 +380,41 @@
           "path": "projects/modelduck"
         }
       ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "checklists": "passed",
+      "description": "[2/2] DELIVERED: run paths ~59-61us -> ~9-11us (~6x), identical hash; 1259 tests pass",
+      "files_affected": [],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "runfile-memo-1124",
+      "timestamp": 1795526828.661162,
+      "timestamp_str": "2026-11-24 16:27:08",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:hy4-flash-free",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'runfile-memo-1124' completed successfully.",
+      "head": "3c1f48ed2f921284daa88e85f88129a59faa20f2",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "runfile-memo-1124",
+      "timestamp": 1795526831.8513176,
+      "timestamp_str": "2026-11-24 16:27:11"
     }
   ]
 }
