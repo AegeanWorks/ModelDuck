@@ -541,7 +541,7 @@ modelduck/
 │   ├── state-machine-proposals.json
 │   ├── tuning-improvement-report.md
 │   ├── tuning-repro/
-│   └── kiroween/ <- Kiroween submission docs
+│   └── kiroween/
 ├── public/
 │   ├── index.html <- the control panel
 │   ├── app.js <- state and interactions, no framework
@@ -827,7 +827,8 @@ modelduck/
 │   ├── engine-os-import.test.js
 │   ├── judge-static-imports.test.js
 │   ├── filefor-memo.test.js
-│   └── runfile-memo.test.js
+│   ├── runfile-memo.test.js
+│   └── formatbytes-memo.test.js
 ├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml

@@ -178,8 +178,31 @@ export async function assertDiskSpace(directory, neededBytes) {
   }
 }
 
+// Sizes repeat across polls of the same library, so cache the formatted label
+// by the normalized number instead of re-running toFixed for every model.
+const FORMAT_BYTES_CACHE = new Map();
+const FORMAT_BYTES_LIMIT = 2048;
+let formatBytesComputes = 0;
+export function formatBytesComputations() {
+  return formatBytesComputes;
+}
+export function resetFormatBytesCache() {
+  FORMAT_BYTES_CACHE.clear();
+  formatBytesComputes = 0;
+}
+
 export function formatBytes(bytes) {
   const value = Number(bytes) || 0;
+  const cached = FORMAT_BYTES_CACHE.get(value);
+  if (cached !== undefined) return cached;
+  formatBytesComputes += 1;
+  const label = formatByteValue(value);
+  if (FORMAT_BYTES_CACHE.size >= FORMAT_BYTES_LIMIT) FORMAT_BYTES_CACHE.delete(FORMAT_BYTES_CACHE.keys().next().value);
+  FORMAT_BYTES_CACHE.set(value, label);
+  return label;
+}
+
+function formatByteValue(value) {
   if (value < 1024) return `${value} B`;
   const units = ["KB", "MB", "GB", "TB"];
   let size = value;

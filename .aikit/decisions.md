@@ -2184,6 +2184,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: A shared bounded cache keyed by directory, id and suffix; `checkedId()` validation still runs on every call so invalid ids keep throwing.
 - **Consequences**: isolated A/B **~59-61 us -> ~9-11 us (~6x)** with an identical SHA-256 (`521f6b9b4e83`); the 50-run `itemOutcomes` A/B kept an identical hash (`d20f51249a8d`). A failing-first test (confirmed against HEAD) pins one derivation per id, reuse, and continued refusal of invalid ids. An assertion initially matched the wrong AppError text and was corrected before shipping.
 - **Cross-principle check:** PRINCIPLE-009: cached pure derivation; PRINCIPLE-014: failing-first test, no assertion weakened; G-001/G-003: run paths unchanged.
+
+### ADR-288: Memoized byte formatting
+- **Date**: 2026-11-24
+- **Status**: Accepted
+- **Context**: `formatBytes()` re-ran `toFixed` and the unit loop for every model on every scan, although library sizes repeat across polls.
+- **Decision**: Cache the label by normalized byte value in a bounded 2048-entry Map, with a computation counter and reset seam; the formatting logic itself is unchanged.
+- **Consequences**: isolated A/B over 60 sizes kept an identical SHA-256 (`1b90274f8b9b`) and measured **4.73-4.83 us -> 0.76-0.86 us (~6x)**. Two failing-first tests (confirmed against HEAD) pin one derivation per value and all formatting branches. Initial expected labels were wrong (`1.5 KB` vs `1.50 KB`); corrected from the function's actual output before shipping.
+- **Cross-principle check:** PRINCIPLE-009: cached pure derivation; PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: size labels unchanged.
 - **Cross-principle check:** PRINCIPLE-011: no behavior change; PRINCIPLE-014: failing-first test, no assertion weakened; G-003: health payload unchanged.
 - **Cross-principle check:** PRINCIPLE-009: cached pure derivation; PRINCIPLE-014: failing-first tests, no assertion weakened; G-003: warning labels unchanged.
 
