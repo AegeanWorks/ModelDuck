@@ -3350,5 +3350,35 @@
     "final_snapshot_entries": 0,
     "surface_digest": "9228bbd9c4323e6ecdf13a23056e289ece500c95c66dea58de476f8eabc12e3c",
     "baseline_digest": "9228bbd9c4323e6ecdf13a23056e289ece500c95c66dea58de476f8eabc12e3c"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [],
+    "no_visual_reason": "",
+    "no_change_reason": "Backend tune restore I/O; no rendered view touched",
+    "baseline_commit": "30778fb4e8ca59dcc0ddf1bfe19f28441d82afdb",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1795479379.698084,
+    "finished_at": 1795479416.9510133,
+    "strikes": 0,
+    "reviewer": "opencode:hy4-flash-free",
+    "review": {
+      "reviewer": "opencode:hy4-flash-free",
+      "surface": "app",
+      "surface_digest": "5c52863f374dd78628b7a76b5c1fb0e11ac2aef0baa8d5798ab7243c3ff7e4ec",
+      "snapshot_digest": "",
+      "snapshot_entries": 0,
+      "visual": true,
+      "reviewed_at": 1795479416.951016
+    },
+    "allowed_removals": [],
+    "allowed_tests": [],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "5c52863f374dd78628b7a76b5c1fb0e11ac2aef0baa8d5798ab7243c3ff7e4ec",
+    "baseline_digest": "5c52863f374dd78628b7a76b5c1fb0e11ac2aef0baa8d5798ab7243c3ff7e4ec"
   }
 ]
