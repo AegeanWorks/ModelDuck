@@ -185,6 +185,34 @@ test("a failed history import rolls back the whole batch", async (t) => {
   }
 });
 
+test("listRuns fetches every selected run's models in one grouped query", async (t) => {
+  const paths = await tempPaths(t);
+  await recordRun({ ...paths, result: RESULT, git: { hash: "abc123", subject: "first", branch: "main" } });
+  await recordRun({
+    ...paths,
+    result: {
+      ...RESULT,
+      models: [
+        { ...RESULT.models[0], key: "z-model", label: "Z model" },
+        { ...RESULT.models[0], key: "a-model", label: "A model" },
+      ],
+    },
+    git: { hash: "abc123", subject: "second", branch: "main" },
+  });
+  const db = await openDatabase(paths.dbPath);
+  try {
+    const prepare = db.prepare.bind(db);
+    let queries = 0;
+    const counted = { prepare(sql) { queries += 1; return prepare(sql); } };
+    const runs = listRuns(counted, 10);
+    assert.equal(queries, 2, "one run query and one model query serve every row");
+    assert.deepEqual(runs[0].models.map((model) => model.model_key), ["a-model", "z-model"]);
+    assert.deepEqual(runs[1].models.map((model) => model.model_key), ["test-model"]);
+  } finally {
+    db.close();
+  }
+});
+
 // Partial shard rows and batch-1 repro runs share the history as provenance,
 // but trends, links and latest-checks stay on comparable standard runs.
 test("run scopes label provenance without corrupting trends or links", async (t) => {

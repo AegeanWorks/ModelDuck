@@ -2266,3 +2266,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Create one payload string at the shared mutation point and reuse it for the standard result/latest files and merge outputs; keep later baseline, gate, ceiling and stdout serialization separate because result changes afterward
 - **Consequences**: An interleaved serialization A/B measured 36.746ms -> 15.602ms (2.36x), saving 21.144ms per two-file finalization, with the same normalized baseline content hash; an unchanged JSON.parse control drifted 11.1%. Existing flash, merge and history tests cover output naming, repro isolation and history behavior
 - **Cross-principle check:** PRINCIPLE-003: reuse is scoped to one mutation state and distinct paths; PRINCIPLE-010: one synchronous pretty-print removed; PRINCIPLE-014: existing output/history tests and byte-hash proof, no assertion weakened; G-002/G-003: result contents and history inputs are unchanged.
+
+### ADR-298: Batch benchmark-history model loading
+- **Date**: 2026-11-25
+- **Status**: Accepted
+- **Context**: listRuns queried the selected runs and then issued one model_results query per run; the real 87-run history performed 88 query cycles and took about 25ms per report listing
+- **Decision**: Fetch all selected runs' model rows with one parameterized IN query, group them by run uid, and preserve each run's model_key/variant_id ordering and empty-model behavior
+- **Consequences**: A qualified 30-pair interleaved A/B measured 48.887ms -> 24.693ms (1.98x) with an identical 87-run/217-model output hash; a 100000-call deriveRunScope control drifted 5.7%. A failing-first test proves two prepared queries instead of one plus one per run
+- **Cross-principle check:** PRINCIPLE-003: selected uids, row fields and ordering are preserved; PRINCIPLE-010: N model queries replaced by one; PRINCIPLE-014: failing-first query-count test and exact output hash, no assertion weakened; G-002/G-003: history schema and report contents are unchanged.

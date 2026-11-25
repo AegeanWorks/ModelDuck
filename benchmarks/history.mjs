@@ -523,6 +523,25 @@ export function listRuns(db, limit = 20) {
        FROM runs ORDER BY recorded_at DESC, id DESC LIMIT ?`,
     )
     .all(limit);
+  if (!runs.length) return [];
+  const uids = runs.map((run) => run.uid);
+  const placeholders = uids.map(() => "?").join(",");
+  const modelRows = db
+    .prepare(
+      `SELECT run_uid, model_key, variant_id, variant_label, label, kind, file_name, size, params,
+              quant, preset, kv_key_type, kv_value_type, flash_attention, requested_context_size,
+              context_size, threads, max_threads, batch_size, sequences, use_mmap,
+              gpu_layers, checkpoints, runtime_ms, score, checks_passed, checks_total,
+              tokens_per_second, first_token_ms, memory_bytes, gpu_vram, by_category_json
+       FROM model_results WHERE run_uid IN (${placeholders})
+       ORDER BY run_uid, model_key, variant_id`,
+    )
+    .all(...uids);
+  const modelsByRun = new Map(uids.map((uid) => [uid, []]));
+  for (const row of modelRows) {
+    const { run_uid: runUid, ...model } = row;
+    modelsByRun.get(runUid).push({ ...model, id: undefined, by_category: JSON.parse(model.by_category_json) });
+  }
   return runs.map((run) => ({
     ...run,
     id: Number(run.id),
@@ -530,21 +549,7 @@ export function listRuns(db, limit = 20) {
     commit_pending: Boolean(run.commit_pending),
     baseline: Boolean(run.baseline),
     by_category: JSON.parse(run.by_category_json),
-    models: db
-      .prepare(
-        `SELECT model_key, variant_id, variant_label, label, kind, file_name, size, params,
-                quant, preset, kv_key_type, kv_value_type, flash_attention, requested_context_size,
-                context_size, threads, max_threads, batch_size, sequences, use_mmap,
-                gpu_layers, checkpoints, runtime_ms, score, checks_passed, checks_total,
-                tokens_per_second, first_token_ms, memory_bytes, gpu_vram, by_category_json
-         FROM model_results WHERE run_uid = ? ORDER BY model_key, variant_id`,
-      )
-      .all(run.uid)
-      .map((model) => ({
-        ...model,
-        id: undefined,
-        by_category: JSON.parse(model.by_category_json),
-      })),
+    models: modelsByRun.get(run.uid),
   }));
 }
 
