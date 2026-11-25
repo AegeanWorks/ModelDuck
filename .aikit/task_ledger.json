@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "profile-slim-cache-1125",
+    "task_id": "benchmark-payload-reuse-1125",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1795555679.3607943,
+    "updated_at": 1795565111.7448223,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-    "lease_until": 1795562879.3607943,
+    "lease_until": 1795572311.7448223,
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "continuations": [],
     "workspaces": [
@@ -16,92 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795555723.4257126,
-    "completed_head": "645d4352c6eff34c3f05bd46f2d1916113c6afd6",
-    "completed_tree": "8708d78708ccbfec3e6246d8f2fed731ece256b0"
+    "completed_at": 1795565188.0818338,
+    "completed_head": "25233dc6773ff36ca0b7a83a196419f967dbc054",
+    "completed_tree": "72c2a2a420b0fda426a0169a902879630969263c"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Collapse currentGitInfo from five synchronous Git spawns to one formatted log plus one porcelain status call; pin parsing and fallback behavior",
-      "files_affected": [
-        "benchmarks/history.mjs",
-        "tests/benchmark-history.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Remove three process launches per finalization; explorer measured 169.9-462.9ms for the current five-call sequence",
-        "mitigation": "injectable exec seam, failing-first two-spawn parsing tests for normal/detached/dirty/untracked/ref/failure, controlled A/B object hash, full npm test and 4/4 strict gates; revert if regression",
-        "risks": "contract: identical hash/subject/branch/date/dirty/ref/fallback fields; dependency: existing git CLI only; concurrency: synchronous behavior preserved; state: no history format change",
-        "why": "User directive to increase benchmark and tuning speed; every benchmark, shard merge, link and tune gate blocks on five separate Git processes"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "7b6d65f669fdf6bc545abc2356d1877795823060f9ffc95a92f8d8f6715cfb9b",
-      "status": "in_progress",
-      "task_id": "git-info-two-spawns-1124",
-      "timestamp": 1795549094.7929769,
-      "timestamp_str": "2026-11-24 22:38:14",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: currentGitInfo 1285.642ms -> 453.505ms (2.83x) on loaded host, identical object hash; fallback control drift 0.3%; two-spawn/ref/detached/dirty/fallback tests, full suite and 4/4 gates pass",
-      "files_affected": [
-        "benchmarks/history.mjs",
-        "tests/benchmark-history.test.js",
-        ".aikit/decisions.md"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/git-info-ab.mjs",
-          "baseline": 1285.642,
-          "candidate": 453.505,
-          "command": "node git-info-ab.mjs",
-          "control": "non-repository fallback 0.764ms vs 0.766ms",
-          "drift": "0.3",
-          "interleaved": "yes",
-          "metric": "currentGitInfo finalization",
-          "unit": "ms",
-          "workload": "21 interleaved call pairs against the same modelduck cwd and HEAD on win32 Node 26.9.0"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "git-info-two-spawns-1124",
-      "timestamp": 1795549457.200922,
-      "timestamp_str": "2026-11-24 22:44:17",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'git-info-two-spawns-1124' completed successfully.",
-      "head": "701ae03b7c84da4cc2e335c842788d662e6fdf87",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "git-info-two-spawns-1124",
-      "timestamp": 1795549562.8354094,
-      "timestamp_str": "2026-11-24 22:46:02"
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "description": "[1/2] Share a bounded stamped answer-text cache between tune saturation analysis and answer restore, then release it before generation",
@@ -637,6 +556,87 @@
       "task_id": "profile-slim-cache-1125",
       "timestamp": 1795555723.739385,
       "timestamp_str": "2026-11-25 00:28:43"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Serialize each same-state benchmark result payload once and reuse it for standard result/latest and merge outputs",
+      "files_affected": [
+        "benchmarks/run.mjs",
+        "benchmarks/merge-shards.mjs",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Remove one full pretty-print per finalization without changing any output bytes or later gate/ceiling JSON",
+        "mitigation": "scope reuse to the same mutation point, keep same-path writes sequential, compare baseline/file SHA-256, run flash/merge/history tests, full npm test and 4/4 strict gates; revert if regression",
+        "risks": "contract: byte-identical files and stdout; dependency: none; concurrency: destination paths must differ; state: payload is a local string only",
+        "why": "User directive to increase benchmark speed; standard runs and merges call JSON.stringify(result, null, 2) twice for the same 2.36MB mutation state"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "8e68cd834c1bbac453daa98f38b72ad48a5e22c81791013a1a57a3e98de0d963",
+      "status": "in_progress",
+      "task_id": "benchmark-payload-reuse-1125",
+      "timestamp": 1795564907.5787847,
+      "timestamp_str": "2026-11-25 03:01:47",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: two-file result serialization 36.746ms -> 15.602ms (2.36x), identical normalized payload hash; parse control drift 11.1%; full suite and 4/4 gates pass",
+      "files_affected": [
+        "benchmarks/run.mjs",
+        "benchmarks/merge-shards.mjs",
+        ".aikit/decisions.md"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/result-serialize-ab.mjs",
+          "baseline": 36.746,
+          "candidate": 15.602,
+          "command": "node result-serialize-ab.mjs",
+          "control": "JSON.parse 5.988ms vs 6.650ms",
+          "drift": "11.1",
+          "interleaved": "yes",
+          "metric": "two-file benchmark payload serialization",
+          "unit": "ms",
+          "workload": "committed 2.36MB model baseline, 30 interleaved pairs on win32 Node 26.9.0"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "benchmark-payload-reuse-1125",
+      "timestamp": 1795565111.7448225,
+      "timestamp_str": "2026-11-25 03:05:11",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'benchmark-payload-reuse-1125' completed successfully.",
+      "head": "25233dc6773ff36ca0b7a83a196419f967dbc054",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "benchmark-payload-reuse-1125",
+      "timestamp": 1795565188.1556137,
+      "timestamp_str": "2026-11-25 03:06:28"
     }
   ]
 }
