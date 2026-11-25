@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-cheap-selection-1125",
+    "task_id": "model-scan-metadata-pool-1125",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1795584771.6543925,
+    "updated_at": 1795586238.7716115,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-    "lease_until": 1795591971.6543925,
+    "lease_until": 1795593438.7716115,
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "continuations": [],
     "workspaces": [
@@ -16,106 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795584857.678722,
-    "completed_head": "661d6ba1c3bcb187fda88c5be816f44e8ee08824",
-    "completed_tree": "f7be653c597c29c1e855f5519d041be024c3445a"
+    "completed_at": 1795586413.8344982,
+    "completed_head": "0045b06a000dd001349cb355af8fa27f956d1b6d",
+    "completed_tree": "34be4bbcbf68982b744819f6f19bc449dbb76c02"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Add one grouped/windowed model_results progress query for all selected model keys and use it in benchmark reports",
-      "files_affected": [
-        "benchmarks/history.mjs",
-        "benchmarks/report.mjs",
-        "tests/benchmark-history.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "One bounded query returns each key's newest rows with the same scope filters and ordering",
-        "mitigation": "failing-first grouped query-count/equivalence test, real 11-key old/new A/B hash, existing history/report tests, full npm test and 4/4 strict gates; revert if regression",
-        "risks": "contract: identical per-key progress arrays and limits; dependency: existing SQLite window functions; concurrency: read-only query; state: no schema change",
-        "why": "User directive to increase non-tuning speed; report.mjs issues one modelProgress query per model key (11 queries and 17.226ms on the real history)"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "f758163991a0318b02be08474ac06d83d39bf28d510ef90cb674d4fd1a5877c2",
-      "status": "in_progress",
-      "task_id": "history-progress-batch-1125",
-      "timestamp": 1795573866.1772504,
-      "timestamp_str": "2026-11-25 05:31:06",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: real 11-key benchmark progress 12.457ms -> 10.945ms (1.14x), prepared queries 11 -> 1, identical 135-row hash; control drift 2.3%; grouped-query test, full suite and 4/4 gates pass",
-      "files_affected": [
-        "benchmarks/history.mjs",
-        "benchmarks/report.mjs",
-        "tests/benchmark-history.test.js",
-        ".aikit/decisions.md"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/history-progress-real-ab.mjs",
-          "baseline": 12.457,
-          "candidate": 10.945,
-          "command": "node history-progress-real-ab.mjs",
-          "control": "1000 COUNT queries 36.262ms vs 37.079ms",
-          "drift": "2.3",
-          "interleaved": "yes",
-          "metric": "benchmark progress for all model keys",
-          "unit": "ms",
-          "workload": "real history, 11 model keys and 135 progress rows, 30 interleaved old/new pairs"
-        },
-        {
-          "artifact": "local-only/history-progress-real-ab.mjs",
-          "baseline": 11.0,
-          "candidate": 1.0,
-          "command": "node history-progress-real-ab.mjs",
-          "control": "COUNT control performs 1000 identical queries in both builds",
-          "drift": "0",
-          "interleaved": "yes",
-          "metric": "prepared progress queries",
-          "unit": "queries",
-          "workload": "real history, 11 model keys and 135 progress rows"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "history-progress-batch-1125",
-      "timestamp": 1795574360.4945023,
-      "timestamp_str": "2026-11-25 05:39:20",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'history-progress-batch-1125' completed successfully.",
-      "head": "3bd5edcec152e8b275f731e021ce7dabb44bbc7f",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "history-progress-batch-1125",
-      "timestamp": 1795574444.010057,
-      "timestamp_str": "2026-11-25 05:40:44"
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "description": "[1/2] Stop restore verification after the first mismatch per rejected family or all-or-nothing check",
@@ -764,6 +669,100 @@
       "task_id": "verify-cheap-selection-1125",
       "timestamp": 1795584857.7475183,
       "timestamp_str": "2026-11-25 08:34:17"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Read uncached GGUF metadata through a bounded four-worker pool during cold model scans",
+      "files_affected": [
+        "src/model-registry.js",
+        "tests/model-registry.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Overlap independent metadata I/O while preserving discovery order, public output, warnings and cache semantics",
+        "mitigation": "failing-first peak/order/error test, 16-model old/new output-hash benchmark, existing registry tests, full npm test and 4/4 strict gates; revert on regression",
+        "risks": "contract: identical ordered model rows and warning order; dependency: none; concurrency: at most four metadata reads; state: existing per-file summary cache unchanged",
+        "why": "Cold model listing awaits every metadata parser sequentially; a 16-model benchmark with 25ms parsers takes 498.966ms with peak concurrency one"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "56ee86028260a6dc7d9f84df63f53f0d5295904f367db340bf0e07e202801b88",
+      "status": "in_progress",
+      "task_id": "model-scan-metadata-pool-1125",
+      "timestamp": 1795585231.999111,
+      "timestamp_str": "2026-11-25 08:40:31",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: cold 16-model metadata scan 1016.453ms -> 344.454ms (2.95x), peak reads 1 -> 4, deeply identical ordered model rows and warning behavior; 81 registry/profile/server/startup tests, full suite, UI contract and 4/4 gates pass",
+      "files_affected": [
+        "src/model-registry.js",
+        "tests/model-registry.test.js",
+        ".aikit/decisions.md",
+        ".aikit/ui_history.json"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/model-scan-metadata-ab.mjs",
+          "baseline": 1016.453,
+          "candidate": 344.454,
+          "command": "node model-scan-metadata-ab.mjs",
+          "control": "baseline/baseline 992.464ms vs 934.235ms",
+          "drift": "5.9",
+          "interleaved": "yes",
+          "metric": "cold 16-model registry scan",
+          "unit": "ms",
+          "workload": "same 16 GGUF files, 25ms metadata parser, ten interleaved old/new pairs"
+        },
+        {
+          "artifact": "local-only/model-scan-metadata-ab.mjs",
+          "baseline": 1.0,
+          "candidate": 4.0,
+          "command": "node model-scan-metadata-ab.mjs",
+          "control": "deeply identical model rows and output hash 1e1449f2428a52aab5ee7199e8feb6a6aee73de67e3654d6c3fbb553e3dc0e45, warning order and unreadable fallbacks covered by tests",
+          "drift": "0",
+          "interleaved": "yes",
+          "metric": "peak metadata reads",
+          "unit": "reads",
+          "workload": "same 16 GGUF files"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "model-scan-metadata-pool-1125",
+      "timestamp": 1795586238.7716117,
+      "timestamp_str": "2026-11-25 08:57:18",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'model-scan-metadata-pool-1125' completed successfully.",
+      "head": "0045b06a000dd001349cb355af8fa27f956d1b6d",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "model-scan-metadata-pool-1125",
+      "timestamp": 1795586413.9207606,
+      "timestamp_str": "2026-11-25 09:00:13"
     }
   ]
 }
