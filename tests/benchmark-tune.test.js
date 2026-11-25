@@ -5,6 +5,7 @@ import { promptAxes } from "../benchmarks/tune-grid.mjs";
 import { Measurements } from "../benchmarks/tune-measure.mjs";
 import { predictWeightedMs, speedStage, taskProfiles } from "../benchmarks/tune-speed.mjs";
 import { groupEvidence, measurePresets, tune } from "../benchmarks/tune.mjs";
+import { withEngine } from "../benchmarks/tune-job.mjs";
 
 const ids = (prefix, count) => Array.from({ length: count }, (_value, index) => `${prefix}-${index}`);
 const RUNGS = {
@@ -1657,4 +1658,20 @@ test("the prompt stage is never adaptive: its axes do not share the items the sa
   assert.ok(result.sweeps.filter((sweep) => sweep.stage === "sampling").some((sweep) => sweep.adaptive), "the sampling sweeps are adaptive");
   assert.ok(result.sweeps.filter((sweep) => sweep.stage === "prompt").every((sweep) => !sweep.adaptive), "no prompt sweep is");
   assert.equal(result.tasks.math.settings.promptRepeat >= 2, true, "so the prompt-only gain is found");
+});
+
+test("withEngine uses an injected factory and still releases it", async () => {
+  let unloads = 0;
+  let disposals = 0;
+  const engine = {
+    unload: async () => { unloads += 1; },
+    dispose: async () => { disposals += 1; },
+  };
+  const seen = await withEngine({ registry: null }, async (provided) => {
+    assert.strictEqual(provided, engine);
+    return "ok";
+  }, () => engine);
+  assert.equal(seen, "ok");
+  assert.equal(unloads, 1);
+  assert.equal(disposals, 1);
 });

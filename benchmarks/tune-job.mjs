@@ -45,11 +45,16 @@ export async function openTarget({ model, home, modelsDir }) {
 }
 
 /** Run `fn(engine)` on a fresh engine and always release the model. */
-export async function withEngine(target, fn) {
-  const inProcess = new LlamaEngine({ registry: target.registry });
-  // Always routed (ADR-159): a saved profile may name an engine even when this run never tested one, and that
-  // engine must be started or fail loudly, never be quietly replaced by the in-process one.
-  const engine = new RoutedEngine({ inProcess, external: target.externalEngines ?? {}, resolve: target.resolveEngine ?? null });
+export async function withEngine(target, fn, factory = null) {
+  let engine;
+  if (factory) {
+    engine = factory(target);
+  } else {
+    const inProcess = new LlamaEngine({ registry: target.registry });
+    // Always routed (ADR-159): a saved profile may name an engine even when this run never tested one, and that
+    // engine must be started or fail loudly, never be quietly replaced by the in-process one.
+    engine = new RoutedEngine({ inProcess, external: target.externalEngines ?? {}, resolve: target.resolveEngine ?? null });
+  }
   try {
     return await fn(engine);
   } finally {
@@ -97,7 +102,7 @@ export function answerRow(settings, seed, answer, tuneWidth = 1) {
  * The profile is saved after every finished setting, so stopping keeps what
  * was found and a later run resumes. Resolves `{ skipped, warnings, profile, result }`.
  */
-export async function runTune(target, { tasks, stages = STAGES, only = null, steps = null, force = false, continueRun = false, quick = false, guard = false, fullFinal = false, maxRuns = 0, passes = 0, parallel: requestedParallel = 1, budgetMinutes = null, escalate = false, adaptive = false, restoreBudget = false, reuseFrom = [], onEvent = () => {}, onStart = () => {}, onNote = () => {} }) {
+export async function runTune(target, { tasks, stages = STAGES, only = null, steps = null, force = false, continueRun = false, quick = false, guard = false, fullFinal = false, maxRuns = 0, passes = 0, parallel: requestedParallel = 1, budgetMinutes = null, escalate = false, adaptive = false, restoreBudget = false, engineFactory = null, reuseFrom = [], onEvent = () => {}, onStart = () => {}, onNote = () => {} }) {
   const saved = force ? null : await loadProfile(target.paths.profiles, target.profileId, target.fingerprint);
   const plan = planTune(saved, tasks, stages, only, { continueRun });
   const warnings = saved?.warnings ?? [];
@@ -269,7 +274,7 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
         await run.update(snapshot(state));
       },
     });
-  }).catch(async (error) => {
+  }, engineFactory).catch(async (error) => {
     await run.finish({ outcome: "failed", error: error.why ?? error.message, timing: timer.summary(), parallel: parallelInfo, ...(lastState && snapshot(lastState)) });
     throw error;
   }).finally(() => {
