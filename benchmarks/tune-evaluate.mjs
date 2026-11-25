@@ -144,7 +144,18 @@ export function createEvaluator({ engine, modelId, prompts = PROMPTS, systemProm
     }
   }
 
-  async function answer(prompt, settings, load, seed) {
+  async function judgeFields(prompt, raw) {
+    if (raw.error) return { passed: 0, total: checkCount(prompt), unreadable: false, failure: "error" };
+    const evaluation = await timed("judge", () => evaluateResponse(prompt, raw.text));
+    return {
+      passed: evaluation.passed,
+      total: evaluation.total,
+      unreadable: evaluation.unreadable,
+      failure: failureClass({ text: raw.text, stopReason: raw.stopReason ?? null, evaluation }),
+    };
+  }
+
+  async function answer(prompt, settings, load, seed, judge = true) {
     const conversationId = `tune-${modelId}-${prompt.id}-${seed}`;
     const controller = new AbortController();
     const abortTimer = setTimeout(() => controller.abort(), timeoutMs);
@@ -167,12 +178,7 @@ export function createEvaluator({ engine, modelId, prompts = PROMPTS, systemProm
         signal: controller.signal,
         onToken: () => {},
       }));
-      const evaluation = await timed("judge", () => evaluateResponse(prompt, result.text));
-      timer?.count("answers");
-      return {
-        passed: evaluation.passed,
-        total: evaluation.total,
-        unreadable: evaluation.unreadable,
+      const raw = {
         text: result.text,
         error: null,
         ms: result.stats?.ms ?? Date.now() - started,
@@ -184,9 +190,14 @@ export function createEvaluator({ engine, modelId, prompts = PROMPTS, systemProm
         promptTokens: result.stats?.promptTokens ?? null,
         firstTokenMs: result.stats?.firstTokenMs ?? null,
         digest: digestOf(result.text),
-        // Why it failed, so a tune can say which lever helps (tune-failures.mjs).
-        failure: failureClass({ text: result.text, stopReason: result.stats?.stopReason ?? null, evaluation }),
       };
+      if (!judge) {
+        timer?.count("answers");
+        return raw;
+      }
+      const fields = await judgeFields(prompt, raw);
+      timer?.count("answers");
+      return { passed: fields.passed, total: fields.total, unreadable: fields.unreadable, ...raw, failure: fields.failure };
     } catch (error) {
       return { passed: 0, total: checkCount(prompt), error: error.message, ms: Date.now() - started, tokensPerSecond: null, outputTokens: null, stopReason: null, promptTokens: null, firstTokenMs: null, digest: null, failure: "error" };
     } finally {
@@ -195,7 +206,7 @@ export function createEvaluator({ engine, modelId, prompts = PROMPTS, systemProm
     }
   }
 
-  const evaluate = async function evaluate(settings, itemIds, seed) {
+  async function evaluateItems(settings, itemIds, seed, judge) {
     const items = itemIds.map((id) => {
       const prompt = byId.get(id);
       if (prompt) return prompt;
@@ -219,12 +230,29 @@ export function createEvaluator({ engine, modelId, prompts = PROMPTS, systemProm
         // Untimed answers wait here while another tune times something (ADR-033).
         if (!settings.timed) await beforeAnswer();
         // The width this call really ran at, which can be narrower than the tune's (tune-job.mjs answerRow).
-        results[index] = { id: items[index].id, width, ...(await answer(items[index], settings, load, seed)) };
+        results[index] = { id: items[index].id, width, ...(await answer(items[index], settings, load, seed, judge)) };
         onItem(results[index]);
       }
     };
     await Promise.all(Array.from({ length: Math.min(width, items.length) }, worker));
     return { prompts: results, memoryBytes, gpuVram };
+  };
+  const evaluate = async function evaluate(settings, itemIds, seed) {
+    return evaluateItems(settings, itemIds, seed, true);
+  };
+  // Restore verification can compare exact text without paying for a judge it
+  // already has; mismatched text is completed through judge() before reuse.
+  evaluate.raw = (settings, itemIds, seed) => evaluateItems(settings, itemIds, seed, false);
+  evaluate.judge = async (id, row) => {
+    const prompt = byId.get(id);
+    if (!prompt) {
+      throw new AppError("Unknown benchmark item", { code: "unknown_item", why: `No suite item has the id "${id}".`, fix: "Rebuild the tuning rungs from the current suite." });
+    }
+    try {
+      return { ...row, ...(await judgeFields(prompt, row)) };
+    } catch (error) {
+      return { ...row, passed: 0, total: checkCount(prompt), error: error.message, failure: "error" };
+    }
   };
   // The context budget loads the model first so the GPU's free memory can be read (ADR-043).
   evaluate.ensureLoaded = (settings) => ensureLoaded(settings);

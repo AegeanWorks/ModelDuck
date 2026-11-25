@@ -115,6 +115,45 @@ test("a spot-check re-asks a few stored answers live and refuses reuse on any di
   assert.deepEqual(await verifyRestore([], same), { ok: true, checked: 0, mismatched: [] });
 });
 
+test("family verification judges only raw-text mismatches", async () => {
+  const groups = [{ settings: GPU, seed: 42, rows: [{ item: "code-1", passed: 1, total: 1, text: "saved", ms: 1 }] }];
+  let rawCalls = 0;
+  let judgeCalls = 0;
+  const captured = [];
+  const evaluate = async () => { throw new Error("the judged evaluator must not run"); };
+  evaluate.raw = async (_settings, ids) => {
+    rawCalls += 1;
+    return { prompts: ids.map((id) => ({ id, text: "saved", ms: 1, digest: id })) };
+  };
+  evaluate.judge = async (id, row) => {
+    judgeCalls += 1;
+    return { ...row, passed: 1, total: 1 };
+  };
+  const same = await verifyRestoreByFamily(groups, evaluate, { familyOf: () => "code", onAnswer: (answer) => captured.push(answer) });
+  assert.equal(rawCalls, 1);
+  assert.equal(judgeCalls, 0, "identical text already has the saved verdict");
+  assert.equal(same.ok, true);
+  assert.deepEqual(same.stale, []);
+  assert.deepEqual(captured, [], "matching raw rows are not needed for stale-family prefetch");
+
+  evaluate.raw = async (_settings, ids) => {
+    rawCalls += 1;
+    return { prompts: ids.map((id) => ({ id, text: "changed", ms: 2, digest: id })) };
+  };
+  const changed = await verifyRestoreByFamily(groups, evaluate, { familyOf: () => "code", onAnswer: (answer) => captured.push(answer) });
+  assert.equal(judgeCalls, 1, "a mismatch is fully judged for stale-family evidence");
+  assert.deepEqual(changed.stale, ["code"]);
+  assert.deepEqual(changed.groups, []);
+  assert.equal(captured[0].row.text, "changed");
+  assert.equal(captured[0].row.passed, 1);
+
+  evaluate.raw = async (_settings, ids) => ({ prompts: ids.map((id) => ({ id, text: "saved", ms: 1, digest: id })) });
+  const malformed = [{ settings: GPU, seed: 42, rows: [{ item: "code-1", passed: "1", total: 1, text: "saved", ms: 1 }] }];
+  const strict = await verifyRestoreByFamily(malformed, evaluate, { familyOf: () => "code" });
+  assert.equal(judgeCalls, 2, "a malformed saved verdict is judged rather than inferred");
+  assert.deepEqual(strict.stale, ["code"]);
+});
+
 test("the check by family keeps the families that re-ask identically and drops only the stale one (ADR-185)", async () => {
   const rows = (prefix, count) => Array.from({ length: count }, (_v, i) => ({ item: `${prefix}-${i}`, passed: 1, total: 1, text: `text ${prefix}-${i}`, ms: 100 + i }));
   const groups = [{ settings: GPU, seed: 42, rows: [...rows("code", 10), ...rows("recall", 10), ...rows("read", 10)] }];

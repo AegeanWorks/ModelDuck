@@ -158,10 +158,22 @@ export async function verifyRestoreByFamily(groups, evaluate, { familyOf = () =>
       if (index % 2 === 1 && !threadsShapeText(settings) && Number.isFinite(settings.threads)) {
         settings = { ...settings, threads: settings.threads > 1 ? Math.max(1, Math.floor(settings.threads / 2)) : 2 };
       }
-      const out = await evaluate(settings, [id], group.seed);
-      const live = out?.prompts?.[0];
+      const out = await (evaluate.raw ?? evaluate)(settings, [id], group.seed);
+      let live = out?.prompts?.[0];
+      let judged = live?.passed !== undefined;
+      if (!judged && live && !live.error) {
+        const sameVerdict = live.text === row.text && Number.isFinite(row.passed);
+        if (!sameVerdict && evaluate.judge) {
+          live = await evaluate.judge(id, live);
+          judged = true;
+        } else {
+          // The suite judge is pure for the same prompt/check/text. An exact
+          // text match with a numeric saved verdict already has its outcome.
+          live = { ...live, passed: row.passed, total: row.total };
+        }
+      }
       checked += 1;
-      if (live?.id === id && !live.error) {
+      if (judged && live?.id === id && !live.error) {
         onAnswer({ settings, seed: group.seed, row: live, memoryBytes: out?.memoryBytes, gpuVram: out?.gpuVram });
       }
       if (!live || live.text !== row.text || live.passed !== row.passed) {

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { createEvaluator } from "../benchmarks/tune-evaluate.mjs";
+import { javascriptTestCacheStats, resetJavaScriptTestCache } from "../benchmarks/suite.mjs";
 
 function recordingEngine(reply = () => "quack") {
   const engine = {
@@ -38,6 +39,26 @@ test("an evaluation scores items with the suite checks and reports latency, spee
   assert.deepEqual(out.prompts.map(({ id, passed, total, ms, tokensPerSecond, error }) => ({ id, ok: passed === total, ms, tokensPerSecond, error })), [
     { id: "read-sumTo-1", ok: true, ms: 250, tokensPerSecond: 12.5, error: null },
   ]);
+});
+
+test("raw generation defers judging and judge() completes the same answer row", async () => {
+  resetJavaScriptTestCache();
+  const evaluate = createEvaluator({ engine: recordingEngine(() => "function isPalindrome() { return false; }"), modelId: "m1" });
+  const raw = await evaluate.raw(SETTINGS, ["code-palindrome"], 42);
+  assert.equal(raw.prompts[0].text, "function isPalindrome() { return false; }");
+  assert.equal(raw.prompts[0].passed, undefined, "raw generation has no verdict yet");
+  assert.equal(raw.prompts[0].ms, 250);
+  assert.match(raw.prompts[0].digest, /^[a-f0-9]{16}$/);
+  assert.equal(javascriptTestCacheStats().misses, 0, "raw generation does not spawn the JavaScript judge");
+  const judged = await evaluate.judge("code-palindrome", raw.prompts[0]);
+  assert.equal(judged.id, "code-palindrome");
+  assert.equal(judged.passed, 1);
+  assert.equal(judged.total, 4);
+  assert.equal(judged.text, raw.prompts[0].text);
+  assert.equal(judged.digest, raw.prompts[0].digest);
+  assert.equal(javascriptTestCacheStats().misses, 1);
+  const normal = await evaluate(SETTINGS, ["code-palindrome"], 42);
+  assert.deepEqual(normal.prompts[0], judged, "deferred and ordinary judging produce the same row");
 });
 
 test("the model reloads only for model-level settings; context-level changes reconfigure in place", async () => {
