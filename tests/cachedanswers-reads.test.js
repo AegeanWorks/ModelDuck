@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { answersFile, cachedAnswers, cachedAnswersBytesReadCount, cachedAnswersReadCount, startRun } from "../src/tune-runs.js";
+import { answersFile, cachedAnswers, cachedAnswersBytesReadCount, cachedAnswersReadCount, createTuneHistoryCache, itemOutcomes, startRun } from "../src/tune-runs.js";
 
 test("cachedAnswers reads only the newest runs and keeps their row order", async (t) => {
   const dir = await mkdtemp(path.join(os.tmpdir(), "md-careads-"));
@@ -97,6 +97,24 @@ test("restore budget enforces file, byte and row caps", async (t) => {
   assert.deepEqual(groups, []);
 });
 
+test("uncached restore keeps the early row-cap parse break", async (t) => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "md-restore-parse-cap-"));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const rec = await startRun(dir, { profileId: "p", model: "m", request: {}, fingerprint: BUDGET_FP });
+  await rec.answers(Array.from({ length: 100 }, (_, i) => ({ item: `row-${i}`, seed: 42, settings: {}, passed: 1, total: 1 })));
+  await rec.finish({ outcome: "complete" });
+  const realParse = JSON.parse;
+  let parses = 0;
+  JSON.parse = (...args) => { parses += 1; return realParse(...args); };
+  try {
+    const groups = await cachedAnswers(dir, { profileId: "p", fingerprint: BUDGET_FP, limitRows: 3, historyCache: createTuneHistoryCache() });
+    assert.equal(groups[0].rows.length, 3);
+    assert.equal(parses, 5, "one summary plus three accepted rows and one look-ahead row are parsed");
+  } finally {
+    JSON.parse = realParse;
+  }
+});
+
 test("restore budget preserves fingerprint, tuner-version and width filtering", async (t) => {
   const dir = await mkdtemp(path.join(os.tmpdir(), "md-restore-filter-"));
   t.after(() => rm(dir, { recursive: true, force: true }));
@@ -111,7 +129,9 @@ test("restore budget preserves fingerprint, tuner-version and width filtering", 
   const wrong = await startRun(dir, { profileId: "p", model: "m", request: {}, fingerprint: { ...BUDGET_FP, modelSize: 2 }, now: new Date(2000) });
   await wrong.answers([{ item: "wrong-model", settings, seed: 42, passed: 1, total: 1 }]);
   await wrong.finish({ outcome: "complete" });
-  const options = { profileId: "p", fingerprint: BUDGET_FP, restoreBudget: { limitRows: 100, maxBytes: 1024 ** 2, maxFiles: 4 } };
+  const historyCache = createTuneHistoryCache();
+  await itemOutcomes(dir, { profileId: "p", fingerprint: { ...BUDGET_FP, tunerVersion: 11 }, historyCache, retainRuns: 4, retainMinRows: 0 });
+  const options = { profileId: "p", fingerprint: BUDGET_FP, historyCache, restoreBudget: { limitRows: 100, maxBytes: 1024 ** 2, maxFiles: 4 } };
   assert.deepEqual(budgetItems(await cachedAnswers(dir, { ...options, parallel: 1 })), ["serial"]);
   assert.deepEqual(budgetItems(await cachedAnswers(dir, { ...options, parallel: 3 })), ["wide"]);
   assert.deepEqual(await cachedAnswers(dir, { ...options, fingerprint: { ...BUDGET_FP, modelSize: 3 } }), []);

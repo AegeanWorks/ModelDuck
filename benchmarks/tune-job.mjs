@@ -10,7 +10,7 @@ import { createModelRegistry } from "../src/model-registry.js";
 import { systemInfo } from "../src/system.js";
 import { createTimingLock } from "../src/tune-lock.js";
 import { readSteps } from "../src/tune-steps.js";
-import { cachedAnswers, createTuneHistoryCache, itemOutcomes, startRun } from "../src/tune-runs.js";
+import { cachedAnswers, createTuneHistoryCache, itemOutcomes, RESTORE_BUDGET, startRun } from "../src/tune-runs.js";
 import { PROMPTS, SYSTEM_PROMPT } from "./suite.mjs";
 import { codeGroupOf, taskIdOfCategory, tuneRungs, withDiscriminatingRungs } from "./tasks.mjs";
 import { STAGES, resultFrom, tune } from "./tune.mjs";
@@ -102,7 +102,7 @@ export function answerRow(settings, seed, answer, tuneWidth = 1) {
  * The profile is saved after every finished setting, so stopping keeps what
  * was found and a later run resumes. Resolves `{ skipped, warnings, profile, result }`.
  */
-export async function runTune(target, { tasks, stages = STAGES, only = null, steps = null, force = false, continueRun = false, quick = false, guard = false, fullFinal = false, maxRuns = 0, passes = 0, parallel: requestedParallel = 1, budgetMinutes = null, escalate = false, adaptive = false, restoreBudget = false, engineFactory = null, reuseFrom = [], onEvent = () => {}, onStart = () => {}, onNote = () => {} }) {
+export async function runTune(target, { tasks, stages = STAGES, only = null, steps = null, force = false, continueRun = false, quick = false, guard = false, fullFinal = false, maxRuns = 0, passes = 0, parallel: requestedParallel = 1, budgetMinutes = null, escalate = false, adaptive = false, restoreBudget = false, retainMinRows = 1000, engineFactory = null, reuseFrom = [], onEvent = () => {}, onStart = () => {}, onNote = () => {} }) {
   const saved = force ? null : await loadProfile(target.paths.profiles, target.profileId, target.fingerprint);
   const plan = planTune(saved, tasks, stages, only, { continueRun });
   const warnings = saved?.warnings ?? [];
@@ -118,7 +118,7 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
   // search leaves them out; the final check keeps the whole set (ADR-064, S6). Share the
   // answer texts with restore below, then release them before generation starts.
   const historyCache = createTuneHistoryCache();
-  const { saturated } = await itemOutcomes(target.paths.tuneRuns, { profileId: target.profileId, fingerprint: target.fingerprint, historyCache });
+  const { saturated } = await itemOutcomes(target.paths.tuneRuns, { profileId: target.profileId, fingerprint: target.fingerprint, historyCache, retainRuns: restoreBudget ? RESTORE_BUDGET.maxFiles : 0, retainMinRows });
   // Public coding items may be in the model's training data: they stay in the final check and
   // the gate, but the search is chosen on ModelDuck's own code items (ADR-070).
   for (const prompt of PROMPTS) if (prompt.category === "public-code") saturated.add(prompt.id);
@@ -208,7 +208,7 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
     // An explicit reuse folder is read whole (still capped by rows): a few short
     // recent runs must not hide the long run that holds most saved answers.
     try {
-      restore = await cachedAnswers([target.paths.tuneRuns, ...reuseFrom], { profileId: target.profileId, fingerprint: target.fingerprint, parallel: width, historyCache, ...(restoreBudget && { restoreBudget: true }), ...(reuseFrom.length && { limitRuns: Infinity }) });
+      restore = await cachedAnswers([target.paths.tuneRuns, ...reuseFrom], { profileId: target.profileId, fingerprint: target.fingerprint, parallel: width, historyCache, reuseParsedRows: true, ...(restoreBudget && { restoreBudget: true }), ...(reuseFrom.length && { limitRuns: Infinity }) });
     } catch {
       restore = [];
     } finally {

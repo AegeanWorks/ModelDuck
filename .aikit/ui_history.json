@@ -4580,5 +4580,57 @@
     "final_snapshot_entries": 0,
     "surface_digest": "c5844dbbac810bc21ff49e7323adb39b061c2767bb4857b5d18bcb48163ee3d8",
     "baseline_digest": "64d751de9c363787fcd1c02dfd2104a66822999cddab699ea0b497b4f1f8f162"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [
+      ".aikit/decisions.md",
+      "benchmarks/tune-job.mjs",
+      "src/tune-runs.js",
+      "tests/cachedanswers-reads.test.js",
+      "tests/tunedir-parallel.test.js"
+    ],
+    "no_visual_reason": "",
+    "baseline_commit": "fc22b84",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1795572879.8702207,
+    "finished_at": 1795573081.2192042,
+    "strikes": 0,
+    "reviewer": "HungerG",
+    "review": {
+      "reviewer": "HungerG",
+      "surface": "app",
+      "surface_digest": "ccb57d64f369f0051d12a0c22245f916593e75a387faaf7486c3b83ae7f4b410",
+      "snapshot_digest": "",
+      "snapshot_entries": 0,
+      "visual": true,
+      "reviewed_at": 1795573081.2192075,
+      "scoped_paths": [
+        ".aikit/decisions.md",
+        "benchmarks/tune-job.mjs",
+        "src/tune-runs.js",
+        "tests/cachedanswers-reads.test.js",
+        "tests/tunedir-parallel.test.js"
+      ],
+      "scoped_digest": "f8fd7d43f288509962b7d5c39f5855b7864075b8aaa2a73887eea64afc126cd3"
+    },
+    "allowed_removals": [],
+    "allowed_tests": [
+      {
+        "path": "tests/cachedanswers-reads.test.js",
+        "reason": "Failing-first parsed-row reuse, early parse-cap and filtering regression tests"
+      },
+      {
+        "path": "tests/tunedir-parallel.test.js",
+        "reason": "Failing-first parsed-row clone, append invalidation and cache-bound regression tests"
+      }
+    ],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "ccb57d64f369f0051d12a0c22245f916593e75a387faaf7486c3b83ae7f4b410",
+    "baseline_digest": "c5844dbbac810bc21ff49e7323adb39b061c2767bb4857b5d18bcb48163ee3d8"
   }
 ]

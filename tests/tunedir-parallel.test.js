@@ -73,6 +73,42 @@ test("a shared answer cache avoids duplicate reads and refreshes an appended fil
   assert.equal(cleared.summaries.bytes, 0);
 });
 
+test("retained parsed rows are reused, cloned and refreshed after an append", async (t) => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "md-tune-rows-"));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const fp = { suiteVersion: 18, taskHash: "h", nodeLlamaCpp: "x", tunerVersion: 12 };
+  const records = [];
+  for (let i = 0; i < 5; i += 1) {
+    const rec = await startRun(dir, { profileId: "p", model: "m", request: {}, fingerprint: fp, now: new Date(1000 + i * 1000) });
+    await rec.answers([
+      { item: `run${i}-a`, seed: 42, settings: { temperature: 0.1 }, passed: 1, total: 1 },
+      { item: `run${i}-b`, seed: 42, settings: { temperature: 0.1 }, passed: 1, total: 1 },
+    ]);
+    await rec.finish({ outcome: "complete" });
+    records.push(rec);
+  }
+  const cache = createTuneHistoryCache();
+  await itemOutcomes(dir, { profileId: "p", fingerprint: fp, historyCache: cache, retainRuns: 4, retainMinRows: 0 });
+  const options = { profileId: "p", fingerprint: fp, historyCache: cache, restoreBudget: { limitRows: 100, maxBytes: 1024 ** 2, maxFiles: 4 } };
+  const first = await cachedAnswers(dir, options);
+  assert.deepEqual(first[0].rows.map((row) => row.item), ["run4-a", "run4-b", "run3-a", "run3-b", "run2-a", "run2-b", "run1-a", "run1-b"]);
+  assert.deepEqual(cache.stats().rows, { size: 4, rows: 8, hits: 4, misses: 4, evictions: 0 });
+  const smallRunCache = createTuneHistoryCache();
+  await itemOutcomes(dir, { profileId: "p", fingerprint: fp, historyCache: smallRunCache, retainRuns: 4 });
+  assert.equal(smallRunCache.stats().rows.size, 0, "tiny files stay on the streaming path by default");
+  first[0].rows[0].item = "mutated";
+  const second = await cachedAnswers(dir, options);
+  assert.equal(second[0].rows[0].item, "run4-a", "cached rows cannot be mutated by a caller");
+  assert.equal(cache.stats().rows.hits, 8);
+
+  const readsBeforeAppend = cachedAnswersReadCount();
+  await appendFile(path.join(dir, `${records[4].id}.answers.jsonl`), `${JSON.stringify({ item: "appended", seed: 42, settings: { temperature: 0.1 }, passed: 1, total: 1 })}\n`);
+  await records[4].update({ outcome: "stopped" });
+  const refreshed = await cachedAnswers(dir, options);
+  assert.equal(refreshed[0].rows[2].item, "appended");
+  assert.equal(cachedAnswersReadCount(), readsBeforeAppend + 1, "only the changed file is reread and streamed");
+});
+
 test("the history cache enforces its answer byte and entry bounds", async (t) => {
   const dir = await mkdtemp(path.join(os.tmpdir(), "md-tune-cache-bound-"));
   t.after(() => rm(dir, { recursive: true, force: true }));
@@ -96,4 +132,10 @@ test("the history cache enforces its answer byte and entry bounds", async (t) =>
   }
   assert.equal(sequential.stats().answers.size, 2);
   assert.equal(sequential.stats().answers.evictions, 1, `the oldest entry is evicted at the bound: ${JSON.stringify(sequential.stats())}`);
+
+  const parsed = createTuneHistoryCache({ maxParsedFiles: 2, maxParsedRows: 3 });
+  await itemOutcomes(dir, { profileId: "p", fingerprint: fp, historyCache: parsed, retainRuns: 4, retainMinRows: 0 });
+  const rowStats = parsed.stats().rows;
+  assert.ok(rowStats.size <= 2, `cached ${rowStats.size} parsed files`);
+  assert.ok(rowStats.rows <= 3, `cached ${rowStats.rows} parsed rows`);
 });

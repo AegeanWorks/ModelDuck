@@ -367,12 +367,34 @@ async function readRunSummaries(folder, names, cache = null) {
 const DEFAULT_ANSWER_CACHE_BYTES = 64 * 1024 ** 2;
 const DEFAULT_SUMMARY_CACHE_BYTES = 16 * 1024 ** 2;
 const DEFAULT_HISTORY_CACHE_ENTRIES = 256;
+const DEFAULT_PARSED_ROW_FILES = 4;
+const DEFAULT_PARSED_ROWS = 50000;
 const answerStamp = (info) => `${info.mtimeMs}:${info.size}`;
 
+function parseAnswerRows(text) {
+  const rows = [];
+  let start = 0;
+  while (start < text.length) {
+    let end = text.indexOf("\n", start);
+    if (end === -1) end = text.length;
+    const line = text.slice(start, end);
+    start = end + 1;
+    if (!line.trim()) continue;
+    try {
+      rows.push(JSON.parse(line));
+    } catch {
+      // A line cut off by a crash is ignored, as in the streaming readers.
+    }
+  }
+  return rows;
+}
+
 /** A process-local, byte-bounded cache shared by the two tune preflight readers. */
-export function createTuneHistoryCache({ maxBytes = DEFAULT_ANSWER_CACHE_BYTES, maxEntries = DEFAULT_HISTORY_CACHE_ENTRIES } = {}) {
+export function createTuneHistoryCache({ maxBytes = DEFAULT_ANSWER_CACHE_BYTES, maxEntries = DEFAULT_HISTORY_CACHE_ENTRIES, maxParsedFiles = DEFAULT_PARSED_ROW_FILES, maxParsedRows = DEFAULT_PARSED_ROWS } = {}) {
   const byteLimit = Number.isFinite(maxBytes) ? Math.max(0, Math.floor(maxBytes)) : DEFAULT_ANSWER_CACHE_BYTES;
   const entryLimit = Number.isFinite(maxEntries) ? Math.max(0, Math.floor(maxEntries)) : DEFAULT_HISTORY_CACHE_ENTRIES;
+  const parsedFileLimit = Number.isFinite(maxParsedFiles) ? Math.max(0, Math.floor(maxParsedFiles)) : DEFAULT_PARSED_ROW_FILES;
+  const parsedRowLimit = Number.isFinite(maxParsedRows) ? Math.max(0, Math.floor(maxParsedRows)) : DEFAULT_PARSED_ROWS;
   const entries = new Map();
   const summaries = new Map();
   let bytes = 0;
@@ -383,11 +405,27 @@ export function createTuneHistoryCache({ maxBytes = DEFAULT_ANSWER_CACHE_BYTES, 
   let summaryHits = 0;
   let summaryMisses = 0;
   let summaryEvictions = 0;
+  let parsedFiles = 0;
+  let parsedRows = 0;
+  let rowHits = 0;
+  let rowMisses = 0;
+  let rowEvictions = 0;
   const drop = (key) => {
     const entry = entries.get(key);
     if (!entry) return;
     bytes -= entry.size;
+    if (entry.rows) {
+      parsedFiles -= 1;
+      parsedRows -= entry.rows.length;
+    }
     entries.delete(key);
+  };
+  const dropRows = (key) => {
+    const entry = entries.get(key);
+    if (!entry?.rows) return;
+    parsedFiles -= 1;
+    parsedRows -= entry.rows.length;
+    delete entry.rows;
   };
   const read = async (file, priority = null) => {
     const key = path.resolve(file);
@@ -398,7 +436,7 @@ export function createTuneHistoryCache({ maxBytes = DEFAULT_ANSWER_CACHE_BYTES, 
         hits += 1;
         entries.delete(key);
         entries.set(key, cached);
-        return { text: cached.text, error: null, hit: true };
+        return { text: cached.text, error: null, hit: true, bytes: 0 };
       }
       drop(key);
     }
@@ -407,7 +445,7 @@ export function createTuneHistoryCache({ maxBytes = DEFAULT_ANSWER_CACHE_BYTES, 
     try {
       before = await fs.promises.stat(key);
     } catch (error) {
-      return { text: null, error, hit: false };
+      return { text: null, error, hit: false, bytes: 0 };
     }
     try {
       const text = await fs.promises.readFile(key, "utf8");
@@ -437,10 +475,65 @@ export function createTuneHistoryCache({ maxBytes = DEFAULT_ANSWER_CACHE_BYTES, 
           bytes += size;
         }
       }
-      return { text, error: null, hit: false };
+      return { text, error: null, hit: false, bytes: size };
     } catch (error) {
-      return { text: null, error, hit: false };
+      return { text: null, error, hit: false, bytes: 0 };
     }
+  };
+  const readRows = async (file, priority = null) => {
+    const key = path.resolve(file);
+    const cached = entries.get(key);
+    if (cached?.rows) {
+      const info = await fs.promises.stat(key).catch(() => null);
+      if (info && answerStamp(info) === cached.stamp) {
+        rowHits += 1;
+        hits += 1;
+        return { rows: cached.rows, error: null, hit: true, bytes: 0 };
+      }
+      drop(key);
+    }
+    rowMisses += 1;
+    const loaded = await read(file, priority);
+    if (loaded.error || loaded.text === null) return { rows: null, error: loaded.error, hit: loaded.hit, bytes: loaded.bytes };
+    const rows = parseAnswerRows(loaded.text);
+    const entry = entries.get(key);
+    if (entry && rows.length && parsedFileLimit > 0 && rows.length <= parsedRowLimit) {
+      const rank = entry.rank;
+      while (parsedFiles >= parsedFileLimit || parsedRows + rows.length > parsedRowLimit) {
+        if (!parsedFiles) break;
+        let oldestKey = null;
+        let oldestRank = Infinity;
+        for (const [cachedKey, value] of entries) {
+          if (value.rows && value.rank < oldestRank) {
+            oldestKey = cachedKey;
+            oldestRank = value.rank;
+          }
+        }
+        if (oldestKey === null || oldestRank > rank) break;
+        dropRows(oldestKey);
+        rowEvictions += 1;
+      }
+      if (parsedFiles < parsedFileLimit && parsedRows + rows.length <= parsedRowLimit) {
+        entry.rows = rows;
+        parsedFiles += 1;
+        parsedRows += rows.length;
+      }
+    }
+    return { rows, error: null, hit: loaded.hit, bytes: loaded.bytes };
+  };
+  const readCachedRows = async (file) => {
+    const key = path.resolve(file);
+    const cached = entries.get(key);
+    if (cached?.rows) {
+      const info = await fs.promises.stat(key).catch(() => null);
+      if (info && answerStamp(info) === cached.stamp) {
+        rowHits += 1;
+        hits += 1;
+        return { rows: cached.rows, error: null, hit: true, bytes: 0 };
+      }
+      drop(key);
+    }
+    return { rows: null, error: null, hit: false, bytes: 0 };
   };
   const dropSummary = (key) => {
     const entry = summaries.get(key);
@@ -499,21 +592,36 @@ export function createTuneHistoryCache({ maxBytes = DEFAULT_ANSWER_CACHE_BYTES, 
     summaries.clear();
     bytes = 0;
     summaryBytes = 0;
+    parsedFiles = 0;
+    parsedRows = 0;
   };
   const stats = () => ({
     answers: { size: entries.size, bytes, hits, misses, evictions },
     summaries: { size: summaries.size, bytes: summaryBytes, hits: summaryHits, misses: summaryMisses, evictions: summaryEvictions },
+    rows: { size: parsedFiles, rows: parsedRows, hits: rowHits, misses: rowMisses, evictions: rowEvictions },
   });
-  return { read, readSummary, clear, stats };
+  return { read, readRows, readCachedRows, readSummary, clear, stats };
 }
 
 async function readAnswerText(file, cache, priority = null) {
   if (cache) return cache.read(file, priority);
   try {
-    return { text: await fs.promises.readFile(file, "utf8"), error: null, hit: false };
+    const text = await fs.promises.readFile(file, "utf8");
+    return { text, error: null, hit: false, bytes: Buffer.byteLength(text, "utf8") };
   } catch (error) {
-    return { text: null, error, hit: false };
+    return { text: null, error, hit: false, bytes: 0 };
   }
+}
+
+async function readAnswerRows(file, cache, priority = null) {
+  if (cache?.readRows) return cache.readRows(file, priority);
+  const loaded = await readAnswerText(file, cache, priority);
+  return { rows: loaded.text === null ? null : parseAnswerRows(loaded.text), error: loaded.error, hit: loaded.hit, bytes: loaded.bytes };
+}
+
+async function readCachedAnswerRows(file, cache) {
+  if (cache?.readCachedRows) return cache.readCachedRows(file);
+  return { rows: null, error: null, hit: false, bytes: 0 };
 }
 
 // Test seam: how many answer files a single cachedAnswers call read.
@@ -528,8 +636,9 @@ export function cachedAnswersBytesReadCount() {
 
 export const RESTORE_BUDGET = Object.freeze({ limitRows: 20000, maxBytes: 32 * 1024 ** 2, maxFiles: 4 });
 
-/** `restoreBudget: true` selects newest runs through RESTORE_BUDGET; an object can tighten it for tests. */
-export async function cachedAnswers(dir, { profileId, fingerprint = null, limitRuns = 3, limitRows = 20000, parallel = 1, historyCache = null, restoreBudget = null } = {}) {
+/** `restoreBudget: true` selects newest runs through RESTORE_BUDGET; an object can tighten it for tests.
+ * `reuseParsedRows` is the runTune-only read-only fast path; public callers receive cloned cached rows. */
+export async function cachedAnswers(dir, { profileId, fingerprint = null, limitRuns = 3, limitRows = 20000, parallel = 1, historyCache = null, restoreBudget = null, reuseParsedRows = false } = {}) {
   const dirs = (Array.isArray(dir) ? dir : [dir]).filter(Boolean);
   const runs = [];
   for (const folder of dirs) {
@@ -584,21 +693,50 @@ export async function cachedAnswers(dir, { profileId, fingerprint = null, limitR
       }
     }
   }
-  const loaded = await Promise.all(selected.map(async ({ run, file }) => ({
-    run,
-    ...await readAnswerText(file, historyCache, Date.parse(run.startedAt) || 0),
-  })));
-  for (const { text, hit } of loaded) {
+  const loaded = await Promise.all(selected.map(async ({ run, file }) => {
+    const cached = await readCachedAnswerRows(file, historyCache);
+    return {
+      run,
+      ...(cached.rows
+        ? cached
+        : await readAnswerText(file, historyCache, Date.parse(run.startedAt) || 0)),
+    };
+  }));
+  for (const { bytes, hit } of loaded) {
     if (hit) continue;
     cachedAnswersReads += 1;
-    cachedAnswerBytes += Buffer.byteLength(text ?? "", "utf8");
+    cachedAnswerBytes += bytes ?? 0;
   }
   const groups = new Map();
   let rows = 0;
-  for (const { run, text, error } of loaded) {
+  for (const { run, rows: parsedRows, text, error } of loaded) {
     if (error && error.code !== "ENOENT") throw error;
-    if (text === null) continue;
-    {
+    if (parsedRows === null && text === null) continue;
+    const accept = (row, fromCache) => {
+      if (!row || !row.item || row.error) return;
+      if (run.otherTuner && row.settings?.timed === true) return;
+      // Answers made at another width are another world: batching can change the numerics.
+      // `parallel` is the width the call ran at (no tag: serial) and `tuneParallel` the tune's
+      // (older rows have only `parallel`, set to the tune's width). A serial tune reuses every
+      // serially answered row, whichever tune made it; a wide tune reuses its own width's rows.
+      const want = parallel ?? 1;
+      const callWidth = row.parallel ?? 1;
+      const tuneWidth = row.tuneParallel ?? callWidth;
+      if (want === 1 ? callWidth !== 1 : tuneWidth !== want) return;
+      if (rows >= rowCap) return;
+      rows += 1;
+      const key = `${JSON.stringify(row.settings ?? null)}|${row.seed}`;
+      const outputRow = fromCache && !reuseParsedRows ? structuredClone(row) : row;
+      const group = groups.get(key) ?? { settings: outputRow.settings ?? {}, seed: row.seed, rows: [] };
+      group.rows.push(outputRow);
+      groups.set(key, group);
+    };
+    if (parsedRows) {
+      for (const row of parsedRows) {
+        if (rows >= rowCap) break;
+        accept(row, true);
+      }
+    } else {
       let start = 0;
       scan: while (start < text.length) {
         let end = text.indexOf("\n", start);
@@ -612,22 +750,8 @@ export async function cachedAnswers(dir, { profileId, fingerprint = null, limitR
         } catch {
           continue;
         }
-        if (!row || !row.item || row.error) continue;
-        if (run.otherTuner && row.settings?.timed === true) continue;
-        // Answers made at another width are another world: batching can change the numerics.
-        // `parallel` is the width the call ran at (no tag: serial) and `tuneParallel` the tune's
-        // (older rows have only `parallel`, set to the tune's width). A serial tune reuses every
-        // serially answered row, whichever tune made it; a wide tune reuses its own width's rows.
-        const want = parallel ?? 1;
-        const callWidth = row.parallel ?? 1;
-        const tuneWidth = row.tuneParallel ?? callWidth;
-        if (want === 1 ? callWidth !== 1 : tuneWidth !== want) continue;
         if (rows >= rowCap) break scan;
-        rows += 1;
-        const key = `${JSON.stringify(row.settings ?? null)}|${row.seed}`;
-        const group = groups.get(key) ?? { settings: row.settings ?? {}, seed: row.seed, rows: [] };
-        group.rows.push(row);
-        groups.set(key, group);
+        accept(row, false);
       }
     }
     if (rows >= rowCap) break;
@@ -641,7 +765,7 @@ export function itemOutcomesReadCount() {
   return itemOutcomesReads;
 }
 
-export async function itemOutcomes(dir, { profileId, minObservations = 6, minSettings = 2, fingerprint = null, historyCache = null } = {}) {
+export async function itemOutcomes(dir, { profileId, minObservations = 6, minSettings = 2, fingerprint = null, historyCache = null, retainRuns = 0, retainMinRows = 1000 } = {}) {
   const names = await fs.promises.readdir(dir).catch(() => []);
   const counts = new Map();
   // Collect the qualifying answer files, then read them all concurrently. The
@@ -652,20 +776,42 @@ export async function itemOutcomes(dir, { profileId, minObservations = 6, minSet
     if (profileId && record.profileId !== profileId) continue;
     if (fingerprint && OUTCOME_FINGERPRINT_KEYS.some((key) => record.fingerprint?.[key] !== fingerprint[key])) continue;
     try {
-      files.push({ runName: name, file: answersFile(dir, name.slice(0, -5)), startedAt: record.startedAt ?? "" });
+      files.push({ runName: name, file: answersFile(dir, name.slice(0, -5)), startedAt: record.startedAt ?? "", answers: Number(record.answers) || 0 });
     } catch {
       continue; // a file name that cannot be a run id
     }
   }
+  const retained = new Set(retainRuns > 0
+    ? files.filter((file) => file.answers >= retainMinRows).sort((left, right) => right.startedAt.localeCompare(left.startedAt)).slice(0, retainRuns).map((file) => file.file)
+    : []);
   const loaded = await Promise.all(files.map(async ({ runName, file, startedAt }) => ({
     runName,
-    ...await readAnswerText(file, historyCache, Date.parse(startedAt) || 0),
+    ...await (retained.has(file) && historyCache?.readRows
+      ? readAnswerRows(file, historyCache, Date.parse(startedAt) || 0)
+      : readAnswerText(file, historyCache, Date.parse(startedAt) || 0)),
   })));
   itemOutcomesReads += loaded.filter(({ hit }) => !hit).length;
-  for (const { text, error } of loaded) {
+  const countRow = (row) => {
+    if (!row) return;
+    const total = Number(row.total) || 0;
+    if (row.error || !row.item || !(total > 0)) return;
+    const entry = counts.get(row.item) ?? { right: 0, wrong: 0, settings: new Set() };
+    if ((Number(row.passed) || 0) >= total) entry.right += 1;
+    else entry.wrong += 1;
+    // Greedy load-stage repeats of one setting must not saturate an item (S6).
+    try {
+      const key = JSON.stringify(row.settings ?? null);
+      if (entry.settings.size < 16) entry.settings.add(key);
+    } catch {
+      // unstringifiable settings still count as a look, just not a new setting
+    }
+    counts.set(row.item, entry);
+  };
+  for (const { rows, text, error } of loaded) {
     if (error && error.code !== "ENOENT") throw error;
-    if (text === null) continue;
-    {
+    if (rows) {
+      for (const row of rows) countRow(row);
+    } else if (text !== null) {
       let start = 0;
       while (start < text.length) {
         let end = text.indexOf("\n", start);
@@ -673,25 +819,11 @@ export async function itemOutcomes(dir, { profileId, minObservations = 6, minSet
         const line = text.slice(start, end);
         start = end + 1;
         if (!line.trim()) continue;
-        let row;
         try {
-          row = JSON.parse(line);
+          countRow(JSON.parse(line));
         } catch {
-          continue; // a line cut off by a crash
+          // A line cut off by a crash is ignored.
         }
-        const total = Number(row.total) || 0;
-        if (row.error || !row.item || !(total > 0)) continue;
-        const entry = counts.get(row.item) ?? { right: 0, wrong: 0, settings: new Set() };
-        if ((Number(row.passed) || 0) >= total) entry.right += 1;
-        else entry.wrong += 1;
-        // Greedy load-stage repeats of one setting must not saturate an item (S6).
-        try {
-          const key = JSON.stringify(row.settings ?? null);
-          if (entry.settings.size < 16) entry.settings.add(key);
-        } catch {
-          // unstringifiable settings still count as a look, just not a new setting
-        }
-        counts.set(row.item, entry);
       }
     }
   }
