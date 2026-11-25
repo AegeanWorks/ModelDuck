@@ -97,7 +97,7 @@ export function answerRow(settings, seed, answer, tuneWidth = 1) {
  * The profile is saved after every finished setting, so stopping keeps what
  * was found and a later run resumes. Resolves `{ skipped, warnings, profile, result }`.
  */
-export async function runTune(target, { tasks, stages = STAGES, only = null, steps = null, force = false, continueRun = false, quick = false, guard = false, fullFinal = false, maxRuns = 0, passes = 0, parallel: requestedParallel = 1, budgetMinutes = null, escalate = false, adaptive = false, reuseFrom = [], onEvent = () => {}, onStart = () => {}, onNote = () => {} }) {
+export async function runTune(target, { tasks, stages = STAGES, only = null, steps = null, force = false, continueRun = false, quick = false, guard = false, fullFinal = false, maxRuns = 0, passes = 0, parallel: requestedParallel = 1, budgetMinutes = null, escalate = false, adaptive = false, restoreBudget = false, reuseFrom = [], onEvent = () => {}, onStart = () => {}, onNote = () => {} }) {
   const saved = force ? null : await loadProfile(target.paths.profiles, target.profileId, target.fingerprint);
   const plan = planTune(saved, tasks, stages, only, { continueRun });
   const warnings = saved?.warnings ?? [];
@@ -203,7 +203,7 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
     // An explicit reuse folder is read whole (still capped by rows): a few short
     // recent runs must not hide the long run that holds most saved answers.
     try {
-      restore = await cachedAnswers([target.paths.tuneRuns, ...reuseFrom], { profileId: target.profileId, fingerprint: target.fingerprint, parallel: width, historyCache, ...(reuseFrom.length && { limitRuns: Infinity }) });
+      restore = await cachedAnswers([target.paths.tuneRuns, ...reuseFrom], { profileId: target.profileId, fingerprint: target.fingerprint, parallel: width, historyCache, ...(restoreBudget && { restoreBudget: true }), ...(reuseFrom.length && { limitRuns: Infinity }) });
     } catch {
       restore = [];
     } finally {

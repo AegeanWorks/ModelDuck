@@ -518,11 +518,18 @@ async function readAnswerText(file, cache, priority = null) {
 
 // Test seam: how many answer files a single cachedAnswers call read.
 let cachedAnswersReads = 0;
+let cachedAnswerBytes = 0;
 export function cachedAnswersReadCount() {
   return cachedAnswersReads;
 }
+export function cachedAnswersBytesReadCount() {
+  return cachedAnswerBytes;
+}
 
-export async function cachedAnswers(dir, { profileId, fingerprint = null, limitRuns = 3, limitRows = 20000, parallel = 1, historyCache = null } = {}) {
+export const RESTORE_BUDGET = Object.freeze({ limitRows: 20000, maxBytes: 32 * 1024 ** 2, maxFiles: 4 });
+
+/** `restoreBudget: true` selects newest runs through RESTORE_BUDGET; an object can tighten it for tests. */
+export async function cachedAnswers(dir, { profileId, fingerprint = null, limitRuns = 3, limitRows = 20000, parallel = 1, historyCache = null, restoreBudget = null } = {}) {
   const dirs = (Array.isArray(dir) ? dir : [dir]).filter(Boolean);
   const runs = [];
   for (const folder of dirs) {
@@ -536,25 +543,56 @@ export async function cachedAnswers(dir, { profileId, fingerprint = null, limitR
       // A run with no answers (the tune that is starting, or one stopped at once)
       // holds nothing to reuse, so it must not push a real run out of `limitRuns`.
       if (record.answers === 0) continue;
-      runs.push({ folder, name: name.slice(0, -5), startedAt: record.startedAt ?? "", otherTuner });
+      runs.push({ folder, name: name.slice(0, -5), startedAt: record.startedAt ?? "", answers: Number(record.answers) || 0, otherTuner });
     }
   }
   runs.sort((left, right) => (left.startedAt < right.startedAt ? 1 : -1));
+  let rowCap = limitRows;
   // The chosen answer files are independent; read them all concurrently, then
   // scan in newest-first order so grouping and the limitRows break are unchanged.
   const selected = [];
-  for (const run of runs.slice(0, limitRuns)) {
-    try {
-      selected.push({ run, file: answersFile(run.folder, run.name) });
-    } catch {
-      continue; // a file name that cannot be a run id
+  if (restoreBudget) {
+    const budget = { ...RESTORE_BUDGET, ...(restoreBudget === true ? {} : restoreBudget) };
+    const rowLimit = Number.isFinite(budget.limitRows) ? Math.max(0, Math.floor(budget.limitRows)) : RESTORE_BUDGET.limitRows;
+    rowCap = rowLimit;
+    const byteLimit = Number.isFinite(budget.maxBytes) ? Math.max(0, Math.floor(budget.maxBytes)) : RESTORE_BUDGET.maxBytes;
+    const fileLimit = Number.isFinite(budget.maxFiles) ? Math.max(0, Math.floor(budget.maxFiles)) : RESTORE_BUDGET.maxFiles;
+    let bytes = 0;
+    let estimatedRows = 0;
+    for (const run of runs) {
+      if (rowLimit === 0 || selected.length >= fileLimit) break;
+      let file;
+      try {
+        file = answersFile(run.folder, run.name);
+      } catch {
+        continue;
+      }
+      const info = await fs.promises.stat(file).catch(() => null);
+      if (!info?.isFile()) continue;
+      if (bytes + info.size > byteLimit) break;
+      selected.push({ run, file });
+      bytes += info.size;
+      estimatedRows += run.answers;
+      if (estimatedRows >= rowLimit) break;
+    }
+  } else {
+    for (const run of runs.slice(0, limitRuns)) {
+      try {
+        selected.push({ run, file: answersFile(run.folder, run.name) });
+      } catch {
+        continue; // a file name that cannot be a run id
+      }
     }
   }
   const loaded = await Promise.all(selected.map(async ({ run, file }) => ({
     run,
     ...await readAnswerText(file, historyCache, Date.parse(run.startedAt) || 0),
   })));
-  cachedAnswersReads += loaded.filter(({ hit }) => !hit).length;
+  for (const { text, hit } of loaded) {
+    if (hit) continue;
+    cachedAnswersReads += 1;
+    cachedAnswerBytes += Buffer.byteLength(text ?? "", "utf8");
+  }
   const groups = new Map();
   let rows = 0;
   for (const { run, text, error } of loaded) {
@@ -584,7 +622,7 @@ export async function cachedAnswers(dir, { profileId, fingerprint = null, limitR
         const callWidth = row.parallel ?? 1;
         const tuneWidth = row.tuneParallel ?? callWidth;
         if (want === 1 ? callWidth !== 1 : tuneWidth !== want) continue;
-        if (rows >= limitRows) break scan;
+        if (rows >= rowCap) break scan;
         rows += 1;
         const key = `${JSON.stringify(row.settings ?? null)}|${row.seed}`;
         const group = groups.get(key) ?? { settings: row.settings ?? {}, seed: row.seed, rows: [] };
@@ -592,7 +630,7 @@ export async function cachedAnswers(dir, { profileId, fingerprint = null, limitR
         groups.set(key, group);
       }
     }
-    if (rows >= limitRows) break;
+    if (rows >= rowCap) break;
   }
   return [...groups.values()];
 }

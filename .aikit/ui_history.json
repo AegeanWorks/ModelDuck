@@ -4532,5 +4532,53 @@
     "final_snapshot_entries": 0,
     "surface_digest": "64d751de9c363787fcd1c02dfd2104a66822999cddab699ea0b497b4f1f8f162",
     "baseline_digest": "d9ab64fbdb334c6fc17576e9b6b297d2cdd1ee4a9110966a8d7527193a9c8efa"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [
+      ".aikit/decisions.md",
+      "benchmarks/tune-job.mjs",
+      "benchmarks/tune-run.mjs",
+      "src/tune-runs.js",
+      "tests/cachedanswers-reads.test.js"
+    ],
+    "no_visual_reason": "",
+    "baseline_commit": "e560c24",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1795568119.784689,
+    "finished_at": 1795568240.6134171,
+    "strikes": 0,
+    "reviewer": "HungerG",
+    "review": {
+      "reviewer": "HungerG",
+      "surface": "app",
+      "surface_digest": "c5844dbbac810bc21ff49e7323adb39b061c2767bb4857b5d18bcb48163ee3d8",
+      "snapshot_digest": "",
+      "snapshot_entries": 0,
+      "visual": true,
+      "reviewed_at": 1795568240.6134205,
+      "scoped_paths": [
+        ".aikit/decisions.md",
+        "benchmarks/tune-job.mjs",
+        "benchmarks/tune-run.mjs",
+        "src/tune-runs.js",
+        "tests/cachedanswers-reads.test.js"
+      ],
+      "scoped_digest": "1ba6e69e4217f029d76628f0341053ffa5e25e8d6707309cc92f05f55711be09"
+    },
+    "allowed_removals": [],
+    "allowed_tests": [
+      {
+        "path": "tests/cachedanswers-reads.test.js",
+        "reason": "Failing-first opt-in restore precedence, crossing, cap and filtering regression tests"
+      }
+    ],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "c5844dbbac810bc21ff49e7323adb39b061c2767bb4857b5d18bcb48163ee3d8",
+    "baseline_digest": "64d751de9c363787fcd1c02dfd2104a66822999cddab699ea0b497b4f1f8f162"
   }
 ]

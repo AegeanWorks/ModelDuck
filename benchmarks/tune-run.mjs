@@ -61,6 +61,8 @@ older test, runtime, CPU or model file is kept with a warning until --force.
   --models-dir <dir> models folder
   --events           JSON progress lines on stdout (used by the app)
   --continue         finish an unfinished run: measure only what is not done yet
+  --restore-budget   replay saved answers newest-first under hard caps of 20000 rows,
+                     32 MiB and 4 files instead of the default three newest runs
   --quick            provisional first-rung pass; the app follows it with a full continue
   --guard            stop the remaining tasks when a held-back check falls back (full pass only; a quick pass presets first and guards on its full continue)
   --full-final       score each final preset on every task item, not only the last search rung (slower, higher power)
@@ -93,6 +95,7 @@ function parseArgs(argv) {
     if (arg === "--help" || arg === "-h") options.help = true;
     else if (arg === "--events") options.events = true;
     else if (arg === "--continue") options.continueRun = true;
+    else if (arg === "--restore-budget") options.restoreBudget = true;
     else if (arg === "--quick") options.quick = true;
     else if (arg === "--guard") options.guard = true;
     else if (arg === "--full-final") options.fullFinal = true;
@@ -203,6 +206,7 @@ async function main() {
     budgetMinutes: options.budget ?? null,
     escalate: Boolean(options.escalate),
     adaptive: Boolean(options.adaptive),
+    restoreBudget: Boolean(options.restoreBudget),
     onNote: (message) => log(options, message),
     maxRuns: options.maxRuns,
     passes: options.passes,
