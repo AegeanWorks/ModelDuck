@@ -1012,12 +1012,13 @@ async function main() {
     await writeFile(path.join(RESULTS_DIR, reproName), `${JSON.stringify(result, null, 2)}\n`, "utf8");
     log(options, `\nRepro result: ${path.join("results", reproName)} (informational only — the shared baseline was not read, compared or replaced)`);
   } else {
+    const payload = `${JSON.stringify(result, null, 2)}\n`;
     if (!options.flash) {
-      await writeFile(LATEST, `${JSON.stringify(result, null, 2)}\n`, "utf8");
+      await writeFile(LATEST, payload, "utf8");
     }
     await writeFile(
       path.join(RESULTS_DIR, resultFileName({ flash: options.flash, phase: options.phase, singleModelCatalogId: singleModel?.catalogId ?? null })),
-      `${JSON.stringify(result, null, 2)}\n`,
+      payload,
       "utf8",
     );
   }

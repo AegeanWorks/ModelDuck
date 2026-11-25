@@ -261,8 +261,9 @@ async function main() {
   };
 
   const outFile = mergedOutFile({ phase: options.phase, tag: first.tag, isRepro, out: options.out });
-  await writeFile(outFile, `${JSON.stringify(merged, null, 2)}\n`);
-  if (!options.out && !isRepro) await writeFile(path.join(RESULTS_DIR, "latest.json"), `${JSON.stringify(merged, null, 2)}\n`);
+  const payload = `${JSON.stringify(merged, null, 2)}\n`;
+  await writeFile(outFile, payload);
+  if (!options.out && !isRepro) await writeFile(path.join(RESULTS_DIR, "latest.json"), payload);
 
   const history = await recordRun({
     dbPath: path.join(HERE, "history.sqlite"),
