@@ -48,6 +48,40 @@ test("scan finds GGUF files, ignores partials and non-models, and exposes metada
   assert.match(models[0].id, /^[a-f0-9]{12}$/);
 });
 
+test("cold scans bound metadata concurrency and preserve model and warning order", async (t) => {
+  const { directory } = await makeRegistry(t);
+  for (let index = 0; index < 8; index += 1) {
+    await writeFile(path.join(directory, `model-${index}.gguf`), Buffer.from("GGUF12345678"));
+  }
+  let active = 0;
+  let peak = 0;
+  const warnings = [];
+  const registry = createModelRegistry({
+    modelsDir: directory,
+    logger: { warn: (message) => warnings.push(message) },
+    readMetadata: async (file) => {
+      active += 1;
+      peak = Math.max(peak, active);
+      const index = Number(path.basename(file).match(/\d+/)[0]);
+      await new Promise((resolve) => setTimeout(resolve, 5 + (index % 3)));
+      active -= 1;
+      if (index === 1 || index === 5) throw new Error(`bad ${index}`);
+      return {
+        ...INFO,
+        metadata: { ...INFO.metadata, general: { ...INFO.metadata.general, name: path.basename(file, ".gguf").replace(/[-_]+/g, " ") } },
+      };
+    },
+  });
+  const models = await registry.scan();
+  assert.equal(peak, 4, "uncached metadata reads overlap up to the bound");
+  assert.deepEqual(models.map((model) => model.fileName), Array.from({ length: 8 }, (_value, index) => `model-${index}.gguf`));
+  assert.deepEqual(models.filter((model) => model.unreadable).map((model) => model.fileName), ["model-1.gguf", "model-5.gguf"]);
+  assert.deepEqual(warnings, [
+    "[modelduck] Could not read GGUF metadata from " + path.join(directory, "model-1.gguf") + ": bad 1",
+    "[modelduck] Could not read GGUF metadata from " + path.join(directory, "model-5.gguf") + ": bad 5",
+  ], "warnings stay in discovery order even when reads finish out of order");
+});
+
 test("a repeated scan reuses the result, force bypasses it, and a new file invalidates", async (t) => {
   const { directory, registry } = await makeRegistry(t);
   await writeFile(path.join(directory, "one.gguf"), Buffer.from("GGUF12345678"));

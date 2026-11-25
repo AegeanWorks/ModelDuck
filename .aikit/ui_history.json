@@ -4632,5 +4632,49 @@
     "final_snapshot_entries": 0,
     "surface_digest": "ccb57d64f369f0051d12a0c22245f916593e75a387faaf7486c3b83ae7f4b410",
     "baseline_digest": "c5844dbbac810bc21ff49e7323adb39b061c2767bb4857b5d18bcb48163ee3d8"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [
+      ".aikit/decisions.md",
+      "src/model-registry.js",
+      "tests/model-registry.test.js"
+    ],
+    "no_visual_reason": "",
+    "baseline_commit": "HEAD",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1795585887.7803197,
+    "finished_at": 1795586210.4227397,
+    "strikes": 1,
+    "reviewer": "HungerG",
+    "review": {
+      "reviewer": "HungerG",
+      "surface": "app",
+      "surface_digest": "a1016b61d770927811d773ecdf92c7e1fe7c62c66a2ea12acbb800ab88356785",
+      "snapshot_digest": "",
+      "snapshot_entries": 0,
+      "visual": true,
+      "reviewed_at": 1795586210.4227428,
+      "scoped_paths": [
+        ".aikit/decisions.md",
+        "src/model-registry.js",
+        "tests/model-registry.test.js"
+      ],
+      "scoped_digest": "fd7dd5654b77f3400e214654d7947b2993bbdf0ea488eeb17e751ac651770443"
+    },
+    "allowed_removals": [],
+    "allowed_tests": [
+      {
+        "path": "tests/model-registry.test.js",
+        "reason": "Failing-first bounded metadata concurrency, ordered output and warning regression test"
+      }
+    ],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "a1016b61d770927811d773ecdf92c7e1fe7c62c66a2ea12acbb800ab88356785",
+    "baseline_digest": "ccb57d64f369f0051d12a0c22245f916593e75a387faaf7486c3b83ae7f4b410"
   }
 ]

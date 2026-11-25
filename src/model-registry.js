@@ -14,6 +14,8 @@ const MODEL_EXTENSION = ".gguf";
 // Test seam: the scan gathers each file's stat and uncached magic header in parallel.
 export const SCAN_STAT_MODE = "parallel";
 export const SCAN_MAGIC_MODE = "parallel";
+export const SCAN_METADATA_MODE = "bounded-4";
+const METADATA_CONCURRENCY = 4;
 
 // Test seam: how often the sorted public model list was rebuilt.
 let publicListRebuilds = 0;
@@ -423,6 +425,27 @@ export function createModelRegistry({
     });
     const magicOk = await Promise.all(selected.map(({ file }, index) =>
       cacheKeys[index] && !cache.get(cacheKeys[index]) ? hasGgufMagic(file) : true));
+    // Metadata parsing is independent per file and dominated by I/O on a cold
+    // library. Bound the overlap, then assemble rows and warnings in scan order.
+    const prepared = new Array(selected.length);
+    let nextMetadata = 0;
+    const metadataWorker = async () => {
+      while (nextMetadata < selected.length) {
+        const index = nextMetadata;
+        nextMetadata += 1;
+        const stats = fileStats[index];
+        if (!stats || !stats.isFile() || stats.size < 8 || !magicOk[index]) continue;
+        const cacheKey = cacheKeys[index];
+        if (cache.get(cacheKey)) continue;
+        const file = selected[index].file;
+        try {
+          prepared[index] = { summary: summarize(await readMetadata(file), file, stats) };
+        } catch (error) {
+          prepared[index] = { error };
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(METADATA_CONCURRENCY, selected.length) }, metadataWorker));
     const nextEntries = new Map();
     const nextCache = new Map();
 
@@ -435,10 +458,9 @@ export function createModelRegistry({
       const cachedSummary = cache.get(cacheKey);
       let summary = cachedSummary;
       if (!summary) {
-        try {
-          const info = await readMetadata(file);
-          summary = summarize(info, file, stats);
-        } catch (error) {
+        const result = prepared[fileIndex];
+        if (result?.error) {
+          const error = result.error;
           logger.warn?.(`[modelduck] Could not read GGUF metadata from ${file}: ${error.message}`);
           summary = {
             name: nameFromFile(file),
@@ -460,6 +482,8 @@ export function createModelRegistry({
               ? { blocked: true, blockedReason: error.why }
               : {}),
           };
+        } else {
+          summary = result?.summary;
         }
       }
 
