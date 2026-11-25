@@ -4478,5 +4478,59 @@
     "final_snapshot_entries": 0,
     "surface_digest": "d9ab64fbdb334c6fc17576e9b6b297d2cdd1ee4a9110966a8d7527193a9c8efa",
     "baseline_digest": "8d023d5e2eac195af5ab595b03bb84169368cc540664f7eed4569c685c89bb28"
+  },
+  {
+    "schema": 1,
+    "surface": "app",
+    "mode": "visual",
+    "visual_change": true,
+    "changed_paths": [
+      ".aikit/decisions.md",
+      "src/engine-catalog.js",
+      "src/engine-install.js",
+      "src/engine-listing.js",
+      "tests/engine-install.test.js",
+      "tests/engine-listing.test.js"
+    ],
+    "no_visual_reason": "",
+    "baseline_commit": "5f153c9",
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "started_at": 1795566822.897069,
+    "finished_at": 1795566904.3670895,
+    "strikes": 0,
+    "reviewer": "HungerG",
+    "review": {
+      "reviewer": "HungerG",
+      "surface": "app",
+      "surface_digest": "64d751de9c363787fcd1c02dfd2104a66822999cddab699ea0b497b4f1f8f162",
+      "snapshot_digest": "",
+      "snapshot_entries": 0,
+      "visual": true,
+      "reviewed_at": 1795566904.3670924,
+      "scoped_paths": [
+        ".aikit/decisions.md",
+        "src/engine-catalog.js",
+        "src/engine-install.js",
+        "src/engine-listing.js",
+        "tests/engine-install.test.js",
+        "tests/engine-listing.test.js"
+      ],
+      "scoped_digest": "e2b7b790596cac44dcd51793d1521082567fde3ebee55d45e1e02f04dcbfbc4d"
+    },
+    "allowed_removals": [],
+    "allowed_tests": [
+      {
+        "path": "tests/engine-install.test.js",
+        "reason": "Failing-first exact-stamp, binary resolution and explicit invalidation regression tests"
+      },
+      {
+        "path": "tests/engine-listing.test.js",
+        "reason": "Failing-first repeated-listing read/scan and external-edit regression test"
+      }
+    ],
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "surface_digest": "64d751de9c363787fcd1c02dfd2104a66822999cddab699ea0b497b4f1f8f162",
+    "baseline_digest": "d9ab64fbdb334c6fc17576e9b6b297d2cdd1ee4a9110966a8d7527193a9c8efa"
   }
 ]

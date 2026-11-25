@@ -18,6 +18,7 @@ import { readJsonWithQuarantine, writeJsonAtomic } from "./fs-atomic.js";
  */
 
 const execFileAsync = promisify(execFile);
+let binaryScanCount = 0;
 
 export const DEFAULT_VARIANTS = Object.freeze({ win32: ["cpu", "vulkan"], linux: ["cpu", "vulkan"], darwin: null });
 
@@ -184,6 +185,7 @@ export async function installVariant(entry, { root, fetchImpl, extract = extract
   await writeJsonAtomic(path.join(work, "install.json"), record);
   await fs.promises.rm(finalDir, { recursive: true, force: true });
   await fs.promises.rename(work, finalDir);
+  invalidateInstalledEngines();
   return record;
 }
 
@@ -192,6 +194,7 @@ export function findBinary(dir, names, depth = 2) {
   let entries;
   try {
     entries = fs.readdirSync(dir, { withFileTypes: true });
+    binaryScanCount += 1;
   } catch {
     return null;
   }
@@ -228,6 +231,126 @@ export function discoverInstalled(roots, { read = (file) => JSON.parse(fs.readFi
   return found;
 }
 
+const INSTALLED_SNAPSHOTS = new Map();
+const INSTALLED_RECORDS = new Map();
+const INSTALLED_SNAPSHOT_LIMIT = 32;
+const INSTALLED_RECORD_LIMIT = 4096;
+let installedBinScans = 0;
+let installedReads = 0;
+let installedCacheHits = 0;
+let installedCacheMisses = 0;
+const installStamp = (info) => info ? `${info.mtimeMs}:${info.size}` : null;
+
+function scanInstalledRoots(roots) {
+  const candidates = [];
+  const parts = [];
+  const binStamps = [];
+  for (const root of roots) {
+    const resolved = path.resolve(root);
+    const bin = path.join(resolved, "bin");
+    const binInfo = fs.statSync(bin, { throwIfNoEntry: false });
+    binStamps.push(installStamp(binInfo));
+    let names = [];
+    if (binInfo?.isDirectory()) {
+      try {
+        names = fs.readdirSync(bin);
+        installedBinScans += 1;
+      } catch {
+        // A missing root simply contributes no installs.
+      }
+    }
+    parts.push(`${resolved}\0${names.join("\0")}`);
+    for (const name of names) {
+      const dir = path.join(bin, name);
+      const file = path.join(dir, "install.json");
+      const dirInfo = fs.statSync(dir, { throwIfNoEntry: false });
+      const info = fs.statSync(file, { throwIfNoEntry: false });
+      const stamp = info?.isFile() ? installStamp(info) : null;
+      const dirStamp = installStamp(dirInfo);
+      parts.push(`${name}\0${dirStamp ?? ""}\0${stamp ?? ""}`);
+      if (stamp) candidates.push({ file, dir, stamp, dirStamp });
+    }
+  }
+  return { stamp: parts.join("|"), binStamps, candidates };
+}
+
+/** Installed records plus resolved binaries, validated by directory and install-file stamps. */
+export function installedEngineSnapshot(roots, { platform = process.platform } = {}) {
+  const normalized = roots.map((root) => path.resolve(root));
+  const key = `${normalized.join("\0")}\0${platform}`;
+  const cached = INSTALLED_SNAPSHOTS.get(key);
+  if (cached) {
+    const binStamps = normalized.map((root) => installStamp(fs.statSync(path.join(root, "bin"), { throwIfNoEntry: false })));
+    const binsMatch = binStamps.length === cached.binStamps.length && binStamps.every((stamp, index) => stamp === cached.binStamps[index]);
+    const filesMatch = binsMatch && cached.candidates.every(({ file, dir, stamp, dirStamp }) => {
+      const info = fs.statSync(file, { throwIfNoEntry: false });
+      return info?.isFile() && installStamp(info) === stamp && installStamp(fs.statSync(dir, { throwIfNoEntry: false })) === dirStamp;
+    });
+    if (filesMatch && cached.installs.every((entry) =>
+      (!entry.serverBinary || fs.existsSync(entry.serverBinary)) &&
+      (!entry.benchBinary || fs.existsSync(entry.benchBinary)))) {
+      installedCacheHits += 1;
+      return structuredClone(cached.installs);
+    }
+  }
+  const scan = scanInstalledRoots(normalized);
+  installedCacheMisses += 1;
+  const installs = [];
+  const exe = (name) => platform === "win32" ? `${name}.exe` : name;
+  for (const { file, dir, stamp } of scan.candidates) {
+    let held = INSTALLED_RECORDS.get(file);
+    if (held?.stamp !== stamp) {
+      let record = null;
+      try {
+        installedReads += 1;
+        record = JSON.parse(fs.readFileSync(file, "utf8"));
+      } catch {
+        // A folder without a readable record is not an install.
+      }
+      held = { stamp, record };
+      if (INSTALLED_RECORDS.size >= INSTALLED_RECORD_LIMIT) INSTALLED_RECORDS.delete(INSTALLED_RECORDS.keys().next().value);
+      INSTALLED_RECORDS.set(file, held);
+    }
+    if (!held.record?.engine || !held.record.variant) continue;
+    const install = { ...held.record, dir };
+    const serverBinary = install.binary && fs.existsSync(install.binary)
+      ? install.binary
+      : findBinary(dir, [exe("llama-server")]);
+    const benchBinary = findBinary(dir, [exe("llama-bench")]);
+    installs.push({ ...install, serverBinary, benchBinary });
+  }
+  const seen = new Set(scan.candidates.map(({ file }) => file));
+  for (const file of INSTALLED_RECORDS.keys()) if (!seen.has(file)) INSTALLED_RECORDS.delete(file);
+  if (INSTALLED_SNAPSHOTS.size >= INSTALLED_SNAPSHOT_LIMIT) INSTALLED_SNAPSHOTS.delete(INSTALLED_SNAPSHOTS.keys().next().value);
+  INSTALLED_SNAPSHOTS.set(key, { stamp: scan.stamp, binStamps: scan.binStamps, candidates: scan.candidates, installs });
+  return structuredClone(installs);
+}
+
+export function invalidateInstalledEngines() {
+  INSTALLED_SNAPSHOTS.clear();
+  INSTALLED_RECORDS.clear();
+}
+
+export function resetInstalledEngineCache() {
+  invalidateInstalledEngines();
+  installedBinScans = 0;
+  installedReads = 0;
+  installedCacheHits = 0;
+  installedCacheMisses = 0;
+  binaryScanCount = 0;
+}
+
+export function installedEngineCacheStats() {
+  return {
+    snapshots: INSTALLED_SNAPSHOTS.size,
+    records: INSTALLED_RECORDS.size,
+    hits: installedCacheHits,
+    misses: installedCacheMisses,
+    reads: installedReads,
+    scans: installedBinScans + binaryScanCount,
+  };
+}
+
 const SHIPPED_VARIANTS = new Set(["cpu", "vulkan", "cuda", "metal", "hip", "sycl", "opencl"]);
 
 /**
@@ -247,6 +370,7 @@ export function registerBuild({ root, name, binary, backend = null, label = null
   const dir = path.join(root, "bin", `llama.cpp-${name}`);
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, "install.json"), `${JSON.stringify(record, null, 2)}\n`);
+  invalidateInstalledEngines();
   return record;
 }
 
@@ -259,5 +383,6 @@ export function unregisterBuild({ root, name }) {
     return false;
   }
   fs.rmSync(dir, { recursive: true, force: true });
+  invalidateInstalledEngines();
   return true;
 }

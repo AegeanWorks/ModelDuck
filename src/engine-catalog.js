@@ -1,9 +1,8 @@
-import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { discoverInstalled, findBinary } from "./engine-install.js";
+import { installedEngineSnapshot } from "./engine-install.js";
 import { AppError } from "./errors.js";
 import { LlamaServerBackend, OllamaBackend, OpenAICompatBackend, parseOpenAiSpec } from "./external-engines.js";
 import { ServerEngine } from "./server-engine.js";
@@ -38,17 +37,22 @@ export function engineRoots(home = os.homedir()) {
   return [fileURLToPath(new URL("../engines", import.meta.url)), path.join(home, ".modelduck", "engines")];
 }
 
-const exeName = (name, platform) => (platform === "win32" ? `${name}.exe` : name);
 const ownsKind = (kind) => (id) => id === kind || String(id).startsWith(`${kind}:`);
 
 /** The context every descriptor receives; built from plain options so tests and the app share it. */
 export function engineContext({ registry = null, roots = engineRoots(), platform = process.platform, cachePrompt = false, createEngine, ...options } = {}) {
-  return Object.freeze({ registry, roots, platform, cachePrompt, createEngine, options: Object.freeze({ llamaBench: null, llamaServer: null, ollamaModel: null, ollamaUrl: undefined, openai: [], openaiKey: null, ...options }) });
+  return Object.freeze({
+    registry, roots, platform, cachePrompt, createEngine,
+    installedSnapshot: () => installedEngineSnapshot(roots, { platform }),
+    options: Object.freeze({ llamaBench: null, llamaServer: null, ollamaModel: null, ollamaUrl: undefined, openai: [], openaiKey: null, ...options }),
+  });
 }
 
-const installed = (ctx) => discoverInstalled(ctx.roots).filter((install) => install.engine === "llama.cpp");
-// A build registered with `engines:add` lives where the user keeps it; its record names the file.
-const serverBinary = (install, ctx) => (install.binary && fs.existsSync(install.binary) ? install.binary : findBinary(install.dir, [exeName("llama-server", ctx.platform)]));
+const installed = (ctx) => (typeof ctx.installedSnapshot === "function"
+  ? ctx.installedSnapshot()
+  : installedEngineSnapshot(ctx.roots, { platform: ctx.platform })).filter((install) => install.engine === "llama.cpp");
+// The exact-stamped snapshot already resolved registered and discovered binaries.
+const serverBinary = (install) => install.serverBinary ?? null;
 
 const nodeLlamaCpp = {
   kind: "node-llama-cpp",
@@ -62,7 +66,7 @@ const llamaBench = {
   servable: false,
   owns: ownsKind("llama-bench"),
   adapters(ctx) {
-    const binary = ctx.options.llamaBench ?? installed(ctx).map((install) => findBinary(install.dir, [exeName("llama-bench", ctx.platform)])).find(Boolean) ?? null;
+    const binary = ctx.options.llamaBench ?? installed(ctx).map((install) => install.benchBinary).find(Boolean) ?? null;
     return [new LlamaBenchAdapter({ binary })];
   },
 };
@@ -74,7 +78,7 @@ const llamaServer = {
   owns: ownsKind("llama-server"),
   adapters(ctx) {
     const found = installed(ctx)
-      .map((install) => ({ install, binary: serverBinary(install, ctx) }))
+      .map((install) => ({ install, binary: serverBinary(install) }))
       .filter((entry) => entry.binary)
       .map(({ install, binary }) => new LlamaServerAdapter({ binary, variant: install.variant, release: install.release, backend: install.backend ?? null, label: install.label ?? null, platform: ctx.platform }));
     // A build passed by hand keeps its own id, so it is never mistaken for an installed variant.
@@ -86,7 +90,7 @@ const llamaServer = {
     if (id === "llama-server") binary = ctx.options.llamaServer;
     else {
       const install = installed(ctx).find((entry) => entry.variant === id.slice("llama-server:".length));
-      binary = install ? serverBinary(install, ctx) : null;
+      binary = install ? serverBinary(install) : null;
     }
     return binary ? new ServerEngine({ id, registry: ctx.registry, backend: new LlamaServerBackend({ binary, cachePrompt: ctx.cachePrompt }) }) : null;
   },

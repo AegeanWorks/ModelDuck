@@ -8,16 +8,26 @@ import { AppError } from "./errors.js";
 import { profileIdFor } from "./model-profiles.js";
 
 const MANIFEST = fileURLToPath(new URL("../engines/manifest.json", import.meta.url));
+const NOTICE_CACHE = new Map();
 
 /** One plain sentence when the installer has no prebuilt llama.cpp for this machine (ADR-176), else null. */
 export async function prebuiltNotice({ platform = process.platform, arch = process.arch, manifestFile = MANIFEST } = {}) {
+  const file = manifestFile instanceof URL ? fileURLToPath(manifestFile) : manifestFile;
+  const info = await fs.stat(file).catch(() => null);
+  const stamp = info ? `${info.mtimeMs}:${info.size}` : null;
+  const key = `${path.resolve(file)}|${platform}|${arch}`;
+  const cached = NOTICE_CACHE.get(key);
+  if (cached?.stamp === stamp) return cached.notice;
+  let notice = null;
   try {
     planInstall(await readManifest(manifestFile), { platform, arch });
-    return null;
   } catch (error) {
-    if (error?.code !== "engine_platform") return null;
-    return `There is no prebuilt llama.cpp for ${platform}-${arch}, so ModelDuck runs models in-process only. To use llama-server, build it yourself and register it with: npm run engines:add.`;
+    if (error?.code === "engine_platform") {
+      notice = `There is no prebuilt llama.cpp for ${platform}-${arch}, so ModelDuck runs models in-process only. To use llama-server, build it yourself and register it with: npm run engines:add.`;
+    }
   }
+  NOTICE_CACHE.set(key, { stamp, notice });
+  return notice;
 }
 
 /**
@@ -50,7 +60,13 @@ export function fastestPerTask(engines, tasks) {
  * and shared by concurrent lists, because a llama-server probe starts the binary twice.
  */
 export function createEngineListing({ catalog, registry, profilesDir = null, context = () => engineContext({ registry }), notice = prebuiltNotice, probeTtlMs = 60_000, clock = Date.now }) {
-  const listed = () => catalog.descriptors().flatMap((descriptor) => descriptor.adapters(context()));
+  const sharedContext = () => {
+    const ctx = context();
+    if (typeof ctx?.installedSnapshot !== "function") return ctx;
+    const snapshot = ctx.installedSnapshot();
+    return Object.freeze({ ...ctx, installedSnapshot: () => snapshot });
+  };
+  const listed = (ctx = context()) => catalog.descriptors().flatMap((descriptor) => descriptor.adapters(ctx));
   const probes = new Map();
 
   /** Whether the engine answers on this machine; an adapter that cannot say is taken at its word. */
@@ -64,7 +80,7 @@ export function createEngineListing({ catalog, registry, profilesDir = null, con
     return result;
   }
 
-  const servable = (id) => catalog.isServable(id) && catalog.resolve(id, context()) !== null;
+  const servable = (id, ctx = context()) => catalog.isServable(id) && catalog.resolve(id, ctx) !== null;
 
   /** What `tune`/`npm run engines` measured for this model, by engine id; empty when nothing was measured. */
   async function measured(modelId) {
@@ -95,18 +111,21 @@ export function createEngineListing({ catalog, registry, profilesDir = null, con
     /** Every engine the catalog offers; `servable` ones may be chosen on load. `fastest` is the measured best for `modelId`, if any. */
     async list(modelId = null) {
       const speeds = await measured(modelId);
-      const engines = await Promise.all(listed().map(async (adapter) => {
+      const ctx = sharedContext();
+      const engines = await Promise.all(listed(ctx).map(async (adapter) => {
         const { id, label } = adapter;
-        const live = servable(id) ? await probe(adapter) : { available: false, reason: null };
-        return { id, label, servable: servable(id) && live.available, reason: live.reason, version: catalog.version(id, context()), measured: speeds.get(id) ?? null };
+        const canServe = servable(id, ctx);
+        const live = canServe ? await probe(adapter) : { available: false, reason: null };
+        return { id, label, servable: canServe && live.available, reason: live.reason, version: catalog.version(id, ctx), measured: speeds.get(id) ?? null };
       }));
       const ranked = engines.filter((engine) => engine.servable && engine.measured?.ok && Number.isFinite(engine.measured.genTps)).sort((a, b) => b.measured.genTps - a.measured.genTps);
       return { engines, fastest: ranked[0]?.id ?? null, byTask: fastestPerTask(engines, await taskTokens(modelId)), notice: await notice() };
     },
     /** Throws a refusal naming the engines that can be chosen when `id` cannot be served here. */
     assertServable(id) {
-      if (servable(id)) return;
-      const choices = listed().map((engine) => engine.id).filter(servable);
+      const ctx = sharedContext();
+      if (servable(id, ctx)) return;
+      const choices = listed(ctx).map((engine) => engine.id).filter((engineId) => servable(engineId, ctx));
       throw new AppError("That engine cannot serve this model", {
         status: 400,
         code: "engine_unknown",

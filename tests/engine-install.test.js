@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { discoverInstalled, downloadVerified, extractArchive, findBinary, installVariant, planInstall, readManifest, registerBuild, unregisterBuild } from "../src/engine-install.js";
+import { discoverInstalled, downloadVerified, extractArchive, findBinary, installVariant, installedEngineCacheStats, installedEngineSnapshot, invalidateInstalledEngines, planInstall, readManifest, registerBuild, resetInstalledEngineCache, unregisterBuild } from "../src/engine-install.js";
 
 const sha = (text) => createHash("sha256").update(text).digest("hex");
 
@@ -190,6 +190,8 @@ test("installing downloads, verifies, unpacks beside the final place, renames in
   assert.ok(fs.existsSync(path.join(dir, "install.json")));
   assert.equal(fs.existsSync(`${dir}.part`), false, "the working folder was renamed away");
   assert.equal(findBinary(dir, ["llama-server.exe"]), path.join(dir, "inner", "llama-server.exe"));
+  resetInstalledEngineCache();
+  assert.equal(installedEngineSnapshot([root], { platform: "win32" })[0].release, "b1");
 });
 
 test("an engine already at the pinned release is kept, and a different release replaces it", async (t) => {
@@ -204,6 +206,7 @@ test("an engine already at the pinned release is kept, and a different release r
   const replaced = await installVariant(newer, { root, fetchImpl: fetchByUrl({ "cpu.zip": "cpu-bytes" }), extract: fakeExtract(log) });
   assert.equal(replaced.release, "b2");
   assert.equal(log.length, 2);
+  assert.equal(installedEngineSnapshot([root], { platform: "win32" })[0].release, "b2", "replacement invalidates the snapshot");
 });
 
 test("a download that fails mid-install leaves nothing that looks installed", async (t) => {
@@ -224,6 +227,53 @@ test("installed engines are found by their record, and a folder without one is i
   const found = discoverInstalled([root, path.join(root, "nowhere")]);
   assert.deepEqual(found.map((entry) => `${entry.engine}:${entry.variant}`).sort(), ["llama.cpp:cpu", "llama.cpp:vulkan"]);
   assert.ok(found.every((entry) => entry.dir.startsWith(path.join(root, "bin"))));
+});
+
+test("installed snapshots validate exact stamps, resolve binaries once and invalidate explicitly", (t) => {
+  const root = tempDir(t);
+  resetInstalledEngineCache();
+  const makeInstall = (variant, release) => {
+    const dir = path.join(root, "bin", `llama.cpp-${variant}`);
+    fs.mkdirSync(path.join(dir, "inner"), { recursive: true });
+    fs.writeFileSync(path.join(dir, "inner", "llama-server.exe"), "server");
+    fs.writeFileSync(path.join(dir, "inner", "llama-bench.exe"), "bench");
+    fs.writeFileSync(path.join(dir, "install.json"), JSON.stringify({ engine: "llama.cpp", variant, release }));
+    return dir;
+  };
+  const cpu = makeInstall("cpu", "b1");
+  makeInstall("vulkan", "b1");
+  const first = installedEngineSnapshot([root], { platform: "win32" });
+  assert.equal(first.length, 2);
+  assert.equal(first.find((entry) => entry.variant === "cpu").serverBinary, path.join(cpu, "inner", "llama-server.exe"));
+  assert.equal(first.find((entry) => entry.variant === "cpu").benchBinary, path.join(cpu, "inner", "llama-bench.exe"));
+  assert.equal(installedEngineCacheStats().reads, 2);
+  first[0].release = "mutated";
+  const second = installedEngineSnapshot([root], { platform: "win32" });
+  assert.notEqual(second[0].release, "mutated", "snapshot callers cannot mutate cached records");
+  assert.equal(installedEngineCacheStats().reads, 2, "unchanged installs are not reread");
+  assert.equal(installedEngineCacheStats().hits, 1);
+
+  fs.writeFileSync(path.join(cpu, "install.json"), JSON.stringify({ engine: "llama.cpp", variant: "cpu", release: "b2" }));
+  const edited = installedEngineSnapshot([root], { platform: "win32" });
+  assert.equal(edited.find((entry) => entry.variant === "cpu").release, "b2");
+  assert.equal(installedEngineCacheStats().reads, 3, "only the edited record is reread");
+  makeInstall("cuda", "b1");
+  assert.equal(installedEngineSnapshot([root], { platform: "win32" }).length, 3);
+  assert.equal(installedEngineCacheStats().reads, 4);
+  fs.rmSync(path.join(root, "bin", "llama.cpp-vulkan"), { recursive: true });
+  assert.equal(installedEngineSnapshot([root], { platform: "win32" }).length, 2);
+  assert.equal(installedEngineCacheStats().reads, 4, "removal needs no JSON read");
+
+  fs.renameSync(path.join(cpu, "inner", "llama-server.exe"), path.join(cpu, "inner", "moved.exe"));
+  const moved = installedEngineSnapshot([root], { platform: "win32" });
+  assert.equal(moved.find((entry) => entry.variant === "cpu").serverBinary, null, "a moved binary is resolved again");
+  assert.ok(moved.find((entry) => entry.variant === "cpu").benchBinary);
+
+  invalidateInstalledEngines();
+  const before = installedEngineCacheStats().reads;
+  assert.equal(installedEngineSnapshot([root], { platform: "win32" }).length, 2);
+  assert.equal(installedEngineCacheStats().reads, before + 2, "explicit invalidation drops parsed records too");
+  resetInstalledEngineCache();
 });
 
 test("archives are unpacked with the tool each platform has", async (t) => {
@@ -263,6 +313,8 @@ test("registering a build records where it lives and removing it forgets it", (t
   fs.writeFileSync(exe, "");
   const record = registerBuild({ root, name: "ik-llama", binary: exe, backend: "cpu", label: "ik_llama.cpp" });
   assert.equal(record.variant, "ik-llama");
+  resetInstalledEngineCache();
+  assert.equal(installedEngineSnapshot([root], { platform: "win32" }).length, 1);
   const found = discoverInstalled([root]);
   assert.equal(found.length, 1);
   assert.equal(found[0].binary, path.resolve(exe));
@@ -272,6 +324,7 @@ test("registering a build records where it lives and removing it forgets it", (t
   assert.throws(() => registerBuild({ root, name: "vulkan", binary: exe }), (error) => error.code === "bad_engine_name", "a shipped variant name is taken");
   assert.equal(unregisterBuild({ root, name: "ik-llama" }), true);
   assert.equal(discoverInstalled([root]).length, 0);
+  assert.equal(installedEngineSnapshot([root], { platform: "win32" }).length, 0, "unregister invalidates the snapshot");
   assert.equal(unregisterBuild({ root, name: "ik-llama" }), false);
 });
 

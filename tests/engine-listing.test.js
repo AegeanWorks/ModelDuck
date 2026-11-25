@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { createEngineCatalog } from "../src/engine-catalog.js";
+import { createEngineCatalog, engineContext } from "../src/engine-catalog.js";
 import { createEngineListing, fastestPerTask } from "../src/engine-listing.js";
+import { resetInstalledEngineCache } from "../src/engine-install.js";
 import { profileIdFor } from "../src/model-profiles.js";
 import { makeHarness } from "./helpers.js";
 
@@ -138,4 +140,51 @@ test("the listing ranks engines per task from the model's profile and its engine
   assert.deepEqual(Object.keys(both.byTask.code.seconds), ["srv:fast"], "inproc is measure-only in this catalog, so only srv:fast is ranked");
   assert.equal(both.byTask.recall.fastest, "srv:fast");
   assert.deepEqual((await (await listing(t, { measured: { results } })).list("m1")).byTask, {}, "no profile, no per-task ranking");
+});
+
+test("repeated engine listings share one exact-stamped installed snapshot", async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "md-engine-snapshot-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  for (const variant of ["cpu", "vulkan"]) {
+    const dir = path.join(root, "bin", `llama.cpp-${variant}`);
+    await mkdir(dir, { recursive: true });
+    await writeFile(path.join(dir, "llama-server.exe"), "");
+    await writeFile(path.join(dir, "llama-bench.exe"), "");
+    await writeFile(path.join(dir, "install.json"), JSON.stringify({ engine: "llama.cpp", variant, release: "b1" }));
+  }
+  resetInstalledEngineCache();
+  const listing = createEngineListing({
+    catalog: createEngineCatalog(),
+    registry: null,
+    profilesDir: null,
+    context: () => engineContext({ roots: [root], platform: "win32" }),
+    notice: async () => null,
+  });
+  const expected = await listing.list();
+  const realRead = fs.readFileSync;
+  const realReaddir = fs.readdirSync;
+  let installReads = 0;
+  let scans = 0;
+  fs.readFileSync = (...args) => {
+    if (String(args[0]).endsWith("install.json")) installReads += 1;
+    return realRead(...args);
+  };
+  fs.readdirSync = (...args) => {
+    scans += 1;
+    return realReaddir(...args);
+  };
+  try {
+    const outputs = await Promise.all(Array.from({ length: 20 }, () => listing.list()));
+    assert.ok(outputs.every((out) => JSON.stringify(out) === JSON.stringify(expected)), "every listing is identical");
+    assert.equal(installReads, 0, "unchanged install records are not reread");
+    assert.ok(scans <= 40, `one bin scan per listing, not repeated descriptor discovery (${scans})`);
+  } finally {
+    fs.readFileSync = realRead;
+    fs.readdirSync = realReaddir;
+  }
+
+  await writeFile(path.join(root, "bin", "llama.cpp-cpu", "install.json"), JSON.stringify({ engine: "llama.cpp", variant: "cpu", release: "b2" }));
+  const changed = await listing.list();
+  assert.equal(changed.engines.find((engine) => engine.id === "llama-server:cpu").version, "b2", "an external record edit refreshes the next listing");
+  resetInstalledEngineCache();
 });
