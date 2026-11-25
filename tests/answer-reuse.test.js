@@ -103,6 +103,15 @@ test("a spot-check re-asks a few stored answers live and refuses reuse on any di
   const bad = await verifyRestore(groups, differs, { sample: 4 });
   assert.equal(bad.ok, false);
   assert.deepEqual(bad.mismatched, ["c"]);
+  let firstMismatchCalls = 0;
+  const firstDiffers = async (_settings, ids) => {
+    firstMismatchCalls += ids.length;
+    return { prompts: ids.map((id) => ({ id, passed: 1, total: 1, text: "changed" })) };
+  };
+  const rejected = await verifyRestore(groups, firstDiffers, { sample: 4 });
+  assert.equal(rejected.ok, false);
+  assert.equal(rejected.checked, 1, "one mismatch already rejects every saved answer");
+  assert.equal(firstMismatchCalls, 1, "the remaining probes cannot change the decision");
   assert.deepEqual(await verifyRestore([], same), { ok: true, checked: 0, mismatched: [] });
 });
 
@@ -116,14 +125,21 @@ test("the check by family keeps the families that re-ask identically and drops o
   const check = await verifyRestoreByFamily(groups, evaluate, { familyOf, perFamily: 2 });
   assert.equal(check.ok, true, "two of three families verified");
   assert.deepEqual(check.stale, ["recall"]);
-  assert.equal(check.checked, 6, "two answers per family");
+  assert.equal(check.checked, 5, "two probes for each kept family and one for the rejected family");
+  assert.deepEqual(asked.filter((id) => id.startsWith("recall")), ["recall-1"], "a family stops at its first mismatch");
   assert.deepEqual(items(check.groups).filter((id) => id.startsWith("recall")), [], "the stale family is not replayed");
   assert.equal(items(check.groups).length, 20, "the verified families keep every saved answer");
   assert.ok(asked.every((id) => Number(id.split("-")[1]) < 5), "the cheapest half of each family is what gets re-asked");
   // Every family stale: nothing is reused, as with the all-or-nothing check.
-  const allDiffer = async (_s, ids) => ({ prompts: ids.map((id) => ({ id, passed: 1, total: 1, text: "x" })) });
+  let allDifferCalls = 0;
+  const allDiffer = async (_s, ids) => {
+    allDifferCalls += ids.length;
+    return { prompts: ids.map((id) => ({ id, passed: 1, total: 1, text: "x" })) };
+  };
   const none = await verifyRestoreByFamily(groups, allDiffer, { familyOf, perFamily: 2 });
   assert.equal(none.ok, false);
+  assert.equal(none.checked, 3, "one failed probe rejects each family");
+  assert.equal(allDifferCalls, 3, "no rejected family asks another answer");
   assert.deepEqual(none.groups, []);
   // A changed verdict counts like a changed text, timed rows are never the evidence, and an empty store is fine.
   const flips = async (_s, ids) => ({ prompts: ids.map((id) => ({ id, passed: id.startsWith("read") ? 0 : 1, total: 1, text: `text ${id}` })) });

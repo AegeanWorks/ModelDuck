@@ -86,7 +86,8 @@ export const VERIFY_SAMPLE = 8;
  * Before saved answers are reused, re-ask a few of them live (ADR-123). The
  * identity filters cannot see every code change that frames an answer, so the
  * check asks the model directly: any text difference refuses the whole reuse
- * and the tune measures everything. Timed rows are never the evidence. Where
+ * and the tune measures everything. The first mismatch ends the check because
+ * no later probe can change that decision. Timed rows are never the evidence. Where
  * threads are left out of the key, every other probe runs at another thread
  * count, so the check also tests that assumption.
  */
@@ -103,6 +104,7 @@ export async function verifyRestore(groups, evaluate, { sample = VERIFY_SAMPLE }
   // Evenly spread over the saved answers, so the check is not one settings group.
   const picked = Array.from({ length: count }, (_, index) => candidates[Math.floor(((index + 0.5) * candidates.length) / count)]);
   const mismatched = [];
+  let checked = 0;
   for (const [index, { group, row }] of picked.entries()) {
     const id = row.item ?? row.id;
     let settings = group.settings;
@@ -110,16 +112,21 @@ export async function verifyRestore(groups, evaluate, { sample = VERIFY_SAMPLE }
       settings = { ...settings, threads: settings.threads > 1 ? Math.max(1, Math.floor(settings.threads / 2)) : 2 };
     }
     const out = await evaluate(settings, [id], group.seed);
+    checked += 1;
     const live = out?.prompts?.[0];
-    if (!live || live.text !== row.text || live.passed !== row.passed) mismatched.push(id);
+    if (!live || live.text !== row.text || live.passed !== row.passed) {
+      mismatched.push(id);
+      break; // one difference rejects the whole restore; later probes cannot change it
+    }
   }
-  return { ok: mismatched.length === 0, checked: count, mismatched };
+  return { ok: mismatched.length === 0, checked, mismatched };
 }
 
 /**
  * The same live spot-check, kept per family of items (ADR-185): a few of the cheapest saved answers of each family
  * are re-asked, a family with a difference is dropped, and the families that came out identical keep every saved
- * answer. The all-or-nothing check above threw away tens of thousands of answers because one cheap family (recall,
+ * answer. The first mismatch rejects that family and ends its remaining probes.
+ * The all-or-nothing check above threw away tens of thousands of answers because one cheap family (recall,
  * code reading) had changed, and the hours of code answers with them. Only when no family verifies is nothing reused.
  * `familyOf(itemId)` names the family (the suite's category); an item it does not know belongs to "other".
  */
@@ -155,6 +162,7 @@ export async function verifyRestoreByFamily(groups, evaluate, { familyOf = () =>
       if (!live || live.text !== row.text || live.passed !== row.passed) {
         differs = true;
         mismatched.push(id);
+        break; // the whole family is rejected; another live answer cannot restore it
       }
     }
     if (differs) stale.push(family);
