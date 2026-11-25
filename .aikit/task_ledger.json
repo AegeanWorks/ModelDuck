@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "restore-live-prefetch-1125",
+    "task_id": "restore-raw-verify-1125",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1795578496.7201762,
+    "updated_at": 1795580548.1931074,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-    "lease_until": 1795585696.7201762,
+    "lease_until": 1795587748.1931074,
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "continuations": [],
     "workspaces": [
@@ -16,122 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795578600.263598,
-    "completed_head": "fe5afe408953df12675fe4962e5ef3ad30b58517",
-    "completed_tree": "861d96d0f2ba4548969b305169f516decc83cc77"
+    "completed_at": 1795580620.761723,
+    "completed_head": "630baffff2b5e31023fe0019edc9c30d21d4755b",
+    "completed_tree": "5e58c818db7153467243cbc7dcebd7bf795f975f"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: 60-list engine fanout 793.638ms -> 125.129ms (6.34x), install reads/scans 960/1440 -> 0/0, identical listing hash; control drift 13.0%; invalidation/fanout tests, full suite and 4/4 gates pass",
-      "files_affected": [
-        "src/engine-install.js",
-        "src/engine-catalog.js",
-        "src/engine-listing.js",
-        "tests/engine-install.test.js",
-        "tests/engine-listing.test.js",
-        ".aikit/decisions.md",
-        ".aikit/ui_history.json"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/engine-list-ab.mjs",
-          "baseline": 793.638,
-          "candidate": 125.129,
-          "command": "node engine-list-ab.mjs",
-          "control": "100000 catalog.isServable calls 41.154ms vs 35.800ms",
-          "drift": "13.0",
-          "interleaved": "yes",
-          "metric": "60-list engine fanout",
-          "unit": "ms",
-          "workload": "60 concurrent listings against the same two installed builds, 15 interleaved pairs on win32 Node 26.9.0"
-        },
-        {
-          "artifact": "local-only/engine-list-ab.mjs",
-          "baseline": 960.0,
-          "candidate": 0.0,
-          "command": "node engine-list-ab.mjs",
-          "control": "catalog.isServable performs zero install reads in both builds",
-          "drift": "0",
-          "interleaved": "yes",
-          "metric": "install.json reads per 60-list fanout",
-          "unit": "reads",
-          "workload": "60 concurrent listings against the same two installed builds"
-        },
-        {
-          "artifact": "local-only/engine-list-ab.mjs",
-          "baseline": 1440.0,
-          "candidate": 0.0,
-          "command": "node engine-list-ab.mjs",
-          "control": "catalog.isServable performs zero directory scans in both builds",
-          "drift": "0",
-          "interleaved": "yes",
-          "metric": "directory scans per 60-list fanout",
-          "unit": "scans",
-          "workload": "60 concurrent listings against the same two installed builds"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "engine-snapshot-1125",
-      "timestamp": 1795566986.2101188,
-      "timestamp_str": "2026-11-25 03:36:26",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'engine-snapshot-1125' completed successfully.",
-      "head": "33db1bf1d3398cb63ca8ad61600c678329ca4f39",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "engine-snapshot-1125",
-      "timestamp": 1795567064.3810208,
-      "timestamp_str": "2026-11-25 03:37:44"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Add opt-in restore-budget selection with 20000-row, 32MiB and 4-file caps; wire --restore-budget through tune CLI/runTune while preserving default-three behavior",
-      "files_affected": [
-        "src/tune-runs.js",
-        "benchmarks/tune-job.mjs",
-        "benchmarks/tune-run.mjs",
-        "tests/cachedanswers-reads.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Opt-in resumes can replay more saved answers under hard memory/file/row caps without changing existing callers",
-        "mitigation": "failing-first precedence/crossing/cap/filter tests, byte counter, real copied-fixture restore-reader benchmark, CLI help proof, full npm test and 4/4 strict gates; revert if regression",
-        "risks": "contract: default-three output/read counts unchanged; dependency: node fs/path only; concurrency: summaries may be rewritten between selection and read; state: no persisted format change",
-        "why": "Copied real-fixture benchmark showed default-three misses 3472 Qwen rows and 4159 Llama rows; a 32MiB/4-file budget captures them with newest-first precedence"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "d2ebbcd14e4c7184f3a8542b7285a94e35b4dc63481fb6d1d5b643b82e77138c",
-      "status": "in_progress",
-      "task_id": "restore-budget-optin-1125",
-      "timestamp": 1795567583.5802858,
-      "timestamp_str": "2026-11-25 03:46:23",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "checklists": "passed",
@@ -785,6 +674,127 @@
       "task_id": "restore-live-prefetch-1125",
       "timestamp": 1795578600.3291273,
       "timestamp_str": "2026-11-25 06:50:00"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Skip redundant judging for exact-text restore verification matches while fully judging mismatches",
+      "files_affected": [
+        "benchmarks/tune-evaluate.mjs",
+        "benchmarks/tune-measure.mjs",
+        "tests/benchmark-tune-evaluate.test.js",
+        "tests/answer-reuse.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Avoid sandbox spawns on matching families without changing model probes, stale-family evidence, run accounting or tune outcomes",
+        "mitigation": "failing-first raw/judge API and verification decision tests, cold-cache old/new spawn-count benchmark, full tune outcome hash/accounting A/B, targeted/full tests and 4/4 strict gates; revert on regression",
+        "risks": "contract: identical text uses the saved verdict under the existing pure-judge invariant, mismatches are judged exactly as before; dependency: none; concurrency: generation order and width unchanged; state: no new persistent cache",
+        "why": "Post-prefetch CPU profiling found JavaScript child-process judging dominates startup work; matching restore probes currently judge identical text even though the verdict is pure for the same prompt/check"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "aa4005c085a2e6861863cc57d63d56f815be7e5cf345bea56975c4939729191d",
+      "status": "in_progress",
+      "task_id": "restore-raw-verify-1125",
+      "timestamp": 1795579236.4026396,
+      "timestamp_str": "2026-11-25 07:00:36",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: exact-text restore matches skip redundant judging while mismatches remain fully judged; direct cold-cache verification 249.436ms -> 0.103ms with judge misses 4 -> 0 and identical six-call/six-check hash; full cold tune default 543.739ms -> 351.271ms and misses 16 -> 5, budget 511.086ms -> 123.480ms and misses 15 -> 1, with identical fresh answers, probes, runs, reuse notes and outcome hash; 61 targeted tests, full suite and 4/4 gates pass",
+      "files_affected": [
+        "benchmarks/tune-evaluate.mjs",
+        "benchmarks/tune-measure.mjs",
+        "tests/benchmark-tune-evaluate.test.js",
+        "tests/answer-reuse.test.js",
+        ".aikit/decisions.md"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/raw-verify-ab.mjs",
+          "baseline": 249.436,
+          "candidate": 0.103,
+          "command": "node raw-verify-ab.mjs",
+          "control": "baseline/baseline 244.409ms vs 246.242ms",
+          "drift": "0.7",
+          "interleaved": "yes",
+          "metric": "cold-cache matching-family verification",
+          "unit": "ms",
+          "workload": "12 saved code rows, six probes, 20 interleaved old/new pairs"
+        },
+        {
+          "artifact": "local-only/raw-verify-ab.mjs",
+          "baseline": 4.0,
+          "candidate": 0.0,
+          "command": "node raw-verify-ab.mjs",
+          "control": "six model calls, six checked rows and groups hash 1b950a0b45f3ddc625b5c360f4574c2a97d2451a11b4175c3cda610f36fb6e7b identical",
+          "drift": "0",
+          "interleaved": "yes",
+          "metric": "cold-cache matching verification judge misses",
+          "unit": "misses",
+          "workload": "12 saved code rows, six probes"
+        },
+        {
+          "artifact": "local-only/raw-verify-e2e-ab.mjs",
+          "baseline": 543.739,
+          "candidate": 351.271,
+          "command": "node raw-verify-e2e-ab.mjs",
+          "control": "fresh=24, probes=16, runs=12, judge misses 16 -> 5 and outcome hash 2d00cf7739667e3995f7095e4a18c3dfbdd3e84bba325c4250c69410f10feaab",
+          "drift": "0.7",
+          "interleaved": "yes",
+          "metric": "cold-cache default full tune",
+          "unit": "ms",
+          "workload": "one stale code family, five interleaved old/new pairs"
+        },
+        {
+          "artifact": "local-only/raw-verify-e2e-ab.mjs",
+          "baseline": 511.086,
+          "candidate": 123.48,
+          "command": "node raw-verify-e2e-ab.mjs",
+          "control": "fresh=21, probes=17, runs=6, judge misses 15 -> 1 and outcome hash 2d00cf7739667e3995f7095e4a18c3dfbdd3e84bba325c4250c69410f10feaab",
+          "drift": "0.7",
+          "interleaved": "yes",
+          "metric": "cold-cache budget full tune",
+          "unit": "ms",
+          "workload": "one stale code family, five interleaved old/new pairs"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "restore-raw-verify-1125",
+      "timestamp": 1795580548.1931074,
+      "timestamp_str": "2026-11-25 07:22:28",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'restore-raw-verify-1125' completed successfully.",
+      "head": "630baffff2b5e31023fe0019edc9c30d21d4755b",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "restore-raw-verify-1125",
+      "timestamp": 1795580620.8342888,
+      "timestamp_str": "2026-11-25 07:23:40"
     }
   ]
 }
