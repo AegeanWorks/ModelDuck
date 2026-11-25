@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "history-list-batch-1125",
+    "task_id": "engine-snapshot-1125",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1795565697.2465696,
+    "updated_at": 1795566986.2101188,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-    "lease_until": 1795572897.2465696,
+    "lease_until": 1795574186.2101188,
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "continuations": [],
     "workspaces": [
@@ -16,104 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795565741.9361,
-    "completed_head": "b04f84ac9852a895cda692fed99fdc61eee5a05c",
-    "completed_tree": "b05f668bb1dc9ff470fd9dd1a85fd1fba4cd9005"
+    "completed_at": 1795567064.315835,
+    "completed_head": "33db1bf1d3398cb63ca8ad61600c678329ca4f39",
+    "completed_tree": "7bb7ece3a35a87f79c299432426e78a938f9fd88"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'tune-history-answer-cache-1124' completed successfully.",
-      "head": "af248233fd28250648082ed4004993c933a0083d",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "tune-history-answer-cache-1124",
-      "timestamp": 1795550747.7883742,
-      "timestamp_str": "2026-11-24 23:05:47"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Write each benchmark run and each history import in one SQLite transaction, reusing model/prompt statements; preserve JSONL-first fallback",
-      "files_affected": [
-        "benchmarks/history.mjs",
-        "tests/benchmark-history.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "One commit per logical run/import instead of per row, with atomic rollback and less statement-preparation overhead",
-        "mitigation": "failing-first mid-run rollback test, duplicate/import/link/integrity tests, synthetic controlled A/B proof, full npm test and 4/4 strict gates; revert if regression",
-        "risks": "contract: identical rows, duplicate UID no-ops, links and JSONL-first fallback; dependency: existing node:sqlite; concurrency: SQLite write locking unchanged; state: no schema or history-format change",
-        "why": "User directive to increase benchmark and tuning speed; a synthetic 50-model x 20-prompt record took a 6.786s median because 1000 plus rows autocommitted separately"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "a591726f947ff850df9a19518b55e194c15d307141cba99110426444f6695f28",
-      "status": "in_progress",
-      "task_id": "history-sqlite-transaction-1124",
-      "timestamp": 1795550889.2671466,
-      "timestamp_str": "2026-11-24 23:08:09",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: 50-model x 20-prompt history write 9498.247ms -> 115.102ms (82.52x), 1052 autocommits -> 1; identical rows/JSONL/integrity; rollback tests, full suite and 4/4 gates pass",
-      "files_affected": [
-        "benchmarks/history.mjs",
-        "tests/benchmark-history.test.js",
-        ".aikit/decisions.md"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/history-write-ab.mjs",
-          "baseline": 9498.247,
-          "candidate": 115.102,
-          "command": "node history-write-ab.mjs",
-          "control": "read-only open/list 4.579ms vs 4.111ms",
-          "drift": "10.2",
-          "interleaved": "yes",
-          "metric": "benchmark history record",
-          "unit": "ms",
-          "workload": "50 models x 20 prompts, 3 interleaved process pairs with 3 writes each on win32 Node 26.9.0"
-        },
-        {
-          "artifact": "local-only/history-write-ab.mjs",
-          "baseline": 1052.0,
-          "candidate": 1.0,
-          "command": "node history-write-ab.mjs",
-          "control": "read-only open/list performs zero writes in both builds",
-          "drift": "0",
-          "interleaved": "yes",
-          "metric": "SQLite commits per synthetic record",
-          "unit": "commits",
-          "workload": "one commit row, one run row, 50 model rows and 1000 prompt rows"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "history-sqlite-transaction-1124",
-      "timestamp": 1795551343.0999632,
-      "timestamp_str": "2026-11-24 23:15:43",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "delivery": {
@@ -598,6 +505,118 @@
       "task_id": "history-list-batch-1125",
       "timestamp": 1795565742.002975,
       "timestamp_str": "2026-11-25 03:15:42"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Add an exact-stamped installed-engine snapshot with resolved binaries, share it per listing, and invalidate it explicitly after install/register/unregister",
+      "files_affected": [
+        "src/engine-install.js",
+        "src/engine-catalog.js",
+        "src/engine-listing.js",
+        "tests/engine-install.test.js",
+        "tests/engine-listing.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Unchanged installs are parsed once, binaries are resolved once, and each listing validates one exact snapshot instead of rediscovering repeatedly",
+        "mitigation": "failing-first fanout read/scan test, add/edit/remove/binary-move invalidation tests, explicit installer/register invalidation, listing hash A/B, full npm test and 4/4 strict gates; revert if regression",
+        "risks": "contract: identical engine rows, order, versions and availability; dependency: node fs/path only; concurrency: another process may edit installs; state: bounded process-local snapshot/record caches",
+        "why": "User directive to increase non-tuning speed; a 60-list engine fanout took 173.11ms with 960 install.json reads and 1440 directory scans"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "56a327240f88e62fa2f950f2d8186b1e4f2c479d7ed2dedd34ac9ecd32efe48c",
+      "status": "in_progress",
+      "task_id": "engine-snapshot-1125",
+      "timestamp": 1795566063.7018845,
+      "timestamp_str": "2026-11-25 03:21:03",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: 60-list engine fanout 793.638ms -> 125.129ms (6.34x), install reads/scans 960/1440 -> 0/0, identical listing hash; control drift 13.0%; invalidation/fanout tests, full suite and 4/4 gates pass",
+      "files_affected": [
+        "src/engine-install.js",
+        "src/engine-catalog.js",
+        "src/engine-listing.js",
+        "tests/engine-install.test.js",
+        "tests/engine-listing.test.js",
+        ".aikit/decisions.md",
+        ".aikit/ui_history.json"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/engine-list-ab.mjs",
+          "baseline": 793.638,
+          "candidate": 125.129,
+          "command": "node engine-list-ab.mjs",
+          "control": "100000 catalog.isServable calls 41.154ms vs 35.800ms",
+          "drift": "13.0",
+          "interleaved": "yes",
+          "metric": "60-list engine fanout",
+          "unit": "ms",
+          "workload": "60 concurrent listings against the same two installed builds, 15 interleaved pairs on win32 Node 26.9.0"
+        },
+        {
+          "artifact": "local-only/engine-list-ab.mjs",
+          "baseline": 960.0,
+          "candidate": 0.0,
+          "command": "node engine-list-ab.mjs",
+          "control": "catalog.isServable performs zero install reads in both builds",
+          "drift": "0",
+          "interleaved": "yes",
+          "metric": "install.json reads per 60-list fanout",
+          "unit": "reads",
+          "workload": "60 concurrent listings against the same two installed builds"
+        },
+        {
+          "artifact": "local-only/engine-list-ab.mjs",
+          "baseline": 1440.0,
+          "candidate": 0.0,
+          "command": "node engine-list-ab.mjs",
+          "control": "catalog.isServable performs zero directory scans in both builds",
+          "drift": "0",
+          "interleaved": "yes",
+          "metric": "directory scans per 60-list fanout",
+          "unit": "scans",
+          "workload": "60 concurrent listings against the same two installed builds"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "engine-snapshot-1125",
+      "timestamp": 1795566986.2101188,
+      "timestamp_str": "2026-11-25 03:36:26",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'engine-snapshot-1125' completed successfully.",
+      "head": "33db1bf1d3398cb63ca8ad61600c678329ca4f39",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "engine-snapshot-1125",
+      "timestamp": 1795567064.3810208,
+      "timestamp_str": "2026-11-25 03:37:44"
     }
   ]
 }
