@@ -120,13 +120,28 @@ test("the check by family keeps the families that re-ask identically and drops o
   const groups = [{ settings: GPU, seed: 42, rows: [...rows("code", 10), ...rows("recall", 10), ...rows("read", 10)] }];
   const familyOf = (id) => id.split("-")[0];
   const asked = [];
+  const liveAnswers = [];
   // The recall family changed under the current engine; the others did not.
-  const evaluate = async (_settings, ids) => { asked.push(...ids); return { prompts: ids.map((id) => ({ id, passed: 1, total: 1, text: id.startsWith("recall") ? "different" : `text ${id}` })) }; };
-  const check = await verifyRestoreByFamily(groups, evaluate, { familyOf, perFamily: 2 });
+  const evaluate = async (_settings, ids) => {
+    asked.push(...ids);
+    return {
+      prompts: ids.map((id) => ({ id, passed: 1, total: 1, text: id.startsWith("recall") ? "different" : `text ${id}` })),
+      memoryBytes: 123,
+      gpuVram: 45,
+    };
+  };
+  const check = await verifyRestoreByFamily(groups, evaluate, {
+    familyOf,
+    perFamily: 2,
+    onAnswer: (answer) => liveAnswers.push(answer),
+  });
   assert.equal(check.ok, true, "two of three families verified");
   assert.deepEqual(check.stale, ["recall"]);
   assert.equal(check.checked, 5, "two probes for each kept family and one for the rejected family");
   assert.deepEqual(asked.filter((id) => id.startsWith("recall")), ["recall-1"], "a family stops at its first mismatch");
+  assert.deepEqual(liveAnswers.map((answer) => answer.row.id), asked, "every executed probe exposes its exact live row");
+  assert.ok(liveAnswers.every((answer) => answer.seed === 42 && answer.memoryBytes === 123 && answer.gpuVram === 45));
+  assert.ok(liveAnswers.every((answer) => Object.hasOwn(answer, "settings")), "the exact probe settings travel with the row");
   assert.deepEqual(items(check.groups).filter((id) => id.startsWith("recall")), [], "the stale family is not replayed");
   assert.equal(items(check.groups).length, 20, "the verified families keep every saved answer");
   assert.ok(asked.every((id) => Number(id.split("-")[1]) < 5), "the cheapest half of each family is what gets re-asked");

@@ -145,6 +145,7 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
   // A continue or re-tune reuses exact settings/seed/item matches from earlier answers (G8).
   // Which ones is known once the width is: answers made at another width are never mixed in.
   let restore = [];
+  let prefetched = [];
   let width = 1;
   let parallelInfo = { requested: requestedParallel, used: 1, reason: null, probe: null };
   // Every run is recorded with every answer, whatever its outcome (ADR-050).
@@ -217,7 +218,11 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
     // Saved answers are reused only after a few of each family of items are re-asked live and match (ADR-123, ADR-185):
     // a family that came out different is measured again, the others keep their saved answers.
     if (restore.length) {
-      const check = await verifyRestoreByFamily(restore, evaluate, { familyOf: (id) => CATEGORY_OF.get(id) ?? null });
+      const liveAnswers = [];
+      const check = await verifyRestoreByFamily(restore, evaluate, {
+        familyOf: (id) => CATEGORY_OF.get(id) ?? null,
+        onAnswer: width === 1 ? (answer) => liveAnswers.push(answer) : () => {},
+      });
       const rowsIn = (groups) => groups.reduce((sum, group) => sum + group.rows.length, 0);
       const saved = rowsIn(restore);
       if (check.checked === 0) {
@@ -230,6 +235,10 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
       } else {
         onNote(`Reuse: off. ${check.mismatched.length} of ${check.checked} saved answers re-asked live came out different (${check.mismatched.slice(0, 4).join(", ")}), so every answer is measured.`);
         restore = [];
+      }
+      if (width === 1 && check.stale.length) {
+        const stale = new Set(check.stale);
+        prefetched = liveAnswers.filter((answer) => stale.has(CATEGORY_OF.get(answer.row.id) ?? "other"));
       }
     }
     return tune({
@@ -255,6 +264,7 @@ export async function runTune(target, { tasks, stages = STAGES, only = null, ste
       rungs: activeRungs,
       tunedOn,
       restore,
+      prefetched,
       hardware: { logicalCores },
       deviceBackends: used.device.backends,
       externalEngines: target.externalCandidates ?? [],

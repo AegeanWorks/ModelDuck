@@ -180,6 +180,141 @@ test("restored answers are reused without calling evaluate (G8)", async () => { 
   assert.equal(stats.rate, 50);
 });
 
+test("prefetched live rows keep measured-answer accounting and batch recording", async () => {
+  const asked = [];
+  const recorded = [];
+  const measurements = new Measurements(async (settings, ids) => {
+    asked.push([...ids]);
+    return {
+      prompts: ids.map((id) => ({ id, passed: 1, total: 1, text: `fresh ${id}`, ms: 20, outputTokens: 4, stopReason: "eogToken" })),
+      memoryBytes: 200,
+      gpuVram: 300,
+    };
+  }, 100, (settings, seed, rows) => recorded.push({ settings, seed, ids: rows.map((row) => row.id) }));
+  const settings = { temperature: 0 };
+  const live = { id: "a", passed: 1, total: 1, text: "live a", ms: 7, outputTokens: 3, stopReason: "eogToken" };
+  assert.equal(measurements.prefetch(settings, 42, [live], { memoryBytes: 100, gpuVram: 150 }), true);
+  const measured = await measurements.measure(settings, ["a", "b"], 42);
+  assert.deepEqual(asked, [["b"]], "only the row without live evidence reaches the model");
+  assert.deepEqual(measured.prompts.map((row) => row.text), ["live a", "fresh b"]);
+  assert.equal(measurements.runs, 2, "the live row still consumes one measured-answer slot");
+  assert.equal(measurements.reusedRows, 0, "prefetched work is measured, not restored");
+  assert.deepEqual(recorded, [{ settings, seed: 42, ids: ["a", "b"] }], "the original batch is recorded once");
+  assert.equal(measured.memoryBytes, 200);
+  assert.equal(measured.gpuVram, 300);
+  await measurements.measure(settings, ["a"], 42);
+  assert.equal(measurements.runs, 2, "a consumed live row is ordinary fresh cache state");
+  assert.equal(recorded.length, 1);
+});
+
+test("prefetched live rows respect exhausted budgets and win over saved rows", async () => {
+  let calls = 0;
+  const evaluate = async () => {
+    calls += 1;
+    return { prompts: [] };
+  };
+  const recorded = [];
+  const settings = { temperature: 0 };
+  const live = { id: "a", passed: 1, total: 1, text: "live", ms: 1 };
+  const capped = new Measurements(evaluate, 1, (_settings, _seed, rows) => recorded.push(rows));
+  capped.prefetch(settings, 42, [live]);
+  capped.prefetch(settings, 42, [{ id: "b", passed: 1, total: 1, text: "later", ms: 1 }]);
+  assert.equal((await capped.measure(settings, ["a"], 42)).prompts[0].text, "live");
+  assert.equal(capped.runs, 1);
+  assert.equal(await capped.measure(settings, ["b"], 42), null, "a pending row cannot bypass the run cap");
+  assert.equal(capped.runs, 1);
+  assert.equal(calls, 0);
+  assert.equal(recorded.length, 1);
+
+  const expired = new Measurements(evaluate, 100, () => {}, { deadline: 1, clock: () => 2 });
+  expired.prefetch(settings, 42, [live]);
+  assert.equal(await expired.measure(settings, ["a"], 42), null, "a pending row cannot bypass the deadline");
+  assert.equal(expired.runs, 0);
+
+  const freshWins = new Measurements(evaluate, 100);
+  freshWins.prefetch(settings, 42, [live]);
+  assert.equal(freshWins.restore(settings, 42, [{ id: "a", passed: 0, total: 1, text: "saved", ms: 9 }]), false);
+  assert.equal((await freshWins.measure(settings, ["a"], 42)).prompts[0].text, "live");
+  assert.equal(freshWins.runs, 1, "the pending fresh row is accounted when consumed");
+});
+
+test("prefetched rows preserve deadline chunks, all-live memory and cap-sibling precedence", async () => {
+  const settings = { temperature: 0 };
+  const ids = ["a", "b", "c", "d", "e", "f"];
+  const rows = ids.map((id) => ({ id, passed: 1, total: 1, text: `live ${id}`, ms: 1 }));
+  const batches = [];
+  let calls = 0;
+  const evaluate = async (_settings, asked) => {
+    calls += 1;
+    return { prompts: asked.map((id) => ({ id, passed: 1, total: 1, text: `fresh ${id}`, ms: 1 })) };
+  };
+  evaluate.parallel = 4;
+  const chunked = new Measurements(evaluate, 100, (_settings, _seed, answers) => batches.push(answers.map((row) => row.id)), { deadline: 1000, clock: () => 0 });
+  chunked.prefetch(settings, 42, rows, { memoryBytes: 111, gpuVram: 222 });
+  const measured = await chunked.measure(settings, ids, 42);
+  assert.equal(calls, 0);
+  assert.equal(chunked.runs, 6);
+  assert.deepEqual(batches, [["a", "b", "c", "d"], ["e", "f"]], "pending rows keep the original deadline chunk boundaries");
+  assert.equal(measured.memoryBytes, 111);
+  assert.equal(measured.gpuVram, 222, "an all-live chunk keeps the verification memory reading");
+
+  const capped = new Measurements(evaluate, 4, () => {}, { deadline: 1000, clock: () => 0 });
+  capped.prefetch(settings, 42, rows);
+  assert.equal(await capped.measure(settings, ids, 42), null, "the next chunk still observes the run cap");
+  assert.equal(capped.runs, 4);
+
+  const sibling = new Measurements(async (current, asked) => ({
+    prompts: asked.map((id) => ({ id, passed: 1, total: 1, text: "short", ms: 1, outputTokens: 10, stopReason: "eogToken" })),
+  }), 100);
+  await sibling.measure({ ...settings, maxTokens: 64 }, ["x"], 42);
+  sibling.prefetch({ ...settings, maxTokens: 128 }, 42, [{ id: "x", passed: 1, total: 1, text: "live wide", ms: 2, outputTokens: 10, stopReason: "eogToken" }]);
+  assert.equal((await sibling.measure({ ...settings, maxTokens: 128 }, ["x"], 42)).prompts[0].text, "live wide");
+  assert.equal(sibling.runs, 2, "exact pending fresh evidence wins over a cap sibling");
+});
+
+test("tune consumes prefetched live rows without changing run accounting", async () => {
+  const itemIds = (count) => Array.from({ length: count }, (_value, index) => `math-${index}`);
+  const args = {
+    base: { temperature: 0, threads: 4 },
+    tasks: ["math"],
+    stages: ["sampling"],
+    rungs: { math: [itemIds(4)], final: { math: itemIds(8) } },
+    hardware: { logicalCores: 8 },
+    samplingAxes: () => [{ name: "temperature", patches: [{ temperature: 0 }] }],
+    options: { seeds: [42], passes: 1, changeAlpha: Infinity },
+  };
+  const firstCalls = [];
+  const firstRows = [];
+  const first = await tune({
+    ...args,
+    evaluate: async (settings, ids, seed) => {
+      firstCalls.push({ settings, ids, seed });
+      const prompts = ids.map((id) => ({ id, passed: 1, total: 1, text: `answer ${id}`, ms: 10, outputTokens: 10, digest: id }));
+      firstRows.push(...prompts);
+      return { prompts, memoryBytes: 100, gpuVram: 200 };
+    },
+  });
+  const target = firstCalls.find((call) => call.ids.includes("math-0"));
+  assert.ok(target, "the baseline tune measures math-0");
+  const row = firstRows.find((answer) => answer.id === "math-0");
+  const asked = [];
+  const recorded = [];
+  const second = await tune({
+    ...args,
+    prefetched: [{ settings: target.settings, seed: target.seed, row, memoryBytes: 100, gpuVram: 200 }],
+    evaluate: async (settings, ids, seed) => {
+      asked.push(...ids);
+      return { prompts: ids.map((id) => ({ id, passed: 1, total: 1, text: `answer ${id}`, ms: 10, outputTokens: 10, digest: id })), memoryBytes: 100, gpuVram: 200 };
+    },
+    onAnswers: (_settings, _seed, answers) => recorded.push(...answers),
+  });
+  assert.equal(asked.length, firstCalls.reduce((sum, call) => sum + call.ids.length, 0) - 1, "exact live evidence skips one model answer");
+  assert.equal(second.runs, first.runs, "the skipped model call still counts as measured work");
+  assert.ok(recorded.some((answer) => answer.id === "math-0"), "the live row is still written to the run record");
+  assert.equal(second.tasks.math.stats.rate, first.tasks.math.stats.rate);
+  assert.deepEqual(second.tasks.math.settings, first.tasks.math.settings);
+});
+
 test("score on no items is a zero rate, not NaN", async () => {
   const measurements = new Measurements(async () => ({ prompts: [] }), 100);
   const stats = await score(measurements, { temperature: 0 }, [], [42]);

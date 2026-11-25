@@ -129,8 +129,9 @@ export async function verifyRestore(groups, evaluate, { sample = VERIFY_SAMPLE }
  * The all-or-nothing check above threw away tens of thousands of answers because one cheap family (recall,
  * code reading) had changed, and the hours of code answers with them. Only when no family verifies is nothing reused.
  * `familyOf(itemId)` names the family (the suite's category); an item it does not know belongs to "other".
+ * `onAnswer` receives each successful live row with its exact settings, seed and memory reading.
  */
-export async function verifyRestoreByFamily(groups, evaluate, { familyOf = () => null, perFamily = 3 } = {}) {
+export async function verifyRestoreByFamily(groups, evaluate, { familyOf = () => null, perFamily = 3, onAnswer = () => {} } = {}) {
   const byFamily = new Map();
   for (const group of groups ?? []) {
     if (!group?.settings || group.settings.timed === true) continue;
@@ -157,8 +158,12 @@ export async function verifyRestoreByFamily(groups, evaluate, { familyOf = () =>
       if (index % 2 === 1 && !threadsShapeText(settings) && Number.isFinite(settings.threads)) {
         settings = { ...settings, threads: settings.threads > 1 ? Math.max(1, Math.floor(settings.threads / 2)) : 2 };
       }
-      const live = (await evaluate(settings, [id], group.seed))?.prompts?.[0];
+      const out = await evaluate(settings, [id], group.seed);
+      const live = out?.prompts?.[0];
       checked += 1;
+      if (live?.id === id && !live.error) {
+        onAnswer({ settings, seed: group.seed, row: live, memoryBytes: out?.memoryBytes, gpuVram: out?.gpuVram });
+      }
       if (!live || live.text !== row.text || live.passed !== row.passed) {
         differs = true;
         mismatched.push(id);
@@ -205,6 +210,9 @@ export class Measurements {
     // IDEA-1764: answers served by restore() instead of the model.
     this.reusedRows = 0;
     this.slots = new Map();
+    // Exact live answers generated before this cache existed. They remain pending
+    // until measure() consumes them, so run budgets and answer recording stay intact.
+    this.prefetched = new Map();
     // Slots that differ only in their token cap, by the key without it (ADR-182).
     this.capSlots = new Map();
     // Why measuring stopped early (the model cannot load at all), or null.
@@ -247,11 +255,12 @@ export class Measurements {
    * ended after `n` tokens is the same answer under every cap above `n`, whichever cap it was asked under and in
    * whichever order. Returns the ids still missing.
    */
-  #reuseFromSiblingCap(settings, seed, slot, missing) {
+  #reuseFromSiblingCap(settings, seed, slot, missing, pending) {
     const cap = capOf(settings);
     const donors = (this.capSlots.get(capFreeKeyOf(settings, seed)) ?? []).filter((donor) => donor.slot !== slot);
     if (!donors.length) return missing;
     return missing.filter((id) => {
+      if (pending?.has(id)) return true;
       const donor = donors.find((entry) => {
         const row = entry.slot.items.get(id);
         return finishedByItself(row) && row.outputTokens < cap;
@@ -260,6 +269,31 @@ export class Measurements {
       slot.items.set(id, { ...donor.slot.items.get(id), reusedFromCap: donor.cap });
       return false;
     });
+  }
+
+  /**
+   * Hold exact live answers until their slot is measured. Unlike restore(), a
+   * pending row still consumes run budget and is recorded through onAnswers when
+   * used; this avoids model work without making measured evidence look reused.
+   */
+  prefetch(settings, seed, rows, { memoryBytes, gpuVram } = {}) {
+    if (!rows.length) return false;
+    const key = slotKeyOf(settings, seed);
+    let pending = this.prefetched.get(key);
+    if (!pending) {
+      pending = new Map();
+      this.prefetched.set(key, pending);
+    }
+    const existing = this.slots.get(key)?.items;
+    let added = false;
+    for (const row of rows) {
+      const id = row?.item ?? row?.id;
+      if (!row || id === undefined || row.error || existing?.has(id) || pending.has(id)) continue;
+      pending.set(id, { row: { ...row, id }, memoryBytes, gpuVram });
+      added = true;
+    }
+    if (!added && pending.size === 0) this.prefetched.delete(key);
+    return added;
   }
 
   /**
@@ -272,10 +306,11 @@ export class Measurements {
     // full GPU offload, ADR-123), so each adds only the items the slot lacks: an
     // item already there, fresh or restored first, is never replaced.
     const { items } = this.#slotFor(settings, seed);
+    const pending = this.prefetched.size ? this.prefetched.get(slotKeyOf(settings, seed)) : null;
     let added = false;
     for (const row of rows) {
       const id = row.item ?? row.id;
-      if (items.has(id)) continue;
+      if (items.has(id) || pending?.has(id)) continue;
       items.set(id, { ...row, id });
       added = true;
     }
@@ -284,7 +319,9 @@ export class Measurements {
 
   async measure(settings, itemIds, seed) {
     const slot = this.#slotFor(settings, seed);
-    const missing = this.#reuseFromSiblingCap(settings, seed, slot, itemIds.filter((id) => !slot.items.has(id)));
+    const key = this.prefetched.size ? slotKeyOf(settings, seed) : null;
+    const pending = key ? this.prefetched.get(key) : null;
+    const missing = this.#reuseFromSiblingCap(settings, seed, slot, itemIds.filter((id) => !slot.items.has(id)), pending);
     if (missing.length) {
       if (this.exhausted) return null;
       // With a time budget the items are asked a few at a time so the tune stops close to it,
@@ -293,10 +330,34 @@ export class Measurements {
       for (let start = 0; start < missing.length; start += chunk) {
         if (start > 0 && this.exhausted) return null;
         const part = missing.slice(start, start + chunk);
-        const out = await this.evaluate(settings, part, seed);
+        if (!pending || !part.some((id) => pending.has(id))) {
+          const out = await this.evaluate(settings, part, seed);
+          this.runs += part.length;
+          this.onAnswers(settings, seed, out.prompts);
+          for (const prompt of out.prompts) slot.items.set(prompt.id, prompt);
+          // CPU RAM and GPU VRAM are both memory; dropping VRAM here made a GPU
+          // preset look no larger than its small host slice.
+          slot.memoryBytes = out.memoryBytes ?? slot.memoryBytes;
+          slot.gpuVram = out.gpuVram ?? slot.gpuVram;
+          continue;
+        }
+        const asked = [];
+        const live = [];
+        for (const id of part) {
+          const entry = pending?.get(id);
+          if (entry) live.push(entry);
+          else asked.push(id);
+        }
+        const out = asked.length
+          ? await this.evaluate(settings, asked, seed)
+          : { prompts: [], memoryBytes: live[0]?.memoryBytes, gpuVram: live[0]?.gpuVram };
+        const fresh = new Map(out.prompts.map((prompt) => [prompt.id, prompt]));
+        const answers = part.map((id) => pending?.get(id)?.row ?? fresh.get(id));
         this.runs += part.length;
-        this.onAnswers(settings, seed, out.prompts);
-        for (const prompt of out.prompts) slot.items.set(prompt.id, prompt);
+        this.onAnswers(settings, seed, answers);
+        for (const prompt of answers) slot.items.set(prompt.id, prompt);
+        for (const id of part) pending?.delete(id);
+        if (pending?.size === 0) this.prefetched.delete(key);
         // CPU RAM and GPU VRAM are both memory; dropping VRAM here made a GPU
         // preset look no larger than its small host slice.
         slot.memoryBytes = out.memoryBytes ?? slot.memoryBytes;
