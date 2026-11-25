@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "restore-budget-optin-1125",
+    "task_id": "restore-e2e-bench-1125",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1795568357.3367598,
+    "updated_at": 1795569386.6762695,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-    "lease_until": 1795575557.3367598,
+    "lease_until": 1795576586.6762695,
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "continuations": [],
     "workspaces": [
@@ -16,105 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795568429.17322,
-    "completed_head": "75c8e7649787e3cb920ad83e1b0c3f20b109f651",
-    "completed_tree": "d490563e114b3681a0d861acad027fdc2f87d853"
+    "completed_at": 1795569466.413454,
+    "completed_head": "0d2fecf6dc9b51291d8ed7eee61f83e926d5e51a",
+    "completed_tree": "61b433e5d39042a3a1c9799147087f9e3c364eac"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'tune-evidence-cache-1124' completed successfully.",
-      "head": "a725e32a1ecc46306a588ba29e3e8b440e630c0c",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "tune-evidence-cache-1124",
-      "timestamp": 1795552034.030614,
-      "timestamp_str": "2026-11-24 23:27:14"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Cache stripped tune-run summaries by exact file stamp, clone them per listing, and keep liveness and unfinished duration live",
-      "files_affected": [
-        "src/tune-runs.js",
-        "tests/listruns-parallel.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Unchanged run summaries are parsed once per process while new or rewritten runs refresh immediately",
-        "mitigation": "failing-first parse-count, caller-mutation, liveness and single-file rewrite tests; before/after stamps and quarantine on misses; real-store controlled A/B hash, full npm test and 4/4 strict gates; revert if regression",
-        "risks": "contract: identical stripped rows and newest-first order; dependency: node fs/path and structuredClone; concurrency: another process may rewrite a summary; state: bounded process-local cache",
-        "why": "User directive to increase non-tuning speed; the real 39-run store parses 16.2MB to return 36KB and listRuns takes a 58.063ms median per UI request"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "9653c482c4b47310592efd44b61f7c5c6c725b0683c70439200eeae951c89cf3",
-      "status": "in_progress",
-      "task_id": "tune-list-summary-cache-1124",
-      "timestamp": 1795552937.9167027,
-      "timestamp_str": "2026-11-24 23:42:17",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: real 39-run listing 60.247ms -> 1.058ms (56.94x), warm summary parses 39 -> 0, identical normalized hash; control drift 0.8%; 1273 tests pass with 1 platform skip and 4/4 gates pass",
-      "files_affected": [
-        "src/tune-runs.js",
-        "tests/listruns-parallel.test.js",
-        ".aikit/decisions.md",
-        ".aikit/ui_history.json"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/tune-list-ab.mjs",
-          "baseline": 60.247,
-          "candidate": 1.058,
-          "command": "node tune-list-ab.mjs",
-          "control": "full loadRun 0.865ms vs 0.872ms",
-          "drift": "0.8",
-          "interleaved": "yes",
-          "metric": "tune-run listing",
-          "unit": "ms",
-          "workload": "real 39-run store, 30 interleaved pairs, fixed liveness and duration-normalized hash on win32 Node 26.9.0"
-        },
-        {
-          "artifact": "local-only/tune-list-ab.mjs",
-          "baseline": 39.0,
-          "candidate": 0.0,
-          "command": "node tune-list-ab.mjs",
-          "control": "full loadRun parses one summary in both builds",
-          "drift": "0",
-          "interleaved": "yes",
-          "metric": "summary parses per warm listing",
-          "unit": "parses",
-          "workload": "real 39-run store after one warmup listing"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "tune-list-summary-cache-1124",
-      "timestamp": 1795553722.3660188,
-      "timestamp_str": "2026-11-24 23:55:22",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "delivery": {
@@ -646,6 +552,99 @@
       "task_id": "restore-budget-optin-1125",
       "timestamp": 1795568429.2419658,
       "timestamp_str": "2026-11-25 04:00:29"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Add an injectable engine factory to runTune and benchmark default-three versus --restore-budget end-to-end with a deterministic evaluator",
+      "files_affected": [
+        "benchmarks/tune-job.mjs",
+        "tests/benchmark-tune.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Quantifies the actual tuning tradeoff without model hardware or quality changes",
+        "mitigation": "failing-first factory cleanup test, deterministic split-run fixture, repeated interleaved default/budget tunes, normalized outcome hash, fresh-call/time counters, full npm test and 4/4 strict gates; revert if regression",
+        "risks": "contract: production engine construction and cleanup unchanged; dependency: existing tune path only; concurrency: temporary isolated homes; state: benchmark fixtures stay outside the repository",
+        "why": "The restore-budget fixture proved more replayable rows but added parse work; an end-to-end tune benchmark must show fewer fresh answers, lower wall time and identical decisions"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "a8b33f2db2227814fae36bfa1d91e82de1301a9d8ad98ac4b805a4093d5e53da",
+      "status": "in_progress",
+      "task_id": "restore-e2e-bench-1125",
+      "timestamp": 1795568717.600597,
+      "timestamp_str": "2026-11-25 04:05:17",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: full runTune default 415.578ms/23 fresh answers -> restore-budget 339.645ms/18, identical outcome hash; A/A control drift 0.2%; parse profiling found duplicate answer-row JSON parsing as next hotspot; factory test, full suite and 4/4 gates pass",
+      "files_affected": [
+        "benchmarks/tune-job.mjs",
+        "tests/benchmark-tune.test.js",
+        ".aikit/decisions.md"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/restore-e2e-bench.mjs",
+          "baseline": 415.578,
+          "candidate": 339.645,
+          "command": "node restore-e2e-bench.mjs",
+          "control": "default/default A/A 416.211ms",
+          "drift": "0.2",
+          "interleaved": "yes",
+          "metric": "end-to-end deterministic tune",
+          "unit": "ms",
+          "workload": "36 saved rows split across four runs, code repeat-penalty quick tune, 7 interleaved default/budget/control trios"
+        },
+        {
+          "artifact": "local-only/restore-e2e-bench.mjs",
+          "baseline": 23.0,
+          "candidate": 18.0,
+          "command": "node restore-e2e-bench.mjs",
+          "control": "default/default A/A 23 answers",
+          "drift": "0",
+          "interleaved": "yes",
+          "metric": "fresh evaluator answers per tune",
+          "unit": "answers",
+          "workload": "36 saved rows split across four runs, code repeat-penalty quick tune"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "restore-e2e-bench-1125",
+      "timestamp": 1795569386.6762695,
+      "timestamp_str": "2026-11-25 04:16:26",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'restore-e2e-bench-1125' completed successfully.",
+      "head": "0d2fecf6dc9b51291d8ed7eee61f83e926d5e51a",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "restore-e2e-bench-1125",
+      "timestamp": 1795569466.484438,
+      "timestamp_str": "2026-11-25 04:17:46"
     }
   ]
 }
