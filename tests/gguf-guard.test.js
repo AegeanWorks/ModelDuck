@@ -99,6 +99,14 @@ test("the native guard returns the same header facts as the JavaScript guard whe
   assert.deepEqual(await inspectGgufHeader(file), await inspectGgufHeaderJs(file));
 });
 
+test("native and JavaScript guards agree on metadata spans larger than the read buffer", async (t) => {
+  const { inspectGgufHeaderNative, nativeGuardAvailable } = await import("../src/gguf-native.js");
+  if (!nativeGuardAvailable()) t.skip("build the optional binary with npm run build:native");
+  const file = await tempFile(t, header({ kvs: 1 }, str("general.name"), u32(8), str("x".repeat(20000))));
+  assert.deepEqual(await inspectGgufHeaderNative(file), { version: 3, tensorCount: 0, kvCount: 1 });
+  assert.deepEqual(await inspectGgufHeader(file), await inspectGgufHeaderJs(file));
+});
+
 test("a hostile header still produces the JavaScript Why/Fix error with the native guard built", async (t) => {
   const { nativeGuardAvailable } = await import("../src/gguf-native.js");
   if (!nativeGuardAvailable()) t.skip("build the optional binary with npm run build:native");

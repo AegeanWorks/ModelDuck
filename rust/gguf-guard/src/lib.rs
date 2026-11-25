@@ -62,20 +62,11 @@ impl Reader {
 
     fn skip(&mut self, bytes: u128, what: &str) -> Result<(), String> {
         self.need(bytes, what)?;
-        // Consume through the BufReader instead of seeking: a seek on every
-        // string would discard the buffer and turn a header walk into one
-        // system call per token (measured 55 ms -> a few ms on a 20k vocabulary).
-        let mut left = bytes;
-        let mut scratch = [0u8; 8192];
-        while left > 0 {
-            let chunk = left.min(scratch.len() as u128) as usize;
-            let read = self.inner.read(&mut scratch[..chunk])
-                .map_err(|e| format!("read failed: {e}"))?;
-            if read == 0 {
-                return Err(format!("The header ends inside {what}."));
-            }
-            left -= read as u128;
-        }
+        // seek_relative consumes bytes already in the BufReader without a
+        // syscall and seeks once for a span larger than its buffer. The old
+        // scratch read copied every vocabulary/template byte just to advance.
+        let offset = i64::try_from(bytes).map_err(|_| format!("{what} is too large to skip."))?;
+        self.inner.seek_relative(offset).map_err(|e| format!("seek failed: {e}"))?;
         self.position += bytes as u64;
         Ok(())
     }
