@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "restore-raw-verify-1125",
+    "task_id": "judge-concurrency-1125",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1795580548.1931074,
+    "updated_at": 1795582027.4732096,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-    "lease_until": 1795587748.1931074,
+    "lease_until": 1795589227.4732096,
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "continuations": [],
     "workspaces": [
@@ -16,131 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795580620.761723,
-    "completed_head": "630baffff2b5e31023fe0019edc9c30d21d4755b",
-    "completed_tree": "5e58c818db7153467243cbc7dcebd7bf795f975f"
+    "completed_at": 1795582139.7916493,
+    "completed_head": "e6b3ef3ecbfeb36b6163bf3f4bd8be46f4e4ee82",
+    "completed_tree": "dc3d8c4f3f51aedd8529bc1fa8d66cc1e2e2bbdb"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: opt-in real restore gains Qwen +3472 rows/+75 groups and Llama +4159 rows/+94 groups within 4 files/32MiB; runTune-prefilled parse tradeoff +10.667ms/+14.561ms, SmolLM unchanged; default-three and 39 targeted tests preserved, full suite and 4/4 gates pass",
-      "files_affected": [
-        "src/tune-runs.js",
-        "benchmarks/tune-job.mjs",
-        "benchmarks/tune-run.mjs",
-        "tests/cachedanswers-reads.test.js",
-        ".aikit/decisions.md",
-        ".aikit/ui_history.json"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/restore-budget-real-bench.mjs",
-          "baseline": 16528.0,
-          "candidate": 20000.0,
-          "command": "node restore-budget-real-bench.mjs",
-          "control": "SmolLM2 remains 14748 rows",
-          "drift": "0",
-          "interleaved": "yes",
-          "metric": "Qwen restored rows",
-          "unit": "rows",
-          "workload": "copied real tune-run fixture, serial width, 5 interleaved default/budget pairs"
-        },
-        {
-          "artifact": "local-only/restore-budget-real-bench.mjs",
-          "baseline": 1078.0,
-          "candidate": 5237.0,
-          "command": "node restore-budget-real-bench.mjs",
-          "control": "SmolLM2 remains 14748 rows",
-          "drift": "0",
-          "interleaved": "yes",
-          "metric": "Llama restored rows",
-          "unit": "rows",
-          "workload": "copied real tune-run fixture, serial width, 5 interleaved default/budget pairs"
-        },
-        {
-          "artifact": "local-only/restore-budget-runpath-bench.mjs",
-          "baseline": 53.124,
-          "candidate": 63.791,
-          "command": "node restore-budget-runpath-bench.mjs",
-          "control": "SmolLM2 54.986ms vs 54.539ms",
-          "drift": "0.8",
-          "interleaved": "yes",
-          "metric": "Qwen runTune-prefilled restore parse",
-          "unit": "ms",
-          "workload": "copied real fixture after itemOutcomes cache prefill, 7 interleaved pairs"
-        },
-        {
-          "artifact": "local-only/restore-budget-runpath-bench.mjs",
-          "baseline": 4.491,
-          "candidate": 19.052,
-          "command": "node restore-budget-runpath-bench.mjs",
-          "control": "SmolLM2 54.986ms vs 54.539ms",
-          "drift": "0.8",
-          "interleaved": "yes",
-          "metric": "Llama runTune-prefilled restore parse",
-          "unit": "ms",
-          "workload": "copied real fixture after itemOutcomes cache prefill, 7 interleaved pairs"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "restore-budget-optin-1125",
-      "timestamp": 1795568357.3367598,
-      "timestamp_str": "2026-11-25 03:59:17",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'restore-budget-optin-1125' completed successfully.",
-      "head": "75c8e7649787e3cb920ad83e1b0c3f20b109f651",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "restore-budget-optin-1125",
-      "timestamp": 1795568429.2419658,
-      "timestamp_str": "2026-11-25 04:00:29"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Add an injectable engine factory to runTune and benchmark default-three versus --restore-budget end-to-end with a deterministic evaluator",
-      "files_affected": [
-        "benchmarks/tune-job.mjs",
-        "tests/benchmark-tune.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Quantifies the actual tuning tradeoff without model hardware or quality changes",
-        "mitigation": "failing-first factory cleanup test, deterministic split-run fixture, repeated interleaved default/budget tunes, normalized outcome hash, fresh-call/time counters, full npm test and 4/4 strict gates; revert if regression",
-        "risks": "contract: production engine construction and cleanup unchanged; dependency: existing tune path only; concurrency: temporary isolated homes; state: benchmark fixtures stay outside the repository",
-        "why": "The restore-budget fixture proved more replayable rows but added parse work; an end-to-end tune benchmark must show fewer fresh answers, lower wall time and identical decisions"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "a8b33f2db2227814fae36bfa1d91e82de1301a9d8ad98ac4b805a4093d5e53da",
-      "status": "in_progress",
-      "task_id": "restore-e2e-bench-1125",
-      "timestamp": 1795568717.600597,
-      "timestamp_str": "2026-11-25 04:05:17",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "checklists": "passed",
@@ -795,6 +675,127 @@
       "task_id": "restore-raw-verify-1125",
       "timestamp": 1795580620.8342888,
       "timestamp_str": "2026-11-25 07:23:40"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Overlap up to four independent JavaScript judge children per serial evaluation batch",
+      "files_affected": [
+        "benchmarks/tune-evaluate.mjs",
+        "benchmarks/suite.mjs",
+        "tests/benchmark-tune-evaluate.test.js",
+        "tests/jscode-cache.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Hide isolated child startup contention while keeping every answer in its own permission sandbox",
+        "mitigation": "failing-first bounded-concurrency/order and in-flight dedup tests, real child old/new benchmark, cold full-tune outcome/accounting A/B, targeted/full tests and 4/4 strict gates; revert on regression",
+        "risks": "contract: result and onItem order, verdicts and cache hit/miss accounting unchanged; dependency: none; concurrency: at most four child judges, generation remains serial; state: in-flight judge keys only",
+        "why": "Current cold deterministic tune spends 431ms judging versus 324ms generating; an eight-check prototype improved 640.255ms -> 412.733ms (1.55x) with identical verdicts"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "1d86959e060943647645a066300c4bbc9b4fcf15aaae121195b54eb706699e32",
+      "status": "in_progress",
+      "task_id": "judge-concurrency-1125",
+      "timestamp": 1795581088.2877982,
+      "timestamp_str": "2026-11-25 07:31:28",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: bounded four-way isolated judging improves real-child eight-check A/B 1084.167ms -> 451.179ms (2.40x) with identical calls, misses, hits and row hash; full cold tune keeps all accounting and outcome hashes, default judge median 281ms -> 253ms while noisy wall time is not claimed; 86 targeted tests, full suite and 4/4 gates pass",
+      "files_affected": [
+        "benchmarks/tune-evaluate.mjs",
+        "benchmarks/suite.mjs",
+        "tests/benchmark-tune-evaluate.test.js",
+        "tests/jscode-cache.test.js",
+        ".aikit/decisions.md"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/judge-pool-real-ab.mjs",
+          "baseline": 1084.167,
+          "candidate": 451.179,
+          "command": "node judge-pool-real-ab.mjs",
+          "control": "baseline/baseline 1241.382ms vs 1306.062ms",
+          "drift": "5.2",
+          "interleaved": "yes",
+          "metric": "eight independent real JavaScript judge children",
+          "unit": "ms",
+          "workload": "eight code checks, ten interleaved old/new pairs, cold cache each run"
+        },
+        {
+          "artifact": "local-only/judge-pool-real-ab.mjs",
+          "baseline": 6.0,
+          "candidate": 6.0,
+          "command": "node judge-pool-real-ab.mjs",
+          "control": "nine model calls including warm-up, zero hits and row hash f56b8d5c4185b5a5776976c1bfdb7c51fb1376fde361e57837e7e398a1f941a6 identical",
+          "drift": "0",
+          "interleaved": "yes",
+          "metric": "judge cache accounting under concurrency",
+          "unit": "misses",
+          "workload": "eight code checks with duplicate extracted code"
+        },
+        {
+          "artifact": "local-only/judge-pool-e2e-ab.mjs",
+          "baseline": 281.0,
+          "candidate": 253.0,
+          "command": "node judge-pool-e2e-ab.mjs",
+          "control": "fresh=24, probes=16, runs=12, misses=5 and outcome hash 2d00cf7739667e3995f7095e4a18c3dfbdd3e84bba325c4250c69410f10feaab, wall 495.270ms vs 515.402ms noisy and not claimed",
+          "drift": "5.2",
+          "interleaved": "yes",
+          "metric": "cold default full-tune judge phase",
+          "unit": "ms",
+          "workload": "one stale code family, five interleaved old/new pairs"
+        },
+        {
+          "artifact": "local-only/judge-pool-e2e-ab.mjs",
+          "baseline": 327.025,
+          "candidate": 347.886,
+          "command": "node judge-pool-e2e-ab.mjs",
+          "control": "fresh=21, probes=17, runs=6, misses=1 and identical outcome hash, no speedup claimed for one miss",
+          "drift": "5.2",
+          "interleaved": "yes",
+          "metric": "cold budget full-tune equivalence",
+          "unit": "ms",
+          "workload": "one judge miss, five interleaved old/new pairs"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "judge-concurrency-1125",
+      "timestamp": 1795582027.4732096,
+      "timestamp_str": "2026-11-25 07:47:07",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'judge-concurrency-1125' completed successfully.",
+      "head": "e6b3ef3ecbfeb36b6163bf3f4bd8be46f4e4ee82",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "judge-concurrency-1125",
+      "timestamp": 1795582139.86654,
+      "timestamp_str": "2026-11-25 07:48:59"
     }
   ]
 }
