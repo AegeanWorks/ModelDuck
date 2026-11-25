@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "model-scan-metadata-pool-1125",
+    "task_id": "native-guard-seek-1125",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1795586238.7716115,
+    "updated_at": 1795588810.318954,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-    "lease_until": 1795593438.7716115,
+    "lease_until": 1795596010.318954,
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "continuations": [],
     "workspaces": [
@@ -16,140 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795586413.8344982,
-    "completed_head": "0045b06a000dd001349cb355af8fa27f956d1b6d",
-    "completed_tree": "34be4bbcbf68982b744819f6f19bc449dbb76c02"
+    "completed_at": 1795588916.839113,
+    "completed_head": "876253891cc3cfaca2c22bebd4403310432e90c3",
+    "completed_tree": "58f25d09387e1669d680ed44f40f391c901a8b40"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Stop restore verification after the first mismatch per rejected family or all-or-nothing check",
-      "files_affected": [
-        "benchmarks/tune-measure.mjs",
-        "tests/answer-reuse.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Avoid up to two extra live answers per stale family and up to seven after the first all-or-nothing mismatch",
-        "mitigation": "failing-first call-count and kept-group equivalence tests, direct old/new verification benchmark, deterministic full-tune output hash, targeted/full tests and 4/4 strict gates; revert on regression",
-        "risks": "contract: kept groups and rejection decisions identical, diagnostics report only executed probes; dependency: none; concurrency: sequential order unchanged; state: no cache/schema change",
-        "why": "Profiling the deterministic tune found live restore verification generates 18-20 of 24-26 answers; once a family differs, its remaining probes cannot change reuse"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "2b217b87549f8407cd09ad0cdf502c877252a3db81f77f8bd2fc27756a893eb3",
-      "status": "in_progress",
-      "task_id": "restore-verify-early-stop-1125",
-      "timestamp": 1795575502.3329823,
-      "timestamp_str": "2026-11-25 05:58:22",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: restore verification stops at the first decisive mismatch; one-stale probes 18 -> 16 (1.24x), all-stale 18 -> 6 (3.02x), all-or-nothing 8 -> 1 (7.75x); identical retained-row and tune outcome hashes; full tune fresh answers 26 -> 25 default and 24 -> 22 budget with unchanged run counts; 45 targeted tests, full suite and 4/4 gates pass",
-      "files_affected": [
-        "benchmarks/tune-measure.mjs",
-        "tests/answer-reuse.test.js",
-        ".aikit/decisions.md"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/restore-verify-ab.mjs",
-          "baseline": 286.126,
-          "candidate": 230.899,
-          "command": "node restore-verify-ab.mjs",
-          "control": "baseline/baseline 485.176ms vs 449.025ms",
-          "drift": "7.5",
-          "interleaved": "yes",
-          "metric": "one stale family restore verification",
-          "unit": "ms",
-          "workload": "six families x twelve rows, three probes per family, 5ms CPU stand-in per live answer, 50 interleaved old/new pairs"
-        },
-        {
-          "artifact": "local-only/restore-verify-ab.mjs",
-          "baseline": 509.819,
-          "candidate": 168.656,
-          "command": "node restore-verify-ab.mjs",
-          "control": "baseline/baseline 485.176ms vs 449.025ms",
-          "drift": "7.5",
-          "interleaved": "yes",
-          "metric": "all stale families restore verification",
-          "unit": "ms",
-          "workload": "six families x twelve rows, three probes per family, 5ms CPU stand-in per live answer, 50 interleaved old/new pairs"
-        },
-        {
-          "artifact": "local-only/restore-verify-ab.mjs",
-          "baseline": 177.651,
-          "candidate": 22.909,
-          "command": "node restore-verify-ab.mjs",
-          "control": "baseline/baseline 485.176ms vs 449.025ms",
-          "drift": "7.5",
-          "interleaved": "yes",
-          "metric": "all-or-nothing restore verification",
-          "unit": "ms",
-          "workload": "eight saved candidates with first-probe mismatch, 5ms CPU stand-in per live answer, 50 interleaved old/new pairs"
-        },
-        {
-          "artifact": "local-only/restore-verify-e2e-ab.mjs",
-          "baseline": 26.0,
-          "candidate": 25.0,
-          "command": "node restore-verify-e2e-ab.mjs",
-          "control": "identical outcome hash 2d00cf7739667e3995f7095e4a18c3dfbdd3e84bba325c4250c69410f10feaab and runs=12",
-          "drift": "0",
-          "interleaved": "yes",
-          "metric": "deterministic full tune fresh answers",
-          "unit": "answers",
-          "workload": "default restore, five interleaved old/new pairs, one stale code family"
-        },
-        {
-          "artifact": "local-only/restore-verify-e2e-ab.mjs",
-          "baseline": 24.0,
-          "candidate": 22.0,
-          "command": "node restore-verify-e2e-ab.mjs",
-          "control": "identical outcome hash 2d00cf7739667e3995f7095e4a18c3dfbdd3e84bba325c4250c69410f10feaab and runs=6",
-          "drift": "0",
-          "interleaved": "yes",
-          "metric": "deterministic budget tune fresh answers",
-          "unit": "answers",
-          "workload": "restore-budget, five interleaved old/new pairs, one stale code family"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "restore-verify-early-stop-1125",
-      "timestamp": 1795576673.950399,
-      "timestamp_str": "2026-11-25 06:17:53",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'restore-verify-early-stop-1125' completed successfully.",
-      "head": "2a4905ebf777ebe7cdf3cb2739a4ccff28d005a5",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "restore-verify-early-stop-1125",
-      "timestamp": 1795576711.9509976,
-      "timestamp_str": "2026-11-25 06:18:31"
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "description": "[1/2] Reuse exact serial live-verification rows from rejected families through an accounting-preserving pending cache",
@@ -763,6 +634,112 @@
       "task_id": "model-scan-metadata-pool-1125",
       "timestamp": 1795586413.9207606,
       "timestamp_str": "2026-11-25 09:00:13"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Skip bounded GGUF header spans with BufReader::seek_relative instead of copying every skipped byte",
+      "files_affected": [
+        "rust/gguf-guard/src/lib.rs",
+        "tests/gguf-guard.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Advance inside the buffer without syscalls and seek once for large spans while preserving all structural bounds and verdicts",
+        "mitigation": "large-span native/JS equivalence and hostile-header tests, rebuild addon, real 16-model before/after benchmark, app startup/API-output A/B, full npm test and 4/4 strict gates; revert on regression",
+        "risks": "contract: identical version/tensor/KV facts and rejection behavior; dependency: stdlib Seek trait only; concurrency: native calls remain serial and synchronous; state: no cache/schema change",
+        "why": "The real 16-model native header walk costs 223.202ms and dominates startup CPU; large metadata strings and arrays are copied through an 8KiB scratch buffer solely to advance"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "53564cf254cb8d38b2354c6e98652f31876c3edc8c6f845233b92c0d0ad77857",
+      "status": "in_progress",
+      "task_id": "native-guard-seek-1125",
+      "timestamp": 1795588078.2859116,
+      "timestamp_str": "2026-11-25 09:27:58",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: native GGUF walk 223.202ms -> 59.330ms (3.76x), real app startup 534.740ms -> 361.463ms (1.48x) across six alternating pairs, identical 16-model API hash; addon rebuild, 20 guard/registry/startup tests, full suite and 4/4 gates pass",
+      "files_affected": [
+        "rust/gguf-guard/src/lib.rs",
+        "tests/gguf-guard.test.js",
+        ".aikit/decisions.md"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/native-guard-real-bench.mjs",
+          "baseline": 223.202,
+          "candidate": 59.33,
+          "command": "node native-guard-real-bench.mjs",
+          "control": "identical version/tensor/KV header facts and native/JS equivalence tests",
+          "drift": "0",
+          "interleaved": "no",
+          "metric": "real 16-model native header walk",
+          "qualified": "no",
+          "unit": "ms",
+          "workload": "installed GGUF library, seven sequential walks"
+        },
+        {
+          "artifact": "local-only/native-startup-ab.mjs",
+          "baseline": 534.74,
+          "candidate": 361.463,
+          "command": "node native-startup-ab.mjs",
+          "control": "all 16 /api/models rows and hash d912db661ad2caa181d430e570e60056576150b6355ae9265fbfcea04d10cf24 identical",
+          "drift": "0",
+          "interleaved": "yes",
+          "metric": "real application startup",
+          "unit": "ms",
+          "workload": "16 installed models, isolated home, six alternating old/new addon pairs"
+        },
+        {
+          "artifact": "local-only/native-startup-ab.mjs",
+          "baseline": 1.0,
+          "candidate": 1.48,
+          "command": "node native-startup-ab.mjs",
+          "control": "baseline samples 545.931,479.795,534.740,479.742,494.243,623.062ms and candidate 348.081,308.316,361.463,331.029,368.675,370.324ms",
+          "drift": "0",
+          "interleaved": "yes",
+          "metric": "startup speedup",
+          "unit": "ratio",
+          "workload": "median of six alternating real-app startup pairs"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "native-guard-seek-1125",
+      "timestamp": 1795588810.318954,
+      "timestamp_str": "2026-11-25 09:40:10",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'native-guard-seek-1125' completed successfully.",
+      "head": "876253891cc3cfaca2c22bebd4403310432e90c3",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "native-guard-seek-1125",
+      "timestamp": 1795588916.923856,
+      "timestamp_str": "2026-11-25 09:41:56"
     }
   ]
 }
