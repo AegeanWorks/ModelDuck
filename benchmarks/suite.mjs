@@ -1089,6 +1089,10 @@ function judgeCase(reported, expect) {
 // Verification is pure for a given text + check + timeout, so a bounded cache
 // skips the child process without changing a single check result.
 const JS_TEST_CACHE = new Map();
+// Concurrent judges of the same text/check share one child. Sequential calls
+// still see the completed verdict in JS_TEST_CACHE and record the same hit.
+const JS_TEST_INFLIGHT = new Map();
+const CODE_VERDICT_INFLIGHT = new Map();
 // The verdict is a pure function of the extracted code, not of the reply's
 // formatting. A second cache behind the text-keyed one lets fenced/unfenced
 // variants of the same code reuse a verification; the common text hit above it
@@ -1139,6 +1143,8 @@ export function noEntryShortcutCount() {
 }
 export function resetJavaScriptTestCache() {
   JS_TEST_CACHE.clear();
+  JS_TEST_INFLIGHT.clear();
+  CODE_VERDICT_INFLIGHT.clear();
   CODE_VERDICT_CACHE.clear();
   jsTestHits = 0;
   jsTestMisses = 0;
@@ -1209,6 +1215,15 @@ export async function runJavaScriptTests(text, check, { timeoutMs = 5000 } = {})
     JS_TEST_CACHE.set(cacheKey, byCode);
     return byCode.slice();
   }
+  const pendingCode = CODE_VERDICT_INFLIGHT.get(codeKey);
+  if (pendingCode) {
+    const checked = await pendingCode;
+    codeVerdictHits += 1;
+    jsTestHits += 1;
+    if (JS_TEST_CACHE.size >= JAVASCRIPT_TEST_CACHE_LIMIT) JS_TEST_CACHE.delete(JS_TEST_CACHE.keys().next().value);
+    JS_TEST_CACHE.set(cacheKey, checked);
+    return checked.slice();
+  }
   // The child embeds this exact code, so a syntax error here fails the whole
   // script before any case runs. That verdict is deterministic: every case
   // reports "did not run" and no child process is needed.
@@ -1243,57 +1258,73 @@ export async function runJavaScriptTests(text, check, { timeoutMs = 5000 } = {})
     rememberVerdict(cacheKey, codeKey, checked);
     return checked;
   }
-  const id = randomBytes(12).toString("hex");
-  const script = judgeScript({
-    id,
-    setup: check.setup ?? "",
-    // The script runs as CommonJS, so ESM export keywords would be a syntax error.
-    code: code.replace(/^\s*export\s+(default\s+)?/gm, ""),
-    scenario: check.harness ?? "",
-    entry: check.entry,
-    // Arguments only: the expected values stay in this process.
-    args: cases.map((testCase) => testCase.args),
-  });
-  const outcome = await new Promise((resolve) => {
-    const child = execFile(
-      process.execPath,
-      // `-` reads the script from stdin, so it appears in no argument the answer could read.
-      [sandboxFlag(), `--max-old-space-size=${SANDBOX_HEAP_MB}`, "-"],
-      // SIGKILL because a handler for the default signal would keep a runaway loop alive on POSIX.
-      { timeout: timeoutMs, killSignal: "SIGKILL", windowsHide: true, maxBuffer: outputLimit(cases), env: sandboxEnv(), cwd: sandboxCwd() },
-      (error, stdout) => resolve({ error, stdout: String(stdout ?? "") }),
-    );
-    child.stdin.on("error", () => {});
-    child.stdin.end(script);
-  });
-  // The result sits between the last two markers; later output (an exit handler's log) is not part of it.
-  const marker = `__MODELDUCK_${id}__`;
-  const close = outcome.stdout.lastIndexOf(marker);
-  const open = close > 0 ? outcome.stdout.lastIndexOf(marker, close - 1) : -1;
-  let results = null;
-  if (open >= 0) {
-    try {
-      results = JSON.parse(outcome.stdout.slice(open + marker.length, close));
-    } catch {
-      results = null;
-    }
+  const pending = JS_TEST_INFLIGHT.get(cacheKey);
+  if (pending) {
+    jsTestHits += 1;
+    return (await pending).slice();
   }
-  const failure = outcome.error?.killed ? "timed out"
-    : outcome.error?.code === "ERR_CHILD_PROCESS_STDIO_MAXBUFFER" ? `output too large (more than ${Math.round(outputLimit(cases) / 1024)} KB)`
-    : outcome.error ? "did not run (syntax or runtime error)" : "no results";
-  const checked = cases.map((testCase, index) => {
-    const verdict = judgeCase(results?.[index], testCase.expect);
-    return {
-      type: "jsTests",
-      passed: Boolean(verdict?.passed),
-      // No function of that name in the reply: a format problem, not a wrong function (ADR-052).
-      unreadable: !named,
-      detail: `${check.entry}(${JSON.stringify(testCase.args).slice(1, -1)}): ${verdict ? verdict.detail : failure}`,
-    };
-  });
-  jsTestMisses += 1;
-  rememberVerdict(cacheKey, codeKey, checked);
-  return checked;
+  const verify = async () => {
+    const id = randomBytes(12).toString("hex");
+    const script = judgeScript({
+      id,
+      setup: check.setup ?? "",
+      // The script runs as CommonJS, so ESM export keywords would be a syntax error.
+      code: code.replace(/^\s*export\s+(default\s+)?/gm, ""),
+      scenario: check.harness ?? "",
+      entry: check.entry,
+      // Arguments only: the expected values stay in this process.
+      args: cases.map((testCase) => testCase.args),
+    });
+    const outcome = await new Promise((resolve) => {
+      const child = execFile(
+        process.execPath,
+        // `-` reads the script from stdin, so it appears in no argument the answer could read.
+        [sandboxFlag(), `--max-old-space-size=${SANDBOX_HEAP_MB}`, "-"],
+        // SIGKILL because a handler for the default signal would keep a runaway loop alive on POSIX.
+        { timeout: timeoutMs, killSignal: "SIGKILL", windowsHide: true, maxBuffer: outputLimit(cases), env: sandboxEnv(), cwd: sandboxCwd() },
+        (error, stdout) => resolve({ error, stdout: String(stdout ?? "") }),
+      );
+      child.stdin.on("error", () => {});
+      child.stdin.end(script);
+    });
+    // The result sits between the last two markers; later output (an exit handler's log) is not part of it.
+    const marker = `__MODELDUCK_${id}__`;
+    const close = outcome.stdout.lastIndexOf(marker);
+    const open = close > 0 ? outcome.stdout.lastIndexOf(marker, close - 1) : -1;
+    let results = null;
+    if (open >= 0) {
+      try {
+        results = JSON.parse(outcome.stdout.slice(open + marker.length, close));
+      } catch {
+        results = null;
+      }
+    }
+    const failure = outcome.error?.killed ? "timed out"
+      : outcome.error?.code === "ERR_CHILD_PROCESS_STDIO_MAXBUFFER" ? `output too large (more than ${Math.round(outputLimit(cases) / 1024)} KB)`
+      : outcome.error ? "did not run (syntax or runtime error)" : "no results";
+    const checked = cases.map((testCase, index) => {
+      const verdict = judgeCase(results?.[index], testCase.expect);
+      return {
+        type: "jsTests",
+        passed: Boolean(verdict?.passed),
+        // No function of that name in the reply: a format problem, not a wrong function (ADR-052).
+        unreadable: !named,
+        detail: `${check.entry}(${JSON.stringify(testCase.args).slice(1, -1)}): ${verdict ? verdict.detail : failure}`,
+      };
+    });
+    jsTestMisses += 1;
+    rememberVerdict(cacheKey, codeKey, checked);
+    return checked;
+  };
+  const promise = verify();
+  JS_TEST_INFLIGHT.set(cacheKey, promise);
+  CODE_VERDICT_INFLIGHT.set(codeKey, promise);
+  try {
+    return await promise;
+  } finally {
+    if (JS_TEST_INFLIGHT.get(cacheKey) === promise) JS_TEST_INFLIGHT.delete(cacheKey);
+    if (CODE_VERDICT_INFLIGHT.get(codeKey) === promise) CODE_VERDICT_INFLIGHT.delete(codeKey);
+  }
 }
 
 export async function evaluateResponse(prompt, text) {

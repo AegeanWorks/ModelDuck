@@ -61,6 +61,49 @@ test("raw generation defers judging and judge() completes the same answer row", 
   assert.deepEqual(normal.prompts[0], judged, "deferred and ordinary judging produce the same row");
 });
 
+test("serial batches overlap at most four judges while generation and result order stay serial", async () => {
+  const prompts = Array.from({ length: 8 }, (_value, index) => ({
+    id: `item-${index}`,
+    prompt: `prompt ${index}`,
+    maxTokens: 4,
+    checks: [{ type: "contains", value: "x" }],
+  }));
+  const engine = recordingEngine(() => "x");
+  const originalChat = engine.chat;
+  let generating = 0;
+  let generationPeak = 0;
+  engine.chat = async (request) => {
+    generating += 1;
+    generationPeak = Math.max(generationPeak, generating);
+    await new Promise((resolve) => setImmediate(resolve));
+    generating -= 1;
+    return originalChat(request);
+  };
+  let judging = 0;
+  let judgePeak = 0;
+  const seen = [];
+  const evaluate = createEvaluator({
+    engine,
+    modelId: "m1",
+    prompts,
+    judgeResponse: async () => {
+      judging += 1;
+      judgePeak = Math.max(judgePeak, judging);
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      judging -= 1;
+      return { passed: 1, total: 1, unreadable: false };
+    },
+    onItem: (row) => seen.push(row.id),
+  });
+  const out = await evaluate(SETTINGS, prompts.map((prompt) => prompt.id), 42);
+  assert.equal(generationPeak, 1, "width-one model generation remains serial");
+  assert.equal(judgePeak, 4, "independent judges overlap up to the bound");
+  assert.ok(judgePeak <= 4);
+  assert.deepEqual(out.prompts.map((row) => row.id), prompts.map((prompt) => prompt.id));
+  assert.deepEqual(seen, prompts.map((prompt) => prompt.id), "onItem keeps result order");
+  assert.ok(out.prompts.every((row) => row.passed === 1));
+});
+
 test("the model reloads only for model-level settings; context-level changes reconfigure in place", async () => {
   const engine = recordingEngine();
   const evaluate = createEvaluator({ engine, modelId: "m1" });

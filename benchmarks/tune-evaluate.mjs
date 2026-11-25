@@ -39,6 +39,8 @@ const SAMPLING_DEFAULTS = Object.freeze({
 });
 
 const digestOf = (text) => createHash("sha256").update(String(text ?? "")).digest("hex").slice(0, 16);
+const ANSWER_STARTED = Symbol("answerStarted");
+const JUDGE_CONCURRENCY = 4;
 
 let pickComputes = 0;
 export function pickComputations() {
@@ -72,7 +74,7 @@ const THREAD_CAP = 64;
  * answered at once; `settings.parallelism: 1` (the timing stages) answers one
  * at a time.
  */
-export function createEvaluator({ engine, modelId, prompts = PROMPTS, systemPrompt = SYSTEM_PROMPT, timeoutMs = 120_000, parallel: parallelOption = 1, beforeAnswer = async () => {}, onItem = () => {}, timer = null }) {
+export function createEvaluator({ engine, modelId, prompts = PROMPTS, systemPrompt = SYSTEM_PROMPT, timeoutMs = 120_000, parallel: parallelOption = 1, beforeAnswer = async () => {}, onItem = () => {}, timer = null, judgeResponse = evaluateResponse }) {
   const byId = new Map(prompts.map((prompt) => [prompt.id, prompt]));
   // How many answers the tune asks to run at once. A call may run narrower (widthFor), never wider.
   let parallel = Math.max(1, Math.floor(Number(parallelOption)) || 1);
@@ -146,13 +148,22 @@ export function createEvaluator({ engine, modelId, prompts = PROMPTS, systemProm
 
   async function judgeFields(prompt, raw) {
     if (raw.error) return { passed: 0, total: checkCount(prompt), unreadable: false, failure: "error" };
-    const evaluation = await timed("judge", () => evaluateResponse(prompt, raw.text));
+    const evaluation = await timed("judge", () => judgeResponse(prompt, raw.text));
     return {
       passed: evaluation.passed,
       total: evaluation.total,
       unreadable: evaluation.unreadable,
       failure: failureClass({ text: raw.text, stopReason: raw.stopReason ?? null, evaluation }),
     };
+  }
+
+  async function finishAnswer(prompt, raw) {
+    const fields = await judgeFields(prompt, raw);
+    return { passed: fields.passed, total: fields.total, unreadable: fields.unreadable, ...raw, failure: fields.failure };
+  }
+
+  function judgeError(prompt, raw, error) {
+    return { passed: 0, total: checkCount(prompt), error: error.message, ms: Date.now() - raw[ANSWER_STARTED], tokensPerSecond: null, outputTokens: null, stopReason: null, promptTokens: null, firstTokenMs: null, digest: null, failure: "error" };
   }
 
   async function answer(prompt, settings, load, seed, judge = true) {
@@ -191,13 +202,14 @@ export function createEvaluator({ engine, modelId, prompts = PROMPTS, systemProm
         firstTokenMs: result.stats?.firstTokenMs ?? null,
         digest: digestOf(result.text),
       };
+      Object.defineProperty(raw, ANSWER_STARTED, { value: started });
       if (!judge) {
         timer?.count("answers");
         return raw;
       }
-      const fields = await judgeFields(prompt, raw);
+      const completed = await finishAnswer(prompt, raw);
       timer?.count("answers");
-      return { passed: fields.passed, total: fields.total, unreadable: fields.unreadable, ...raw, failure: fields.failure };
+      return completed;
     } catch (error) {
       return { passed: 0, total: checkCount(prompt), error: error.message, ms: Date.now() - started, tokensPerSecond: null, outputTokens: null, stopReason: null, promptTokens: null, firstTokenMs: null, digest: null, failure: "error" };
     } finally {
@@ -222,6 +234,34 @@ export function createEvaluator({ engine, modelId, prompts = PROMPTS, systemProm
     }
     const results = new Array(items.length);
     const width = load.sequences;
+    if (judge && width === 1 && items.length > 1) {
+      // Generation stays serial, but independent sandbox judges may overlap.
+      // Each answer still gets its own child; only startup waits are shared.
+      const raw = new Array(items.length);
+      for (let index = 0; index < items.length; index += 1) {
+        if (!settings.timed) await beforeAnswer();
+        raw[index] = await answer(items[index], settings, load, seed, false);
+      }
+      let nextJudge = 0;
+      const judgeWorker = async () => {
+        while (nextJudge < items.length) {
+          const index = nextJudge;
+          nextJudge += 1;
+          if (raw[index].error || raw[index].passed !== undefined) {
+            results[index] = { id: items[index].id, width, ...raw[index] };
+            continue;
+          }
+          try {
+            results[index] = { id: items[index].id, width, ...(await finishAnswer(items[index], raw[index])) };
+          } catch (error) {
+            results[index] = { id: items[index].id, width, ...judgeError(items[index], raw[index], error) };
+          }
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(JUDGE_CONCURRENCY, items.length) }, judgeWorker));
+      for (const result of results) onItem(result);
+      return { prompts: results, memoryBytes, gpuVram };
+    }
     let next = 0;
     const worker = async () => {
       while (next < items.length) {

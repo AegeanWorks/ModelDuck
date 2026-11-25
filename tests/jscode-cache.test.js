@@ -19,6 +19,31 @@ test("formatting variants of the same code share one verification", async () => 
   assert.equal(stats.codeHits, 2, "the other two formats reuse the code verdict");
 });
 
+test("identical concurrent checks share one in-flight child verdict", async () => {
+  resetJavaScriptTestCache();
+  const [first, second] = await Promise.all([
+    runJavaScriptTests(code, check),
+    runJavaScriptTests(code, check),
+  ]);
+  assert.deepEqual(first, second);
+  const stats = javascriptTestCacheStats();
+  assert.equal(stats.misses, 1, "concurrent duplicates do not spawn two children");
+  assert.equal(stats.hits, 1, "the waiting caller records the same cache hit as a sequential caller");
+});
+
+test("concurrent formatting variants share one in-flight code verdict", async () => {
+  resetJavaScriptTestCache();
+  const [first, second] = await Promise.all([
+    runJavaScriptTests(variants[0], check),
+    runJavaScriptTests(variants[1], check),
+  ]);
+  assert.deepEqual(first, second);
+  const stats = javascriptTestCacheStats();
+  assert.equal(stats.misses, 1);
+  assert.equal(stats.codeHits, 1, "the formatting variant records a code-verdict hit");
+  assert.equal(stats.hits, 1);
+});
+
 test("different code still gets its own verdict", async () => {
   resetJavaScriptTestCache();
   const first = await runJavaScriptTests("```js\nfunction solve(a, b) { return a + b; }\n```", check);
