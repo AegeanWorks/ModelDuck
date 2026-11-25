@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "engine-snapshot-1125",
+    "task_id": "restore-budget-optin-1125",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1795566986.2101188,
+    "updated_at": 1795568357.3367598,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-    "lease_until": 1795574186.2101188,
+    "lease_until": 1795575557.3367598,
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "continuations": [],
     "workspaces": [
@@ -16,104 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795567064.315835,
-    "completed_head": "33db1bf1d3398cb63ca8ad61600c678329ca4f39",
-    "completed_tree": "7bb7ece3a35a87f79c299432426e78a938f9fd88"
+    "completed_at": 1795568429.17322,
+    "completed_head": "75c8e7649787e3cb920ad83e1b0c3f20b109f651",
+    "completed_tree": "d490563e114b3681a0d861acad027fdc2f87d853"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'history-sqlite-transaction-1124' completed successfully.",
-      "head": "95b4dd9c23ac14a1722b573a20ee306c0e5181e2",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "history-sqlite-transaction-1124",
-      "timestamp": 1795551399.2702415,
-      "timestamp_str": "2026-11-24 23:16:39"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Memoize sweep-local paired/group evidence by ordered stats identity and clustering mode; preserve directional statistics and release caches after each sweep",
-      "files_affected": [
-        "benchmarks/tune.mjs",
-        "tests/benchmark-tune-stats.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Reuse the chosen comparison and repeated group calculations without changing p-values, winners or guards",
-        "mitigation": "failing-first draw-count/object-identity/reverse-direction test, deterministic full-sweep output hash, interleaved A/B with uncached control, existing statistical regression tests, full npm test and 4/4 strict gates; revert if regression",
-        "risks": "contract: directional b/c and clustered versus item-level evidence stay distinct; dependency: existing pure functions; concurrency: sweep-local only; state: no persisted format or tuner-version change",
-        "why": "User directive to increase tuning speed; a deterministic 96-item clustered sweep recomputed identical paired/group evidence and performed 3.84 million Monte Carlo draws"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "99e88656bcdfa3dfeea2bcf460ab2562a45473ca66a118a92a4bca807a6bd6b5",
-      "status": "in_progress",
-      "task_id": "tune-evidence-cache-1124",
-      "timestamp": 1795551884.8520305,
-      "timestamp_str": "2026-11-24 23:24:44",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: clustered 96-item sweep 55.679ms -> 45.392ms (1.23x), Monte Carlo draws 3.84M -> 2.88M, identical sweep hash; uncached control drift 6.2%; draw/direction tests, full suite and 4/4 gates pass",
-      "files_affected": [
-        "benchmarks/tune.mjs",
-        "tests/benchmark-tune-stats.test.js",
-        ".aikit/decisions.md"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/tune-stats-ab.mjs",
-          "baseline": 55.679,
-          "candidate": 45.392,
-          "command": "node tune-stats-ab.mjs",
-          "control": "uncached groupEvidence 14.553ms vs 15.454ms",
-          "drift": "6.2",
-          "interleaved": "yes",
-          "metric": "clustered tune sweep",
-          "unit": "ms",
-          "workload": "96 items, four repeat-penalty candidates, two coding views, 15 interleaved pairs on win32 Node 26.9.0"
-        },
-        {
-          "artifact": "local-only/tune-stats-ab.mjs",
-          "baseline": 3840000.0,
-          "candidate": 2880000.0,
-          "command": "node tune-stats-ab.mjs",
-          "control": "uncached groupEvidence performs the same 960000 draws in both builds",
-          "drift": "0",
-          "interleaved": "yes",
-          "metric": "Monte Carlo draws per clustered sweep",
-          "unit": "draws",
-          "workload": "96 items, four repeat-penalty candidates, two coding views"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "tune-evidence-cache-1124",
-      "timestamp": 1795551976.2670753,
-      "timestamp_str": "2026-11-24 23:26:16",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "delivery": {
@@ -617,6 +524,128 @@
       "task_id": "engine-snapshot-1125",
       "timestamp": 1795567064.3810208,
       "timestamp_str": "2026-11-25 03:37:44"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Add opt-in restore-budget selection with 20000-row, 32MiB and 4-file caps; wire --restore-budget through tune CLI/runTune while preserving default-three behavior",
+      "files_affected": [
+        "src/tune-runs.js",
+        "benchmarks/tune-job.mjs",
+        "benchmarks/tune-run.mjs",
+        "tests/cachedanswers-reads.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Opt-in resumes can replay more saved answers under hard memory/file/row caps without changing existing callers",
+        "mitigation": "failing-first precedence/crossing/cap/filter tests, byte counter, real copied-fixture restore-reader benchmark, CLI help proof, full npm test and 4/4 strict gates; revert if regression",
+        "risks": "contract: default-three output/read counts unchanged; dependency: node fs/path only; concurrency: summaries may be rewritten between selection and read; state: no persisted format change",
+        "why": "Copied real-fixture benchmark showed default-three misses 3472 Qwen rows and 4159 Llama rows; a 32MiB/4-file budget captures them with newest-first precedence"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "d2ebbcd14e4c7184f3a8542b7285a94e35b4dc63481fb6d1d5b643b82e77138c",
+      "status": "in_progress",
+      "task_id": "restore-budget-optin-1125",
+      "timestamp": 1795567583.5802858,
+      "timestamp_str": "2026-11-25 03:46:23",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: opt-in real restore gains Qwen +3472 rows/+75 groups and Llama +4159 rows/+94 groups within 4 files/32MiB; runTune-prefilled parse tradeoff +10.667ms/+14.561ms, SmolLM unchanged; default-three and 39 targeted tests preserved, full suite and 4/4 gates pass",
+      "files_affected": [
+        "src/tune-runs.js",
+        "benchmarks/tune-job.mjs",
+        "benchmarks/tune-run.mjs",
+        "tests/cachedanswers-reads.test.js",
+        ".aikit/decisions.md",
+        ".aikit/ui_history.json"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/restore-budget-real-bench.mjs",
+          "baseline": 16528.0,
+          "candidate": 20000.0,
+          "command": "node restore-budget-real-bench.mjs",
+          "control": "SmolLM2 remains 14748 rows",
+          "drift": "0",
+          "interleaved": "yes",
+          "metric": "Qwen restored rows",
+          "unit": "rows",
+          "workload": "copied real tune-run fixture, serial width, 5 interleaved default/budget pairs"
+        },
+        {
+          "artifact": "local-only/restore-budget-real-bench.mjs",
+          "baseline": 1078.0,
+          "candidate": 5237.0,
+          "command": "node restore-budget-real-bench.mjs",
+          "control": "SmolLM2 remains 14748 rows",
+          "drift": "0",
+          "interleaved": "yes",
+          "metric": "Llama restored rows",
+          "unit": "rows",
+          "workload": "copied real tune-run fixture, serial width, 5 interleaved default/budget pairs"
+        },
+        {
+          "artifact": "local-only/restore-budget-runpath-bench.mjs",
+          "baseline": 53.124,
+          "candidate": 63.791,
+          "command": "node restore-budget-runpath-bench.mjs",
+          "control": "SmolLM2 54.986ms vs 54.539ms",
+          "drift": "0.8",
+          "interleaved": "yes",
+          "metric": "Qwen runTune-prefilled restore parse",
+          "unit": "ms",
+          "workload": "copied real fixture after itemOutcomes cache prefill, 7 interleaved pairs"
+        },
+        {
+          "artifact": "local-only/restore-budget-runpath-bench.mjs",
+          "baseline": 4.491,
+          "candidate": 19.052,
+          "command": "node restore-budget-runpath-bench.mjs",
+          "control": "SmolLM2 54.986ms vs 54.539ms",
+          "drift": "0.8",
+          "interleaved": "yes",
+          "metric": "Llama runTune-prefilled restore parse",
+          "unit": "ms",
+          "workload": "copied real fixture after itemOutcomes cache prefill, 7 interleaved pairs"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "restore-budget-optin-1125",
+      "timestamp": 1795568357.3367598,
+      "timestamp_str": "2026-11-25 03:59:17",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'restore-budget-optin-1125' completed successfully.",
+      "head": "75c8e7649787e3cb920ad83e1b0c3f20b109f651",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "restore-budget-optin-1125",
+      "timestamp": 1795568429.2419658,
+      "timestamp_str": "2026-11-25 04:00:29"
     }
   ]
 }
