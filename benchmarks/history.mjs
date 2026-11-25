@@ -553,20 +553,38 @@ export function listRuns(db, limit = 20) {
   }));
 }
 
-export function modelProgress(db, modelKey, limit = 20) {
-  return db
+export function modelsProgress(db, modelKeys, limit = 20) {
+  const keys = [...new Set(modelKeys.filter(Boolean))];
+  const grouped = new Map(keys.map((key) => [key, []]));
+  if (!keys.length) return grouped;
+  const placeholders = keys.map(() => "?").join(",");
+  const rows = db
     .prepare(
-      `SELECT r.recorded_at, r.commit_hash, r.commit_subject, r.commit_pending,
-              m.model_key, m.variant_id, m.variant_label, m.label, m.kv_key_type,
-              m.context_size, m.threads, m.score, m.tokens_per_second, m.first_token_ms,
-              m.memory_bytes, m.gpu_vram
-       FROM model_results m JOIN runs r ON r.uid = m.run_uid
-       WHERE m.model_key = ? AND (r.run_scope = 'standard' OR r.run_scope = 'shard')
-         AND (m.batch_size IS NULL OR m.batch_size <> 1)
-       ORDER BY r.recorded_at DESC, r.id DESC LIMIT ?`,
+      `SELECT * FROM (
+         SELECT r.recorded_at, r.commit_hash, r.commit_subject, r.commit_pending,
+                m.model_key, m.variant_id, m.variant_label, m.label, m.kv_key_type,
+                m.context_size, m.threads, m.score, m.tokens_per_second, m.first_token_ms,
+                m.memory_bytes, m.gpu_vram,
+                ROW_NUMBER() OVER (
+                  PARTITION BY m.model_key ORDER BY r.recorded_at DESC, r.id DESC
+                ) AS progress_rank
+         FROM model_results m JOIN runs r ON r.uid = m.run_uid
+         WHERE m.model_key IN (${placeholders})
+           AND (r.run_scope = 'standard' OR r.run_scope = 'shard')
+           AND (m.batch_size IS NULL OR m.batch_size <> 1)
+       ) WHERE progress_rank <= ?
+       ORDER BY model_key, progress_rank`,
     )
-    .all(modelKey, limit)
-    .map((row) => ({ ...row, commit_pending: Boolean(row.commit_pending) }));
+    .all(...keys, limit);
+  for (const row of rows) {
+    const { progress_rank: _rank, ...progress } = row;
+    grouped.get(progress.model_key).push({ ...progress, commit_pending: Boolean(progress.commit_pending) });
+  }
+  return grouped;
+}
+
+export function modelProgress(db, modelKey, limit = 20) {
+  return modelsProgress(db, [modelKey], limit).get(modelKey) ?? [];
 }
 
 export function testResults(db, runUid) {

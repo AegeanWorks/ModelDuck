@@ -11,6 +11,7 @@ import {
   linkRun,
   listRuns,
   modelProgress,
+  modelsProgress,
   openDatabase,
   rebuildDatabase,
   recordRun,
@@ -208,6 +209,37 @@ test("listRuns fetches every selected run's models in one grouped query", async 
     assert.equal(queries, 2, "one run query and one model query serve every row");
     assert.deepEqual(runs[0].models.map((model) => model.model_key), ["a-model", "z-model"]);
     assert.deepEqual(runs[1].models.map((model) => model.model_key), ["test-model"]);
+  } finally {
+    db.close();
+  }
+});
+
+test("modelsProgress fetches every key's newest rows in one bounded query", async (t) => {
+  const paths = await tempPaths(t);
+  for (let i = 0; i < 3; i += 1) {
+    await recordRun({
+      ...paths,
+      result: {
+        ...RESULT,
+        models: [
+          { ...RESULT.models[0], key: "a-model", tokensPerSecond: 10 + i },
+          { ...RESULT.models[0], key: "z-model", tokensPerSecond: 20 + i },
+        ],
+        ...(i === 0 ? { reproRun: true } : {}),
+      },
+      git: { hash: "abc123", subject: `run ${i}`, branch: "main" },
+    });
+  }
+  const db = await openDatabase(paths.dbPath);
+  try {
+    const prepare = db.prepare.bind(db);
+    let queries = 0;
+    const counted = { prepare(sql) { queries += 1; return prepare(sql); } };
+    const grouped = modelsProgress(counted, ["a-model", "z-model"], 1);
+    assert.equal(queries, 1, "one windowed query serves every model key");
+    assert.deepEqual(grouped.get("a-model"), modelProgress(db, "a-model", 1));
+    assert.deepEqual(grouped.get("z-model"), modelProgress(db, "z-model", 1));
+    assert.equal(grouped.get("a-model")[0].tokens_per_second, 12, "the newest non-repro row wins");
   } finally {
     db.close();
   }

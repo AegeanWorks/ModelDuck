@@ -6,7 +6,7 @@ import {
   historyStats,
   importHistory,
   listRuns,
-  modelProgress,
+  modelsProgress,
   openDatabase,
   rebuildDatabase,
   testResults,
@@ -146,9 +146,7 @@ async function main() {
       ),
     ];
     const selectedKeys = options.model ? keys.filter((key) => key === options.model) : keys;
-    const progress = Object.fromEntries(
-      selectedKeys.map((key) => [key, modelProgress(db, key, options.limit)]),
-    );
+    const progress = Object.fromEntries(modelsProgress(db, selectedKeys, options.limit));
 
     if (options.json) {
       process.stdout.write(
