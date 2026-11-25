@@ -122,6 +122,56 @@ export async function verifyRestore(groups, evaluate, { sample = VERIFY_SAMPLE }
   return { ok: mismatched.length === 0, checked, mismatched };
 }
 
+const PROBE_SORT_MIN = 64;
+const stableProbeOrder = (left, right) => (left.ms - right.ms) || (left.index - right.index);
+
+/** Partition around the exact stable cost rank used by spreadCheapestRows(). */
+function selectProbeRank(rows, rank, left = 0, right = rows.length - 1) {
+  const maxPartitions = 2 * Math.ceil(Math.log2(Math.max(2, rows.length))) + 2;
+  let partitions = 0;
+  while (left < right) {
+    partitions += 1;
+    if (partitions > maxPartitions) {
+      rows.sort(stableProbeOrder);
+      return rows[rank];
+    }
+    const pivot = rows[Math.floor((left + right) / 2)];
+    let lower = left;
+    let upper = right;
+    while (lower <= upper) {
+      while (stableProbeOrder(rows[lower], pivot) < 0) lower += 1;
+      while (stableProbeOrder(rows[upper], pivot) > 0) upper -= 1;
+      if (lower <= upper) {
+        [rows[lower], rows[upper]] = [rows[upper], rows[lower]];
+        lower += 1;
+        upper -= 1;
+      }
+    }
+    if (rank <= upper) right = upper;
+    else if (rank >= lower) left = lower;
+    else return rows[rank];
+  }
+  return rows[rank];
+}
+
+/** The same evenly spread cheapest-half probes as a stable full sort, without sorting large families. */
+export function spreadCheapestRows(list, count) {
+  if (!list.length || !(count > 0)) return [];
+  const half = Math.max(1, Math.ceil(list.length / 2));
+  const amount = Math.min(count, half);
+  if (list.length < PROBE_SORT_MIN) {
+    const cheap = [...list].sort((left, right) => (Number(left.row.ms) || Infinity) - (Number(right.row.ms) || Infinity)).slice(0, half);
+    return Array.from({ length: amount }, (_value, index) => cheap[Math.floor(((index + 0.5) * half) / amount)]);
+  }
+  const ranked = list.map((entry, index) => ({ entry, index, ms: Number(entry.row.ms) || Infinity }));
+  const picked = [];
+  for (let index = 0; index < amount; index += 1) {
+    const rank = Math.floor(((index + 0.5) * half) / amount);
+    picked.push(selectProbeRank(ranked, rank).entry);
+  }
+  return picked;
+}
+
 /**
  * The same live spot-check, kept per family of items (ADR-185): a few of the cheapest saved answers of each family
  * are re-asked, a family with a difference is dropped, and the families that came out identical keep every saved
@@ -149,11 +199,10 @@ export async function verifyRestoreByFamily(groups, evaluate, { familyOf = () =>
   let checked = 0;
   for (const [family, list] of byFamily) {
     // The cheapest half, spread evenly: a re-ask of a long answer costs seconds, and the cheap ones are as telling.
-    const cheap = [...list].sort((left, right) => (Number(left.row.ms) || Infinity) - (Number(right.row.ms) || Infinity)).slice(0, Math.max(1, Math.ceil(list.length / 2)));
-    const count = Math.min(perFamily, cheap.length);
+    const picked = spreadCheapestRows(list, perFamily);
     let differs = false;
-    for (let index = 0; index < count; index += 1) {
-      const { group, row, id } = cheap[Math.floor(((index + 0.5) * cheap.length) / count)];
+    for (let index = 0; index < picked.length; index += 1) {
+      const { group, row, id } = picked[index];
       let settings = group.settings;
       if (index % 2 === 1 && !threadsShapeText(settings) && Number.isFinite(settings.threads)) {
         settings = { ...settings, threads: settings.threads > 1 ? Math.max(1, Math.floor(settings.threads / 2)) : 2 };

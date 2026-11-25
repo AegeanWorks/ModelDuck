@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { Measurements, verifyRestore, verifyRestoreByFamily } from "../benchmarks/tune-measure.mjs";
+import { Measurements, spreadCheapestRows, verifyRestore, verifyRestoreByFamily } from "../benchmarks/tune-measure.mjs";
 import { cachedAnswers, startRun } from "../src/tune-runs.js";
 
 const WORLD = { suiteVersion: 18, taskHash: "h", nodeLlamaCpp: "3.22.2", modelFile: "m.gguf", modelSize: 100, cpu: "CPU", platform: "win32", arch: "x64" };
@@ -152,6 +152,25 @@ test("family verification judges only raw-text mismatches", async () => {
   const strict = await verifyRestoreByFamily(malformed, evaluate, { familyOf: () => "code" });
   assert.equal(judgeCalls, 2, "a malformed saved verdict is judged rather than inferred");
   assert.deepEqual(strict.stale, ["code"]);
+});
+
+test("cheapest restore probe selection preserves stable sort ranks across sizes and ties", () => {
+  const expected = (list, count) => {
+    const cheap = [...list].sort((left, right) => (Number(left.row.ms) || Infinity) - (Number(right.row.ms) || Infinity)).slice(0, Math.max(1, Math.ceil(list.length / 2)));
+    const amount = Math.min(count, cheap.length);
+    return Array.from({ length: amount }, (_value, index) => cheap[Math.floor(((index + 0.5) * cheap.length) / amount)]);
+  };
+  for (const size of [0, 1, 2, 3, 10, 63, 64, 65, 1000, 20000]) {
+    const list = Array.from({ length: size }, (_value, index) => ({
+      row: { ms: index % 13 === 0 ? undefined : (index * 37) % 17 },
+      index,
+    }));
+    const before = JSON.stringify(list);
+    for (const count of size >= 20000 ? [3] : [0, 1, 2, 3, 8]) {
+      assert.deepEqual(spreadCheapestRows(list, count), expected(list, count), `size=${size}, count=${count}`);
+    }
+    assert.equal(JSON.stringify(list), before, "selection does not mutate saved rows");
+  }
 });
 
 test("the check by family keeps the families that re-ask identically and drops only the stale one (ADR-185)", async () => {
