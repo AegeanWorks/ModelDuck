@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "judge-concurrency-1125",
+    "task_id": "verify-cheap-selection-1125",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1795582027.4732096,
+    "updated_at": 1795584771.6543925,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-    "lease_until": 1795589227.4732096,
+    "lease_until": 1795591971.6543925,
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "continuations": [],
     "workspaces": [
@@ -16,186 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795582139.7916493,
-    "completed_head": "e6b3ef3ecbfeb36b6163bf3f4bd8be46f4e4ee82",
-    "completed_tree": "dc3d8c4f3f51aedd8529bc1fa8d66cc1e2e2bbdb"
+    "completed_at": 1795584857.678722,
+    "completed_head": "661d6ba1c3bcb187fda88c5be816f44e8ee08824",
+    "completed_tree": "f7be653c597c29c1e855f5519d041be024c3445a"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: full runTune default 415.578ms/23 fresh answers -> restore-budget 339.645ms/18, identical outcome hash; A/A control drift 0.2%; parse profiling found duplicate answer-row JSON parsing as next hotspot; factory test, full suite and 4/4 gates pass",
-      "files_affected": [
-        "benchmarks/tune-job.mjs",
-        "tests/benchmark-tune.test.js",
-        ".aikit/decisions.md"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/restore-e2e-bench.mjs",
-          "baseline": 415.578,
-          "candidate": 339.645,
-          "command": "node restore-e2e-bench.mjs",
-          "control": "default/default A/A 416.211ms",
-          "drift": "0.2",
-          "interleaved": "yes",
-          "metric": "end-to-end deterministic tune",
-          "unit": "ms",
-          "workload": "36 saved rows split across four runs, code repeat-penalty quick tune, 7 interleaved default/budget/control trios"
-        },
-        {
-          "artifact": "local-only/restore-e2e-bench.mjs",
-          "baseline": 23.0,
-          "candidate": 18.0,
-          "command": "node restore-e2e-bench.mjs",
-          "control": "default/default A/A 23 answers",
-          "drift": "0",
-          "interleaved": "yes",
-          "metric": "fresh evaluator answers per tune",
-          "unit": "answers",
-          "workload": "36 saved rows split across four runs, code repeat-penalty quick tune"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "restore-e2e-bench-1125",
-      "timestamp": 1795569386.6762695,
-      "timestamp_str": "2026-11-25 04:16:26",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'restore-e2e-bench-1125' completed successfully.",
-      "head": "0d2fecf6dc9b51291d8ed7eee61f83e926d5e51a",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "restore-e2e-bench-1125",
-      "timestamp": 1795569466.484438,
-      "timestamp_str": "2026-11-25 04:17:46"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Reuse bounded parsed answer rows only for opt-in restore-budget, preserving default-three, public clone isolation, filters, caps and early row break",
-      "files_affected": [
-        "src/tune-runs.js",
-        "benchmarks/tune-job.mjs",
-        "tests/cachedanswers-reads.test.js",
-        "tests/tunedir-parallel.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Budgeted Qwen/Llama restore avoids duplicate parsing while default-three and small-file behavior stay unchanged",
-        "mitigation": "failing-first reuse/clone/invalidation/bounds/filter/early-break tests, direct real-store old/new A/B, deterministic full-tune benchmark, full npm test and 4/4 strict gates; revert if regression",
-        "risks": "contract: identical restored rows and filters; dependency: no new packages; concurrency: exact file stamps; state: four parsed files/50000 rows/1000-row minimum, cleared before generation",
-        "why": "Profiling found itemOutcomes and cachedAnswers JSON-parse overlapping answer rows; naive cloning made reuse slower, so the hot path needs a bounded read-only internal fast path"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "cad5f53d839c2db42f00b104efa8772dc5c1b46d55400c75ff9bce59641d5796",
-      "status": "in_progress",
-      "task_id": "parsed-row-reuse-1125",
-      "timestamp": 1795572814.6909509,
-      "timestamp_str": "2026-11-25 05:13:34",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: default unchanged; Qwen budget restore 1522.802ms -> 1264.551ms (1.20x), Llama 465.634ms -> 280.185ms (1.66x), SmolLM2 0.99x neutral; full tune fresh 23 -> 18 and 3550.975ms -> 3367.272ms under load, identical outcomes; 45 targeted tests, full suite and 4/4 gates pass",
-      "files_affected": [
-        "src/tune-runs.js",
-        "benchmarks/tune-job.mjs",
-        "tests/cachedanswers-reads.test.js",
-        "tests/tunedir-parallel.test.js",
-        ".aikit/decisions.md",
-        ".aikit/ui_history.json"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/restore-rowcache-ab.mjs",
-          "baseline": 1522.802,
-          "candidate": 1264.551,
-          "command": "node restore-rowcache-ab.mjs",
-          "control": "100000 answersFile calls 131.505ms vs 123.623ms",
-          "drift": "6.0",
-          "interleaved": "yes",
-          "metric": "Qwen budget restore reader",
-          "unit": "ms",
-          "workload": "real copied tune store after itemOutcomes prefill, 15 interleaved old/new pairs"
-        },
-        {
-          "artifact": "local-only/restore-rowcache-ab.mjs",
-          "baseline": 465.634,
-          "candidate": 280.185,
-          "command": "node restore-rowcache-ab.mjs",
-          "control": "100000 answersFile calls 131.505ms vs 123.623ms",
-          "drift": "6.0",
-          "interleaved": "yes",
-          "metric": "Llama budget restore reader",
-          "unit": "ms",
-          "workload": "real copied tune store after itemOutcomes prefill, 15 interleaved old/new pairs"
-        },
-        {
-          "artifact": "local-only/restore-e2e-bench.mjs",
-          "baseline": 3550.975,
-          "candidate": 3367.272,
-          "command": "node restore-e2e-bench.mjs",
-          "control": "default/default A/A 3715.046ms",
-          "drift": "4.6",
-          "interleaved": "yes",
-          "metric": "end-to-end deterministic tune",
-          "unit": "ms",
-          "workload": "36 saved rows split across four runs, 7 default/budget/control trios under heavy host load"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "parsed-row-reuse-1125",
-      "timestamp": 1795573222.1562796,
-      "timestamp_str": "2026-11-25 05:20:22",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'parsed-row-reuse-1125' completed successfully.",
-      "head": "21e9768c793dddb09cb6586c8d6da3c64b6a3fa7",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "parsed-row-reuse-1125",
-      "timestamp": 1795573331.9942265,
-      "timestamp_str": "2026-11-25 05:22:11"
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "description": "[1/2] Add one grouped/windowed model_results progress query for all selected model keys and use it in benchmark reports",
@@ -796,6 +621,149 @@
       "task_id": "judge-concurrency-1125",
       "timestamp": 1795582139.86654,
       "timestamp_str": "2026-11-25 07:48:59"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Pipeline up to four isolated judges while serial answer generation continues",
+      "files_affected": [
+        "benchmarks/tune-evaluate.mjs",
+        "tests/benchmark-tune-evaluate.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Hide independent judge startup behind later serial generation without changing model width or verdicts",
+        "mitigation": "failing-first overlap/order/bound test, real-child and cold full-tune old/new A/B with exact hashes, targeted/full tests and 4/4 strict gates; revert on regression",
+        "risks": "contract: generation/result/onItem order, run accounting and verdicts unchanged; dependency: none; concurrency: at most four judges overlap one serial generation; state: existing in-flight maps only",
+        "why": "Current cold tune profile shows 224ms generation and 172ms judging sequentially, while filesystem other is only 37ms"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "14fdaeb5632b2294a5604756a397b0409003975fd896177c78f4cf5afcc30bdf",
+      "status": "in_progress",
+      "task_id": "judge-pipeline-1125",
+      "timestamp": 1795582372.8405068,
+      "timestamp_str": "2026-11-25 07:52:52",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "Task 'judge-pipeline-1125' abandoned: Rejected judge/generation pipelining after real-child A/B regressed to 0.86x with 15.8% control drift; restored prior judge-pool code",
+      "phase": "abandoned",
+      "phase_num": 2,
+      "status": "abandoned",
+      "task_id": "judge-pipeline-1125",
+      "timestamp": 1795583193.402987,
+      "timestamp_str": "2026-11-25 08:06:33"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Select evenly spread cheapest restore probes by exact rank instead of sorting every family",
+      "files_affected": [
+        "benchmarks/tune-measure.mjs",
+        "tests/answer-reuse.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Reduce O(n log n) preparation to bounded rank selection while preserving stable tie order and exact probes",
+        "mitigation": "failing-first equivalence tests across sizes/ties/missing timings, 20000-row benchmark, full tune outcome hash A/B, targeted/full tests and 4/4 strict gates; revert on regression",
+        "risks": "contract: identical cheapest-half ranks and probe order; dependency: none; concurrency: synchronous local array only; state: no cache/schema change",
+        "why": "Restore verification fully sorts each family to choose three probes; at the 20000-row cap a family sort costs 2.656ms versus 0.849ms for exact quickselect"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "ed114258b7057e14e1d9107badf0195154ea88ed7cb24dbc84d218a368b8b59b",
+      "status": "in_progress",
+      "task_id": "verify-cheap-selection-1125",
+      "timestamp": 1795583593.54159,
+      "timestamp_str": "2026-11-25 08:13:13",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: exact stable-rank probe selection improves 20010-row full verification 5.621ms -> 3.937ms (1.43x) with identical asked/retained hashes and 0.5% control drift; full tune keeps fresh answers, probes, runs, misses, reuse notes and outcome hash unchanged; 35 targeted tests, full suite and 4/4 gates pass",
+      "files_affected": [
+        "benchmarks/tune-measure.mjs",
+        "tests/answer-reuse.test.js",
+        ".aikit/decisions.md"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/verify-selection-real-ab.mjs",
+          "baseline": 5.621,
+          "candidate": 3.937,
+          "command": "node verify-selection-real-ab.mjs",
+          "control": "baseline/baseline 5.481ms vs 5.457ms",
+          "drift": "0.5",
+          "interleaved": "yes",
+          "metric": "20010-row restore verification",
+          "unit": "ms",
+          "workload": "seven families, 21 probes, 50 interleaved old/new pairs"
+        },
+        {
+          "artifact": "local-only/verify-selection-prototype.mjs",
+          "baseline": 2.656,
+          "candidate": 0.849,
+          "command": "node verify-selection-prototype.mjs",
+          "control": "stable-sort equivalence across sizes, ties and missing timings",
+          "drift": "0.5",
+          "interleaved": "yes",
+          "metric": "20000-row single-family probe selection",
+          "unit": "ms",
+          "workload": "three exact cheapest-half ranks, 100 interleaved sorted/quickselect pairs"
+        },
+        {
+          "artifact": "local-only/verify-selection-e2e-ab.mjs",
+          "baseline": 24.0,
+          "candidate": 24.0,
+          "command": "node verify-selection-e2e-ab.mjs",
+          "control": "probes 16/17, runs 12/6, misses 5/1, identical reuse notes and outcome hash 2d00cf7739667e3995f7095e4a18c3dfbdd3e84bba325c4250c69410f10feaab, noisy wall time not claimed",
+          "drift": "0",
+          "interleaved": "yes",
+          "metric": "full tune behavioral equivalence",
+          "unit": "fresh answers",
+          "workload": "five interleaved old/new pairs, default and budget"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "verify-cheap-selection-1125",
+      "timestamp": 1795584771.6543925,
+      "timestamp_str": "2026-11-25 08:32:51",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'verify-cheap-selection-1125' completed successfully.",
+      "head": "661d6ba1c3bcb187fda88c5be816f44e8ee08824",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "verify-cheap-selection-1125",
+      "timestamp": 1795584857.7475183,
+      "timestamp_str": "2026-11-25 08:34:17"
     }
   ]
 }
