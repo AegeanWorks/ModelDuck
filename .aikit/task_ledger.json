@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "parsed-row-reuse-1125",
+    "task_id": "history-progress-batch-1125",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1795573222.1562796,
+    "updated_at": 1795574360.4945023,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-    "lease_until": 1795580422.1562796,
+    "lease_until": 1795581560.4945023,
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "continuations": [],
     "workspaces": [
@@ -16,95 +16,11 @@
         "path": "projects/modelduck"
       }
     ],
-    "completed_at": 1795573331.6955566,
-    "completed_head": "21e9768c793dddb09cb6586c8d6da3c64b6a3fa7",
-    "completed_tree": "b407245a2031dcf24c1f61de7abd2e06010ddb39"
+    "completed_at": 1795574443.8440108,
+    "completed_head": "3bd5edcec152e8b275f731e021ce7dabb44bbc7f",
+    "completed_tree": "5b6c1048783997ae63bfb6784106df8c80048b49"
   },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: real eight-profile overview 29.546ms -> 3.535ms (8.36x), warm profile parses 8 -> 0, identical overview hash; control drift 11.1%; clone/save/full-resume tests, full suite and 4/4 gates pass",
-      "files_affected": [
-        "src/model-profiles.js",
-        "src/server.js",
-        "src/tuned-settings.js",
-        "tests/profile-stamp-reuse.test.js",
-        ".aikit/decisions.md",
-        ".aikit/ui_history.json"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/profile-overview-ab.mjs",
-          "baseline": 29.546,
-          "candidate": 3.535,
-          "command": "node profile-overview-ab.mjs",
-          "control": "100000 profileIdFor calls 1.047ms vs 1.163ms",
-          "drift": "11.1",
-          "interleaved": "yes",
-          "metric": "read-only profile overview",
-          "unit": "ms",
-          "workload": "eight real profiles, 30 interleaved pairs, fixed fingerprint and exact response hash on win32 Node 26.9.0"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "profile-slim-cache-1125",
-      "timestamp": 1795555679.3607943,
-      "timestamp_str": "2026-11-25 00:27:59",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'profile-slim-cache-1125' completed successfully.",
-      "head": "645d4352c6eff34c3f05bd46f2d1916113c6afd6",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "profile-slim-cache-1125",
-      "timestamp": 1795555723.739385,
-      "timestamp_str": "2026-11-25 00:28:43"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Serialize each same-state benchmark result payload once and reuse it for standard result/latest and merge outputs",
-      "files_affected": [
-        "benchmarks/run.mjs",
-        "benchmarks/merge-shards.mjs",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Remove one full pretty-print per finalization without changing any output bytes or later gate/ceiling JSON",
-        "mitigation": "scope reuse to the same mutation point, keep same-path writes sequential, compare baseline/file SHA-256, run flash/merge/history tests, full npm test and 4/4 strict gates; revert if regression",
-        "risks": "contract: byte-identical files and stdout; dependency: none; concurrency: destination paths must differ; state: payload is a local string only",
-        "why": "User directive to increase benchmark speed; standard runs and merges call JSON.stringify(result, null, 2) twice for the same 2.36MB mutation state"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "8e68cd834c1bbac453daa98f38b72ad48a5e22c81791013a1a57a3e98de0d963",
-      "status": "in_progress",
-      "task_id": "benchmark-payload-reuse-1125",
-      "timestamp": 1795564907.5787847,
-      "timestamp_str": "2026-11-25 03:01:47",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "checklists": "passed",
@@ -675,6 +591,101 @@
       "task_id": "parsed-row-reuse-1125",
       "timestamp": 1795573331.9942265,
       "timestamp_str": "2026-11-25 05:22:11"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Add one grouped/windowed model_results progress query for all selected model keys and use it in benchmark reports",
+      "files_affected": [
+        "benchmarks/history.mjs",
+        "benchmarks/report.mjs",
+        "tests/benchmark-history.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "One bounded query returns each key's newest rows with the same scope filters and ordering",
+        "mitigation": "failing-first grouped query-count/equivalence test, real 11-key old/new A/B hash, existing history/report tests, full npm test and 4/4 strict gates; revert if regression",
+        "risks": "contract: identical per-key progress arrays and limits; dependency: existing SQLite window functions; concurrency: read-only query; state: no schema change",
+        "why": "User directive to increase non-tuning speed; report.mjs issues one modelProgress query per model key (11 queries and 17.226ms on the real history)"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "f758163991a0318b02be08474ac06d83d39bf28d510ef90cb674d4fd1a5877c2",
+      "status": "in_progress",
+      "task_id": "history-progress-batch-1125",
+      "timestamp": 1795573866.1772504,
+      "timestamp_str": "2026-11-25 05:31:06",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: real 11-key benchmark progress 12.457ms -> 10.945ms (1.14x), prepared queries 11 -> 1, identical 135-row hash; control drift 2.3%; grouped-query test, full suite and 4/4 gates pass",
+      "files_affected": [
+        "benchmarks/history.mjs",
+        "benchmarks/report.mjs",
+        "tests/benchmark-history.test.js",
+        ".aikit/decisions.md"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/history-progress-real-ab.mjs",
+          "baseline": 12.457,
+          "candidate": 10.945,
+          "command": "node history-progress-real-ab.mjs",
+          "control": "1000 COUNT queries 36.262ms vs 37.079ms",
+          "drift": "2.3",
+          "interleaved": "yes",
+          "metric": "benchmark progress for all model keys",
+          "unit": "ms",
+          "workload": "real history, 11 model keys and 135 progress rows, 30 interleaved old/new pairs"
+        },
+        {
+          "artifact": "local-only/history-progress-real-ab.mjs",
+          "baseline": 11.0,
+          "candidate": 1.0,
+          "command": "node history-progress-real-ab.mjs",
+          "control": "COUNT control performs 1000 identical queries in both builds",
+          "drift": "0",
+          "interleaved": "yes",
+          "metric": "prepared progress queries",
+          "unit": "queries",
+          "workload": "real history, 11 model keys and 135 progress rows"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "history-progress-batch-1125",
+      "timestamp": 1795574360.4945023,
+      "timestamp_str": "2026-11-25 05:39:20",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          "."
+        ]
+      },
+      "description": "Task 'history-progress-batch-1125' completed successfully.",
+      "head": "3bd5edcec152e8b275f731e021ce7dabb44bbc7f",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "history-progress-batch-1125",
+      "timestamp": 1795574444.010057,
+      "timestamp_str": "2026-11-25 05:40:44"
     }
   ]
 }
