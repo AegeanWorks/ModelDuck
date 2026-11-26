@@ -1,17 +1,23 @@
 {
   "active_task": {
     "active_phase": 5,
-    "completed_at": 1795727763.5506,
-    "completed_head": "d50a3661172a02e99f8d3d0ed412b699010cd4ac",
-    "completed_tree": "8e9f5b044c6a60dfaf06fc34a619075cf13dc232",
+    "completed_at": 1795727917.09658,
+    "completed_head": "e0810527b87ba30471dfc1534b0a580d8d464be2",
+    "completed_tree": "0fae8085a12731d00ca45b7233162fdebc1b0e16",
     "continuations": [],
+    "impact_assessment": {
+      "benefits": "Fresh generated map and README within the 40,000-char limit",
+      "mitigation": "guidelines freshness check and strict delivery gate",
+      "risks": "contract: documentation only; dependency: none; concurrency: none; state: generated map",
+      "why": "The pure-judge test added a tracked path and new symbols after its feature task was completed, so the cold-start map and README tree needed refresh"
+    },
     "last_phase": "phase 4",
-    "lease_until": 1795734882.26822,
+    "lease_until": 1795735108.37676,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "status": "completed",
-    "task_id": "pure-expression-shortcut-1126",
-    "updated_at": 1795727682.26822,
+    "task_id": "pure-judge-docs-1127",
+    "updated_at": 1795727908.37676,
     "workspaces": [
       {
         "name": "modelduck",
@@ -20,44 +26,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "Task 'profile-list-slim-share-1125' abandoned: Rejected list-to-slim cache seeding after real-profile total time stayed 239.395ms versus 231.313ms and serialized key order changed; restored HEAD",
-      "phase": "abandoned",
-      "phase_num": 2,
-      "status": "abandoned",
-      "task_id": "profile-list-slim-share-1125",
-      "timestamp": 1795708397.3161,
-      "timestamp_str": "2026-11-26 18:53:17"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Cache engine-listing profile JSON by exact mtime+size and share concurrent reads",
-      "files_affected": [
-        "src/engine-listing.js",
-        "tests/engine-listing.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Eliminate repeated profile I/O/parsing while preserving listing output and immediate file-change invalidation",
-        "mitigation": "failing-first read-count/change/deletion/concurrency tests, real-profile old/new benchmark, engine/server suites, 4/4 strict gates and UI contract; revert on regression",
-        "risks": "contract: identical engines, measurements, byTask rankings and notices; dependency: none; concurrency: bounded 32-entry cache plus one in-flight read per file; state: process-local exact stamps",
-        "why": "Thirty real model engine-list requests perform 60 profile reads and spend 4.7ms warm reparsing the same 1.27MB profile and engine measurements"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "e8aae7e0884d44fc36328b54473cd227826c54ed346be94edd87f28b6eac5c80",
-      "status": "in_progress",
-      "task_id": "engine-list-profile-cache-1125",
-      "timestamp": 1795708711.30286,
-      "timestamp_str": "2026-11-26 18:58:31",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "checklists": "passed",
@@ -636,6 +604,50 @@
       "task_id": "pure-expression-shortcut-1126",
       "timestamp": 1795727763.5506,
       "timestamp_str": "2026-11-27 00:16:03"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[1/1] VERIFIED: refreshed the codebase map and README tree for the pure-judge test; guidelines freshness check passes and strict gate is rerun",
+      "files_affected": [
+        "README.md",
+        ".aikit/codebase_map.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Fresh generated map and README within the 40,000-char limit",
+        "mitigation": "guidelines freshness check and strict delivery gate",
+        "risks": "contract: documentation only; dependency: none; concurrency: none; state: generated map",
+        "why": "The pure-judge test added a tracked path and new symbols after its feature task was completed, so the cold-start map and README tree needed refresh"
+      },
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "pure-judge-docs-1127",
+      "timestamp": 1795727908.37676,
+      "timestamp_str": "2026-11-27 00:18:28",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          ""
+        ]
+      },
+      "description": "Task 'pure-judge-docs-1127' completed successfully.",
+      "head": "e0810527b87ba30471dfc1534b0a580d8d464be2",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "pure-judge-docs-1127",
+      "timestamp": 1795727917.09658,
+      "timestamp_str": "2026-11-27 00:18:37"
     }
   ],
   "version": 1
