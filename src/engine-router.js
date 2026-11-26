@@ -58,6 +58,9 @@ export class RoutedEngine {
   startBackend(backend) {
     return this.#inProcess.startBackend(backend);
   }
+  warmRuntime() {
+    return this.#inProcess.warmRuntime?.();
+  }
 
   async status() {
     const status = await this.#current.status();

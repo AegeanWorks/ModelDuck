@@ -71,7 +71,7 @@ ModelDuck tunes and serves on the fastest inference engine it can find. The devi
 | vLLM, SGLang, TGI, mistral.rs, koboldcpp, llamafile, LM Studio | `--openai-engine name=url`, measured only |
 | Your own | `engines:add` (llama.cpp forks), `--engine-plugin <file>` |
 
-`npm run engines -- --model <file.gguf>` times them without tuning. The decision rules, what each engine can and cannot do, measurements, and how to add an engine: [docs/ENGINES.md](docs/ENGINES.md).
+`npm run engines -- --model <file.gguf>` times them without tuning. Decision rules, engine capabilities, measurements, adding an engine: [docs/ENGINES.md](docs/ENGINES.md).
 
 ### AIKit Commands (run from the AIKit folder)
 
@@ -229,7 +229,7 @@ access, and no network from Node 25 on. It is not OS-level containment; see
 
 ## Screenshots
 
-[Gallery and video storyboard](assets/screenshots/README.md) · [social preview](assets/social-preview.png). Pre-redesign shot; fresh captures via `npm run ui:shots` (ADR-081).
+[Gallery and video storyboard](assets/screenshots/README.md) · [social preview](assets/social-preview.png). Fresh captures: `npm run ui:shots` (ADR-081).
 
 ## Where things live
 
@@ -508,6 +508,7 @@ modelduck/
 │   ├── model-registry.js
 │   ├── gguf-guard.js
 │   ├── gguf-native.js <- Rust header guard
+│   ├── gguf-summary.js
 │   ├── gpu-info.js
 │   ├── downloader.js
 │   ├── settings.js
@@ -554,7 +555,7 @@ modelduck/
 │   ├── install-engines.mjs
 │   ├── add-engine.mjs
 │   ├── test-parallel.mjs
-│   ├── build-native.mjs <- Rust guard build
+│   ├── build-native.mjs
 │   └── ui-smoke.mjs
 ├── benchmarks/ <- seeded quality, speed and history gate
 │   ├── README.md
@@ -716,7 +717,9 @@ modelduck/
 │   ├── generation-manifest.test.js
 │   ├── engine-errors.test.js
 │   ├── engine-runtime.test.js
+│   ├── engine-warm.test.js
 │   ├── gguf-guard.test.js
+│   ├── gguf-summary.test.js
 │   ├── gpu-info.test.js
 │   ├── js-syntax-speed.test.js
 │   ├── memory-fit.test.js
@@ -831,7 +834,7 @@ modelduck/
 │   ├── formatbytes-memo.test.js
 │   ├── scan-strings-memo.test.js
 │   └── receipt-cache.test.js
-├── rust/ <- optional native GGUF header guard (no crates, built by npm run build:native)
+├── rust/ <- optional native GGUF header guard (npm run build:native)
 │   └── gguf-guard/
 │       ├── Cargo.toml
 │       ├── Cargo.lock

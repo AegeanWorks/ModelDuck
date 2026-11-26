@@ -661,3 +661,30 @@ test("an exit that is not about the port is not retried", async () => {
   await assert.rejects(() => new LlamaServerBackend({ binary: "x", spawnImpl }).start({ entry: ENTRY, load: LOAD }), (error) => error.code === "engine_start_failed");
   assert.equal(spawned.length, 1);
 });
+
+test("stopping a server that exits at once leaves no pending shutdown timer behind", async () => {
+  const { spawnImpl } = fakeLlamaServer();
+  const backend = new LlamaServerBackend({ binary: "b", spawnImpl });
+  await backend.start({ entry: ENTRY, load: LOAD });
+  const realSetTimeout = globalThis.setTimeout;
+  const realClearTimeout = globalThis.clearTimeout;
+  const grace = [];
+  const cleared = new Set();
+  globalThis.setTimeout = (fn, ms, ...rest) => {
+    const timer = realSetTimeout(fn, ms, ...rest);
+    if (ms >= 1000) grace.push(timer);
+    return timer;
+  };
+  globalThis.clearTimeout = (timer) => {
+    cleared.add(timer);
+    realClearTimeout(timer);
+  };
+  try {
+    await backend.stop();
+  } finally {
+    globalThis.setTimeout = realSetTimeout;
+    globalThis.clearTimeout = realClearTimeout;
+  }
+  assert.ok(grace.length > 0, "stop() waits with a grace timer");
+  assert.deepEqual(grace.map((timer) => cleared.has(timer) || !timer.hasRef()), grace.map(() => true), "a finished stop must not keep the process alive");
+});

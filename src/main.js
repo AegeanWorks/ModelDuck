@@ -137,6 +137,7 @@ async function main() {
   await tunes.restore();
 
   const instanceInfo = {};
+  const engineListing = createEngineListing({ catalog, registry, profilesDir: paths.profiles });
   const server = createHttpServer({
     settings,
     registry,
@@ -146,7 +147,7 @@ async function main() {
     jit,
     benchmarks,
     tunes,
-    engines: createEngineListing({ catalog, registry, profilesDir: paths.profiles }),
+    engines: engineListing,
     profilesDir: paths.profiles,
     tuneRunsDir: paths.tuneRuns,
     tuneStepsFile: paths.tuneGrid,
@@ -175,6 +176,11 @@ async function main() {
   // IDEA-1077: startup receipt so a second process (or the UI) finds this one.
   Object.assign(instanceInfo, { host, port: actualPort, pid: process.pid, startedAt: new Date().toISOString() });
   await fs.promises.writeFile(path.join(paths.home, "server.json"), JSON.stringify(instanceInfo, null, 2)).catch(() => {});
+  // Two warm-ups, run after the first page has loaded because both block the main thread for a while:
+  // the engine probe starts each engine binary (the first spawn took up to 0.8 s here, the whole list 3 s),
+  // and the runtime import compiles for about 0.7 s. Whoever asks first still gets the same answer.
+  setTimeout(() => engineListing.list().catch(() => {}), 1500).unref();
+  setTimeout(() => engine.warmRuntime(), 3500).unref();
   const displayHost = host === "0.0.0.0" ? "127.0.0.1" : host;
   // hygiene: allow local loopback URL printed to the user
   const url = `http://${displayHost}:${actualPort}`;

@@ -542,6 +542,18 @@ export class LlamaEngine {
   }
 
   /**
+   * Import the native runtime ahead of the first load. The import costs about a second,
+   * so the server does it in the background at startup; a missing runtime is reported by
+   * the load itself, not here.
+   */
+  async warmRuntime() {
+    try {
+      await this.#loadRuntime();
+    } catch {
+      // The load reports it.
+    }
+  }
+  /**
    * Start the runtime for `gpuBackend` without loading a model, so a tune finds a broken
    * GPU in a second instead of after a round of failed answers (ADR-044). A loaded
    * model is left alone; its runtime evidently works.

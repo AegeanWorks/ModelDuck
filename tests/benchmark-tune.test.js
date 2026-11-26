@@ -1675,3 +1675,48 @@ test("withEngine uses an injected factory and still releases it", async () => {
   assert.equal(unloads, 1);
   assert.equal(disposals, 1);
 });
+
+test("a speed candidate far slower than the best is timed once, the rest are timed three times", async () => {
+  const calls = new Map();
+  const evaluate = async (settings, itemIds) => {
+    calls.set(settings.batchSize, (calls.get(settings.batchSize) ?? 0) + 1);
+    const ms = settings.batchSize === 64 ? 400 : settings.batchSize === 512 ? 100 : 130;
+    return { prompts: itemIds.map((id) => ({ id, passed: 1, total: 1, ms, outputTokens: 10, digest: id })) };
+  };
+  const { sweeps, speed } = await tune({
+    evaluate,
+    base: { batchSize: 256, temperature: 0 },
+    tasks: [],
+    stages: ["speed"],
+    rungs: { speed: [ids("speed", 4)] },
+    qualityAxes: [],
+    speedAxes: [{ name: "batchSize", patches: [64, 256, 512].map((batchSize) => ({ batchSize })) }],
+    hardware: { logicalCores: 8 },
+  });
+  const sweep = sweeps.find((entry) => entry.axis === "batchSize");
+  const slow = sweep.rungs[0].candidates.find((candidate) => candidate.patch.batchSize === 64);
+  assert.equal(slow.droppedAfterFirstRound, true);
+  assert.equal(slow.repeats, 1);
+  assert.equal(sweep.rungs[0].candidates.find((candidate) => candidate.patch.batchSize === 512).repeats, 3);
+  assert.equal(sweep.rungs[0].candidates.find((candidate) => candidate.patch.batchSize === 256).repeats, 3, "the incumbent is always timed in full");
+  assert.equal(speed.fastest.batchSize, 512);
+  assert.ok(calls.get(64) < calls.get(512));
+});
+
+test("the threads axis times every candidate in full, since the Light preset needs the slow ones", async () => {
+  const evaluate = async (settings, itemIds) => ({
+    prompts: itemIds.map((id) => ({ id, passed: 1, total: 1, ms: 1000 / settings.threads, outputTokens: 10, digest: id })),
+  });
+  const { sweeps } = await tune({
+    evaluate,
+    base: { threads: 8, temperature: 0 },
+    tasks: [],
+    stages: ["speed"],
+    rungs: { speed: [ids("speed", 4)] },
+    qualityAxes: [],
+    speedAxes: [{ name: "threads", patches: [1, 2, 4, 8].map((threads) => ({ threads })) }],
+    hardware: { logicalCores: 8 },
+  });
+  const candidates = sweeps.find((entry) => entry.axis === "threads").rungs[0].candidates;
+  assert.ok(candidates.every((candidate) => candidate.repeats === 3 && !candidate.droppedAfterFirstRound));
+});

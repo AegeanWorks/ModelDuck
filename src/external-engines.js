@@ -305,7 +305,13 @@ export class LlamaServerBackend {
     if (child.exitCode === null && !this.#childGone) {
       const gone = new Promise((resolve) => child.once("exit", resolve));
       child.kill();
-      await Promise.race([gone, sleep(5000)]);
+      let grace;
+      const patience = new Promise((resolve) => { grace = setTimeout(resolve, 5000); });
+      try {
+        await Promise.race([gone, patience]);
+      } finally {
+        clearTimeout(grace);
+      }
     } else {
       child.kill();
     }

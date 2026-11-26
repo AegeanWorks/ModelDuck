@@ -13,6 +13,7 @@ test("GPU detection is read once and reused by later polls", async () => {
 
 test("a missing native runtime yields an empty list, not a rejection", async () => {
   resetGpuDetection();
-  const result = await detectGpuBackends();
+  const result = await detectGpuBackends({ loadRuntime: async () => { throw new Error("Cannot find package node-llama-cpp"); } });
   assert.deepEqual(result, []);
+  resetGpuDetection();
 });

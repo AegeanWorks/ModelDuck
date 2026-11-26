@@ -6,6 +6,7 @@ import { AppError } from "./errors.js";
 import { invalidateReceiptCache } from "./downloader.js";
 import { assertDiskSpace, ensureDirectory, formatBytes } from "./fs-atomic.js";
 import { inspectGgufHeader } from "./gguf-guard.js";
+import { readGgufSummary } from "./gguf-summary.js";
 import { kvShapeFromMetadata } from "./memory-fit.js";
 
 const MAX_SCAN_DEPTH = 6;
@@ -25,6 +26,13 @@ export function listPublicRebuilds() {
 
 async function defaultReadMetadata(file) {
   await inspectGgufHeader(file);
+  // The lean reader skips the vocabulary the scan never uses; anything it does not
+  // understand (GGUF v1, big-endian, odd value types) is read by the library.
+  try {
+    return await readGgufSummary(file);
+  } catch {
+    // fall through to the library
+  }
   const module = await import("node-llama-cpp");
   return module.readGgufFileInfo(file, {
     readTensorInfo: true,

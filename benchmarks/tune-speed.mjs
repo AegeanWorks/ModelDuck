@@ -69,7 +69,7 @@ const predictedOf = (entry) => entry.predictedMs ?? latencyOf(entry);
 
 /** Fastest task-weighted candidate that flipped no item; a gap inside the measurement noise keeps the incumbent. */
 function chooseFastest(entries, speedTie) {
-  const ok = entries.filter((entry) => !entry.stats.failed && !entry.flippedItems.length);
+  const ok = entries.filter((entry) => !entry.stats.failed && !entry.dropped && !entry.flippedItems.length);
   if (!ok.length) return entries.find((entry) => entry.incumbent);
   const fastest = [...ok].sort((left, right) => predictedOf(left) - predictedOf(right))[0];
   const tied = ok.filter((entry) => {
@@ -86,6 +86,7 @@ function summarise(entry) {
     ...publicStats(entry.stats),
     changedItems: entry.changedItems,
     flippedItems: entry.flippedItems ?? [],
+    ...(entry.dropped && { droppedAfterFirstRound: true }),
     ...(entry.predicted != null && { predictedMs: entry.predicted }),
   };
 }
@@ -136,6 +137,21 @@ function aaSpread(repeats) {
   return (Math.max(...latencies) - Math.min(...latencies)) / middle;
 }
 
+/**
+ * A candidate whose first timing is this many times slower than the fastest cannot win
+ * through noise (the tie band is a few percent), so its repeats are not run. The
+ * incumbent always stays, and failed candidates are left to the normal rules.
+ */
+export const CLEAR_LOSER_RATIO = 1.5;
+function dropClearLosers(candidates) {
+  const timed = candidates.filter((entry) => !entry.repeats[0]?.failed).map((entry) => entry.repeats[0]?.latencyMs).filter(Number.isFinite);
+  if (timed.length < 2) return;
+  const best = Math.min(...timed);
+  for (const entry of candidates) {
+    const first = entry.repeats[0]?.latencyMs;
+    if (!entry.incumbent && !entry.repeats[0]?.failed && Number.isFinite(first) && first >= best * CLEAR_LOSER_RATIO) entry.dropped = true;
+  }
+}
 export async function speedStage(context, { axes, start, items, forced, logicalCores, itemTask = null, taskWeights = null, isDone = () => false, onSweep = () => {} }) {
   const { measurements, options } = context;
   const weights = { ...DEFAULT_TASK_WEIGHTS, ...(taskWeights ?? options.taskWeights ?? {}) };
@@ -158,9 +174,12 @@ export async function speedStage(context, { axes, start, items, forced, logicalC
       if (measurements.exhausted) return { current, aborted: true };
       const { candidates, skipped } = candidatesFor(axis, current, context.valid);
       for (const entry of candidates) entry.repeats = [];
-      // Interleaved: every candidate once, then every candidate again.
-      for (const seed of seeds) {
+      // Interleaved: every candidate once, then every candidate again. After the first
+      // round a candidate that is far slower than the best cannot win, so it is not timed again.
+      for (const [round, seed] of seeds.entries()) {
+        if (round === 1 && axis.name !== "threads") dropClearLosers(candidates);
         for (const entry of candidates) {
+          if (entry.dropped) continue;
           if (measurements.exhausted) return { current, aborted: true };
           const stats = await measureTimed(measurements, { ...current, ...entry.patch, ...forced }, items, seed);
           if (!stats) return { current, aborted: true };

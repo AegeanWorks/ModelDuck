@@ -13,11 +13,11 @@ export function resetGpuDetection() {
   detection = null;
 }
 
-export async function detectGpuBackends() {
+export async function detectGpuBackends({ loadRuntime = () => import("node-llama-cpp") } = {}) {
   if (!detection) {
     detection = (async () => {
       try {
-        const module = await import("node-llama-cpp");
+        const module = await loadRuntime();
         const backends = await module.getLlamaGpuTypes();
         return Array.isArray(backends) ? backends : [];
       } catch {
