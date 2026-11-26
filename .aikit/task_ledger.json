@@ -1,17 +1,17 @@
 {
   "active_task": {
     "active_phase": 5,
-    "completed_at": 1795709431.1559,
-    "completed_head": "516137b607ac9d7e2ffd56278c91ee2666f092a4",
-    "completed_tree": "cba380018b6d515c9fee79e767764de842d25379",
+    "completed_at": 1795711881.21167,
+    "completed_head": "9c943744d479c00acc3af8e130d14938d87b35c8",
+    "completed_tree": "af194a5e1ba31fd10325ebba8b17a8ad8238da48",
     "continuations": [],
     "last_phase": "phase 4",
-    "lease_until": 1795716377.02275,
+    "lease_until": 1795718910.30974,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "status": "completed",
-    "task_id": "engine-list-profile-cache-1125",
-    "updated_at": 1795709177.02275,
+    "task_id": "thread-cap-pruning-1125",
+    "updated_at": 1795711710.30974,
     "workspaces": [
       {
         "name": "modelduck",
@@ -20,189 +20,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Read uncached GGUF metadata through a bounded four-worker pool during cold model scans",
-      "files_affected": [
-        "src/model-registry.js",
-        "tests/model-registry.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Overlap independent metadata I/O while preserving discovery order, public output, warnings and cache semantics",
-        "mitigation": "failing-first peak/order/error test, 16-model old/new output-hash benchmark, existing registry tests, full npm test and 4/4 strict gates; revert on regression",
-        "risks": "contract: identical ordered model rows and warning order; dependency: none; concurrency: at most four metadata reads; state: existing per-file summary cache unchanged",
-        "why": "Cold model listing awaits every metadata parser sequentially; a 16-model benchmark with 25ms parsers takes 498.966ms with peak concurrency one"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "56ee86028260a6dc7d9f84df63f53f0d5295904f367db340bf0e07e202801b88",
-      "status": "in_progress",
-      "task_id": "model-scan-metadata-pool-1125",
-      "timestamp": 1795585231.999111,
-      "timestamp_str": "2026-11-25 08:40:31",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: cold 16-model metadata scan 1016.453ms -> 344.454ms (2.95x), peak reads 1 -> 4, deeply identical ordered model rows and warning behavior; 81 registry/profile/server/startup tests, full suite, UI contract and 4/4 gates pass",
-      "files_affected": [
-        "src/model-registry.js",
-        "tests/model-registry.test.js",
-        ".aikit/decisions.md",
-        ".aikit/ui_history.json"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/model-scan-metadata-ab.mjs",
-          "baseline": 1016.453,
-          "candidate": 344.454,
-          "command": "node model-scan-metadata-ab.mjs",
-          "control": "baseline/baseline 992.464ms vs 934.235ms",
-          "drift": "5.9",
-          "interleaved": "yes",
-          "metric": "cold 16-model registry scan",
-          "unit": "ms",
-          "workload": "same 16 GGUF files, 25ms metadata parser, ten interleaved old/new pairs"
-        },
-        {
-          "artifact": "local-only/model-scan-metadata-ab.mjs",
-          "baseline": 1.0,
-          "candidate": 4.0,
-          "command": "node model-scan-metadata-ab.mjs",
-          "control": "deeply identical model rows and output hash 1e1449f2428a52aab5ee7199e8feb6a6aee73de67e3654d6c3fbb553e3dc0e45, warning order and unreadable fallbacks covered by tests",
-          "drift": "0",
-          "interleaved": "yes",
-          "metric": "peak metadata reads",
-          "unit": "reads",
-          "workload": "same 16 GGUF files"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "model-scan-metadata-pool-1125",
-      "timestamp": 1795586238.7716117,
-      "timestamp_str": "2026-11-25 08:57:18",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'model-scan-metadata-pool-1125' completed successfully.",
-      "head": "0045b06a000dd001349cb355af8fa27f956d1b6d",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "model-scan-metadata-pool-1125",
-      "timestamp": 1795586413.9207606,
-      "timestamp_str": "2026-11-25 09:00:13"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Skip bounded GGUF header spans with BufReader::seek_relative instead of copying every skipped byte",
-      "files_affected": [
-        "rust/gguf-guard/src/lib.rs",
-        "tests/gguf-guard.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Advance inside the buffer without syscalls and seek once for large spans while preserving all structural bounds and verdicts",
-        "mitigation": "large-span native/JS equivalence and hostile-header tests, rebuild addon, real 16-model before/after benchmark, app startup/API-output A/B, full npm test and 4/4 strict gates; revert on regression",
-        "risks": "contract: identical version/tensor/KV facts and rejection behavior; dependency: stdlib Seek trait only; concurrency: native calls remain serial and synchronous; state: no cache/schema change",
-        "why": "The real 16-model native header walk costs 223.202ms and dominates startup CPU; large metadata strings and arrays are copied through an 8KiB scratch buffer solely to advance"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "53564cf254cb8d38b2354c6e98652f31876c3edc8c6f845233b92c0d0ad77857",
-      "status": "in_progress",
-      "task_id": "native-guard-seek-1125",
-      "timestamp": 1795588078.2859116,
-      "timestamp_str": "2026-11-25 09:27:58",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: native GGUF walk 223.202ms -> 59.330ms (3.76x), real app startup 534.740ms -> 361.463ms (1.48x) across six alternating pairs, identical 16-model API hash; addon rebuild, 20 guard/registry/startup tests, full suite and 4/4 gates pass",
-      "files_affected": [
-        "rust/gguf-guard/src/lib.rs",
-        "tests/gguf-guard.test.js",
-        ".aikit/decisions.md"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/native-guard-real-bench.mjs",
-          "baseline": 223.202,
-          "candidate": 59.33,
-          "command": "node native-guard-real-bench.mjs",
-          "control": "identical version/tensor/KV header facts and native/JS equivalence tests",
-          "drift": "0",
-          "interleaved": "no",
-          "metric": "real 16-model native header walk",
-          "qualified": "no",
-          "unit": "ms",
-          "workload": "installed GGUF library, seven sequential walks"
-        },
-        {
-          "artifact": "local-only/native-startup-ab.mjs",
-          "baseline": 534.74,
-          "candidate": 361.463,
-          "command": "node native-startup-ab.mjs",
-          "control": "all 16 /api/models rows and hash d912db661ad2caa181d430e570e60056576150b6355ae9265fbfcea04d10cf24 identical",
-          "drift": "0",
-          "interleaved": "yes",
-          "metric": "real application startup",
-          "unit": "ms",
-          "workload": "16 installed models, isolated home, six alternating old/new addon pairs"
-        },
-        {
-          "artifact": "local-only/native-startup-ab.mjs",
-          "baseline": 1.0,
-          "candidate": 1.48,
-          "command": "node native-startup-ab.mjs",
-          "control": "baseline samples 545.931,479.795,534.740,479.742,494.243,623.062ms and candidate 348.081,308.316,361.463,331.029,368.675,370.324ms",
-          "drift": "0",
-          "interleaved": "yes",
-          "metric": "startup speedup",
-          "unit": "ratio",
-          "workload": "median of six alternating real-app startup pairs"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "native-guard-seek-1125",
-      "timestamp": 1795588810.318954,
-      "timestamp_str": "2026-11-25 09:40:10",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "delivery": {
@@ -539,6 +356,151 @@
       "task_id": "engine-list-profile-cache-1125",
       "timestamp": 1795709431.1559,
       "timestamp_str": "2026-11-26 19:10:31"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Skip sandbox spawns when answer, setup and harness statically cannot define the requested entry",
+      "files_affected": [
+        "benchmarks/suite.mjs",
+        "tests/noentry-shortcut.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Judge impossible bindings in-process while preserving every function-found verdict and sandbox path for dynamic or setup-defined entries",
+        "mitigation": "failing-first static-harness and adversarial setup/dynamic/unicode tests, real repo-check old/new benchmark, sandbox/full-tune hash verification, full npm test and 4/4 strict gates; revert on any unsafe shortcut",
+        "risks": "contract: identical function-not-found results and unreadable flags; dependency: none; concurrency: synchronous shortcut only; state: existing verdict caches",
+        "why": "Repo harness checks disable the existing no-entry shortcut even when all three sources are static and omit the entry, causing unnecessary child startups during tuning"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "d54d0c8b4416bb6b455a6b059bb7a7cab1c5a8441b3404735fce86285fa94a87",
+      "status": "in_progress",
+      "task_id": "harness-noentry-shortcut-1125",
+      "timestamp": 1795709992.33612,
+      "timestamp_str": "2026-11-26 19:19:52",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "Task 'harness-noentry-shortcut-1125' abandoned: Rejected harness no-entry shortcut after real repo checks showed runtime-error details differ from function-not-found; restored HEAD",
+      "phase": "abandoned",
+      "phase_num": 2,
+      "status": "abandoned",
+      "task_id": "harness-noentry-shortcut-1125",
+      "timestamp": 1795710255.94973,
+      "timestamp_str": "2026-11-26 19:24:15"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Prune thread timing repeats only when a candidate cannot win fastest, Light or Quiet under the existing clear-loser rule",
+      "files_affected": [
+        "benchmarks/tune-speed.mjs",
+        "tests/benchmark-tune.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Reduce timed model answers without changing fastest/Light/Quiet selection or quality-flip handling",
+        "mitigation": "failing-first standard and quality-flip pruning tests, old/new speed-stage benchmark with identical final presets, full tune/history tests and 4/4 strict gates; revert if any preset changes",
+        "risks": "contract: final presets and quality exclusions unchanged, sweep records honestly show skipped repeats; dependency: none; concurrency: timing order unchanged for retained candidates; state: no cache/schema change",
+        "why": "The threads axis currently times every candidate three times because Light/Quiet may need slow values, even when a value cannot win any of the three presets"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "098b4e8840738088f20decf1af0367fc50c45d7288fb28d26c10b5220027b361",
+      "status": "in_progress",
+      "task_id": "thread-cap-pruning-1125",
+      "timestamp": 1795710586.15636,
+      "timestamp_str": "2026-11-26 19:29:46",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: thread speed-stage timed calls 18 -> 14 and 38.617ms -> 30.085ms (1.28x) with identical Fastest/Light/Quiet preset hash and 0.2% control drift; real three-model tune gate passed all nine task rates with zero delta; 116 targeted tests, full suite and 4/4 gates pass",
+      "files_affected": [
+        "benchmarks/tune-speed.mjs",
+        "tests/benchmark-tune.test.js",
+        ".aikit/decisions.md",
+        "benchmarks/history.jsonl"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/thread-prune-ab.mjs",
+          "baseline": 18.0,
+          "candidate": 14.0,
+          "command": "node thread-prune-ab.mjs",
+          "control": "baseline/baseline 38.006ms vs 37.939ms",
+          "drift": "0.2",
+          "interleaved": "yes",
+          "metric": "speed-stage timed calls",
+          "unit": "calls",
+          "workload": "six thread candidates, four speed items, three seeds, ten interleaved old/new pairs"
+        },
+        {
+          "artifact": "local-only/thread-prune-ab.mjs",
+          "baseline": 38.617,
+          "candidate": 30.085,
+          "command": "node thread-prune-ab.mjs",
+          "control": "identical preset hash a3bd116dcb1ee8074bc36df21cf6d910993c24530beaa5260618de685bafa0ea",
+          "drift": "0.2",
+          "interleaved": "yes",
+          "metric": "speed-stage wall time",
+          "unit": "ms",
+          "workload": "six thread candidates with 2ms CPU stand-in per timed call, ten interleaved pairs"
+        },
+        {
+          "artifact": "benchmarks/history.jsonl",
+          "baseline": 0.0,
+          "candidate": 0.0,
+          "command": "npm run tune:gate",
+          "control": "all nine rows passed, 84 fresh answers and paraphrase probes",
+          "drift": "0",
+          "interleaved": "no",
+          "metric": "core-model tune-gate task-rate delta",
+          "qualified": "no",
+          "unit": "percentage points",
+          "workload": "smollm2, qwen0.5b and qwen-coder1.5b across code, comprehension and recall"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "thread-cap-pruning-1125",
+      "timestamp": 1795711710.30974,
+      "timestamp_str": "2026-11-26 19:48:30",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          ""
+        ]
+      },
+      "description": "Task 'thread-cap-pruning-1125' completed successfully.",
+      "head": "9c943744d479c00acc3af8e130d14938d87b35c8",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "thread-cap-pruning-1125",
+      "timestamp": 1795711881.21167,
+      "timestamp_str": "2026-11-26 19:51:21"
     }
   ],
   "version": 1
