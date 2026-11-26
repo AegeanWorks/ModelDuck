@@ -1,140 +1,19 @@
 {
   "active_task": {
     "active_phase": 5,
-    "completed_at": 1795676353.26471,
-    "completed_head": "2d98d1e904d9f209480e82424b38c38ec244c572",
-    "completed_tree": "756ac1caebbe7e61beb280ecd1b722cad78e13f1",
+    "completed_at": 1795705412.83236,
+    "completed_head": "d6a746e9b6cd46b859fb4e999ab12bd990625acd",
+    "completed_tree": "01c8a3371b1660601e212849c705199b4342d1e0",
     "continuations": [],
     "last_phase": "in_progress",
-    "lease_until": 1795683542.11044,
+    "lease_until": 1795712600.52599,
     "owner": "kiro:1",
     "started_by": "kiro:1",
     "status": "completed",
-    "task_id": "speedup-pass1",
-    "updated_at": 1795676342.11044
+    "task_id": "tune-quick-only",
+    "updated_at": 1795705400.52599
   },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Skip redundant judging for exact-text restore verification matches while fully judging mismatches",
-      "files_affected": [
-        "benchmarks/tune-evaluate.mjs",
-        "benchmarks/tune-measure.mjs",
-        "tests/benchmark-tune-evaluate.test.js",
-        "tests/answer-reuse.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Avoid sandbox spawns on matching families without changing model probes, stale-family evidence, run accounting or tune outcomes",
-        "mitigation": "failing-first raw/judge API and verification decision tests, cold-cache old/new spawn-count benchmark, full tune outcome hash/accounting A/B, targeted/full tests and 4/4 strict gates; revert on regression",
-        "risks": "contract: identical text uses the saved verdict under the existing pure-judge invariant, mismatches are judged exactly as before; dependency: none; concurrency: generation order and width unchanged; state: no new persistent cache",
-        "why": "Post-prefetch CPU profiling found JavaScript child-process judging dominates startup work; matching restore probes currently judge identical text even though the verdict is pure for the same prompt/check"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "aa4005c085a2e6861863cc57d63d56f815be7e5cf345bea56975c4939729191d",
-      "status": "in_progress",
-      "task_id": "restore-raw-verify-1125",
-      "timestamp": 1795579236.4026396,
-      "timestamp_str": "2026-11-25 07:00:36",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: exact-text restore matches skip redundant judging while mismatches remain fully judged; direct cold-cache verification 249.436ms -> 0.103ms with judge misses 4 -> 0 and identical six-call/six-check hash; full cold tune default 543.739ms -> 351.271ms and misses 16 -> 5, budget 511.086ms -> 123.480ms and misses 15 -> 1, with identical fresh answers, probes, runs, reuse notes and outcome hash; 61 targeted tests, full suite and 4/4 gates pass",
-      "files_affected": [
-        "benchmarks/tune-evaluate.mjs",
-        "benchmarks/tune-measure.mjs",
-        "tests/benchmark-tune-evaluate.test.js",
-        "tests/answer-reuse.test.js",
-        ".aikit/decisions.md"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/raw-verify-ab.mjs",
-          "baseline": 249.436,
-          "candidate": 0.103,
-          "command": "node raw-verify-ab.mjs",
-          "control": "baseline/baseline 244.409ms vs 246.242ms",
-          "drift": "0.7",
-          "interleaved": "yes",
-          "metric": "cold-cache matching-family verification",
-          "unit": "ms",
-          "workload": "12 saved code rows, six probes, 20 interleaved old/new pairs"
-        },
-        {
-          "artifact": "local-only/raw-verify-ab.mjs",
-          "baseline": 4.0,
-          "candidate": 0.0,
-          "command": "node raw-verify-ab.mjs",
-          "control": "six model calls, six checked rows and groups hash 1b950a0b45f3ddc625b5c360f4574c2a97d2451a11b4175c3cda610f36fb6e7b identical",
-          "drift": "0",
-          "interleaved": "yes",
-          "metric": "cold-cache matching verification judge misses",
-          "unit": "misses",
-          "workload": "12 saved code rows, six probes"
-        },
-        {
-          "artifact": "local-only/raw-verify-e2e-ab.mjs",
-          "baseline": 543.739,
-          "candidate": 351.271,
-          "command": "node raw-verify-e2e-ab.mjs",
-          "control": "fresh=24, probes=16, runs=12, judge misses 16 -> 5 and outcome hash 2d00cf7739667e3995f7095e4a18c3dfbdd3e84bba325c4250c69410f10feaab",
-          "drift": "0.7",
-          "interleaved": "yes",
-          "metric": "cold-cache default full tune",
-          "unit": "ms",
-          "workload": "one stale code family, five interleaved old/new pairs"
-        },
-        {
-          "artifact": "local-only/raw-verify-e2e-ab.mjs",
-          "baseline": 511.086,
-          "candidate": 123.48,
-          "command": "node raw-verify-e2e-ab.mjs",
-          "control": "fresh=21, probes=17, runs=6, judge misses 15 -> 1 and outcome hash 2d00cf7739667e3995f7095e4a18c3dfbdd3e84bba325c4250c69410f10feaab",
-          "drift": "0.7",
-          "interleaved": "yes",
-          "metric": "cold-cache budget full tune",
-          "unit": "ms",
-          "workload": "one stale code family, five interleaved old/new pairs"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "restore-raw-verify-1125",
-      "timestamp": 1795580548.1931074,
-      "timestamp_str": "2026-11-25 07:22:28",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'restore-raw-verify-1125' completed successfully.",
-      "head": "630baffff2b5e31023fe0019edc9c30d21d4755b",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "restore-raw-verify-1125",
-      "timestamp": 1795580620.8342888,
-      "timestamp_str": "2026-11-25 07:23:40"
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "description": "[1/2] Overlap up to four independent JavaScript judge children per serial evaluation batch",
@@ -644,6 +523,52 @@
       "task_id": "speedup-pass1",
       "timestamp": 1795676353.26471,
       "timestamp_str": "2026-11-26 09:59:13"
+    },
+    {
+      "agent": "kiro:1",
+      "description": "[1/1] Quick pass only: let a quick tune stop with its provisional preset instead of auto-continuing to the full tune",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "A quick pass (about 2800 answers at most, 148 min estimate versus 523) can be the end of a tune from the UI, API and scheduler.",
+        "mitigation": "Scheduler tests fail without the change; default behaviour (quick then full continue) is untouched and still tested.",
+        "risks": "contract: new optional quickOnly field on /api/tune/start, ignored unless quick is true; dependency: none; concurrency: none, same queue path; state: the preset stays provisional as before.",
+        "why": "A full tune asks up to about 10000 answers and generation is 92 to 93 percent of its time; profiling showed no waste to remove without changing results, so the lever is not running the whole tune."
+      },
+      "phase": "in_progress",
+      "phase_num": 2,
+      "plan_digest": "4f0ddf0e5887f1f609392e6df4ce6e6f1d4a4447b9199346cb8a75bd95ef2888",
+      "status": "in_progress",
+      "task_id": "tune-quick-only",
+      "timestamp": 1795705284.71719,
+      "timestamp_str": "2026-11-26 18:01:24"
+    },
+    {
+      "agent": "kiro:1",
+      "description": "Phase 4 verification passed: hygiene, guidelines, secrets, npm test. checklists: passed",
+      "files_affected": [],
+      "phase": "in_progress",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "tune-quick-only",
+      "timestamp": 1795705400.52599,
+      "timestamp_str": "2026-11-26 18:03:20"
+    },
+    {
+      "agent": "kiro:1",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          ""
+        ]
+      },
+      "description": "Task 'tune-quick-only' completed successfully.",
+      "head": "d6a746e9b6cd46b859fb4e999ab12bd990625acd",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "tune-quick-only",
+      "timestamp": 1795705412.83236,
+      "timestamp_str": "2026-11-26 18:03:32"
     }
   ],
   "version": 1
