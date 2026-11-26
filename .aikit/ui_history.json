@@ -4720,5 +4720,35 @@
     "surface": "app",
     "surface_digest": "a583388b0906adbfa6196fae8eb2245cc8347ebad1986102926b2f0b9cffd975",
     "visual_change": true
+  },
+  {
+    "allowed_removals": [],
+    "allowed_tests": [],
+    "baseline_commit": "HEAD",
+    "baseline_digest": "ed0ee43996bd63acd0d212ae386cdb07f77cc8f1dab80daf218a9e39719ef47e",
+    "changed_paths": [],
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "finished_at": 1795709570.14186,
+    "mode": "visual",
+    "no_change_reason": "Committed backend-only engine-list cache and scanner pragma reviewed; no rendered view or API output changed",
+    "no_visual_reason": "",
+    "review": {
+      "reviewed_at": 1795709570.14185,
+      "reviewer": "HungerG",
+      "snapshot_digest": "",
+      "snapshot_entries": 0,
+      "surface": "app",
+      "surface_digest": "ed0ee43996bd63acd0d212ae386cdb07f77cc8f1dab80daf218a9e39719ef47e",
+      "visual": true
+    },
+    "reviewer": "HungerG",
+    "schema": 1,
+    "started_at": 1795709517.72621,
+    "strikes": 0,
+    "surface": "app",
+    "surface_digest": "ed0ee43996bd63acd0d212ae386cdb07f77cc8f1dab80daf218a9e39719ef47e",
+    "visual_change": true
   }
 ]
