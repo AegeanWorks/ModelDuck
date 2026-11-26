@@ -1,17 +1,17 @@
 {
   "active_task": {
     "active_phase": 5,
-    "completed_at": 1795711881.21167,
-    "completed_head": "9c943744d479c00acc3af8e130d14938d87b35c8",
-    "completed_tree": "af194a5e1ba31fd10325ebba8b17a8ad8238da48",
+    "completed_at": 1795716013.42238,
+    "completed_head": "4a7e63e3febd7c7b290ec96025b0947393392e92",
+    "completed_tree": "8d301f494f513e41a4a8832136e8e4b08c40a21d",
     "continuations": [],
     "last_phase": "phase 4",
-    "lease_until": 1795718910.30974,
+    "lease_until": 1795723112.70367,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "status": "completed",
-    "task_id": "thread-cap-pruning-1125",
-    "updated_at": 1795711710.30974,
+    "task_id": "runtime-error-shortcut-1126",
+    "updated_at": 1795715912.70367,
     "workspaces": [
       {
         "name": "modelduck",
@@ -20,87 +20,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          "."
-        ]
-      },
-      "description": "Task 'native-guard-seek-1125' completed successfully.",
-      "head": "876253891cc3cfaca2c22bebd4403310432e90c3",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "native-guard-seek-1125",
-      "timestamp": 1795588916.923856,
-      "timestamp_str": "2026-11-25 09:41:56"
-    },
-    {
-      "agent": "kiro:1",
-      "description": "[1/1] Speed pass: stop() timer leak, lean GGUF scan reader, deferred boot warm-ups, speed-stage early elimination",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "npm test 10.5 s to about 8 s; cold model scan 2.0 s to 0.5 s; first engine list 3.2 s to 79 ms; tune speed stage times clear losers once.",
-        "mitigation": "Equivalence checked against node-llama-cpp on 16 real GGUF files; failing-first tests for each change; elimination skips the threads axis and the incumbent.",
-        "risks": "contract: scan metadata comes from a new reader (falls back to node-llama-cpp on any doubt); dependency: none added; concurrency: warm-ups are deferred timers that never block boot; state: none, no files written.",
-        "why": "Launch, load and tune felt slow; profiling found a 5 s uncleared timer on shutdown, 110 ms per model in the vocabulary decode, and 1 s cold imports and probes on first use."
-      },
-      "phase": "in_progress",
-      "phase_num": 2,
-      "plan_digest": "1a3ff1b507a57e243afb835fa82f413e9ab6468df047c1a72435a15bdf690294",
-      "status": "in_progress",
-      "task_id": "speedup-pass1",
-      "timestamp": 1795676180.05248,
-      "timestamp_str": "2026-11-26 09:56:20"
-    },
-    {
-      "agent": "kiro:1",
-      "description": "Phase 4 verification passed: npm test 1306/1306, hygiene, guidelines, secrets. checklists: passed",
-      "files_affected": [],
-      "phase": "in_progress",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "speedup-pass1",
-      "timestamp": 1795676342.11044,
-      "timestamp_str": "2026-11-26 09:59:02"
-    },
-    {
-      "agent": "kiro:1",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          ""
-        ]
-      },
-      "description": "Task 'speedup-pass1' completed successfully.",
-      "head": "2d98d1e904d9f209480e82424b38c38ec244c572",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "speedup-pass1",
-      "timestamp": 1795676353.26471,
-      "timestamp_str": "2026-11-26 09:59:13"
-    },
-    {
-      "agent": "kiro:1",
-      "description": "[1/1] Quick pass only: let a quick tune stop with its provisional preset instead of auto-continuing to the full tune",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "A quick pass (about 2800 answers at most, 148 min estimate versus 523) can be the end of a tune from the UI, API and scheduler.",
-        "mitigation": "Scheduler tests fail without the change; default behaviour (quick then full continue) is untouched and still tested.",
-        "risks": "contract: new optional quickOnly field on /api/tune/start, ignored unless quick is true; dependency: none; concurrency: none, same queue path; state: the preset stays provisional as before.",
-        "why": "A full tune asks up to about 10000 answers and generation is 92 to 93 percent of its time; profiling showed no waste to remove without changing results, so the lever is not running the whole tune."
-      },
-      "phase": "in_progress",
-      "phase_num": 2,
-      "plan_digest": "4f0ddf0e5887f1f609392e6df4ce6e6f1d4a4447b9199346cb8a75bd95ef2888",
-      "status": "in_progress",
-      "task_id": "tune-quick-only",
-      "timestamp": 1795705284.71719,
-      "timestamp_str": "2026-11-26 18:01:24"
-    },
     {
       "agent": "kiro:1",
       "description": "Phase 4 verification passed: hygiene, guidelines, secrets, npm test. checklists: passed",
@@ -501,6 +420,166 @@
       "task_id": "thread-cap-pruning-1125",
       "timestamp": 1795711881.21167,
       "timestamp_str": "2026-11-26 19:51:21"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Pre-spawn up to four single-use JavaScript judge children during model generation",
+      "files_affected": [
+        "benchmarks/judge-pool.mjs",
+        "benchmarks/suite.mjs",
+        "benchmarks/tune-evaluate.mjs",
+        "benchmarks/tune-job.mjs",
+        "tests/judge-pool.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Hide judge startup latency without reusing a sandbox or changing any verdict, timeout, output limit or run accounting",
+        "mitigation": "failing-first one-use/isolation/timeout/output-limit/dispose tests, sandbox hardening, direct and full-tune old/new hashes, full npm test and 4/4 strict gates; revert on any leak or verdict change",
+        "risks": "contract: one fresh permission-isolated child per answer with identical env/cwd/heap/timeout/maxBuffer; dependency: node child_process only; concurrency: bounded four idle children; state: process-local pool disposed after each tune",
+        "why": "Timed and untuned answers still pay a fresh Node sandbox startup after every generation, although process startup can overlap the preceding model call"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "19e5cf48daaa2b23bbd9ec411e3010795e42d1012c6bdc551e500182770faa07",
+      "status": "in_progress",
+      "task_id": "prewarm-judge-children-1126",
+      "timestamp": 1795713767.69165,
+      "timestamp_str": "2026-11-26 20:22:47",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "Task 'prewarm-judge-children-1126' abandoned: Rejected prewarmed judge children after full-tune A/B regressed despite a 1.22x microbenchmark; restored HEAD and removed the pool",
+      "phase": "abandoned",
+      "phase_num": 2,
+      "status": "abandoned",
+      "task_id": "prewarm-judge-children-1126",
+      "timestamp": 1795714870.16523,
+      "timestamp_str": "2026-11-26 20:41:10"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Judge provably failing unbound identifier arithmetic without spawning a sandbox",
+      "files_affected": [
+        "benchmarks/suite.mjs",
+        "tests/noentry-shortcut.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Avoid child startup for a narrow provable failure class while preserving exact details, unreadable flags and all dynamic/setup-defined cases",
+        "mitigation": "failing-first bare-identifier/arithmetic/setup/global/valid-code tests, real repo-check old/new verdict hash and spawn count, full deterministic tune hash, full npm test and 4/4 strict gates; revert on any verdict difference",
+        "risks": "contract: identical syntax/runtime-error results and function-found behavior; dependency: none; concurrency: synchronous proof only; state: existing verdict caches",
+        "why": "Irrelevant generated answers such as answer or answer-0 still start a Node child only to produce the same runtime-error verdict before the requested entry is called"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "a1d1558a891aff4ab9862151ac7f52122a4097cb3cd16cfec70933a9733f54fd",
+      "status": "in_progress",
+      "task_id": "runtime-error-shortcut-1126",
+      "timestamp": 1795714933.69012,
+      "timestamp_str": "2026-11-26 20:42:13",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: real repo-check child spawns 6 -> 0 and 360.424ms -> 0.131ms with identical verdict hash; full default tune 801.339ms -> 442.696ms with identical fresh answers, probes, runs, reuse and outcome hash; real three-model tune gate passed all nine rates with zero delta; 138 targeted tests, full suite and 4/4 gates pass",
+      "files_affected": [
+        "benchmarks/suite.mjs",
+        "tests/noentry-shortcut.test.js",
+        ".aikit/decisions.md",
+        "benchmarks/history.jsonl"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/runtime-shortcut-real-ab.mjs",
+          "baseline": 360.424,
+          "candidate": 0.131,
+          "command": "node runtime-shortcut-real-ab.mjs",
+          "control": "baseline/baseline 574.219ms vs 588.650ms",
+          "drift": "2.5",
+          "interleaved": "yes",
+          "metric": "real repo-check judging",
+          "unit": "ms",
+          "workload": "eight code-repo checks, ten interleaved old/new pairs, cold verdict cache"
+        },
+        {
+          "artifact": "local-only/runtime-shortcut-real-ab.mjs",
+          "baseline": 6.0,
+          "candidate": 0.0,
+          "command": "node runtime-shortcut-real-ab.mjs",
+          "control": "identical verdict hash f18624b43c4cd3590067380da094cd5c44c144008d5e7347be43f85cb845b891",
+          "drift": "0",
+          "interleaved": "yes",
+          "metric": "real repo-check child spawns",
+          "unit": "spawns",
+          "workload": "eight code-repo checks with irrelevant answer text"
+        },
+        {
+          "artifact": "local-only/runtime-shortcut-e2e-ab.mjs",
+          "baseline": 801.339,
+          "candidate": 442.696,
+          "command": "node runtime-shortcut-e2e-ab.mjs",
+          "control": "fresh=24, probes=16, runs=12, identical reuse and outcome hash 2d00cf7739667e3995f7095e4a18c3dfbdd3e84bba325c4250c69410f10feaab",
+          "drift": "2.5",
+          "interleaved": "yes",
+          "metric": "default deterministic full tune",
+          "unit": "ms",
+          "workload": "one stale code family, five interleaved old/new pairs"
+        },
+        {
+          "artifact": "benchmarks/history.jsonl",
+          "baseline": 0.0,
+          "candidate": 0.0,
+          "command": "npm run tune:gate",
+          "control": "all nine rows passed with 84 fresh answers and paraphrase probes",
+          "drift": "0",
+          "interleaved": "no",
+          "metric": "core-model tune-gate task-rate delta",
+          "qualified": "no",
+          "unit": "percentage points",
+          "workload": "three core models across code, comprehension and recall"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "runtime-error-shortcut-1126",
+      "timestamp": 1795715912.70367,
+      "timestamp_str": "2026-11-26 20:58:32",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          ""
+        ]
+      },
+      "description": "Task 'runtime-error-shortcut-1126' completed successfully.",
+      "head": "4a7e63e3febd7c7b290ec96025b0947393392e92",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "runtime-error-shortcut-1126",
+      "timestamp": 1795716013.42238,
+      "timestamp_str": "2026-11-26 21:00:13"
     }
   ],
   "version": 1
