@@ -1141,6 +1141,16 @@ let noEntryShortcuts = 0;
 export function noEntryShortcutCount() {
   return noEntryShortcuts;
 }
+// Test seam: how many answers provably threw on an unbound identifier before judging.
+let runtimeShortcuts = 0;
+export function runtimeShortcutCount() {
+  return runtimeShortcuts;
+}
+const RUNTIME_GLOBALS = new Set([
+  ...Object.getOwnPropertyNames(globalThis),
+  "require", "module", "exports", "__filename", "__dirname", "arguments",
+]);
+const ARITHMETIC_EXPRESSION = /^\s*(?:[A-Za-z_$][\w$]*|\d+)(?:\s*(?:\*\*|<<|>>>|>>|[+\-*/%|&^])\s*(?:[A-Za-z_$][\w$]*|\d+))*\s*$/;
 export function resetJavaScriptTestCache() {
   JS_TEST_CACHE.clear();
   JS_TEST_INFLIGHT.clear();
@@ -1149,6 +1159,7 @@ export function resetJavaScriptTestCache() {
   jsTestHits = 0;
   jsTestMisses = 0;
   codeVerdictHits = 0;
+  runtimeShortcuts = 0;
   lastKeyArgs = null;
   lastKey = null;
 }
@@ -1241,18 +1252,27 @@ export async function runJavaScriptTests(text, check, { timeoutMs = 5000 } = {})
     rememberVerdict(cacheKey, codeKey, checked);
     return checked;
   }
+  const externalSource = [SANDBOX_PRELUDE, check.setup ?? "", check.harness ?? ""].join("\n");
+  const identifiers = code.match(/[A-Za-z_$][\w$]*/g) ?? [];
+  const runtimeFailure = !named && identifiers.length > 0 && !identifiers.includes(String(check.entry))
+    && identifiers.every((name) => !RUNTIME_GLOBALS.has(name) && !externalSource.includes(name))
+    && ARITHMETIC_EXPRESSION.test(code);
+
   // With no setup or scenario and no occurrence of the entry name anywhere in
   // the code, no binding for it can be created: the judge reports
   // "function not found" for every case. Dynamic-definition constructs are
   // excluded so a string-built binding cannot be misjudged here.
-  if (!check.setup && !check.harness && !code.includes(String(check.entry))
-      && !/\b(?:eval|Function|globalThis|window|this)\b/.test(code)) {
-    noEntryShortcuts += 1;
+  const noEntryFailure = !check.setup && !check.harness && !code.includes(String(check.entry))
+    && !/\b(?:eval|Function|globalThis|window|this)\b/.test(code);
+  if (runtimeFailure || noEntryFailure) {
+    if (runtimeFailure) runtimeShortcuts += 1;
+    else noEntryShortcuts += 1;
+    const reason = runtimeFailure ? "did not run (syntax or runtime error)" : "function not found";
     const checked = cases.map((testCase) => ({
       type: "jsTests",
       passed: false,
       unreadable: true,
-      detail: `${check.entry}(${JSON.stringify(testCase.args).slice(1, -1)}): function not found`,
+      detail: `${check.entry}(${JSON.stringify(testCase.args).slice(1, -1)}): ${reason}`,
     }));
     jsTestMisses += 1;
     rememberVerdict(cacheKey, codeKey, checked);
