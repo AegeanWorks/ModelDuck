@@ -1,53 +1,6 @@
 {
-  "active_task": {
-    "active_phase": 5,
-    "completed_at": 1795716013.42238,
-    "completed_head": "4a7e63e3febd7c7b290ec96025b0947393392e92",
-    "completed_tree": "8d301f494f513e41a4a8832136e8e4b08c40a21d",
-    "continuations": [],
-    "last_phase": "phase 4",
-    "lease_until": 1795723112.70367,
-    "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-    "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-    "status": "completed",
-    "task_id": "runtime-error-shortcut-1126",
-    "updated_at": 1795715912.70367,
-    "workspaces": [
-      {
-        "name": "modelduck",
-        "path": "projects/modelduck"
-      }
-    ]
-  },
+  "active_task": null,
   "checkpoints": [
-    {
-      "agent": "kiro:1",
-      "description": "Phase 4 verification passed: hygiene, guidelines, secrets, npm test. checklists: passed",
-      "files_affected": [],
-      "phase": "in_progress",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "tune-quick-only",
-      "timestamp": 1795705400.52599,
-      "timestamp_str": "2026-11-26 18:03:20"
-    },
-    {
-      "agent": "kiro:1",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          ""
-        ]
-      },
-      "description": "Task 'tune-quick-only' completed successfully.",
-      "head": "d6a746e9b6cd46b859fb4e999ab12bd990625acd",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "tune-quick-only",
-      "timestamp": 1795705412.83236,
-      "timestamp_str": "2026-11-26 18:03:32"
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "description": "[1/2] Keep the benchmark prompt/tune graph out of server startup and load it only from fingerprint, tune and benchmark routes",
@@ -580,6 +533,45 @@
       "task_id": "runtime-error-shortcut-1126",
       "timestamp": 1795716013.42238,
       "timestamp_str": "2026-11-26 21:00:13"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Overlap up to four fresh sandbox judges with the next serial model generation",
+      "files_affected": [
+        "benchmarks/tune-evaluate.mjs",
+        "tests/benchmark-tune-evaluate.test.js",
+        "tests/benchmark-tune-timing.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Hide judge startup and execution behind later generation without idle process pools, sandbox reuse or extra model concurrency",
+        "mitigation": "failing-first order/error/bounded-overlap tests, direct and full-tune old/new hashes, full npm test and 4/4 strict gates; revert on ordering or verdict change",
+        "risks": "contract: ordered results/onItem, one fresh child per answer, identical verdicts/errors/timing stats; dependency: none; concurrency: model width remains one, at most four judges in flight; state: no cache/schema change",
+        "why": "Width-one evaluation still waits for each judge child before starting the next model answer, leaving inference and judging entirely serial"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "d46445a6053464384d8916d2ce6681a0ea28d5e34ceef479843ad8bfccfcb052",
+      "status": "in_progress",
+      "task_id": "judge-generation-pipeline-1126",
+      "timestamp": 1795721168.38958,
+      "timestamp_str": "2026-11-26 22:26:08",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "Task 'judge-generation-pipeline-1126' abandoned: Repeated judge/generation pipeline rejected again: direct gain 1.23x had 8.9% control drift and full speed-stage gain was only 1.06x with 4.5% drift, inconsistent with the prior real-child 0.86x regression; restored HEAD",
+      "phase": "abandoned",
+      "phase_num": 2,
+      "status": "abandoned",
+      "task_id": "judge-generation-pipeline-1126",
+      "timestamp": 1795721721.54927,
+      "timestamp_str": "2026-11-26 22:35:21"
     }
   ],
   "version": 1
