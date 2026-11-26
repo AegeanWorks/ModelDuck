@@ -142,6 +142,41 @@ test("the listing ranks engines per task from the model's profile and its engine
   assert.deepEqual((await (await listing(t, { measured: { results } })).list("m1")).byTask, {}, "no profile, no per-task ranking");
 });
 
+test("engine listings cache exact-stamped profile reads and refresh changes and deletions", async (t) => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "modelduck-engine-profile-cache-"));
+  t.after(() => rm(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 20 }));
+  const entry = { id: "m1", fileName: "tiny-model.gguf" };
+  const id = profileIdFor(entry.fileName);
+  const measured = { assessedAt: "2026-11-19T00:00:00Z", results: [{ id: "srv:fast", ok: true, genTps: 200, promptTps: 4000 }] };
+  const profile = { tasks: { code: { stats: { promptTokens: 100, outputTokens: 150 } } } };
+  await writeFile(path.join(dir, `${id}.engines.json`), JSON.stringify(measured));
+  await writeFile(path.join(dir, `${id}.json`), JSON.stringify(profile));
+  const engines = createEngineListing({ catalog: CATALOG, registry: { findById: () => entry }, profilesDir: dir, context: () => ({}), notice: async () => null });
+  const realRead = fs.promises.readFile;
+  let reads = 0;
+  fs.promises.readFile = async (...args) => {
+    if (String(args[0]).startsWith(dir)) reads += 1;
+    return realRead(...args);
+  };
+  try {
+    const [first, concurrent] = await Promise.all([engines.list("m1"), engines.list("m1")]);
+    assert.deepEqual(concurrent, first);
+    assert.equal(reads, 2, "concurrent lists share one read per profile file");
+    await engines.list("m1");
+    assert.equal(reads, 2, "an unchanged stamp performs no more reads");
+    await writeFile(path.join(dir, `${id}.json`), JSON.stringify({ ...profile, marker: "changed-size" }));
+    const changed = await engines.list("m1");
+    assert.equal(reads, 3, "a changed profile is read once");
+    assert.equal(changed.byTask.code.fastest, "srv:fast");
+    await rm(path.join(dir, `${id}.json`));
+    const removed = await engines.list("m1");
+    assert.equal(reads, 3, "a deleted profile is detected by stat without a failing read");
+    assert.deepEqual(removed.byTask, {});
+  } finally {
+    fs.promises.readFile = realRead;
+  }
+});
+
 test("repeated engine listings share one exact-stamped installed snapshot", async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), "md-engine-snapshot-"));
   t.after(() => rm(root, { recursive: true, force: true }));

@@ -4676,5 +4676,49 @@
     "final_snapshot_entries": 0,
     "surface_digest": "a1016b61d770927811d773ecdf92c7e1fe7c62c66a2ea12acbb800ab88356785",
     "baseline_digest": "ccb57d64f369f0051d12a0c22245f916593e75a387faaf7486c3b83ae7f4b410"
+  },
+  {
+    "allowed_removals": [],
+    "allowed_tests": [
+      {
+        "path": "tests/engine-listing.test.js",
+        "reason": "Failing-first exact-stamp cache, concurrent-read, change and deletion regression tests"
+      }
+    ],
+    "baseline_commit": "HEAD",
+    "baseline_digest": "a3b074cb9eab4bea0a961e863a763f6d6879e7eb9efd470212fd89fa0c13655b",
+    "changed_paths": [
+      ".aikit/decisions.md",
+      "src/engine-listing.js",
+      "tests/engine-listing.test.js"
+    ],
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "finished_at": 1795709041.12231,
+    "mode": "visual",
+    "no_visual_reason": "",
+    "review": {
+      "reviewed_at": 1795709041.11756,
+      "reviewer": "HungerG",
+      "scoped_digest": "201a0b7424a1be20b1041c0e9d27ada6e19e3600f4d8b43acc351f5203778ce3",
+      "scoped_paths": [
+        ".aikit/decisions.md",
+        "src/engine-listing.js",
+        "tests/engine-listing.test.js"
+      ],
+      "snapshot_digest": "",
+      "snapshot_entries": 0,
+      "surface": "app",
+      "surface_digest": "a583388b0906adbfa6196fae8eb2245cc8347ebad1986102926b2f0b9cffd975",
+      "visual": true
+    },
+    "reviewer": "HungerG",
+    "schema": 1,
+    "started_at": 1795708955.7034,
+    "strikes": 0,
+    "surface": "app",
+    "surface_digest": "a583388b0906adbfa6196fae8eb2245cc8347ebad1986102926b2f0b9cffd975",
+    "visual_change": true
   }
 ]

@@ -68,6 +68,37 @@ export function createEngineListing({ catalog, registry, profilesDir = null, con
   };
   const listed = (ctx = context()) => catalog.descriptors().flatMap((descriptor) => descriptor.adapters(ctx));
   const probes = new Map();
+  const profileCache = new Map();
+  const profileReads = new Map();
+  const PROFILE_CACHE_LIMIT = 32;
+
+  /** Read one profile sidecar once per exact stamp, sharing concurrent lists. */
+  async function readProfile(file) {
+    const info = await fs.stat(file).catch(() => null);
+    if (!info) {
+      profileCache.delete(file);
+      return null;
+    }
+    const stamp = `${info.mtimeMs}:${info.size}`;
+    const cached = profileCache.get(file);
+    if (cached?.stamp === stamp) return cached.value;
+    const held = profileReads.get(file);
+    if (held?.stamp === stamp) return (await held.promise).value;
+    const promise = fs.readFile(file, "utf8")
+      .then((text) => ({ ok: true, value: JSON.parse(text) }))
+      .catch(() => ({ ok: false, value: null }));
+    profileReads.set(file, { stamp, promise });
+    try {
+      const result = await promise;
+      if (result.ok) {
+        if (profileCache.size >= PROFILE_CACHE_LIMIT) profileCache.delete(profileCache.keys().next().value);
+        profileCache.set(file, { stamp, value: result.value });
+      }
+      return result.value;
+    } finally {
+      if (profileReads.get(file)?.promise === promise) profileReads.delete(file);
+    }
+  }
 
   /** Whether the engine answers on this machine; an adapter that cannot say is taken at its word. */
   function probe(adapter) {
@@ -86,24 +117,18 @@ export function createEngineListing({ catalog, registry, profilesDir = null, con
   async function measured(modelId) {
     const entry = modelId ? registry?.findById(modelId) : null;
     if (!entry || !profilesDir) return new Map();
-    try {
-      const saved = JSON.parse(await fs.readFile(path.join(profilesDir, `${profileIdFor(entry.fileName)}.engines.json`), "utf8"));
-      return new Map((saved.results ?? []).map((result) => [result.id, { genTps: result.genTps ?? null, promptTps: result.promptTps ?? null, ok: result.ok === true, assessedAt: saved.assessedAt ?? null }]));
-    } catch {
-      return new Map();
-    }
+    const saved = await readProfile(path.join(profilesDir, `${profileIdFor(entry.fileName)}.engines.json`));
+    if (!saved) return new Map();
+    return new Map((saved.results ?? []).map((result) => [result.id, { genTps: result.genTps ?? null, promptTps: result.promptTps ?? null, ok: result.ok === true, assessedAt: saved.assessedAt ?? null }]));
   }
 
   /** The per-task prompt and output token counts the model's profile recorded, or {} when it has none. */
   async function taskTokens(modelId) {
     const entry = modelId ? registry?.findById(modelId) : null;
     if (!entry || !profilesDir) return {};
-    try {
-      const saved = JSON.parse(await fs.readFile(path.join(profilesDir, `${profileIdFor(entry.fileName)}.json`), "utf8"));
-      return Object.fromEntries(Object.entries(saved.tasks ?? {}).map(([task, value]) => [task, { promptTokens: value?.stats?.promptTokens, outputTokens: value?.stats?.outputTokens }]));
-    } catch {
-      return {};
-    }
+    const saved = await readProfile(path.join(profilesDir, `${profileIdFor(entry.fileName)}.json`));
+    if (!saved) return {};
+    return Object.fromEntries(Object.entries(saved.tasks ?? {}).map(([task, value]) => [task, { promptTokens: value?.stats?.promptTokens, outputTokens: value?.stats?.outputTokens }])); // aikit:allow-secret -- numeric profile token counts, not credentials
   }
 
   return Object.freeze({
