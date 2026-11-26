@@ -1,17 +1,17 @@
 {
   "active_task": {
     "active_phase": 5,
-    "completed_at": 1795729467.05412,
-    "completed_head": "5ffb95f20cb97f87cf6ab9529d9cb309372adf43",
-    "completed_tree": "21ed84c08f555739fbe0788ebfab468e4e426631",
+    "completed_at": 1795730179.24873,
+    "completed_head": "2ab2ed3f0c79ae1ee7934359039078faadb5e848",
+    "completed_tree": "fc79e629d6751ea4a5f61aedff470badb5856c14",
     "continuations": [],
     "last_phase": "phase 4",
-    "lease_until": 1795736576.0438,
+    "lease_until": 1795737279.39823,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "status": "completed",
-    "task_id": "pure-builtin-shortcut-1127",
-    "updated_at": 1795729376.0438,
+    "task_id": "judge-key-cache-1128",
+    "updated_at": 1795730079.39823,
     "workspaces": [
       {
         "name": "modelduck",
@@ -20,72 +20,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Skip sandbox spawns when answer, setup and harness statically cannot define the requested entry",
-      "files_affected": [
-        "benchmarks/suite.mjs",
-        "tests/noentry-shortcut.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Judge impossible bindings in-process while preserving every function-found verdict and sandbox path for dynamic or setup-defined entries",
-        "mitigation": "failing-first static-harness and adversarial setup/dynamic/unicode tests, real repo-check old/new benchmark, sandbox/full-tune hash verification, full npm test and 4/4 strict gates; revert on any unsafe shortcut",
-        "risks": "contract: identical function-not-found results and unreadable flags; dependency: none; concurrency: synchronous shortcut only; state: existing verdict caches",
-        "why": "Repo harness checks disable the existing no-entry shortcut even when all three sources are static and omit the entry, causing unnecessary child startups during tuning"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "d54d0c8b4416bb6b455a6b059bb7a7cab1c5a8441b3404735fce86285fa94a87",
-      "status": "in_progress",
-      "task_id": "harness-noentry-shortcut-1125",
-      "timestamp": 1795709992.33612,
-      "timestamp_str": "2026-11-26 19:19:52",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "Task 'harness-noentry-shortcut-1125' abandoned: Rejected harness no-entry shortcut after real repo checks showed runtime-error details differ from function-not-found; restored HEAD",
-      "phase": "abandoned",
-      "phase_num": 2,
-      "status": "abandoned",
-      "task_id": "harness-noentry-shortcut-1125",
-      "timestamp": 1795710255.94973,
-      "timestamp_str": "2026-11-26 19:24:15"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Prune thread timing repeats only when a candidate cannot win fastest, Light or Quiet under the existing clear-loser rule",
-      "files_affected": [
-        "benchmarks/tune-speed.mjs",
-        "tests/benchmark-tune.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Reduce timed model answers without changing fastest/Light/Quiet selection or quality-flip handling",
-        "mitigation": "failing-first standard and quality-flip pruning tests, old/new speed-stage benchmark with identical final presets, full tune/history tests and 4/4 strict gates; revert if any preset changes",
-        "risks": "contract: final presets and quality exclusions unchanged, sweep records honestly show skipped repeats; dependency: none; concurrency: timing order unchanged for retained candidates; state: no cache/schema change",
-        "why": "The threads axis currently times every candidate three times because Light/Quiet may need slow values, even when a value cannot win any of the three presets"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "098b4e8840738088f20decf1af0367fc50c45d7288fb28d26c10b5220027b361",
-      "status": "in_progress",
-      "task_id": "thread-cap-pruning-1125",
-      "timestamp": 1795710586.15636,
-      "timestamp_str": "2026-11-26 19:29:46",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "checklists": "passed",
@@ -647,6 +581,100 @@
       "task_id": "pure-builtin-shortcut-1127",
       "timestamp": 1795729467.05412,
       "timestamp_str": "2026-11-27 00:44:27"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Cache the immutable check portion of judge cache keys",
+      "files_affected": [
+        "benchmarks/suite.mjs",
+        "tests/judge-key-memo.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Remove repeated check serialization while preserving key identity and all cache verdicts",
+        "mitigation": "failing-first check-serialization counter test, full judge cache suite, real stored-answer verdict hash and strict gates; revert on any cache or verdict change",
+        "risks": "contract: no key collisions and text/check/timeout identity semantics; dependency: WeakMap; concurrency: process-local cache; state: existing judge caches only",
+        "why": "Key construction serializes the full check for every answer even when the same check object is used across hundreds of texts; a 20,000-call prototype improved 9.881ms to 2.542ms"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "093325e8b21888aea27acf1a295d858342c95366fde142951a26edbbea234ddc",
+      "status": "in_progress",
+      "task_id": "judge-key-cache-1128",
+      "timestamp": 1795729606.75784,
+      "timestamp_str": "2026-11-27 00:46:46",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: key construction microbenchmark 9.881ms -> 2.542ms (3.89x); 180 real stored answers kept verdict hash with 5.334ms -> 4.938ms end to end under 13.3 percent drift; real three-model gate passed 9/9 rates with zero delta; 23 focused tests and full npm suite (1318 pass, one pre-existing skip) pass",
+      "files_affected": [
+        "benchmarks/suite.mjs",
+        "tests/judge-key-memo.test.js",
+        ".aikit/decisions.md",
+        "benchmarks/history.jsonl"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/judge-key-ab.mjs",
+          "baseline": 9.881,
+          "candidate": 2.542,
+          "command": "node judge-key-ab.mjs",
+          "control": "no separate baseline pair, microbench only",
+          "drift": "0",
+          "interleaved": "yes",
+          "metric": "judge key construction",
+          "unit": "ms",
+          "workload": "20,000 key calls using 200 real suite checks, alternating old/new per round"
+        },
+        {
+          "artifact": "local-only/pure-builtin-ab.mjs",
+          "baseline": 5.334,
+          "candidate": 4.938,
+          "command": "node pure-builtin-ab.mjs",
+          "control": "baseline/baseline 2.744ms vs 3.109ms and identical verdict hash eccbbcd9a973464273c8aa3fc583ffd0a2a8d0cfdb424bee544536dcc9240e51",
+          "drift": "13.3",
+          "interleaved": "yes",
+          "metric": "180 real stored answers judged",
+          "unit": "ms",
+          "workload": "180 unique accepted answers over five interleaved pairs"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "judge-key-cache-1128",
+      "timestamp": 1795730079.39823,
+      "timestamp_str": "2026-11-27 00:54:39",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          ""
+        ]
+      },
+      "description": "Task 'judge-key-cache-1128' completed successfully.",
+      "head": "2ab2ed3f0c79ae1ee7934359039078faadb5e848",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "judge-key-cache-1128",
+      "timestamp": 1795730179.24873,
+      "timestamp_str": "2026-11-27 00:56:19"
     }
   ],
   "version": 1
