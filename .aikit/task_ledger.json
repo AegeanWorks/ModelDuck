@@ -1,23 +1,17 @@
 {
   "active_task": {
     "active_phase": 5,
-    "completed_at": 1795727917.09658,
-    "completed_head": "e0810527b87ba30471dfc1534b0a580d8d464be2",
-    "completed_tree": "0fae8085a12731d00ca45b7233162fdebc1b0e16",
+    "completed_at": 1795729467.05412,
+    "completed_head": "5ffb95f20cb97f87cf6ab9529d9cb309372adf43",
+    "completed_tree": "21ed84c08f555739fbe0788ebfab468e4e426631",
     "continuations": [],
-    "impact_assessment": {
-      "benefits": "Fresh generated map and README within the 40,000-char limit",
-      "mitigation": "guidelines freshness check and strict delivery gate",
-      "risks": "contract: documentation only; dependency: none; concurrency: none; state: generated map",
-      "why": "The pure-judge test added a tracked path and new symbols after its feature task was completed, so the cold-start map and README tree needed refresh"
-    },
     "last_phase": "phase 4",
-    "lease_until": 1795735108.37676,
+    "lease_until": 1795736576.0438,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "status": "completed",
-    "task_id": "pure-judge-docs-1127",
-    "updated_at": 1795727908.37676,
+    "task_id": "pure-builtin-shortcut-1127",
+    "updated_at": 1795729376.0438,
     "workspaces": [
       {
         "name": "modelduck",
@@ -26,123 +20,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: real 30-request engine listing profile reads 60 -> 2 and warm median 4.700ms -> 0.167ms with identical output hash; 64 engine/catalog/server tests, full suite, UI contract and 4/4 gates pass",
-      "files_affected": [
-        "src/engine-listing.js",
-        "tests/engine-listing.test.js",
-        ".aikit/decisions.md",
-        ".aikit/ui_history.json"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/engine-list-profile-bench.mjs",
-          "baseline": 4.7,
-          "candidate": 0.167,
-          "command": "node engine-list-profile-bench.mjs",
-          "control": "identical output hash d5e7d4034ce6fad10bee9aaef2c932438f111423efbd2cbcf247f406db269fba",
-          "drift": "0",
-          "interleaved": "no",
-          "metric": "warm engine-list request",
-          "qualified": "no",
-          "unit": "ms",
-          "workload": "real qwen 1.27MB profile plus engine sidecar, 30 requests"
-        },
-        {
-          "artifact": "local-only/engine-list-profile-bench.mjs",
-          "baseline": 60.0,
-          "candidate": 2.0,
-          "command": "node engine-list-profile-bench.mjs",
-          "control": "exact mtime+size change and deletion tests, concurrent requests share one read",
-          "drift": "0",
-          "interleaved": "no",
-          "metric": "profile reads for 30 engine-list requests",
-          "qualified": "no",
-          "unit": "reads",
-          "workload": "real qwen profile and engine sidecar"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "engine-list-profile-cache-1125",
-      "timestamp": 1795709087.6775,
-      "timestamp_str": "2026-11-26 19:04:47",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] QUALIFIED A/B: 30 interleaved real engine-list requests per build improved 4.261ms -> 0.282ms (15.09x), baseline reads 60 versus zero warm candidate reads after its two priming reads, identical output hash, 10.8% A/A control drift; 64 targeted tests, full suite, UI contract and 4/4 gates pass",
-      "files_affected": [
-        "src/engine-listing.js",
-        "tests/engine-listing.test.js",
-        ".aikit/decisions.md",
-        ".aikit/ui_history.json"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/engine-list-profile-ab.mjs",
-          "baseline": 4.261,
-          "candidate": 0.282,
-          "command": "node engine-list-profile-ab.mjs",
-          "control": "baseline/baseline 4.170ms vs 4.622ms",
-          "drift": "10.8",
-          "interleaved": "yes",
-          "metric": "warm engine-list request",
-          "unit": "ms",
-          "workload": "real qwen profile and engine sidecar, 30 interleaved old/new requests per build"
-        },
-        {
-          "artifact": "local-only/engine-list-profile-ab.mjs",
-          "baseline": 60.0,
-          "candidate": 0.0,
-          "command": "node engine-list-profile-ab.mjs",
-          "control": "identical output hash d5e7d4034ce6fad10bee9aaef2c932438f111423efbd2cbcf247f406db269fba",
-          "drift": "0",
-          "interleaved": "yes",
-          "metric": "profile reads for 30 engine-list requests",
-          "unit": "reads",
-          "workload": "candidate cache primed by two reads before measured warm requests"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "engine-list-profile-cache-1125",
-      "timestamp": 1795709177.02275,
-      "timestamp_str": "2026-11-26 19:06:17",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          ""
-        ]
-      },
-      "description": "Task 'engine-list-profile-cache-1125' completed successfully.",
-      "head": "516137b607ac9d7e2ffd56278c91ee2666f092a4",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "engine-list-profile-cache-1125",
-      "timestamp": 1795709431.1559,
-      "timestamp_str": "2026-11-26 19:10:31"
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "description": "[1/2] Skip sandbox spawns when answer, setup and harness statically cannot define the requested entry",
@@ -648,6 +525,128 @@
       "task_id": "pure-judge-docs-1127",
       "timestamp": 1795727917.09658,
       "timestamp_str": "2026-11-27 00:18:37"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Extend in-process judge to whitelisted pure built-ins and literal expressions",
+      "files_affected": [
+        "benchmarks/pure-expression.mjs",
+        "benchmarks/suite.mjs",
+        "tests/pure-expression-shortcut.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Avoid more child startups for deterministic string, array and Math operations while keeping the sandbox for every dynamic or unlisted form",
+        "mitigation": "failing-first whitelist and rejection tests, 180 real stored functions checked against sandbox verdicts, direct interleaved A/B, full deterministic tune hashes, real tune gate, full tests and strict gates; revert on any mismatch",
+        "risks": "contract: exact verdicts, error messages and output-limit fallback; dependency: standard JavaScript built-ins only; concurrency: existing verdict caches; state: no shared mutation beyond cloned JSON arguments",
+        "why": "The first pure shortcut covers 104 of 460 unique single-return functions; a validated parser covers 180 with zero sandbox verdict mismatches on real stored answers"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "c8e125742c0eadf15eb41608e8f3365d9e4ac3728999b65560e065c95bbe0a01",
+      "status": "in_progress",
+      "task_id": "pure-builtin-shortcut-1127",
+      "timestamp": 1795728246.69894,
+      "timestamp_str": "2026-11-27 00:24:06",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: 180 real stored functions judged with 180 -> 0 child spawns and 20144.036ms -> 9.403ms at an identical verdict hash; full speed tune and default/budget restores kept identical decisions, rows and outcome hash; real three-model gate passed 9/9 rates with zero delta; full npm test passed 1317 with one pre-existing skip and all strict gates pass",
+      "files_affected": [
+        "benchmarks/pure-expression.mjs",
+        "benchmarks/suite.mjs",
+        "tests/pure-expression-shortcut.test.js",
+        ".aikit/decisions.md",
+        "benchmarks/history.jsonl",
+        "README.md",
+        ".aikit/codebase_map.md"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/pure-builtin-ab.mjs",
+          "baseline": 20144.036,
+          "candidate": 9.403,
+          "command": "node pure-builtin-ab.mjs",
+          "control": "baseline/baseline 17486.675ms vs 13889.024ms, child-startup noise",
+          "drift": "20.6",
+          "interleaved": "yes",
+          "metric": "180 accepted real answers judged",
+          "unit": "ms",
+          "workload": "180 unique real stored single-return functions, five interleaved old/new pairs"
+        },
+        {
+          "artifact": "local-only/pure-builtin-ab.mjs",
+          "baseline": 180.0,
+          "candidate": 0.0,
+          "command": "node pure-builtin-ab.mjs",
+          "control": "identical verdict hash eccbbcd9a973464273c8aa3fc583ffd0a2a8d0cfdb424bee544536dcc9240e51 in all pairs",
+          "drift": "0",
+          "interleaved": "yes",
+          "metric": "child spawns for accepted pure answers",
+          "unit": "spawns",
+          "workload": "same 180 real answers"
+        },
+        {
+          "artifact": "local-only/judge-pipeline-speed-e2e-ab.mjs",
+          "baseline": 3.0,
+          "candidate": 2.0,
+          "command": "node judge-pipeline-speed-e2e-ab.mjs",
+          "control": "decision hash 8e3a71b60f078a4f00411d37b8b59cb9207455d35ae9455f45fe12d20c518078 and rows hash e0595f360bb9fdb8be168e6fd30c95f5774d1cbf7abfb1f44d3943132f0e9aaa",
+          "drift": "0",
+          "interleaved": "yes",
+          "metric": "full speed-only tune judge phase",
+          "unit": "ms",
+          "workload": "36 timed answers over five interleaved pairs against the committed prior judge"
+        },
+        {
+          "artifact": "local-only/runtime-shortcut-e2e-ab.mjs",
+          "baseline": 0.0,
+          "candidate": 0.0,
+          "command": "node runtime-shortcut-e2e-ab.mjs",
+          "control": "fresh 24/21, probes 16/17, runs 12/6 and reuse notes identical",
+          "drift": "0",
+          "interleaved": "yes",
+          "metric": "full restore outcome-hash delta",
+          "unit": "hash delta",
+          "workload": "default and one-miss budget restores over five interleaved pairs"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "pure-builtin-shortcut-1127",
+      "timestamp": 1795729376.0438,
+      "timestamp_str": "2026-11-27 00:42:56",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          ""
+        ]
+      },
+      "description": "Task 'pure-builtin-shortcut-1127' completed successfully.",
+      "head": "5ffb95f20cb97f87cf6ab9529d9cb309372adf43",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "pure-builtin-shortcut-1127",
+      "timestamp": 1795729467.05412,
+      "timestamp_str": "2026-11-27 00:44:27"
     }
   ],
   "version": 1
