@@ -1107,10 +1107,37 @@ export const JAVASCRIPT_TEST_CACHE_LIMIT = 4096;
 let jsTestHits = 0;
 let jsTestMisses = 0;
 let jsTestKeyComputes = 0;
+let jsTestCheckKeyComputes = 0;
+let jsTestCheckKeys = new WeakMap();
 let lastKeyArgs = null;
 let lastKey = null;
 export function jsTestKeyComputations() {
   return jsTestKeyComputes;
+}
+export function jsTestCheckKeyComputations() {
+  return jsTestCheckKeyComputes;
+}
+// The suite's check objects are frozen for the process. Serialize each one's
+// key portion once, then prepend only the text that changes between answers.
+function checkKeySuffix(check, timeoutMs) {
+  let byTimeout = jsTestCheckKeys.get(check);
+  if (!byTimeout) {
+    byTimeout = new Map();
+    jsTestCheckKeys.set(check, byTimeout);
+  }
+  let suffix = byTimeout.get(timeoutMs);
+  if (suffix === undefined) {
+    jsTestCheckKeyComputes += 1;
+    suffix = JSON.stringify([
+      check.entry ?? null,
+      check.setup ?? null,
+      check.harness ?? null,
+      check.cases ?? [],
+      timeoutMs,
+    ]);
+    byTimeout.set(timeoutMs, suffix);
+  }
+  return suffix;
 }
 const jsTestKey = (text, check, timeoutMs) => {
   // One-entry memo by argument identity. Repeated calls with the very same
@@ -1118,14 +1145,7 @@ const jsTestKey = (text, check, timeoutMs) => {
   // Identity comparison means a mutated check still gets a fresh key.
   if (lastKeyArgs && lastKeyArgs.text === text && lastKeyArgs.check === check && lastKeyArgs.timeoutMs === timeoutMs) return lastKey;
   jsTestKeyComputes += 1;
-  lastKey = JSON.stringify([
-    String(text ?? ""),
-    check.entry ?? null,
-    check.setup ?? null,
-    check.harness ?? null,
-    check.cases ?? [],
-    timeoutMs,
-  ]);
+  lastKey = `${JSON.stringify(String(text ?? ""))}:${checkKeySuffix(check, timeoutMs)}`;
   lastKeyArgs = { text, check, timeoutMs };
   return lastKey;
 };
@@ -1170,6 +1190,9 @@ export function resetJavaScriptTestCache() {
   CODE_VERDICT_CACHE.clear();
   jsTestHits = 0;
   jsTestMisses = 0;
+  jsTestKeyComputes = 0;
+  jsTestCheckKeyComputes = 0;
+  jsTestCheckKeys = new WeakMap();
   codeVerdictHits = 0;
   runtimeShortcuts = 0;
   pureShortcuts = 0;
