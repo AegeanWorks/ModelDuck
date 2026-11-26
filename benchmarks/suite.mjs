@@ -1146,11 +1146,106 @@ let runtimeShortcuts = 0;
 export function runtimeShortcutCount() {
   return runtimeShortcuts;
 }
+// Test seam: how many single-return functions were judged in process.
+let pureShortcuts = 0;
+export function pureShortcutCount() {
+  return pureShortcuts;
+}
+// Test seam: how many answers actually reached a sandbox child.
+let sandboxSpawns = 0;
+export function sandboxSpawnCount() {
+  return sandboxSpawns;
+}
 const RUNTIME_GLOBALS = new Set([
   ...Object.getOwnPropertyNames(globalThis),
   "require", "module", "exports", "__filename", "__dirname", "arguments",
 ]);
 const ARITHMETIC_EXPRESSION = /^\s*(?:[A-Za-z_$][\w$]*|\d+)(?:\s*(?:\*\*|<<|>>>|>>|[+\-*/%|&^])\s*(?:[A-Za-z_$][\w$]*|\d+))*\s*$/;
+
+// A narrow class of answers is provably a pure function: one required entry,
+// simple parameters, and one return expression with only those parameters and
+// numeric/boolean literals. Calls, properties, strings, collections, globals,
+// assignments and updates are excluded, so the expression cannot reach the
+// host, mutate its arguments or read sandbox state.
+const PURE_RETURN_FUNCTION = /^\s*(?:export\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(([^)]*)\)\s*\{\s*return\s+([^{};]+);\s*\}\s*$/;
+const PURE_TOKEN = /(?:\s+|\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|[A-Za-z_$][\w$]*|===|!==|==|!=|<=|>=|\*\*|&&|\|\||\?\?|[()+\-*/%<>&|^~!?:])/y;
+const PURE_LITERALS = new Set(["true", "false", "null", "undefined", "NaN", "Infinity"]);
+const PURE_JUDGE_BINDING = /^__(?:emit|s|a|call)_[\da-f]{24}$/;
+
+function pureReturnFunction(code, entry, cases) {
+  if (entry === "__os" || PURE_JUDGE_BINDING.test(entry)) return null;
+  const match = code.match(PURE_RETURN_FUNCTION);
+  if (!match || match[1] !== entry) return null;
+  const params = match[2].split(",").map((value) => value.trim()).filter(Boolean);
+  const expression = match[3];
+  if (params.length > 8 || expression.length > 1024 || !params.every((param) => /^[A-Za-z_$][\w$]*$/.test(param))) return null;
+  if (params.some((param) => param === "__os" || PURE_JUDGE_BINDING.test(param))) return null;
+  if (!Array.isArray(cases) || cases.length > 32) return null;
+  let argBytes = 0;
+  for (const testCase of cases) {
+    if (!Array.isArray(testCase.args)) return null;
+    let text;
+    try { text = JSON.stringify(testCase.args); } catch { return null; }
+    if (text === undefined) return null;
+    argBytes += text.length;
+  }
+  if (argBytes > 65536) return null;
+  const allowed = new Set([...params, ...PURE_LITERALS]);
+  let offset = 0;
+  let previous = null;
+  while (offset < expression.length) {
+    if (expression.startsWith("++", offset) || expression.startsWith("--", offset)) return null;
+    PURE_TOKEN.lastIndex = offset;
+    const found = PURE_TOKEN.exec(expression);
+    if (!found) return null;
+    const value = found[0];
+    if (/^\s+$/.test(value)) {
+      offset = PURE_TOKEN.lastIndex;
+      continue;
+    }
+    if (/^[A-Za-z_$]/.test(value) && !allowed.has(value)) return null;
+    // `f(x)` and `(f)(x)` would call a parameter; JSON arguments are never functions,
+    // but the sandbox path stays the authority for every call form.
+    if (value === "(" && (previous === ")" || /^[A-Za-z_$\d]/.test(previous ?? ""))) return null;
+    previous = value;
+    offset = PURE_TOKEN.lastIndex;
+  }
+  if (offset !== expression.length) return null;
+  try {
+    return new Function(...params, `return (${expression});`);
+  } catch {
+    return null;
+  }
+}
+
+function pureVerdicts(check, fn) {
+  const cases = check.cases ?? [];
+  const checked = [];
+  let outputBytes = 0;
+  for (const testCase of cases) {
+    let reported;
+    try {
+      const text = JSON.stringify(testCase.args);
+      const args = text === undefined ? [] : JSON.parse(text);
+      const got = JSON.stringify(fn(...args));
+      reported = got === undefined ? ["u", ""] : ["v", got];
+      if (got !== undefined) outputBytes += got.length;
+    } catch (error) {
+      reported = ["t", String(error && error.message)];
+    }
+    const verdict = judgeCase(reported, testCase.expect);
+    checked.push({
+      type: "jsTests",
+      passed: Boolean(verdict?.passed),
+      unreadable: false,
+      detail: `${check.entry}(${JSON.stringify(testCase.args).slice(1, -1)}): ${verdict ? verdict.detail : "no results"}`,
+    });
+  }
+  // The child reports "output too large" when the framing exceeds its cap; hand
+  // that case back so the sandbox keeps exactly the same verdict.
+  return outputBytes + 1024 <= outputLimit(cases) ? checked : null;
+}
+
 export function resetJavaScriptTestCache() {
   JS_TEST_CACHE.clear();
   JS_TEST_INFLIGHT.clear();
@@ -1160,6 +1255,8 @@ export function resetJavaScriptTestCache() {
   jsTestMisses = 0;
   codeVerdictHits = 0;
   runtimeShortcuts = 0;
+  pureShortcuts = 0;
+  sandboxSpawns = 0;
   lastKeyArgs = null;
   lastKey = null;
 }
@@ -1278,6 +1375,18 @@ export async function runJavaScriptTests(text, check, { timeoutMs = 5000 } = {})
     rememberVerdict(cacheKey, codeKey, checked);
     return checked;
   }
+  if (named && !check.setup && !check.harness) {
+    const pure = pureReturnFunction(code, String(check.entry), cases);
+    if (pure) {
+      const checked = pureVerdicts(check, pure);
+      if (checked) {
+        pureShortcuts += 1;
+        jsTestMisses += 1;
+        rememberVerdict(cacheKey, codeKey, checked);
+        return checked;
+      }
+    }
+  }
   const pending = JS_TEST_INFLIGHT.get(cacheKey);
   if (pending) {
     jsTestHits += 1;
@@ -1296,6 +1405,7 @@ export async function runJavaScriptTests(text, check, { timeoutMs = 5000 } = {})
       args: cases.map((testCase) => testCase.args),
     });
     const outcome = await new Promise((resolve) => {
+      sandboxSpawns += 1;
       const child = execFile(
         process.execPath,
         // `-` reads the script from stdin, so it appears in no argument the answer could read.
