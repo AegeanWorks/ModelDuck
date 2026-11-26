@@ -1703,11 +1703,13 @@ test("a speed candidate far slower than the best is timed once, the rest are tim
   assert.ok(calls.get(64) < calls.get(512));
 });
 
-test("the threads axis times every candidate in full, since the Light preset needs the slow ones", async () => {
-  const evaluate = async (settings, itemIds) => ({
-    prompts: itemIds.map((id) => ({ id, passed: 1, total: 1, ms: 1000 / settings.threads, outputTokens: 10, digest: id })),
-  });
-  const { sweeps } = await tune({
+test("the threads axis skips repeats only for values that cannot win fastest, Light or Quiet", async () => {
+  const calls = new Map();
+  const evaluate = async (settings, itemIds) => {
+    calls.set(settings.threads, (calls.get(settings.threads) ?? 0) + 1);
+    return { prompts: itemIds.map((id) => ({ id, passed: 1, total: 1, ms: 1000 / settings.threads, outputTokens: 10, digest: id })) };
+  };
+  const { sweeps, speed } = await tune({
     evaluate,
     base: { threads: 8, temperature: 0 },
     tasks: [],
@@ -1718,5 +1720,42 @@ test("the threads axis times every candidate in full, since the Light preset nee
     hardware: { logicalCores: 8 },
   });
   const candidates = sweeps.find((entry) => entry.axis === "threads").rungs[0].candidates;
-  assert.ok(candidates.every((candidate) => candidate.repeats === 3 && !candidate.droppedAfterFirstRound));
+  assert.deepEqual(Object.fromEntries(candidates.map((candidate) => [candidate.patch.threads, candidate.repeats])), { 1: 1, 2: 3, 4: 3, 6: 3, 8: 3 });
+  assert.equal(candidates.find((candidate) => candidate.patch.threads === 1).droppedAfterFirstRound, true);
+  assert.deepEqual(Object.fromEntries(calls), { 1: 1, 2: 3, 4: 3, 6: 3, 8: 3 });
+  assert.equal(speed.fastest.threads, 8);
+  assert.equal(speed.light.threads, 4);
+  assert.equal(speed.quiet.threads, 2);
+});
+
+test("thread pruning keeps a slower quality-preserving candidate for Light and Quiet", async () => {
+  const calls = new Map();
+  const evaluate = async (settings, itemIds) => {
+    calls.set(settings.threads, (calls.get(settings.threads) ?? 0) + 1);
+    const ms = { 1: 1000, 2: 500, 4: 200, 6: 150, 8: 100 }[settings.threads];
+    return { prompts: itemIds.map((id, index) => ({
+      id,
+      passed: settings.threads === 4 && index === 0 ? 0 : 1,
+      total: 1,
+      ms,
+      outputTokens: 10,
+      digest: id,
+    })) };
+  };
+  const { sweeps, speed } = await tune({
+    evaluate,
+    base: { threads: 6, temperature: 0 },
+    tasks: [],
+    stages: ["speed"],
+    rungs: { speed: [ids("speed", 4)] },
+    qualityAxes: [],
+    speedAxes: [{ name: "threads", patches: [1, 2, 4, 8].map((threads) => ({ threads })) }],
+    hardware: { logicalCores: 8 },
+  });
+  const candidates = sweeps.find((entry) => entry.axis === "threads").rungs[0].candidates;
+  assert.equal(candidates.find((candidate) => candidate.patch.threads === 4).flippedItems.length, 1);
+  assert.equal(candidates.find((candidate) => candidate.patch.threads === 2).repeats, 3, "the quality-preserving fallback stays eligible");
+  assert.equal(speed.fastest.threads, 8);
+  assert.equal(speed.light.threads, 2);
+  assert.equal(speed.quiet.threads, 2);
 });

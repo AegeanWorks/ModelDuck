@@ -141,15 +141,42 @@ function aaSpread(repeats) {
  * A candidate whose first timing is this many times slower than the fastest cannot win
  * through noise (the tie band is a few percent), so its repeats are not run. The
  * incumbent always stays, and failed candidates are left to the normal rules.
+ * Thread candidates also have capped Light/Quiet races: each cap keeps its own
+ * quality-preserving fallback instead of comparing only with the overall fastest.
  */
 export const CLEAR_LOSER_RATIO = 1.5;
-function dropClearLosers(candidates) {
-  const timed = candidates.filter((entry) => !entry.repeats[0]?.failed).map((entry) => entry.repeats[0]?.latencyMs).filter(Number.isFinite);
+function dropClearLosers(candidates, { reference = null, threadCaps = [] } = {}) {
+  const eligible = (entry) => {
+    const stats = entry.repeats[0];
+    return stats && !stats.failed && (!reference || changedOutcomes(reference, stats).length === 0);
+  };
+  const timed = candidates.filter(eligible).map((entry) => entry.repeats[0]?.latencyMs).filter(Number.isFinite);
   if (timed.length < 2) return;
   const best = Math.min(...timed);
+  const capBests = threadCaps.map((cap) => {
+    const values = candidates
+      .filter((entry) => entry.patch.threads <= cap && eligible(entry))
+      .map((entry) => entry.repeats[0]?.latencyMs)
+      .filter(Number.isFinite);
+    return values.length ? Math.min(...values) : null;
+  });
   for (const entry of candidates) {
     const first = entry.repeats[0]?.latencyMs;
-    if (!entry.incumbent && !entry.repeats[0]?.failed && Number.isFinite(first) && first >= best * CLEAR_LOSER_RATIO) entry.dropped = true;
+    if (entry.incumbent || entry.repeats[0]?.failed || !Number.isFinite(first)) continue;
+    if (reference && !eligible(entry)) {
+      entry.dropped = true;
+      continue;
+    }
+    let cannotWin = first >= best * CLEAR_LOSER_RATIO;
+    for (const [index, cap] of threadCaps.entries()) {
+      if (entry.patch.threads > cap) continue;
+      const capBest = capBests[index];
+      if (capBest === null || first < capBest * CLEAR_LOSER_RATIO) {
+        cannotWin = false;
+        break;
+      }
+    }
+    if (cannotWin) entry.dropped = true;
   }
 }
 export async function speedStage(context, { axes, start, items, forced, logicalCores, itemTask = null, taskWeights = null, isDone = () => false, onSweep = () => {} }) {
@@ -165,6 +192,8 @@ export async function speedStage(context, { axes, start, items, forced, logicalC
   const reference = combineRepeats(referenceRepeats);
   const profiles = taskProfiles(reference, items, itemTask);
   const keys = axisKeys(axes);
+  const half = Math.max(1, Math.floor(logicalCores / 2));
+  const quarter = Math.max(1, Math.floor(logicalCores / 4));
   let current = { ...start };
   let threadEntries = null;
   for (let pass = 1; pass <= options.passes; pass += 1) {
@@ -177,7 +206,9 @@ export async function speedStage(context, { axes, start, items, forced, logicalC
       // Interleaved: every candidate once, then every candidate again. After the first
       // round a candidate that is far slower than the best cannot win, so it is not timed again.
       for (const [round, seed] of seeds.entries()) {
-        if (round === 1 && axis.name !== "threads") dropClearLosers(candidates);
+        if (round === 1) {
+          dropClearLosers(candidates, axis.name === "threads" ? { reference, threadCaps: [half, quarter] } : {});
+        }
         for (const entry of candidates) {
           if (entry.dropped) continue;
           if (measurements.exhausted) return { current, aborted: true };
@@ -240,7 +271,5 @@ export async function speedStage(context, { axes, start, items, forced, logicalC
     if (!winner || !(winner.patch.threads <= cap)) return null;
     return { ...fastest, threads: winner.patch.threads };
   };
-  const half = Math.max(1, Math.floor(logicalCores / 2));
-  const quarter = Math.max(1, Math.floor(logicalCores / 4));
   return { current, fastest, light: threadsFor(half), quiet: threadsFor(quarter), threadsMeasured, aborted: false };
 }
