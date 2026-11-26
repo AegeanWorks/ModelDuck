@@ -51,15 +51,50 @@ test("the in-process verdict matches the sandbox for coercion and comparison", a
   ]);
 });
 
-test("calls, globals, updates, assignments and sandbox bindings keep the child path", async () => {
+test("whitelisted pure built-ins are judged in process", async () => {
+  const cases = [
+    {
+      text: "function solve(a, b) { return Math.floor(a / b); }",
+      check: { type: "jsTests", entry: "solve", cases: [{ args: [5, 2], expect: 2 }] },
+    },
+    {
+      text: "function solve(a, b) { return a > b ? 'yes' : 'no'; }",
+      check: { type: "jsTests", entry: "solve", cases: [{ args: [3, 2], expect: "yes" }] },
+    },
+    {
+      text: "function solve(s) { return s.split(' ').reverse().join(' '); }",
+      check: { type: "jsTests", entry: "solve", cases: [{ args: ["a b"], expect: "b a" }] },
+    },
+    {
+      text: "function solve(n) { return String(n) + '!'; }",
+      check: { type: "jsTests", entry: "solve", cases: [{ args: [3], expect: "3!" }] },
+    },
+    {
+      text: "function solve(s) { return s.length; }",
+      check: { type: "jsTests", entry: "solve", cases: [{ args: ["abcd"], expect: 4 }] },
+    },
+  ];
+  for (const item of cases) {
+    resetJavaScriptTestCache();
+    const beforePure = pureShortcutCount();
+    const beforeSpawn = sandboxSpawnCount();
+    const result = await runJavaScriptTests(item.text, item.check);
+    assert.deepEqual(result.map((row) => row.passed), [true]);
+    assert.equal(pureShortcutCount(), beforePure + 1, `shortcut for ${item.text}`);
+    assert.equal(sandboxSpawnCount(), beforeSpawn, `no child for ${item.text}`);
+  }
+});
+
+test("updates, assignments, arrays, unknown calls and sandbox bindings keep the child path", async () => {
   const sources = [
-    "function solve(a, b) { return Math.max(a, b); }",
-    "function solve(a, b) { return Number(a) + b; }",
     "function solve(a, b) { return a++; }",
     "function solve(a, b) { return a = b; }",
     "function solve(a, b) { return arguments[0] + b; }",
     "function solve(a, b) { return __os ? a + b : 0; }",
     "function solve(a, b) { return [a + b][0]; }",
+    "function solve(a, b) { return func(a) + b; }",
+    "function solve(a, b) { return a.constructor.name; }",
+    "function solve(a, b) { return eval('a+b'); }",
   ];
   for (const source of sources) {
     resetJavaScriptTestCache();

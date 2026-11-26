@@ -61,7 +61,7 @@ best shipped preset: 54.2% on code), or **Qwen2.5 0.5B Instruct** (469 MB) to st
 
 ### Inference engines
 
-ModelDuck tunes and serves on the fastest inference engine it can find. The device (CPU/GPU) stage of every tune first times each engine on your model, then judges them on the tune's own items. The fastest one that answers as well as the CPU is used for every later stage, named in the profile, and used when the model is loaded; if it cannot start, the in-process engine serves and the status says so.
+ModelDuck tunes and serves on the fastest inference engine it can find. The device (CPU/GPU) stage of every tune first times each engine on your model, then judges them on the tune's own items. The fastest one that answers as well as the CPU is used for every later stage, named in the profile, and used on load; if it cannot start, the in-process engine serves and the status says so.
 
 | Engine | Where it comes from |
 |---|---|
@@ -590,6 +590,7 @@ modelduck/
 │   ├── tune-budget.mjs
 │   ├── tune-failures.mjs
 │   ├── sandbox.mjs
+│   ├── pure-expression.mjs
 │   ├── tune-run.mjs
 │   ├── tune-job.mjs
 │   ├── baseline-work.mjs
