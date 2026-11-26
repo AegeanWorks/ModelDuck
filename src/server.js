@@ -646,6 +646,7 @@ export function createHttpServer({
           force: body.force === true,
           continueRun: body.continue === true,
           quick: body.quick === true,
+          quickOnly: body.quickOnly === true,
           guard: body.guard === true,
           guardQueue: body.guardQueue === true,
           // Minutes per model; the scheduler refuses anything but a sensible number.

@@ -74,7 +74,7 @@ export class TuneScheduler {
   }
 
   /** Start tuning `models` ([{ id, fileName, profileId, name }]); resolves immediately with the job. */
-  start({ models, tasks = null, stages = null, settings = null, force = false, continueRun = false, quick = false, guard = false, guardQueue = false, budgetMinutes = null }) {
+  start({ models, tasks = null, stages = null, settings = null, force = false, continueRun = false, quick = false, quickOnly = false, guard = false, guardQueue = false, budgetMinutes = null }) {
     const budget = budgetMinutes == null ? null : Number(budgetMinutes);
     if (budget !== null && !(Number.isFinite(budget) && budget > 0 && budget <= MAX_BUDGET_MINUTES)) {
       throw new AppError("The time budget must be a number of minutes", {
@@ -105,6 +105,8 @@ export class TuneScheduler {
       force: Boolean(force),
       continueRun: Boolean(continueRun),
       quick: Boolean(quick),
+      // A quick pass that is not followed by the full tune: the provisional preset is the result.
+      quickOnly: Boolean(quick) && Boolean(quickOnly),
       guard: Boolean(guard),
       guardQueue: Boolean(guardQueue),
       // Minutes each model may tune for; its processes share them (null: no limit).
@@ -313,7 +315,10 @@ export class TuneScheduler {
           const { model, item } = queue.shift();
           const ran = await this.#runChild(job, item, model, rest, "tune", forceOnce(model), false, { quick: job.quick });
           // A quick pass is saved immediately, then continued on the full rungs.
-          if (ran && job.quick && job.status === "running" && item.status !== "failed" && item.status !== "cancelled") {
+          if (ran && job.quickOnly && job.status === "running" && item.status !== "failed" && item.status !== "cancelled") {
+            pushLog(item, "Quick pass saved; it stays provisional because the full tune was not asked for. Run the tune again to finish it.");
+            this.#changed();
+          } else if (ran && job.quick && job.status === "running" && item.status !== "failed" && item.status !== "cancelled") {
             await this.#waitIfPaused(job);
             if (job.status === "running" && this.#minutesLeft(job, item) !== null && this.#minutesLeft(job, item) <= 0) {
               // Out of time: the quick preset is saved and stays provisional until a later full tune.

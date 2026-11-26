@@ -198,6 +198,31 @@ test("a quick pass saves the first rung and then continues on the full rungs", a
   assert.equal(runner.get().status, "complete");
 });
 
+test("a quick pass only stops after the first rung and keeps its preset provisional", async () => {
+  const spawn = spawner();
+  const runner = scheduler(spawn);
+  runner.start({ models: MODELS.slice(0, 1), stages: ["quality"], quick: true, quickOnly: true });
+  await settle();
+  const quick = spawn.children[0];
+  assert.ok(quick.args.includes("--quick"));
+  quick.finish(0, [{ type: "complete", phase: "tune", quick: true }]);
+  await settle();
+  assert.equal(spawn.children.length, 1, "no full continuation is started");
+  const job = runner.get();
+  assert.equal(job.status, "complete");
+  assert.equal(job.items[0].provisional, true);
+  assert.ok(job.items[0].log.some((line) => /full tune was not asked for/.test(line.text ?? line)));
+});
+test("quick pass only does nothing without a quick pass", async () => {
+  const spawn = spawner();
+  const runner = scheduler(spawn);
+  runner.start({ models: MODELS.slice(0, 1), stages: ["quality"], quickOnly: true });
+  await settle();
+  assert.equal(spawn.children[0].args.includes("--quick"), false);
+  assert.equal(runner.get().quickOnly, false);
+  spawn.children[0].finish(0);
+  await settle();
+});
 test("pause holds the queue until resume", async () => {
   const spawn = spawner();
   const runner = scheduler(spawn, { lanes: { cpu: 1, gpu: 0 } });
