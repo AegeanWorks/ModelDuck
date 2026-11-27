@@ -2464,3 +2464,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Check the distinct-setting cap before JSON.stringify and increment a process-local test counter only when a key is actually serialized
 - **Consequences**: A 20,000-row interleaved A/B over the real itemOutcomes function improved 37.635ms to 31.634ms (1.19x) with identical counts and saturation under 0.4 percent A/A drift; the isolated counting loop improved 8.162ms to 1.406ms with 20,000 to 1,600 stringifies. A failing-first test pins the 16-serialization cap, 22 outcome/restore tests pass, and the full npm suite passed 1322 with one pre-existing skip.
 - **Cross-principle check:** PRINCIPLE-003: the guard moves before the discarded serialization without changing counts, saturation or error handling; PRINCIPLE-010: 18,400 stringifies per 20,000 rows are avoided; PRINCIPLE-014: failing-first counter test, exact old/new outcome hash and full suite; G-001/G-003: generation, prompts, checks, settings and suite versions are untouched.
+
+### ADR-323: Give listProfiles stats a short TTL
+- **Date**: 2026-11-27
+- **Status**: Accepted
+- **Context**: The parsed profile summaries were cached but every UI poll still stat'ed each profile file to rebuild the directory stamp; 60 profiles meant 60 repeated stats per poll
+- **Decision**: Reuse the stat pass and per-file stamps for one second when the sorted .json name list is unchanged, keep readdir on every call so additions and removals invalidate immediately, and clear the cache on saveProfile
+- **Consequences**: A 60-profile 200-call A/B improved 215.053ms to 23.065ms (9.32x) with identical summaries and one stat pass per run instead of 60. A failing-first stat-count test plus add/remove, stamp-reuse and server tests pass, and the full npm suite passed 1323 with one pre-existing skip.
+- **Cross-principle check:** PRINCIPLE-003: readdir still detects added/removed files on every call, saveProfile invalidates immediately, and loadProfile's stale known stamp still forces a fresh read; PRINCIPLE-010: unchanged polls skip 59 of 60 stats per run; PRINCIPLE-013: the cache is process-local and bounded by directory entries; PRINCIPLE-014: failing-first counter test plus exact old/new summary comparison.

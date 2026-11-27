@@ -212,6 +212,9 @@ export async function saveProfile(directory, profile) {
   await writeJsonAtomic(file, profile);
   PROFILE_TEXT_CACHE.delete(file);
   PROFILE_SLIM_CACHE.delete(file);
+  // A saved profile must be visible on the next poll even inside the list TTL.
+  PROFILE_LIST_CACHE.delete(directory);
+  PROFILE_STAMPS.delete(directory);
 }
 
 /** Question types a task's preset answers significantly worse than the defaults (ADR-068). */
@@ -592,16 +595,24 @@ const PROFILE_LIST_CACHE = new Map();
 // Per-file stamps gathered by listProfiles, reused by loadProfile in the same
 // request so a profile is not stat'ed twice. A new listing replaces these.
 const PROFILE_STAMPS = new Map();
+// UI polls repeat the same stat pass every couple of seconds. Keep it for a
+// short TTL; added/removed files are still detected by readdir on every call.
+const PROFILE_LIST_TTL_MS = 1000;
 let profileListReads = 0;
+let profileListStatPasses = 0;
 let loadProfileStats = 0;
 export function loadProfileStatCount() {
   return loadProfileStats;
+}
+export function profileListStatCount() {
+  return profileListStatPasses;
 }
 
 export function resetProfileListCache() {
   PROFILE_LIST_CACHE.clear();
   PROFILE_STAMPS.clear();
   profileListReads = 0;
+  profileListStatPasses = 0;
   loadProfileStats = 0;
 }
 
@@ -624,6 +635,12 @@ export async function listProfiles(directory) {
     throw error;
   }
   const files = names.filter((item) => item.endsWith(".json")).sort();
+  const namesStamp = files.join("|");
+  const cached = PROFILE_LIST_CACHE.get(directory);
+  if (cached && cached.namesStamp === namesStamp && Date.now() - cached.at < PROFILE_LIST_TTL_MS) {
+    return [...cached.profiles];
+  }
+  profileListStatPasses += 1;
   const stats = await Promise.all(files.map(async (name) =>
     fs.promises.stat(path.join(directory, name)).catch(() => null)));
   const stamp = files.map((name, index) => {
@@ -638,8 +655,10 @@ export async function listProfiles(directory) {
     byId.set(name.slice(0, -5), info ? `${info.mtimeMs}:${info.size}` : null);
   });
   PROFILE_STAMPS.set(directory, byId);
-  const cached = PROFILE_LIST_CACHE.get(directory);
-  if (cached && cached.stamp === stamp) return [...cached.profiles];
+  if (cached && cached.stamp === stamp) {
+    PROFILE_LIST_CACHE.set(directory, { ...cached, at: Date.now(), namesStamp });
+    return [...cached.profiles];
+  }
   // The stamp pass above already reads these files; parse them concurrently on
   // a cache miss. Promise.all preserves the sorted order of `files`.
   const parsed = await Promise.all(files.map((name) =>
@@ -650,7 +669,7 @@ export async function listProfiles(directory) {
     profiles.push({ catalogId: profile.catalogId, createdAt: profile.createdAt, tasks: Object.keys(profile.tasks ?? {}) });
   }
   profileListReads += 1;
-  PROFILE_LIST_CACHE.set(directory, { stamp, profiles });
+  PROFILE_LIST_CACHE.set(directory, { stamp, profiles, at: Date.now(), namesStamp });
   return [...profiles];
 }
 

@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { listProfiles, profileListParses, resetProfileListCache } from "../src/model-profiles.js";
+import { listProfiles, profileListParses, profileListStatCount, resetProfileListCache } from "../src/model-profiles.js";
 
 const PROFILE = JSON.stringify({
   schema: 1, catalogId: "catalog-1", createdAt: "2026-01-01",
@@ -23,6 +23,18 @@ test("an unchanged profile directory is read once", async (t) => {
   assert.deepEqual(second, first);
   assert.equal(profileListParses(), 1);
   assert.notEqual(second, first, "callers get a copy, not the cache's array");
+});
+
+test("an unchanged profile directory skips repeat stat passes within the TTL", async (t) => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "modelduck-profile-stats-"));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  await writeFile(path.join(dir, "p1.json"), PROFILE);
+  resetProfileListCache();
+  const before = profileListStatCount();
+  assert.equal((await listProfiles(dir)).length, 1);
+  assert.equal(profileListStatCount(), before + 1);
+  assert.equal((await listProfiles(dir)).length, 1);
+  assert.equal(profileListStatCount(), before + 1, "the second poll reuses the stat pass");
 });
 
 test("adding a profile invalidates the cache", async (t) => {
