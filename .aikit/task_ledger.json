@@ -3,71 +3,6 @@
   "checkpoints": [
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Group repeated magnitudes in exact sign-flip enumeration",
-      "files_affected": [
-        "benchmarks/stats.mjs",
-        "tests/benchmark-stats.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Enumerate distinct magnitude groups with binomial weights, cutting states from 2^n to the product of group counts plus one",
-        "mitigation": "failing-first p-value equivalence test, partial-credit full-tune A/B with identical decisions, full suite and strict gates; revert on any p-value or decision change",
-        "risks": "contract: identical p-values and decisions; dependency: exact path callers; concurrency: process-local counter; state: none",
-        "why": "exactSignedSums enumerated all 2^n masks although real credit values repeat, so many masks share the same signed sum"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "3906777e282ac4dcc8d66d5761b794cc0ccd5459e9f4a263be32b0071433d7aa",
-      "status": "in_progress",
-      "task_id": "grouped-exact-sums-1177",
-      "timestamp": 1795791529.21198,
-      "timestamp_str": "2026-11-27 17:58:49",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: grouped exact sign enumeration improved three 10-round partial-credit full-tune A/Bs by 2.21x, 3.04x and 3.40x with identical decisions; 2000 randomized p-values matched the mask enumeration; full npm suite 1349 pass 0 fail 1 skip; real three-model tune gate passed 9/9 rates with zero delta",
-      "files_affected": [
-        "benchmarks/stats.mjs",
-        "tests/benchmark-stats.test.js",
-        ".aikit/decisions.md",
-        "benchmarks/history.jsonl"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/big-tune-partial-ab.mjs",
-          "baseline": 17.744,
-          "candidate": 5.221,
-          "command": "node big-tune-partial-ab.mjs",
-          "control": "identical settings, pAdjusted and sweep decisions in every round",
-          "drift": "0.5",
-          "interleaved": "yes",
-          "metric": "10-round partial-credit multi-axis grouped tune",
-          "unit": "ms",
-          "workload": "ten interleaved baseline/candidate rounds of a three-axis two-pass code tune with three checks per item"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "grouped-exact-sums-1177",
-      "timestamp": 1795792851.8588,
-      "timestamp_str": "2026-11-27 18:20:51",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "delivery": {
         "forced": false,
         "roots": [
@@ -432,6 +367,44 @@
       "task_id": "light-finalize-no-rate-1185",
       "timestamp": 1795805286.08838,
       "timestamp_str": "2026-11-27 21:48:06"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Cache exact p-values by sorted value multiset",
+      "files_affected": [
+        "benchmarks/stats.mjs",
+        "tests/benchmark-stats.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Key the exact-path p-value by sorted nonzero values and reuse it while leaving the order-sensitive Monte Carlo path untouched",
+        "mitigation": "failing-first equivalence test, partial-credit full-tune A/B with identical decisions, full suite and strict gates; revert if hit rate or gain is low",
+        "risks": "contract: identical p-values and decisions; dependency: exact path invariance; concurrency: process-local bounded cache; state: cache scoped to process",
+        "why": "the grouped exact p-value is permutation invariant, so diff vectors with the same multiset recompute the same result"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "fce61e429bc024c55a28b0609afd8ebb54f05ecdbaf9de09c6138c660373ecc7",
+      "status": "in_progress",
+      "task_id": "exact-pvalue-multiset-cache-1186",
+      "timestamp": 1795805804.91027,
+      "timestamp_str": "2026-11-27 21:56:44",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "Task 'exact-pvalue-multiset-cache-1186' abandoned: Rejected exact-pvalue-multiset-cache-1186 after measurement: caching exact p-values by sorted multiset regressed two partial-credit full-tune A/Bs (0.89x and 0.70x) with identical decisions because key construction cost more than the grouped exact computation; production files restored",
+      "phase": "abandoned",
+      "phase_num": 2,
+      "status": "abandoned",
+      "task_id": "exact-pvalue-multiset-cache-1186",
+      "timestamp": 1795806023.99236,
+      "timestamp_str": "2026-11-27 22:00:23"
     }
   ],
   "version": 1
