@@ -259,7 +259,7 @@ async function sweepCore(context, { stage, task, axis, current, rungs, forced, c
   // With one seed per rung the incumbent's settings are identical across rungs,
   // so one accumulator can carry its earlier answers forward. A screened first
   // rung uses a different seed count and must keep scoring rungs independently.
-  const rungState = screenSeeded ? null : createRungAccumulator();
+  const rungState = screenSeeded ? null : createRungAccumulator(true);
   let rungDone = 0;
   for (const [level, itemIds] of levels.entries()) {
     const levelSeeds = screenSeeded && level === 0 ? options.seeds.slice(0, 1) : options.seeds;
@@ -278,6 +278,7 @@ async function sweepCore(context, { stage, task, axis, current, rungs, forced, c
         entry.stats = await scoreSequential(measurements, settings, itemIds, levelSeeds, {
           lookAt: looks[level],
           stopSignalOnly: true,
+          lean: true,
           shouldStop: (stats) => {
             if (alphaPerLook === null || !reference?.stats) return false;
             const evidence = paired(reference.stats, stats);

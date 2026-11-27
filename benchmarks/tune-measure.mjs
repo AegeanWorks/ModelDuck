@@ -531,7 +531,12 @@ export function scoreConversionComputations() {
 }
 
 /** Mutable per-item accumulators shared by `score` and the incremental `scoreSequential`. */
-function createScoreState(ids) {
+let leanScoreBuilds = 0;
+export function leanScoreComputations() {
+  return leanScoreBuilds;
+}
+function createScoreState(ids, lean = false) {
+  if (lean) leanScoreBuilds += 1;
   // Fill each map directly: `new Map(ids.map(id => [id, 0]))` allocates an
   // intermediate array of pairs for every map, on every tuning rung.
   const zeroed = () => {
@@ -556,8 +561,9 @@ function createScoreState(ids) {
     itemPrompt: new Map(),
     itemSpeed: new Map(),
     // Work per second of wall time, prompt plus answer: what an engine that reads prompts faster is worth (ADR-159).
-    itemThroughput: new Map(),
-    digests: new Map(),
+    // The tune path never reads these two maps, so it can skip maintaining them.
+    itemThroughput: lean ? null : new Map(),
+    digests: lean ? null : new Map(),
     latencies: [],
     tokens: [],
     speeds: [],
@@ -628,14 +634,14 @@ function accumulateScore(state, prompts, usedLength, captureDigests) {
     if (Number.isFinite(prompt.outputTokens) && Number.isFinite(prompt.ms) && Number.isFinite(prompt.firstTokenMs) && prompt.ms > prompt.firstTokenMs && prompt.outputTokens > 1) {
       state.decodeSpeeds.push(((prompt.outputTokens - 1) / ((prompt.ms - prompt.firstTokenMs) / 1000)) || 0);
     }
-    if (Number.isFinite(prompt.promptTokens) && Number.isFinite(prompt.outputTokens) && Number.isFinite(prompt.ms) && prompt.ms > 0) {
+    if (itemThroughput && Number.isFinite(prompt.promptTokens) && Number.isFinite(prompt.outputTokens) && Number.isFinite(prompt.ms) && prompt.ms > 0) {
       itemThroughput.set(prompt.id, (itemThroughput.get(prompt.id) ?? 0) + (((prompt.promptTokens + prompt.outputTokens) / (prompt.ms / 1000)) / usedLength));
     }
     if (Number.isFinite(prompt.promptTokens)) {
       state.promptTokenCounts.push(prompt.promptTokens);
       itemPrompt.set(prompt.id, (itemPrompt.get(prompt.id) ?? 0) + prompt.promptTokens / usedLength);
     }
-    if (captureDigests) digests.set(prompt.id, prompt.digest ?? null);
+    if (digests && captureDigests) digests.set(prompt.id, prompt.digest ?? null);
   }
 }
 
@@ -734,14 +740,14 @@ function finalizeScore(state, itemCount, usedLength, summarize = true) {
     itemTokens: state.itemTokens,
     itemPrompt: state.itemPrompt,
     itemSpeed: state.itemSpeed,
-    itemThroughput: state.itemThroughput,
-    digests: state.digests,
+    itemThroughput: state.itemThroughput ?? new Map(),
+    digests: state.digests ?? new Map(),
   };
 }
 
-export async function score(measurements, settings, itemIds, seeds) {
+export async function score(measurements, settings, itemIds, seeds, { lean = false } = {}) {
   const used = settings.temperature > 0 ? seeds : seeds.slice(0, 1);
-  const state = createScoreState(itemIds);
+  const state = createScoreState(itemIds, lean);
   for (const seed of used) {
     const measured = await measurements.measure(settings, itemIds, seed);
     if (!measured) return null;
@@ -903,8 +909,8 @@ let rungAccumulateBuilds = 0;
 export function rungAccumulateComputations() {
   return rungAccumulateBuilds;
 }
-export function createRungAccumulator() {
-  return createScoreState([]);
+export function createRungAccumulator(lean = false) {
+  return createScoreState([], lean);
 }
 /**
  * Continue a shared incumbent accumulator over one rung. `from` is the count
@@ -935,10 +941,10 @@ export async function scoreFromAccumulator(state, measurements, settings, itemId
   };
 }
 
-export async function scoreSequential(measurements, settings, itemIds, seeds, { lookAt = null, shouldStop = null, stopSignalOnly = false } = {}) {
+export async function scoreSequential(measurements, settings, itemIds, seeds, { lookAt = null, shouldStop = null, stopSignalOnly = false, lean = false } = {}) {
   const points = [...new Set([...(lookAt ?? []), itemIds.length])].filter((point) => point > 0 && point <= itemIds.length).sort((left, right) => left - right);
   const used = settings.temperature > 0 ? seeds : seeds.slice(0, 1);
-  const state = createScoreState(points.length ? itemIds.slice(0, points[0]) : []);
+  const state = createScoreState(points.length ? itemIds.slice(0, points[0]) : [], lean);
   let stats = null;
   let done = 0;
   for (const point of points) {

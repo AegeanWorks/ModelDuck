@@ -2618,3 +2618,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Keep one score accumulator for the incumbent across rungs and finalize a snapshot of the paired-evidence containers at each rung
 - **Cross-principle check:** PRINCIPLE-003: each rung's report equals a standalone score on that prefix and decisions are identical in every A/B round; PRINCIPLE-010: earlier rung items are looped once instead of once per rung; PRINCIPLE-013: the accumulator is scoped to one sweep and screened first rungs keep independent scoring; PRINCIPLE-014: failing-first equivalence test and repeated big-tune decision A/Bs.
 - **Consequences**: Three fourteen-round big-tune A/Bs improved 1.06x to 1.17x with identical decisions every round; a failing-first equivalence test and 125 tune tests pass, as does the real three-model tune gate. Snapshotting all per-item maps regressed to 0.79x, so only the four containers read by paired evidence are copied.
+
+### ADR-343: Skip unused per-item maps in tune scoring
+- **Date**: 2026-11-27
+- **Status**: Accepted
+- **Context**: score maintained an itemThroughput map and a digests map for every tune candidate although tune.mjs reads neither
+- **Decision**: Add an opt-in lean mode to score, scoreSequential and the rung accumulator that skips those two maps while keeping every stats field the tune reads
+- **Cross-principle check:** PRINCIPLE-003: every field the tune reads is unchanged and decisions are identical in every A/B round; PRINCIPLE-010: per-prompt throughput and digest work disappears from the hot score path; PRINCIPLE-011: the default path keeps the maps for other callers; PRINCIPLE-014: failing-first counter and repeated big-tune decision A/Bs.
+- **Consequences**: Three fourteen-round big-tune A/Bs improved 1.19x, 0.99x and 1.13x with identical decisions every round; a failing-first counter test and 129 tune tests pass, as does the real three-model tune gate. Direct score callers keep the maps by default.

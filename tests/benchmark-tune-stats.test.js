@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { monteCarloDrawCount } from "../benchmarks/stats.mjs";
-import { Measurements, createRungAccumulator, derivedUpdateComputations, lightFinalizeComputations, paired, pairedClustered, rangedMeasureComputations, round, roundCacheStats, rungAccumulateComputations, score, scoreFromAccumulator, scoreSequential, sequentialAccumulateComputations } from "../benchmarks/tune-measure.mjs";
+import { Measurements, createRungAccumulator, derivedUpdateComputations, leanScoreComputations, lightFinalizeComputations, paired, pairedClustered, rangedMeasureComputations, round, roundCacheStats, rungAccumulateComputations, score, scoreFromAccumulator, scoreSequential, sequentialAccumulateComputations } from "../benchmarks/tune-measure.mjs";
 import { createSweepEvidenceCache, tune } from "../benchmarks/tune.mjs";
 
 /**
@@ -266,6 +266,25 @@ test("a rung accumulator reproduces separate scores at each growing rung", async
   assert.deepEqual(comparable(first), comparable(expectedFirst));
   assert.deepEqual(comparable(second), comparable(expectedSecond));
   assert.deepEqual(seen.map((list) => list.length), [4, 8], "only new items are evaluated per rung");
+});
+
+test("lean scoring skips maps the tune never reads", async () => {
+  const ids = Array.from({ length: 4 }, (_value, index) => `i${index}`);
+  const measurements = new Measurements(async (_settings, itemIds) => ({
+    prompts: itemIds.map((id) => ({ id, passed: 1, total: 1, ms: 10, outputTokens: 5, tokensPerSecond: 2, promptTokens: 8, firstTokenMs: 2, digest: id })),
+    memoryBytes: 100,
+  }), 100);
+  const before = leanScoreComputations();
+  const full = await score(measurements, { temperature: 0 }, ids, [42]);
+  const lean = await score(measurements, { temperature: 0 }, ids, [42], { lean: true });
+  assert.equal(leanScoreComputations(), before + 1);
+  assert.equal(full.itemThroughput.size, 4);
+  assert.equal(full.digests.size, 4);
+  assert.equal(lean.itemThroughput.size, 0);
+  assert.equal(lean.digests.size, 0);
+  const { itemLatency: _l, itemTokens: _t, itemPrompt: _p, itemSpeed: _s, itemThroughput: _h, digests: _d, majority: _m, ...a } = full;
+  const { itemLatency: _l2, itemTokens: _t2, itemPrompt: _p2, itemSpeed: _s2, itemThroughput: _h2, digests: _d2, majority: _m2, ...b } = lean;
+  assert.deepEqual(b, a);
 });
 
 test("score counts empty answers as give-ups beside truncation (lit §8)", async () => {
