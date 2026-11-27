@@ -265,6 +265,11 @@ async function sweepCore(context, { stage, task, axis, current, rungs, forced, c
   // With one seed per rung the incumbent's settings are identical across rungs,
   // so one accumulator can carry its earlier answers forward. A screened first
   // rung uses a different seed count and must keep scoring rungs independently.
+  // Axis patches are frozen objects reused across passes. Memoize the derived
+  // settings key by patch and base so a repeated patch does not re-stringify.
+  const baseKey = `${settingsKey(current)}|${settingsKey(forced ?? {})}`;
+  const settingsKeys = new WeakMap();
+  const rungKey = (itemIds, seeds) => `${itemIds.length}|${itemIds[0]}|${itemIds[itemIds.length - 1]}|${seeds.length}`;
   const rungState = screenSeeded ? null : createRungAccumulator(true);
   let rungDone = 0;
   for (const [level, itemIds] of levels.entries()) {
@@ -291,19 +296,40 @@ async function sweepCore(context, { stage, task, axis, current, rungs, forced, c
         }
       }
       else {
-        // A challenger stops at the first look where it is significantly worse than the best completed value (ADR-063).
-        entry.stats = await scoreSequential(measurements, settings, itemIds, levelSeeds, {
-          lookAt: looks[level],
-          stopSignalOnly: true,
-          lean: true,
-          shouldStop: (stats) => {
-            if (alphaPerLook === null || !reference?.stats) return false;
-            const evidence = paired(reference.stats, stats);
-            if (!(evidence.b > evidence.c && evidence.pValue / 2 <= alphaPerLook)) return false;
-            entry.stopped = { p: evidence.pValue, behind: evidence.b - evidence.c };
-            return true;
-          },
-        });
+        let byBase = settingsKeys.get(entry.patch);
+        if (!byBase) {
+          byBase = new Map();
+          settingsKeys.set(entry.patch, byBase);
+        }
+        let finalKey = byBase.get(baseKey);
+        if (finalKey === undefined) {
+          finalKey = settingsKey(settings);
+          byBase.set(baseKey, finalKey);
+        }
+        const key = `${finalKey}|${rungKey(itemIds, levelSeeds)}`;
+        const cached = context.statsCache?.get(key);
+        if (cached && !cached.partial) {
+          sweepStatsHits += 1;
+          entry.stats = cached;
+        } else {
+          // A challenger stops at the first look where it is significantly worse than the best completed value (ADR-063).
+          entry.stats = await scoreSequential(measurements, settings, itemIds, levelSeeds, {
+            lookAt: looks[level],
+            stopSignalOnly: true,
+            lean: true,
+            shouldStop: (stats) => {
+              if (alphaPerLook === null || !reference?.stats) return false;
+              const evidence = paired(reference.stats, stats);
+              if (!(evidence.b > evidence.c && evidence.pValue / 2 <= alphaPerLook)) return false;
+              entry.stopped = { p: evidence.pValue, behind: evidence.b - evidence.c };
+              return true;
+            },
+          });
+          if (entry.stats && !entry.stats.partial) {
+            sweepStatsBuilds += 1;
+            context.statsCache?.set(key, entry.stats);
+          }
+        }
       }
       if (!entry.stats) return { ...record, aborted: true, winner: null };
       const { rate, latencyMs, outputTokens, tokensPerSecond } = entry.stats;

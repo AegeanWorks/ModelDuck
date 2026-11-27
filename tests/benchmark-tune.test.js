@@ -1482,6 +1482,29 @@ test("sweeps reuse an identical settings report across axes", async () => {
   assert.equal(sweeps.length, 2);
 });
 
+test("sweeps reuse complete challenger reports by patch identity", async () => {
+  const items = ids("math", 8);
+  const before = sweepStatsCacheStats();
+  await tune({
+    evaluate: async (_settings, itemIds) => ({
+      prompts: itemIds.map((id) => ({ id, passed: 1, total: 1, ms: 10, outputTokens: 5, digest: id })),
+    }),
+    base: { temperature: 0 },
+    tasks: ["math"],
+    stages: ["sampling"],
+    rungs: { math: [items] },
+    hardware: { logicalCores: 12 },
+    qualityAxes: [],
+    speedAxes: [],
+    samplingAxes: () => [
+      { name: "level", patches: [{ level: "base" }, { level: "good" }] },
+      { name: "topP", patches: [{ topP: 0.6 }, { topP: 0.95 }] },
+    ],
+    options: { seeds: [42], passes: 2 },
+  });
+  assert.ok(sweepStatsCacheStats().hits - before.hits >= 4, "repeated frozen patches reuse their reports");
+});
+
 test("groupEvidence reuses supplied paired diffs across views", () => {
   const ids = Array.from({ length: 16 }, (_value, index) => `i${index}`);
   const before = { fractions: Object.fromEntries(ids.map((id) => [id, 1])) };

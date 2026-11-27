@@ -2634,3 +2634,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Cache finalized incumbent reports by settings, rung prefix and seed count within one tune and reuse them when the inputs match
 - **Cross-principle check:** PRINCIPLE-003: identical inputs produce the same finalized report and decisions stay unchanged in every A/B round; PRINCIPLE-010: unchanged incumbents are scored once instead of once per axis; PRINCIPLE-013: the cache is scoped to one tune context; PRINCIPLE-014: failing-first counter, cache-hit observation and repeated big-tune decision A/Bs.
 - **Consequences**: Three fourteen-round big-tune A/Bs improved 1.16x, 1.13x and 1.35x with identical decisions every round; a failing-first counter test and 130 tune tests pass, as does the real three-model tune gate. A shorter prefix key avoids joining item ids on every sweep.
+
+### ADR-345: Memoize sweep settings keys by frozen patch
+- **Date**: 2026-11-27
+- **Status**: Accepted
+- **Context**: challenger reports were skipped earlier because re-stringifying settings per challenger cost more than the few hits saved
+- **Decision**: Memoize each frozen patch's derived settings key by base settings and reuse the shared report cache for complete challenger reports
+- **Cross-principle check:** PRINCIPLE-003: identical final settings, rung and seeds produce the same report and decisions stayed unchanged in all five A/B rounds; PRINCIPLE-010: repeated challengers are scored once instead of once per pass; PRINCIPLE-011: partial reports keep their own stop semantics and are never reused; PRINCIPLE-014: failing-first counter and repeated big-tune decision A/Bs.
+- **Consequences**: Five fourteen-round big-tune A/Bs ranged 1.01x to 1.38x with identical decisions every round; a failing-first counter test and 131 tune tests pass, as does the real three-model tune gate. Partial reports are never reused.
