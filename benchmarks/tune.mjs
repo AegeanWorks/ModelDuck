@@ -268,6 +268,7 @@ async function sweepCore(context, { stage, task, axis, current, rungs, forced, c
         // A challenger stops at the first look where it is significantly worse than the best completed value (ADR-063).
         entry.stats = await scoreSequential(measurements, settings, itemIds, levelSeeds, {
           lookAt: looks[level],
+          stopSignalOnly: true,
           shouldStop: (stats) => {
             if (alphaPerLook === null || !reference?.stats) return false;
             const evidence = paired(reference.stats, stats);

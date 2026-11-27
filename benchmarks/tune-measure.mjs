@@ -644,12 +644,51 @@ function updateDerived(state, itemIds, from, to) {
   }
 }
 
-function finalizeScore(state, itemIds, usedLength) {
+let lightFinalizeBuilds = 0;
+export function lightFinalizeComputations() {
+  return lightFinalizeBuilds;
+}
+function finalizeScore(state, itemIds, usedLength, summarize = true) {
   const { fractions, latencies, tokens, speeds, promptTokenCounts, prefillSpeeds, decodeSpeeds } = state;
   const passed = [...fractions.values()].reduce((sum, value) => sum + value, 0);
   // Fractional solved count (seed-averaged) for a rounding-free tolerance (D4):
   // one item lost by majority at 3 seeds counts as 0.67 items, not as a rounded point.
   const solved = Math.round(passed * 1000) / 1000;
+  if (!summarize) {
+    // Intermediate early-stop looks only read paired pass evidence. The six
+    // medians and the spread are omitted here and rebuilt if the look stops.
+    lightFinalizeBuilds += 1;
+    return {
+      rate: itemIds.length ? round((passed / itemIds.length) * 100) : 0,
+      solved,
+      ci95: wilson(passed, itemIds.length),
+      latencyMs: null,
+      latencySd: null,
+      outputTokens: null,
+      tokensPerSecond: null,
+      truncationRate: null,
+      giveUpRate: null,
+      promptTokens: null,
+      prefillTps: null,
+      decodeTps: null,
+      items: itemIds.length,
+      seeds: usedLength,
+      memoryBytes: state.memoryBytes,
+      ...(state.gpuVram !== undefined && { gpuVram: state.gpuVram }),
+      failed: state.errors === itemIds.length * usedLength,
+      error: state.firstError,
+      majority: state.majority,
+      outcomes: state.outcomes,
+      fractions: state.fractionsPlain,
+      credit: state.creditPlain,
+      itemLatency: state.itemLatency,
+      itemTokens: state.itemTokens,
+      itemPrompt: state.itemPrompt,
+      itemSpeed: state.itemSpeed,
+      itemThroughput: state.itemThroughput,
+      digests: state.digests,
+    };
+  }
   return {
     // No items is a zero rate, not NaN: an empty rung must compare and report, never poison ordering.
     rate: itemIds.length ? round((passed / itemIds.length) * 100) : 0,
@@ -846,7 +885,7 @@ export function sequentialAccumulateComputations() {
   return sequentialAccumulateBuilds;
 }
 
-export async function scoreSequential(measurements, settings, itemIds, seeds, { lookAt = null, shouldStop = null } = {}) {
+export async function scoreSequential(measurements, settings, itemIds, seeds, { lookAt = null, shouldStop = null, stopSignalOnly = false } = {}) {
   const points = [...new Set([...(lookAt ?? []), itemIds.length])].filter((point) => point > 0 && point <= itemIds.length).sort((left, right) => left - right);
   const used = settings.temperature > 0 ? seeds : seeds.slice(0, 1);
   const state = createScoreState(points.length ? itemIds.slice(0, points[0]) : []);
@@ -869,9 +908,10 @@ export async function scoreSequential(measurements, settings, itemIds, seeds, { 
       updateDerived(state, itemIds, from, point);
       done = point;
     }
-    stats = finalizeScore(state, prefix, used.length);
+    const intermediate = point !== itemIds.length && stopSignalOnly;
+    stats = finalizeScore(state, prefix, used.length, !intermediate);
     if (point === itemIds.length) break;
-    if (shouldStop?.(stats, point)) return { ...stats, partial: true };
+    if (shouldStop?.(stats, point)) return { ...finalizeScore(state, prefix, used.length), partial: true };
   }
   return stats;
 }

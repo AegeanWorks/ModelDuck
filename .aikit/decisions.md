@@ -2594,3 +2594,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Keep the four derived maps in the score accumulator and update only the items reached by each look
 - **Cross-principle check:** PRINCIPLE-003: the same fraction/credit values and rounding produce identical per-item objects and an identical sequential hash; PRINCIPLE-010: per-item derived values are written once instead of once per look; PRINCIPLE-013: derived maps are scoped to one score accumulator; PRINCIPLE-014: failing-first counter, exact hash/accounting A/B and big-tune decision A/B.
 - **Consequences**: A twelve-pair interleaved A/B over 20 sequential scores improved 4.769ms to 3.978ms (1.20x) with an identical stats hash and measurement count; a fourteen-round big-tune A/B improved 5.886ms to 4.914ms (1.198x) with identical decisions per round. A failing-first counter and 125 tune tests pass, as does the real three-model tune gate.
+
+### ADR-340: Skip unused summaries at intermediate stop looks
+- **Date**: 2026-11-27
+- **Status**: Accepted
+- **Context**: scoreSequential computed six medians and a spread at every look although sweepCore's early-stop guard only reads paired pass evidence
+- **Decision**: Add an opt-in light finalize for intermediate looks that omits the unused summaries and rebuilds the full report only when a candidate stops or finishes
+- **Cross-principle check:** PRINCIPLE-003: the guard reads only paired pass evidence and a stopped look is rebuilt in full, so final stats and decisions are unchanged; PRINCIPLE-010: six medians and a spread are skipped on looks that cannot use them; PRINCIPLE-013: the light flag is opt-in so external callers keep full reports; PRINCIPLE-014: failing-first counter, exact hash/accounting A/B and repeated big-tune decision A/Bs.
+- **Consequences**: A twelve-pair interleaved A/B over 20 sequential scores improved 3.923ms to 3.399ms (1.15x) with an identical stats hash and measurement count; two fourteen-round big-tune A/Bs improved about 1.10x with identical decisions per round. A failing-first counter and 126 tune tests pass, as does the real three-model tune gate.

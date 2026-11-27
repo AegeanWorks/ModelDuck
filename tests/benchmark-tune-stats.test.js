@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { monteCarloDrawCount } from "../benchmarks/stats.mjs";
-import { Measurements, derivedUpdateComputations, paired, pairedClustered, round, roundCacheStats, score, scoreSequential, sequentialAccumulateComputations } from "../benchmarks/tune-measure.mjs";
+import { Measurements, derivedUpdateComputations, lightFinalizeComputations, paired, pairedClustered, round, roundCacheStats, score, scoreSequential, sequentialAccumulateComputations } from "../benchmarks/tune-measure.mjs";
 import { createSweepEvidenceCache, tune } from "../benchmarks/tune.mjs";
 
 /**
@@ -189,6 +189,36 @@ test("sequential scoring updates derived per-item objects once per new item", as
   assert.deepEqual(stats.outcomes, Object.fromEntries(ids.map((id) => [id, 1])));
   assert.deepEqual(stats.fractions, Object.fromEntries(ids.map((id) => [id, 1])));
   assert.deepEqual([...stats.majority], ids.map((id) => [id, true]));
+});
+
+test("scoreSequential can skip unused summaries at intermediate looks", async () => {
+  const ids = Array.from({ length: 12 }, (_value, index) => `i${index}`);
+  const measurements = new Measurements(async (_settings, itemIds) => ({
+    prompts: itemIds.map((id) => ({ id, passed: 1, total: 1, ms: 10, outputTokens: 5, tokensPerSecond: 2, digest: id })),
+    memoryBytes: 100,
+  }), 100);
+  const before = lightFinalizeComputations();
+  const stops = [];
+  const stats = await scoreSequential(measurements, { temperature: 0 }, ids, [42], {
+    lookAt: [4, 8],
+    stopSignalOnly: true,
+    shouldStop: (value, point) => {
+      stops.push({ point, latencyMs: value.latencyMs });
+      return false;
+    },
+  });
+  assert.equal(lightFinalizeComputations(), before + 2, "the two intermediate looks used the light path");
+  assert.deepEqual(stops.map((entry) => entry.latencyMs), [null, null]);
+  assert.equal(stats.latencyMs, 10, "the final report still has every summary");
+  assert.equal(stats.rate, 100);
+
+  const stopped = await scoreSequential(measurements, { temperature: 0 }, ids, [42], {
+    lookAt: [4, 8],
+    stopSignalOnly: true,
+    shouldStop: (_value, point) => point === 8,
+  });
+  assert.equal(stopped.partial, true);
+  assert.equal(stopped.latencyMs, 10, "a stopped report is rebuilt in full");
 });
 
 test("score counts empty answers as give-ups beside truncation (lit §8)", async () => {
