@@ -815,15 +815,53 @@ export function pairedDiffs(before, after) {
  * magnitudes matter; with majority votes only it reduces to exact McNemar
  * (identical for binary differences).
  */
-export function paired(before, after) {
-  const diffs = pairedDiffs(before, after);
+let pairedValueBuilds = 0;
+export function pairedValueComputations() {
+  return pairedValueBuilds;
+}
+/** The same richest-signal choice as pairedDiffs, but without the item ids. */
+function pairedValues(before, after) {
+  if (DIAGNOSTICS) {
+    pairedDiffBuilds += 1;
+    pairedDiffScanBuilds += 1;
+    pairedValueBuilds += 1;
+  }
+  const values = [];
   let b = 0;
   let c = 0;
-  for (const { diff } of diffs) {
-    if (diff < 0) b += 1;
-    else c += 1;
+  if (before.credit && after.credit) {
+    for (const [id, base] of Object.entries(before.credit)) {
+      if (!(id in after.credit)) continue;
+      const diff = after.credit[id] - base;
+      if (diff === 0) continue;
+      values.push(diff);
+      if (diff < 0) b += 1;
+      else c += 1;
+    }
+  } else if (before.fractions && after.fractions) {
+    for (const [id, base] of Object.entries(before.fractions)) {
+      if (!(id in after.fractions)) continue;
+      const diff = after.fractions[id] - base;
+      if (diff === 0) continue;
+      values.push(diff);
+      if (diff < 0) b += 1;
+      else c += 1;
+    }
+  } else {
+    for (const [id, passed] of before.majority) {
+      if (!after.majority.has(id)) continue;
+      const diff = Number(Boolean(after.majority.get(id))) - Number(Boolean(passed));
+      if (diff === 0) continue;
+      values.push(diff);
+      if (diff < 0) b += 1;
+      else c += 1;
+    }
   }
-  return { b, c, pValue: round(signFlipPValue(diffs.map(({ diff }) => diff)), 4) };
+  return { values, b, c };
+}
+export function paired(before, after) {
+  const { values, b, c } = pairedValues(before, after);
+  return { b, c, pValue: round(signFlipPValue(values), 4) };
 }
 
 /**

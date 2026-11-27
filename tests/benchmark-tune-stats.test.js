@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { monteCarloDrawCount } from "../benchmarks/stats.mjs";
-import { Measurements, createRungAccumulator, derivedUpdateComputations, leanScoreComputations, lightFinalizeComputations, paired, pairedClustered, rangedMeasureComputations, round, roundCacheStats, rungAccumulateComputations, score, scoreFromAccumulator, scoreSequential, sequentialAccumulateComputations } from "../benchmarks/tune-measure.mjs";
+import { monteCarloDrawCount, signFlipPValue } from "../benchmarks/stats.mjs";
+import { Measurements, createRungAccumulator, derivedUpdateComputations, leanScoreComputations, lightFinalizeComputations, paired, pairedClustered, pairedDiffs, pairedValueComputations, rangedMeasureComputations, round, roundCacheStats, rungAccumulateComputations, score, scoreFromAccumulator, scoreSequential, sequentialAccumulateComputations } from "../benchmarks/tune-measure.mjs";
 import { createSweepEvidenceCache, tune } from "../benchmarks/tune.mjs";
 
 /**
@@ -72,6 +72,29 @@ test("a real ten-point gain is usually chosen (V2)", async () => {
     if ((await sweep({ gain: 10, seed })) === "good") wins += 1;
   }
   assert.ok(wins / sims >= 0.5, `+10pt detection ${wins}/${sims} collapsed below the 50% guard`);
+});
+
+test("paired() builds values directly and matches the object-based evidence", () => {
+  const ids = Array.from({ length: 16 }, (_value, index) => `i${index}`);
+  const before = { credit: Object.fromEntries(ids.map((id) => [id, 1])) };
+  const after = { credit: Object.fromEntries(ids.map((id, index) => [id, index % 3 === 0 ? 0 : index % 3 === 1 ? 0.5 : 1])) };
+  const diffs = pairedDiffs(before, after);
+  const expected = {
+    b: diffs.filter(({ diff }) => diff < 0).length,
+    c: diffs.filter(({ diff }) => diff >= 0).length,
+    pValue: round(signFlipPValue(diffs.map(({ diff }) => diff)), 4),
+  };
+  const beforeBuilds = pairedValueComputations();
+  assert.deepEqual(paired(before, after), expected);
+  assert.equal(pairedValueComputations(), beforeBuilds + 1, "the values-only path was used");
+  // Majority-only inputs take the third source branch with identical results.
+  const majorityBefore = { majority: new Map(ids.map((id) => [id, true])) };
+  const majorityAfter = { majority: new Map(ids.map((id, index) => [id, index >= 4])) };
+  assert.deepEqual(paired(majorityBefore, majorityAfter), {
+    b: 4,
+    c: 0,
+    pValue: round(signFlipPValue([-1, -1, -1, -1]), 4),
+  });
 });
 
 test("paired() uses seed fractions a majority vote cannot see (S2)", async () => {

@@ -2722,3 +2722,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Separate less, equal and greater values in one Dutch-flag pass so the rank inside the equal class stops selection immediately
 - **Cross-principle check:** PRINCIPLE-003: 20000 randomized arrays give bit-identical medians and every A/B round keeps identical decision hashes; PRINCIPLE-010: one partition pass replaces repeated swaps of equal values; PRINCIPLE-014: failing-first counter test plus randomized equivalence and decision A/Bs.
 - **Consequences**: A 20000-array randomized equivalence probe and a failing-first counter test pass, as does the real three-model tune gate; seven partial-credit full-tune A/Bs had a median speedup near 1.073x with identical decision hashes in every round.
+
+### ADR-356: Build paired difference values without id objects
+- **Date**: 2026-11-28
+- **Status**: Accepted
+- **Context**: paired() built [{id,diff}] objects only to map them straight back to a values array for the sign-flip test; a values-only pass counts b/c and collects the array without per-item object allocation
+- **Decision**: Add a values-only paired scan that keeps pairedDiffs' signal precedence and returns b/c with the values array directly
+- **Cross-principle check:** PRINCIPLE-003: the failing-first test compares b/c and p-values against pairedDiffs on credit, fractions and majority inputs; PRINCIPLE-010: one object allocation per differing item disappears; PRINCIPLE-014: equivalence test plus repeated decision A/Bs.
+- **Consequences**: A failing-first equivalence test and 145 targeted tests pass, as does the real three-model tune gate; eight partial-credit full-tune A/Bs had a median speedup near 1.021x with identical decision hashes in every round (one outlier regression under sustained load).
