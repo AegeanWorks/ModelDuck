@@ -50,7 +50,7 @@ export function resetOverviewProfileReads() {
 import { TunedSettings, diffSettings } from "./tuned-settings.js";
 import { EngineRebuildLease, reloadFingerprint } from "./settings-reload.js";
 import { readSteps, writeSteps } from "./tune-steps.js";
-import { DEFAULT_STEPS, estimateTune, expectedAnswers, settingNames } from "../benchmarks/tune-grid.mjs";
+import { createTuneEstimator, DEFAULT_STEPS, estimateTune, settingNames } from "../benchmarks/tune-grid.mjs";
 import { STAGES } from "../benchmarks/tune.mjs";
 import { handleOpenAI } from "./openai.js";
 import { resolveHuggingFaceReference } from "./hf-reference.js";
@@ -689,6 +689,7 @@ export function createHttpServer({
       const logicalCores = systemInfo().parallelism;
       const installed = registry.listPublic();
       const paces = tuneRunsDir ? await answerPaceByProfile(tuneRunsDir) : new Map();
+      const estimator = createTuneEstimator(result.steps, { logicalCores, tasks, stages, only });
       const perModel = installed.map((model) => {
         const profileId = profileIdFor(model.fileName);
         const pace = paces.get(profileId) ?? null;
@@ -696,17 +697,22 @@ export function createHttpServer({
         const seconds = pace?.secondsPerAnswer ?? 3;
         const low = pace?.low ?? seconds;
         const high = pace?.high ?? seconds;
-        const estimate = (quick, secondsPerAnswer) => ({ answersPerModel: expectedAnswers(result.steps, { logicalCores, tasks, stages, only, quick }), estimate: estimateTune(result.steps, { logicalCores, tasks, stages, only, secondsPerAnswer, quick }) });
+        const quickMid = estimator.estimate(true, seconds);
+        const fullMid = estimator.estimate(false, seconds);
+        const quickLow = estimator.estimate(true, low);
+        const quickHigh = estimator.estimate(true, high);
+        const fullLow = estimator.estimate(false, low);
+        const fullHigh = estimator.estimate(false, high);
         return {
           id: model.id,
           name: model.name,
           profileId,
           pace,
-          quick: { ...estimate(true, seconds), lowSeconds: Math.min(estimate(true, low).estimate.onePassSeconds, estimate(true, high).estimate.onePassSeconds), highSeconds: Math.max(estimate(true, low).estimate.onePassSeconds, estimate(true, high).estimate.onePassSeconds) },
-          full: { ...estimate(false, seconds), lowSeconds: Math.min(estimate(false, low).estimate.onePassSeconds, estimate(false, high).estimate.onePassSeconds), highSeconds: Math.max(estimate(false, low).estimate.onePassSeconds, estimate(false, high).estimate.onePassSeconds) },
+          quick: { ...quickMid, lowSeconds: Math.min(quickLow.estimate.onePassSeconds, quickHigh.estimate.onePassSeconds), highSeconds: Math.max(quickLow.estimate.onePassSeconds, quickHigh.estimate.onePassSeconds) },
+          full: { ...fullMid, lowSeconds: Math.min(fullLow.estimate.onePassSeconds, fullHigh.estimate.onePassSeconds), highSeconds: Math.max(fullLow.estimate.onePassSeconds, fullHigh.estimate.onePassSeconds) },
         };
       });
-      const quick = perModel[0]?.quick ?? { answersPerModel: expectedAnswers(result.steps, { logicalCores, tasks, stages, only, quick: true }), estimate: estimateTune(result.steps, { logicalCores, tasks, stages, only, quick: true }) };
+      const quick = perModel[0]?.quick ?? estimator.estimate(true, 3);
       sendJson(res, 200, {
         tasks,
         stages,
@@ -714,8 +720,8 @@ export function createHttpServer({
         logicalCores,
         models: perModel.length,
         perModel,
-        answersPerModel: perModel[0]?.full.answersPerModel ?? expectedAnswers(result.steps, { logicalCores, tasks, stages, only }),
-        estimate: perModel[0]?.full.estimate ?? estimateTune(result.steps, { logicalCores, tasks, stages, only }),
+        answersPerModel: perModel[0]?.full.answersPerModel ?? estimator.estimate(false, 3).answersPerModel,
+        estimate: perModel[0]?.full.estimate ?? estimator.estimate(false, 3).estimate,
         quick,
       });
       return;

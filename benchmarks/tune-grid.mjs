@@ -579,6 +579,37 @@ export function expectedAnswers(steps, { logicalCores = 8, tasks = ["code", "com
   return total;
 }
 
+/**
+ * Memoize the model-independent estimate work for one request. The tune
+ * estimate route asks for the same few combinations once per installed model;
+ * `steps` and the non-pace options are fixed for the helper's lifetime.
+ */
+export function createTuneEstimator(steps, {
+  logicalCores = 8,
+  tasks = ["code", "comprehension", "recall"],
+  stages = ["device", "quality", "speed", "sampling", "prompt"],
+  only = null,
+  seeds = 3,
+  reloadSeconds = 5,
+} = {}) {
+  const cache = new Map();
+  let computations = 0;
+  const estimate = (quick = false, secondsPerAnswer = 3) => {
+    const key = JSON.stringify([logicalCores, tasks, stages, only, seeds, reloadSeconds, quick, secondsPerAnswer]);
+    const cached = cache.get(key);
+    if (cached !== undefined) return cached;
+    computations += 1;
+    const options = { logicalCores, tasks, stages, only, seeds, reloadSeconds, secondsPerAnswer, quick };
+    const value = {
+      answersPerModel: expectedAnswers(steps, options),
+      estimate: estimateTune(steps, options),
+    };
+    cache.set(key, value);
+    return value;
+  };
+  return { estimate, stats: () => ({ size: cache.size, computations }) };
+}
+
 /** "about 25 min left" from the pace so far; null before the first answer, and no number past the estimate. */
 export function timeLeft({ answers, expected, elapsedMs }) {
   if (!(answers > 0) || !(elapsedMs > 0)) return null;

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { promptAxes } from "../benchmarks/tune-grid.mjs";
+import { createTuneEstimator, DEFAULT_STEPS, promptAxes } from "../benchmarks/tune-grid.mjs";
 import { Measurements } from "../benchmarks/tune-measure.mjs";
 import { predictWeightedMs, speedStage, taskProfiles } from "../benchmarks/tune-speed.mjs";
 import { groupEvidence, measurePresets, tune } from "../benchmarks/tune.mjs";
@@ -1758,4 +1758,16 @@ test("thread pruning keeps a slower quality-preserving candidate for Light and Q
   assert.equal(speed.fastest.threads, 8);
   assert.equal(speed.light.threads, 2);
   assert.equal(speed.quiet.threads, 2);
+});
+
+test("createTuneEstimator computes each distinct estimate once", () => {
+  const estimator = createTuneEstimator(DEFAULT_STEPS, { logicalCores: 8, tasks: ["code"], only: null });
+  const quick = estimator.estimate(true, 3);
+  assert.deepEqual(estimator.estimate(true, 3), quick);
+  assert.equal(estimator.stats().computations, 1, "the same quick estimate is reused");
+  const full = estimator.estimate(false, 3);
+  assert.notDeepEqual(full, quick);
+  assert.equal(estimator.stats().computations, 2, "a different quick flag computes again");
+  assert.deepEqual(estimator.estimate(false, 2), estimator.estimate(false, 2));
+  assert.equal(estimator.stats().computations, 3, "a different pace computes once");
 });
