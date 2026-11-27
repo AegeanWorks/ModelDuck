@@ -2610,3 +2610,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Pass the whole rung with half-open range bounds to measure, which evaluates and returns only that range while accounting reuse against the full prefix
 - **Consequences**: A twelve-pair interleaved A/B over 20 sequential scores improved 2.212ms to 1.634ms (1.35x) with an identical stats hash and measurement count; three fourteen-round big-tune A/Bs were noisy with a median near 1.09x and identical decisions per round. A failing-first counter and 127 tune tests pass, as does the real three-model tune gate.
 - **Cross-principle check:** PRINCIPLE-003: ranges select the same items as sliced prefixes and reuse accounting uses the full prefix length, verified by an identical stats hash and measurement count; PRINCIPLE-010: prefix/prompt slice allocations disappear from every look; PRINCIPLE-013: range bounds are plain arguments; PRINCIPLE-014: failing-first counter, exact hash/accounting A/B and repeated big-tune decision A/Bs.
+
+### ADR-342: Carry the incumbent's score across rungs
+- **Date**: 2026-11-27
+- **Status**: Accepted
+- **Context**: sweepCore scored the incumbent from scratch at each growing rung, re-looping the first items although their answers were cached
+- **Decision**: Keep one score accumulator for the incumbent across rungs and finalize a snapshot of the paired-evidence containers at each rung
+- **Cross-principle check:** PRINCIPLE-003: each rung's report equals a standalone score on that prefix and decisions are identical in every A/B round; PRINCIPLE-010: earlier rung items are looped once instead of once per rung; PRINCIPLE-013: the accumulator is scoped to one sweep and screened first rungs keep independent scoring; PRINCIPLE-014: failing-first equivalence test and repeated big-tune decision A/Bs.
+- **Consequences**: Three fourteen-round big-tune A/Bs improved 1.06x to 1.17x with identical decisions every round; a failing-first equivalence test and 125 tune tests pass, as does the real three-model tune gate. Snapshotting all per-item maps regressed to 0.79x, so only the four containers read by paired evidence are copied.

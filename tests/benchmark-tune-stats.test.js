@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { monteCarloDrawCount } from "../benchmarks/stats.mjs";
-import { Measurements, derivedUpdateComputations, lightFinalizeComputations, paired, pairedClustered, rangedMeasureComputations, round, roundCacheStats, score, scoreSequential, sequentialAccumulateComputations } from "../benchmarks/tune-measure.mjs";
+import { Measurements, createRungAccumulator, derivedUpdateComputations, lightFinalizeComputations, paired, pairedClustered, rangedMeasureComputations, round, roundCacheStats, rungAccumulateComputations, score, scoreFromAccumulator, scoreSequential, sequentialAccumulateComputations } from "../benchmarks/tune-measure.mjs";
 import { createSweepEvidenceCache, tune } from "../benchmarks/tune.mjs";
 
 /**
@@ -237,6 +237,35 @@ test("sequential scoring measures half-open rung ranges", async () => {
   assert.deepEqual(measuredRanges, [4, 4, 4], "only newly reached items are evaluated, not sliced prefixes");
   assert.equal(stats.rate, 100);
   assert.equal(measurements.reusedRows, 12, "reuse accounting still counts cached prefix items");
+});
+
+test("a rung accumulator reproduces separate scores at each growing rung", async () => {
+  const ids = Array.from({ length: 12 }, (_value, index) => `i${index}`);
+  const seen = [];
+  const measurements = new Measurements(async (_settings, itemIds) => {
+    seen.push(itemIds.slice());
+    return {
+      prompts: itemIds.map((id) => {
+        const index = Number(id.slice(1));
+        return { id, passed: index % 5 === 0 ? 0 : 1, total: 1, ms: 10 + index, outputTokens: 5, tokensPerSecond: 2, promptTokens: 8, firstTokenMs: 2, digest: id };
+      }),
+      memoryBytes: 100,
+    };
+  }, 100);
+  const state = createRungAccumulator();
+  const before = rungAccumulateComputations();
+  const first = await scoreFromAccumulator(state, measurements, { temperature: 0 }, ids, 0, 4, [42]);
+  const second = await scoreFromAccumulator(state, measurements, { temperature: 0 }, ids, 4, 12, [42]);
+  assert.ok(rungAccumulateComputations() > before, "both rungs use the accumulator");
+  const expectedFirst = await score(measurements, { temperature: 0 }, ids.slice(0, 4), [42]);
+  const expectedSecond = await score(measurements, { temperature: 0 }, ids, [42]);
+  const comparable = (stats) => {
+    const { itemLatency: _l, itemTokens: _t, itemPrompt: _p, itemSpeed: _s, itemThroughput: _h, digests: _d, ...summary } = stats;
+    return summary;
+  };
+  assert.deepEqual(comparable(first), comparable(expectedFirst));
+  assert.deepEqual(comparable(second), comparable(expectedSecond));
+  assert.deepEqual(seen.map((list) => list.length), [4, 8], "only new items are evaluated per rung");
 });
 
 test("score counts empty answers as give-ups beside truncation (lit §8)", async () => {

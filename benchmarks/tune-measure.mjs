@@ -899,6 +899,42 @@ export function sequentialAccumulateComputations() {
   return sequentialAccumulateBuilds;
 }
 
+let rungAccumulateBuilds = 0;
+export function rungAccumulateComputations() {
+  return rungAccumulateBuilds;
+}
+export function createRungAccumulator() {
+  return createScoreState([]);
+}
+/**
+ * Continue a shared incumbent accumulator over one rung. `from` is the count
+ * already accumulated; `to` is the new rung size. The same settings object is
+ * reused across rungs, so the measurement cache still holds earlier answers.
+ */
+export async function scoreFromAccumulator(state, measurements, settings, itemIds, from, to, seeds) {
+  rungAccumulateBuilds += 1;
+  const used = settings.temperature > 0 ? seeds : seeds.slice(0, 1);
+  extendScoreState(state, itemIds, from, to);
+  for (const seed of used) {
+    const measured = await measurements.measure(settings, itemIds, seed, { from, to });
+    if (!measured) return null;
+    noteMemory(state, measured);
+    accumulateScore(state, measured.prompts, used.length, seed === used[0]);
+  }
+  updateDerived(state, itemIds, from, to);
+  const stats = finalizeScore(state, to, used.length);
+  if (!stats) return null;
+  // The accumulator keeps being extended by later rungs; each rung's report
+  // must own the containers that paired comparisons read at that point.
+  return {
+    ...stats,
+    majority: new Map(stats.majority),
+    outcomes: { ...stats.outcomes },
+    fractions: { ...stats.fractions },
+    credit: { ...stats.credit },
+  };
+}
+
 export async function scoreSequential(measurements, settings, itemIds, seeds, { lookAt = null, shouldStop = null, stopSignalOnly = false } = {}) {
   const points = [...new Set([...(lookAt ?? []), itemIds.length])].filter((point) => point > 0 && point <= itemIds.length).sort((left, right) => left - right);
   const used = settings.temperature > 0 ? seeds : seeds.slice(0, 1);

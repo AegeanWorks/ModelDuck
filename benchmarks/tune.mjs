@@ -5,7 +5,7 @@ import {
   speedAxes as defaultSpeedAxes,
   isValidCombination,
 } from "./tune-grid.mjs";
-import { Measurements, axisKeys, candidatesFor, costDelta, lookPoints, paired, pairedClustered, pairedDiffs, pick, publicStats, round, score, scoreSequential, solvedCount } from "./tune-measure.mjs";
+import { Measurements, axisKeys, candidatesFor, costDelta, createRungAccumulator, lookPoints, paired, pairedClustered, pairedDiffs, pick, publicStats, round, score, scoreFromAccumulator, scoreSequential, solvedCount } from "./tune-measure.mjs";
 import { DEFAULT_ADAPTIVE, ItemInformation, promisingChallengers } from "./tune-adaptive.mjs";
 import { deviceStage } from "./tune-device.mjs";
 import { holm, mcnemarExact, mcnemarOneSided, signFlipOneSided } from "./stats.mjs";
@@ -256,6 +256,11 @@ async function sweepCore(context, { stage, task, axis, current, rungs, forced, c
   // Above temperature 0 the first rung screens with one seed and decides with all of them (G1):
   // screening is where most answers go, and one seed is enough to drop the hopeless.
   const screenSeeded = (current.temperature ?? 0) > 0 && options.seeds.length > 1 && !axis.full;
+  // With one seed per rung the incumbent's settings are identical across rungs,
+  // so one accumulator can carry its earlier answers forward. A screened first
+  // rung uses a different seed count and must keep scoring rungs independently.
+  const rungState = screenSeeded ? null : createRungAccumulator();
+  let rungDone = 0;
   for (const [level, itemIds] of levels.entries()) {
     const levelSeeds = screenSeeded && level === 0 ? options.seeds.slice(0, 1) : options.seeds;
     // The current setting answers first, so every challenger is compared with a complete reference.
@@ -263,7 +268,11 @@ async function sweepCore(context, { stage, task, axis, current, rungs, forced, c
     let reference = ordered.find((entry) => entry.incumbent) ?? null;
     for (const entry of ordered) {
       const settings = { ...current, ...entry.patch, ...forced };
-      if (entry.incumbent) entry.stats = await score(measurements, settings, itemIds, levelSeeds);
+      if (entry.incumbent) {
+        entry.stats = rungState
+          ? await scoreFromAccumulator(rungState, measurements, settings, itemIds, rungDone, itemIds.length, levelSeeds)
+          : await score(measurements, settings, itemIds, levelSeeds);
+      }
       else {
         // A challenger stops at the first look where it is significantly worse than the best completed value (ADR-063).
         entry.stats = await scoreSequential(measurements, settings, itemIds, levelSeeds, {
@@ -303,6 +312,7 @@ async function sweepCore(context, { stage, task, axis, current, rungs, forced, c
       }))];
       survivors = ordered.filter((entry) => !entry.stats.partial);
     }
+    if (rungState) rungDone = itemIds.length;
     if (level === levels.length - 1) break;
     // Nothing left to compare with: the sweep ends here instead of answering later rungs.
     if (survivors.length === 1 && survivors[0].incumbent) {
