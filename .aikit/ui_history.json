@@ -4875,5 +4875,35 @@
     "surface": "app",
     "surface_digest": "93d1eb1167b9980b92e8c63e0f2bf45b530a8d50e10dec370a986c0e7993efed",
     "visual_change": true
+  },
+  {
+    "allowed_removals": [],
+    "allowed_tests": [],
+    "baseline_commit": "bae84e6",
+    "baseline_digest": "93d1eb1167b9980b92e8c63e0f2bf45b530a8d50e10dec370a986c0e7993efed",
+    "changed_paths": [],
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "finished_at": 1795742999.7757,
+    "mode": "visual",
+    "no_change_reason": "Profile-list stat TTL is server-side only; no visual surface changed",
+    "no_visual_reason": "",
+    "review": {
+      "reviewed_at": 1795742999.77568,
+      "reviewer": "agent:opencode",
+      "snapshot_digest": "",
+      "snapshot_entries": 0,
+      "surface": "app",
+      "surface_digest": "8d211ba30619cc50319d4e2783ccf849a8991ed561920315c4ff0bc6ef1f2429",
+      "visual": true
+    },
+    "reviewer": "agent:opencode",
+    "schema": 1,
+    "started_at": 1795742927.43207,
+    "strikes": 0,
+    "surface": "app",
+    "surface_digest": "8d211ba30619cc50319d4e2783ccf849a8991ed561920315c4ff0bc6ef1f2429",
+    "visual_change": true
   }
 ]

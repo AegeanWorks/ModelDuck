@@ -1,17 +1,17 @@
 {
   "active_task": {
     "active_phase": 5,
-    "completed_at": 1795742417.2776,
-    "completed_head": "194d85310626c21f7d0d390b62633e0f145666b2",
-    "completed_tree": "91709f59be4e69f86541f1291ec8423ff3c5c214",
+    "completed_at": 1795743015.35758,
+    "completed_head": "3d447d7b4add03fdff1af2770eab849ca1c7a702",
+    "completed_tree": "f773bdb03c9aa6952bb3716cf7dbc0c463780110",
     "continuations": [],
     "last_phase": "phase 4",
-    "lease_until": 1795749493.64961,
+    "lease_until": 1795749997.16075,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "status": "completed",
-    "task_id": "item-outcomes-stringify-1133",
-    "updated_at": 1795742293.64961,
+    "task_id": "profile-list-stats-ttl-1134",
+    "updated_at": 1795742797.16075,
     "workspaces": [
       {
         "name": "modelduck",
@@ -20,128 +20,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Extend in-process judge to whitelisted pure built-ins and literal expressions",
-      "files_affected": [
-        "benchmarks/pure-expression.mjs",
-        "benchmarks/suite.mjs",
-        "tests/pure-expression-shortcut.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Avoid more child startups for deterministic string, array and Math operations while keeping the sandbox for every dynamic or unlisted form",
-        "mitigation": "failing-first whitelist and rejection tests, 180 real stored functions checked against sandbox verdicts, direct interleaved A/B, full deterministic tune hashes, real tune gate, full tests and strict gates; revert on any mismatch",
-        "risks": "contract: exact verdicts, error messages and output-limit fallback; dependency: standard JavaScript built-ins only; concurrency: existing verdict caches; state: no shared mutation beyond cloned JSON arguments",
-        "why": "The first pure shortcut covers 104 of 460 unique single-return functions; a validated parser covers 180 with zero sandbox verdict mismatches on real stored answers"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "c8e125742c0eadf15eb41608e8f3365d9e4ac3728999b65560e065c95bbe0a01",
-      "status": "in_progress",
-      "task_id": "pure-builtin-shortcut-1127",
-      "timestamp": 1795728246.69894,
-      "timestamp_str": "2026-11-27 00:24:06",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: 180 real stored functions judged with 180 -> 0 child spawns and 20144.036ms -> 9.403ms at an identical verdict hash; full speed tune and default/budget restores kept identical decisions, rows and outcome hash; real three-model gate passed 9/9 rates with zero delta; full npm test passed 1317 with one pre-existing skip and all strict gates pass",
-      "files_affected": [
-        "benchmarks/pure-expression.mjs",
-        "benchmarks/suite.mjs",
-        "tests/pure-expression-shortcut.test.js",
-        ".aikit/decisions.md",
-        "benchmarks/history.jsonl",
-        "README.md",
-        ".aikit/codebase_map.md"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/pure-builtin-ab.mjs",
-          "baseline": 20144.036,
-          "candidate": 9.403,
-          "command": "node pure-builtin-ab.mjs",
-          "control": "baseline/baseline 17486.675ms vs 13889.024ms, child-startup noise",
-          "drift": "20.6",
-          "interleaved": "yes",
-          "metric": "180 accepted real answers judged",
-          "unit": "ms",
-          "workload": "180 unique real stored single-return functions, five interleaved old/new pairs"
-        },
-        {
-          "artifact": "local-only/pure-builtin-ab.mjs",
-          "baseline": 180.0,
-          "candidate": 0.0,
-          "command": "node pure-builtin-ab.mjs",
-          "control": "identical verdict hash eccbbcd9a973464273c8aa3fc583ffd0a2a8d0cfdb424bee544536dcc9240e51 in all pairs",
-          "drift": "0",
-          "interleaved": "yes",
-          "metric": "child spawns for accepted pure answers",
-          "unit": "spawns",
-          "workload": "same 180 real answers"
-        },
-        {
-          "artifact": "local-only/judge-pipeline-speed-e2e-ab.mjs",
-          "baseline": 3.0,
-          "candidate": 2.0,
-          "command": "node judge-pipeline-speed-e2e-ab.mjs",
-          "control": "decision hash 8e3a71b60f078a4f00411d37b8b59cb9207455d35ae9455f45fe12d20c518078 and rows hash e0595f360bb9fdb8be168e6fd30c95f5774d1cbf7abfb1f44d3943132f0e9aaa",
-          "drift": "0",
-          "interleaved": "yes",
-          "metric": "full speed-only tune judge phase",
-          "unit": "ms",
-          "workload": "36 timed answers over five interleaved pairs against the committed prior judge"
-        },
-        {
-          "artifact": "local-only/runtime-shortcut-e2e-ab.mjs",
-          "baseline": 0.0,
-          "candidate": 0.0,
-          "command": "node runtime-shortcut-e2e-ab.mjs",
-          "control": "fresh 24/21, probes 16/17, runs 12/6 and reuse notes identical",
-          "drift": "0",
-          "interleaved": "yes",
-          "metric": "full restore outcome-hash delta",
-          "unit": "hash delta",
-          "workload": "default and one-miss budget restores over five interleaved pairs"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "pure-builtin-shortcut-1127",
-      "timestamp": 1795729376.0438,
-      "timestamp_str": "2026-11-27 00:42:56",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          ""
-        ]
-      },
-      "description": "Task 'pure-builtin-shortcut-1127' completed successfully.",
-      "head": "5ffb95f20cb97f87cf6ab9529d9cb309372adf43",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "pure-builtin-shortcut-1127",
-      "timestamp": 1795729467.05412,
-      "timestamp_str": "2026-11-27 00:44:27"
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "description": "[1/2] Cache the immutable check portion of judge cache keys",
@@ -593,6 +471,87 @@
       "task_id": "item-outcomes-stringify-1133",
       "timestamp": 1795742417.2776,
       "timestamp_str": "2026-11-27 04:20:17"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Add a short TTL to the listProfiles per-file stat pass",
+      "files_affected": [
+        "src/model-profiles.js",
+        "tests/profile-list-cache.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Skip unchanged stat passes for up to one second while still detecting added/removed files on every call and writes through saveProfile immediately",
+        "mitigation": "failing-first stat-count test, add/remove and save invalidation tests, 60-profile benchmark, server/profile suites and strict gates; revert on any summary change",
+        "risks": "contract: returned summaries, copy semantics, stamp reuse and ENOENT unchanged; dependency: Date.now only; concurrency: process-local cache; state: stale mtime/size edits tolerated for the TTL window but saves invalidate",
+        "why": "Profile list polls repeat the same 12 stats every 2 seconds even though the parsed summaries are already cached; registry uses a short TTL for the same directory-stamp pattern"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "65c23864032993868c92cabd5c60ebbbd42bf2b780c1e1fd694316983d33a8fe",
+      "status": "in_progress",
+      "task_id": "profile-list-stats-ttl-1134",
+      "timestamp": 1795742584.56618,
+      "timestamp_str": "2026-11-27 04:23:04",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: 60-profile 200-call A/B 215.053ms to 23.065ms (9.32x) with identical summaries and stat passes 60 to 1 per run; 74 targeted tests and full npm suite (1323 pass, one pre-existing skip) pass",
+      "files_affected": [
+        "src/model-profiles.js",
+        "tests/profile-list-cache.test.js",
+        ".aikit/decisions.md"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/profile-stats-ttl-ab.mjs",
+          "baseline": 215.053,
+          "candidate": 23.065,
+          "command": "node profile-stats-ttl-ab.mjs",
+          "control": "identical summaries in every call and baseline/control rerun 436.080ms under load",
+          "drift": "0",
+          "interleaved": "yes",
+          "metric": "60-profile listProfiles polling",
+          "unit": "ms",
+          "workload": "200 repeated listProfiles calls, six interleaved old/new pairs against the committed prior version"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "profile-list-stats-ttl-1134",
+      "timestamp": 1795742797.16075,
+      "timestamp_str": "2026-11-27 04:26:37",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          ""
+        ]
+      },
+      "description": "Task 'profile-list-stats-ttl-1134' completed successfully.",
+      "head": "3d447d7b4add03fdff1af2770eab849ca1c7a702",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "profile-list-stats-ttl-1134",
+      "timestamp": 1795743015.35758,
+      "timestamp_str": "2026-11-27 04:30:15"
     }
   ],
   "version": 1
