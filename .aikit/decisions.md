@@ -2557,3 +2557,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: stdev invoked a reduce closure twice per score although the two passes only need a sum and a sum of squared deviations
 - **Decision**: Replace both reduces with plain loops that keep the same two-pass arithmetic order and therefore the same rounded result
 - **Consequences**: A twelve-pair interleaved A/B over 20 scores improved 1.368ms to 1.148ms (1.19x) with an identical stats hash; 20,000 randomized cases were bit-identical. A failing-first counter and 127 tune tests pass, as does the real three-model tune gate.
+
+### ADR-335: Build paired differences in one scan
+- **Date**: 2026-11-27
+- **Status**: Accepted
+- **Context**: pairedDiffs chained filter, map and filter over Object.entries, allocating three intermediate arrays for every comparison
+- **Decision**: Accumulate nonzero ordered differences directly into one array, keeping the same credit/fractions/majority precedence and order
+- **Consequences**: A twelve-pair interleaved A/B over 16 comparisons improved 0.1352ms to 0.0945ms (1.43x) with an identical diff hash; a failing-first counter and 121 tune tests pass, as does the real three-model tune gate.

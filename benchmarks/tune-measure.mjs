@@ -643,26 +643,31 @@ export const publicStats = ({ majority: _majority, itemLatency: _latency, itemTo
  * votes. Returns [{ id, diff }] with zero diffs dropped.
  */
 let pairedDiffBuilds = 0;
+let pairedDiffScanBuilds = 0;
 export function pairedDiffComputations() {
   return pairedDiffBuilds;
 }
+export function pairedDiffScanComputations() {
+  return pairedDiffScanBuilds;
+}
 export function resetPairedDiffCounter() {
   pairedDiffBuilds = 0;
+  pairedDiffScanBuilds = 0;
+}
+function diffMap(before, after) {
+  const diffs = [];
+  for (const [id, base] of Object.entries(before)) {
+    if (!(id in after)) continue;
+    const diff = after[id] - base;
+    if (diff !== 0) diffs.push({ id, diff });
+  }
+  return diffs;
 }
 export function pairedDiffs(before, after) {
   pairedDiffBuilds += 1;
-  if (before.credit && after.credit) {
-    return Object.entries(before.credit)
-      .filter(([id]) => id in after.credit)
-      .map(([id, base]) => ({ id, diff: after.credit[id] - base }))
-      .filter(({ diff }) => diff !== 0);
-  }
-  if (before.fractions && after.fractions) {
-    return Object.entries(before.fractions)
-      .filter(([id]) => id in after.fractions)
-      .map(([id, base]) => ({ id, diff: after.fractions[id] - base }))
-      .filter(({ diff }) => diff !== 0);
-  }
+  pairedDiffScanBuilds += 1;
+  if (before.credit && after.credit) return diffMap(before.credit, after.credit);
+  if (before.fractions && after.fractions) return diffMap(before.fractions, after.fractions);
   const diffs = [];
   for (const [id, passed] of before.majority) {
     if (!after.majority.has(id)) continue;

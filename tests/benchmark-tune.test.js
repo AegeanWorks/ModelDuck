@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { createTuneEstimator, DEFAULT_STEPS, promptAxes } from "../benchmarks/tune-grid.mjs";
-import { Measurements, pairedDiffComputations, pairedDiffs, resetPairedDiffCounter } from "../benchmarks/tune-measure.mjs";
+import { Measurements, pairedDiffComputations, pairedDiffs, pairedDiffScanComputations, resetPairedDiffCounter } from "../benchmarks/tune-measure.mjs";
 import { predictWeightedMs, speedStage, taskProfiles } from "../benchmarks/tune-speed.mjs";
 import { groupEvidence, measurePresets, tune } from "../benchmarks/tune.mjs";
 import { withEngine } from "../benchmarks/tune-job.mjs";
@@ -1455,6 +1455,19 @@ test("groupEvidence reuses supplied paired diffs across views", () => {
   assert.equal(pairedDiffComputations(), builds, "two views share one diff pass");
   assert.equal(first.b + second.b, 5);
   assert.equal(first.c + second.c, 0);
+});
+
+test("pairedDiffs scans each signal once and keeps the same ordered differences", () => {
+  const ids = Array.from({ length: 16 }, (_value, index) => `i${index}`);
+  const before = { fractions: Object.fromEntries(ids.map((id) => [id, 1])) };
+  const after = { fractions: Object.fromEntries(ids.map((id, index) => [id, index % 3 === 0 ? 0 : 1])) };
+  const start = pairedDiffScanComputations();
+  const diffs = pairedDiffs(before, after);
+  assert.equal(pairedDiffScanComputations(), start + 1);
+  assert.deepEqual(diffs.map(({ id, diff }) => [id, diff]), ids.filter((_id, index) => index % 3 === 0).map((id) => [id, -1]));
+  const reverse = pairedDiffs(after, before);
+  assert.equal(pairedDiffScanComputations(), start + 2);
+  assert.deepEqual(reverse.map(({ diff }) => diff), ids.filter((_id, index) => index % 3 === 0).map(() => 1));
 });
 
 test("the search's regression guard spends its alpha on the loss side", async () => {
