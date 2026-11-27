@@ -1,4 +1,4 @@
-import { itemPassed, signFlipPValue, wilson } from "./stats.mjs";
+import { signFlipPValue, wilson } from "./stats.mjs";
 
 /** Measuring candidates for a tune: a per-item cache with a run budget, and the statistics each choice is made on. */
 
@@ -612,7 +612,8 @@ function accumulateScore(state, prompts, usedLength, captureDigests) {
       if (prompt.stopReason === "maxTokens") state.truncated += 1;
       if (prompt.outputTokens === 0 || (typeof prompt.text === "string" && prompt.text.trim() === "")) state.empty += 1;
     }
-    if (itemPassed(prompt)) fractions.set(prompt.id, fractions.get(prompt.id) + 1 / usedLength);
+    // Same predicate as stats.itemPassed, inlined on this hot per-prompt loop.
+    if (prompt.total > 0 && prompt.passed === prompt.total && !prompt.error) fractions.set(prompt.id, fractions.get(prompt.id) + 1 / usedLength);
     if (!prompt.error && Number(prompt.total) > 0) {
       credit.set(prompt.id, credit.get(prompt.id) + Math.min(1, Math.max(0, (Number(prompt.passed) || 0) / Number(prompt.total))) / usedLength);
     }

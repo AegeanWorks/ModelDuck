@@ -307,6 +307,19 @@ test("lean scoring skips maps the tune never reads", async () => {
   assert.deepEqual(b, a);
 });
 
+test("inlined pass predicate matches stats.itemPassed on every shape", async () => {
+  const prompts = [
+    { id: "a", passed: 1, total: 1 },
+    { id: "b", passed: 0, total: 1 },
+    { id: "c", passed: 1, total: 2 },
+    { id: "d", passed: 1, total: 1, error: "boom" },
+    { id: "e", passed: 0, total: 0 },
+  ];
+  const measurements = new Measurements(async () => ({ prompts, memoryBytes: 100 }), 100);
+  const stats = await score(measurements, { temperature: 0 }, prompts.map((p) => p.id), [42]);
+  assert.deepEqual(stats.outcomes, { a: 1, b: 0, c: 0, d: 0, e: 0 });
+});
+
 test("score counts empty answers as give-ups beside truncation (lit §8)", async () => {
   const prompts = [
     { id: "a", passed: 1, total: 1, ms: 10, outputTokens: 12, text: "code", stopReason: "eogToken" },

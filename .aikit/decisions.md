@@ -2674,3 +2674,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Set solved and ci95 to null at intermediate looks and keep the full report when a candidate stops or finishes
 - **Cross-principle check:** PRINCIPLE-003: the stop guard reads only paired evidence and stopped looks are rebuilt in full, so decisions and final reports stay unchanged; PRINCIPLE-010: three of four looks skip a rounded count and a Wilson interval; PRINCIPLE-014: failing-first test and repeated partial-credit decision A/Bs.
 - **Consequences**: Four 10-round partial-credit full-tune A/Bs improved 1.04x to 1.16x with identical decisions; a failing-first test and 139 stats/tune tests pass, as does the real three-model tune gate.
+
+### ADR-350: Inline the item pass predicate in score
+- **Date**: 2026-11-27
+- **Status**: Accepted
+- **Context**: accumulateScore called the tiny itemPassed helper for every prompt although V8 did not inline it in this loop
+- **Decision**: Inline the same three-comparison predicate with identical short-circuit order and outcomes
+- **Cross-principle check:** PRINCIPLE-003: the inlined predicate matches itemPassed on every answer shape and decisions were identical in all six A/B rounds; PRINCIPLE-010: one fewer call per prompt on the hot measure path; PRINCIPLE-014: equivalence test and repeated partial-credit decision A/Bs.
+- **Consequences**: An equivalence test over all answer shapes and 140 stats/tune tests pass, as does the real three-model tune gate; six 10-round partial-credit full-tune A/Bs were positive in five runs with a median near 1.03x and identical decisions.
