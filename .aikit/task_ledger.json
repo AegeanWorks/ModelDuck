@@ -1,89 +1,6 @@
 {
-  "active_task": {
-    "active_phase": 5,
-    "completed_at": 1795758219.11785,
-    "completed_head": "16bcf65a89099376161f52ab71bf03f820563d06",
-    "completed_tree": "1f13c6b49b9c4bafebb5ea1a3ba28605490d20b3",
-    "continuations": [],
-    "last_phase": "phase 4",
-    "lease_until": 1795765312.39562,
-    "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-    "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-    "status": "completed",
-    "task_id": "load-signature-cache-1140",
-    "updated_at": 1795758112.39562,
-    "workspaces": [
-      {
-        "name": "modelduck",
-        "path": "projects/modelduck"
-      }
-    ]
-  },
+  "active_task": null,
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Add a short TTL to the listProfiles per-file stat pass",
-      "files_affected": [
-        "src/model-profiles.js",
-        "tests/profile-list-cache.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Skip unchanged stat passes for up to one second while still detecting added/removed files on every call and writes through saveProfile immediately",
-        "mitigation": "failing-first stat-count test, add/remove and save invalidation tests, 60-profile benchmark, server/profile suites and strict gates; revert on any summary change",
-        "risks": "contract: returned summaries, copy semantics, stamp reuse and ENOENT unchanged; dependency: Date.now only; concurrency: process-local cache; state: stale mtime/size edits tolerated for the TTL window but saves invalidate",
-        "why": "Profile list polls repeat the same 12 stats every 2 seconds even though the parsed summaries are already cached; registry uses a short TTL for the same directory-stamp pattern"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "65c23864032993868c92cabd5c60ebbbd42bf2b780c1e1fd694316983d33a8fe",
-      "status": "in_progress",
-      "task_id": "profile-list-stats-ttl-1134",
-      "timestamp": 1795742584.56618,
-      "timestamp_str": "2026-11-27 04:23:04",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: 60-profile 200-call A/B 215.053ms to 23.065ms (9.32x) with identical summaries and stat passes 60 to 1 per run; 74 targeted tests and full npm suite (1323 pass, one pre-existing skip) pass",
-      "files_affected": [
-        "src/model-profiles.js",
-        "tests/profile-list-cache.test.js",
-        ".aikit/decisions.md"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/profile-stats-ttl-ab.mjs",
-          "baseline": 215.053,
-          "candidate": 23.065,
-          "command": "node profile-stats-ttl-ab.mjs",
-          "control": "identical summaries in every call and baseline/control rerun 436.080ms under load",
-          "drift": "0",
-          "interleaved": "yes",
-          "metric": "60-profile listProfiles polling",
-          "unit": "ms",
-          "workload": "200 repeated listProfiles calls, six interleaved old/new pairs against the committed prior version"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "profile-list-stats-ttl-1134",
-      "timestamp": 1795742797.16075,
-      "timestamp_str": "2026-11-27 04:26:37",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "delivery": {
@@ -573,6 +490,44 @@
       "task_id": "load-signature-cache-1140",
       "timestamp": 1795758219.11785,
       "timestamp_str": "2026-11-27 08:43:39"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Add a light score path for intermediate early-stop looks",
+      "files_affected": [
+        "benchmarks/tune-measure.mjs",
+        "tests/benchmark-tune-stats.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Accumulate only fractions and credit at intermediate looks and build the full report once when a candidate finishes or stops",
+        "mitigation": "failing-first light-counter test, sweep A/B with exact hash, full tune tests and strict gates; revert on any decision/report change",
+        "risks": "contract: shouldStop b/c/p and final full stats unchanged; dependency: Measurements cache; concurrency: process-local counter; state: stopped partial reports still full shape",
+        "why": "scoreSequential rebuilt all quality, latency, token, speed and digest maps at every look although shouldStop only consumes paired credit/outcomes"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "ba00105aac84867356384126a30c15d35c41548908ea16112e7f0b2d06cc90d7",
+      "status": "in_progress",
+      "task_id": "stop-score-light-1141",
+      "timestamp": 1795758362.16883,
+      "timestamp_str": "2026-11-27 08:46:02",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "Task 'stop-score-light-1141' abandoned: Rejected stop-score-light-1141 after measurement: light intermediate scoring plus a full stopped report regressed 0.81x at first look and 0.95x at a later look with identical reports; production files restored",
+      "phase": "abandoned",
+      "phase_num": 2,
+      "status": "abandoned",
+      "task_id": "stop-score-light-1141",
+      "timestamp": 1795758608.62272,
+      "timestamp_str": "2026-11-27 08:50:08"
     }
   ],
   "version": 1
