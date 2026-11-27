@@ -673,15 +673,16 @@ function finalizeScore(state, itemCount, usedLength, summarize = true) {
   const passed = [...fractions.values()].reduce((sum, value) => sum + value, 0);
   // Fractional solved count (seed-averaged) for a rounding-free tolerance (D4):
   // one item lost by majority at 3 seeds counts as 0.67 items, not as a rounded point.
-  const solved = Math.round(passed * 1000) / 1000;
+  const solved = summarize ? Math.round(passed * 1000) / 1000 : null;
   if (!summarize) {
     // Intermediate early-stop looks only read paired pass evidence. The six
-    // medians and the spread are omitted here and rebuilt if the look stops.
+    // medians, the spread, the solved count and the interval are omitted here
+    // and rebuilt if the look stops.
     lightFinalizeBuilds += 1;
     return {
       rate: itemCount ? round((passed / itemCount) * 100) : 0,
       solved,
-      ci95: wilson(passed, itemCount),
+      ci95: null,
       latencyMs: null,
       latencySd: null,
       outputTokens: null,

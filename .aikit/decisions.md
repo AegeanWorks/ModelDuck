@@ -2666,3 +2666,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Enumerate distinct magnitude groups with binomial weights instead of individual masks, keeping the same p-values under the comparison tolerance
 - **Cross-principle check:** PRINCIPLE-003: p-values matched the mask enumeration over 2,000 randomized cases and decisions were identical in all three A/B rounds; PRINCIPLE-010: 262,144 masks collapse to tens of weighted states for repeated credit; PRINCIPLE-013: pure function with process-local diagnostics; PRINCIPLE-014: failing-first grouped-state counter, equivalence test and repeated partial-credit decision A/Bs.
 - **Consequences**: A failing-first grouped-state test and p-value equivalence test pass, along with 134 stats/tune tests, as does the real three-model tune gate. Three 10-round partial-credit full-tune A/Bs improved 2.21x, 3.04x and 3.40x with identical decisions every round; isolated speedups reach 40x at 16 items and 96x at 20.
+
+### ADR-349: Omit solved and interval at intermediate looks
+- **Date**: 2026-11-27
+- **Status**: Accepted
+- **Context**: light finalize still computed a rounded solved count and Wilson interval at every look although the early-stop guard reads neither
+- **Decision**: Set solved and ci95 to null at intermediate looks and keep the full report when a candidate stops or finishes
+- **Cross-principle check:** PRINCIPLE-003: the stop guard reads only paired evidence and stopped looks are rebuilt in full, so decisions and final reports stay unchanged; PRINCIPLE-010: three of four looks skip a rounded count and a Wilson interval; PRINCIPLE-014: failing-first test and repeated partial-credit decision A/Bs.
+- **Consequences**: Four 10-round partial-credit full-tune A/Bs improved 1.04x to 1.16x with identical decisions; a failing-first test and 139 stats/tune tests pass, as does the real three-model tune gate.

@@ -191,6 +191,26 @@ test("sequential scoring updates derived per-item objects once per new item", as
   assert.deepEqual([...stats.majority], ids.map((id) => [id, true]));
 });
 
+test("intermediate looks omit solved and interval", async () => {
+  const ids = Array.from({ length: 8 }, (_value, index) => `i${index}`);
+  const measurements = new Measurements(async (_settings, itemIds) => ({
+    prompts: itemIds.map((id) => ({ id, passed: 1, total: 1, ms: 10, outputTokens: 5, tokensPerSecond: 2, digest: id })),
+    memoryBytes: 100,
+  }), 100);
+  let intermediate = null;
+  const stats = await scoreSequential(measurements, { temperature: 0 }, ids, [42], {
+    lookAt: [4],
+    stopSignalOnly: true,
+    shouldStop: (value, point) => {
+      if (point === 4) intermediate = { solved: value.solved, ci95: value.ci95 };
+      return false;
+    },
+  });
+  assert.deepEqual(intermediate, { solved: null, ci95: null });
+  assert.equal(stats.solved, 8);
+  assert.ok(stats.ci95.low < 100 && stats.ci95.high <= 100);
+});
+
 test("scoreSequential can skip unused summaries at intermediate looks", async () => {
   const ids = Array.from({ length: 12 }, (_value, index) => `i${index}`);
   const measurements = new Measurements(async (_settings, itemIds) => ({
