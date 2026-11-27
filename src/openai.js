@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { AppError } from "./errors.js";
 import { assertJsonSchemaSupported } from "./engine.js";
+import { listPublicRebuilds } from "./model-registry.js";
 import { readJsonBody, sendJson, sseStart } from "./http.js";
 import { ThinkSplitter, splitThinking } from "./thinking.js";
 
@@ -463,13 +464,41 @@ function modelObject(model) {
   };
 }
 
-function findModel(registry, id) {
-  const models = registry?.listPublic?.() ?? [];
-  return (
-    models.find((model) => model.id === id) ??
-    models.find((model) => model.fileName === id || model.fileName.replace(/\.gguf$/i, "") === id) ??
-    null
-  );
+// A registry's public list is rebuilt only when its entries change. Index both
+// accepted keys once per version instead of scanning the list twice per request.
+// Separate maps keep the original precedence: an id match wins over a file-name
+// match, and the first model in list order wins for duplicate keys.
+let openAIModelIndex = new WeakMap();
+let openAIModelIndexBuildCount = 0;
+export function openAIModelIndexBuilds() {
+  return openAIModelIndexBuildCount;
+}
+export function resetOpenAIModelIndex() {
+  openAIModelIndex = new WeakMap();
+  openAIModelIndexBuildCount = 0;
+}
+function modelIndexFor(registry) {
+  if (!registry || typeof registry.listPublic !== "function") return null;
+  const version = listPublicRebuilds();
+  const cached = openAIModelIndex.get(registry);
+  if (cached?.version === version) return cached;
+  const byId = new Map();
+  const byFile = new Map();
+  for (const model of registry.listPublic()) {
+    if (!byId.has(model.id)) byId.set(model.id, model);
+    if (!byFile.has(model.fileName)) byFile.set(model.fileName, model);
+    const bare = String(model.fileName ?? "").replace(/\.gguf$/i, "");
+    if (!byFile.has(bare)) byFile.set(bare, model);
+  }
+  const index = { version, byId, byFile };
+  openAIModelIndex.set(registry, index);
+  openAIModelIndexBuildCount += 1;
+  return index;
+}
+export function findModel(registry, id) {
+  const index = modelIndexFor(registry);
+  if (!index) return null;
+  return index.byId.get(id) ?? index.byFile.get(id) ?? null;
 }
 
 export async function handleOpenAI(

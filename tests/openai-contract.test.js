@@ -3,14 +3,37 @@ import test from "node:test";
 
 import { AppError } from "../src/errors.js";
 import {
+  findModel,
   finishReasonFrom,
+  openAIModelIndexBuilds,
   rejectedParam,
   rejectedParamDetail,
+  resetOpenAIModelIndex,
   responseFormatSettings,
 } from "../src/openai.js";
 import { FakeEngine, makeHarness } from "./helpers.js";
 
 // IDEA-1085: one taxonomy everywhere.
+test("OpenAI model lookup builds one index and keeps id/file precedence", () => {
+  resetOpenAIModelIndex();
+  const models = [
+    { id: "first", fileName: "shared.gguf" },
+    { id: "second", fileName: "shared.GGUF" },
+    { id: "third", fileName: "by-id.gguf" },
+    { id: "shared.gguf", fileName: "other.gguf" },
+  ];
+  const registry = { listPublic: () => models.slice() };
+  const before = openAIModelIndexBuilds();
+  assert.equal(findModel(registry, "first")?.id, "first");
+  assert.equal(findModel(registry, "by-id.gguf")?.id, "third");
+  assert.equal(findModel(registry, "by-id")?.id, "third");
+  assert.equal(findModel(registry, "shared.GGUF")?.id, "second");
+  assert.equal(findModel(registry, "shared")?.id, "first", "first stripped file match wins");
+  assert.equal(findModel(registry, "shared.gguf")?.id, "shared.gguf", "an id match wins over a file match");
+  assert.equal(findModel(registry, "missing"), null);
+  assert.equal(openAIModelIndexBuilds(), before + 1, "the index is built once for this registry version");
+});
+
 test("finishReasonFrom maps maxTokens to length and everything else to stop", () => {
   assert.equal(finishReasonFrom("maxTokens"), "length");
   assert.equal(finishReasonFrom("eogToken"), "stop");
