@@ -136,3 +136,42 @@ test("restore budget preserves fingerprint, tuner-version and width filtering", 
   assert.deepEqual(budgetItems(await cachedAnswers(dir, { ...options, parallel: 3 })), ["wide"]);
   assert.deepEqual(await cachedAnswers(dir, { ...options, fingerprint: { ...BUDGET_FP, modelSize: 3 } }), []);
 });
+
+test("cachedAnswers reuses settings keys for parsed rows", async (t) => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "md-careads-keys-"));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const fp = { suiteVersion: 18, taskHash: "h", nodeLlamaCpp: "x", tunerVersion: 12, modelFile: "m", modelSize: 1, cpu: "c", platform: "p", arch: "a" };
+  const rec = await startRun(dir, { profileId: "p", model: "m", request: {}, fingerprint: fp });
+  await rec.answers(Array.from({ length: 5 }, (_, index) => ({
+    item: `item-${index}`, seed: 42, settings: { threads: index }, passed: 1, total: 1,
+  })));
+  await rec.finish({ outcome: "complete" });
+  const historyCache = createTuneHistoryCache();
+  await itemOutcomes(dir, { profileId: "p", fingerprint: fp, historyCache, retainRuns: 4, retainMinRows: 0 });
+  const options = { profileId: "p", fingerprint: fp, historyCache };
+  const first = await cachedAnswers(dir, options);
+  const afterFirst = historyCache.stats().settingsKeys;
+  assert.equal(afterFirst.computes, 5, "each distinct settings object is serialized once");
+  const second = await cachedAnswers(dir, options);
+  assert.deepEqual(second, first, "grouping output is unchanged");
+  const afterSecond = historyCache.stats().settingsKeys;
+  assert.equal(afterSecond.computes, afterFirst.computes, "reused rows do not re-serialize settings");
+  assert.ok(afterSecond.hits >= 5, "reused settings keys record cache hits");
+});
+
+test("cachedAnswers settings key cache is bounded", async (t) => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "md-careads-bound-"));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const fp = { suiteVersion: 18, taskHash: "h", nodeLlamaCpp: "x", tunerVersion: 12, modelFile: "m", modelSize: 1, cpu: "c", platform: "p", arch: "a" };
+  const rec = await startRun(dir, { profileId: "p", model: "m", request: {}, fingerprint: fp });
+  await rec.answers(Array.from({ length: 5 }, (_, index) => ({
+    item: `item-${index}`, seed: 42, settings: { threads: index }, passed: 1, total: 1,
+  })));
+  await rec.finish({ outcome: "complete" });
+  const historyCache = createTuneHistoryCache({ maxSettingsKeys: 2 });
+  await itemOutcomes(dir, { profileId: "p", fingerprint: fp, historyCache, retainRuns: 4, retainMinRows: 0 });
+  await cachedAnswers(dir, { profileId: "p", fingerprint: fp, historyCache });
+  const stats = historyCache.stats().settingsKeys;
+  assert.ok(stats.size <= 2, "the settings key cache stays within its bound");
+  assert.ok(stats.evictions >= 3, "older keys are evicted");
+});

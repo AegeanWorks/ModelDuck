@@ -369,6 +369,7 @@ const DEFAULT_SUMMARY_CACHE_BYTES = 16 * 1024 ** 2;
 const DEFAULT_HISTORY_CACHE_ENTRIES = 256;
 const DEFAULT_PARSED_ROW_FILES = 4;
 const DEFAULT_PARSED_ROWS = 50000;
+const DEFAULT_SETTINGS_KEYS = DEFAULT_PARSED_ROWS;
 const answerStamp = (info) => `${info.mtimeMs}:${info.size}`;
 
 function parseAnswerRows(text) {
@@ -390,7 +391,7 @@ function parseAnswerRows(text) {
 }
 
 /** A process-local, byte-bounded cache shared by the two tune preflight readers. */
-export function createTuneHistoryCache({ maxBytes = DEFAULT_ANSWER_CACHE_BYTES, maxEntries = DEFAULT_HISTORY_CACHE_ENTRIES, maxParsedFiles = DEFAULT_PARSED_ROW_FILES, maxParsedRows = DEFAULT_PARSED_ROWS } = {}) {
+export function createTuneHistoryCache({ maxBytes = DEFAULT_ANSWER_CACHE_BYTES, maxEntries = DEFAULT_HISTORY_CACHE_ENTRIES, maxParsedFiles = DEFAULT_PARSED_ROW_FILES, maxParsedRows = DEFAULT_PARSED_ROWS, maxSettingsKeys = DEFAULT_SETTINGS_KEYS } = {}) {
   const byteLimit = Number.isFinite(maxBytes) ? Math.max(0, Math.floor(maxBytes)) : DEFAULT_ANSWER_CACHE_BYTES;
   const entryLimit = Number.isFinite(maxEntries) ? Math.max(0, Math.floor(maxEntries)) : DEFAULT_HISTORY_CACHE_ENTRIES;
   const parsedFileLimit = Number.isFinite(maxParsedFiles) ? Math.max(0, Math.floor(maxParsedFiles)) : DEFAULT_PARSED_ROW_FILES;
@@ -410,6 +411,36 @@ export function createTuneHistoryCache({ maxBytes = DEFAULT_ANSWER_CACHE_BYTES, 
   let rowHits = 0;
   let rowMisses = 0;
   let rowEvictions = 0;
+  const settingsKeyLimit = Number.isFinite(maxSettingsKeys) ? Math.max(0, Math.floor(maxSettingsKeys)) : DEFAULT_SETTINGS_KEYS;
+  let settingsKeys = new WeakMap();
+  const settingsKeyOrder = [];
+  let settingsKeyComputes = 0;
+  let settingsKeyHits = 0;
+  let settingsKeyEvictions = 0;
+  let settingsToken = 0;
+  // Parsed rows are the objects reused by the history cache; their settings
+  // objects are freshly allocated for each row by JSON.parse, so key by row.
+  const settingsKey = (row) => {
+    if (!row || typeof row !== "object") return JSON.stringify(row?.settings ?? null);
+    const cached = settingsKeys.get(row);
+    if (cached) {
+      settingsKeyHits += 1;
+      return cached.text;
+    }
+    settingsKeyComputes += 1;
+    const text = JSON.stringify(row.settings ?? null);
+    if (settingsKeyLimit > 0) {
+      const entry = { row, token: ++settingsToken, text };
+      settingsKeys.set(row, entry);
+      settingsKeyOrder.push(entry);
+      while (settingsKeyOrder.length > settingsKeyLimit) {
+        const oldest = settingsKeyOrder.shift();
+        if (settingsKeys.get(oldest.row)?.token === oldest.token) settingsKeys.delete(oldest.row);
+        settingsKeyEvictions += 1;
+      }
+    }
+    return text;
+  };
   const drop = (key) => {
     const entry = entries.get(key);
     if (!entry) return;
@@ -594,13 +625,16 @@ export function createTuneHistoryCache({ maxBytes = DEFAULT_ANSWER_CACHE_BYTES, 
     summaryBytes = 0;
     parsedFiles = 0;
     parsedRows = 0;
+    settingsKeys = new WeakMap();
+    settingsKeyOrder.length = 0;
   };
   const stats = () => ({
     answers: { size: entries.size, bytes, hits, misses, evictions },
     summaries: { size: summaries.size, bytes: summaryBytes, hits: summaryHits, misses: summaryMisses, evictions: summaryEvictions },
     rows: { size: parsedFiles, rows: parsedRows, hits: rowHits, misses: rowMisses, evictions: rowEvictions },
+    settingsKeys: { size: settingsKeyOrder.length, computes: settingsKeyComputes, hits: settingsKeyHits, evictions: settingsKeyEvictions },
   });
-  return { read, readRows, readCachedRows, readSummary, clear, stats };
+  return { read, readRows, readCachedRows, readSummary, settingsKey, clear, stats };
 }
 
 async function readAnswerText(file, cache, priority = null) {
@@ -725,7 +759,11 @@ export async function cachedAnswers(dir, { profileId, fingerprint = null, limitR
       if (want === 1 ? callWidth !== 1 : tuneWidth !== want) return;
       if (rows >= rowCap) return;
       rows += 1;
-      const key = `${JSON.stringify(row.settings ?? null)}|${row.seed}`;
+      const settingsText = fromCache && historyCache?.settingsKey
+        ? historyCache.settingsKey(row)
+        : JSON.stringify(row.settings ?? null);
+      // aikit:allow-secret -- grouping key template, not a credential
+      const key = `${settingsText}|${row.seed}`; // aikit:allow-secret -- grouping key template, not a credential
       const outputRow = fromCache && !reuseParsedRows ? structuredClone(row) : row;
       const group = groups.get(key) ?? { settings: outputRow.settings ?? {}, seed: row.seed, rows: [] };
       group.rows.push(outputRow);
