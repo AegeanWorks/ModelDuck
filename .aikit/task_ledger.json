@@ -1,17 +1,17 @@
 {
   "active_task": {
     "active_phase": 5,
-    "completed_at": 1795745503.65365,
-    "completed_head": "1290736137947843e0243121af94ee39995a84b9",
-    "completed_tree": "a162a61c9520e0bb76545aa1325008fa55da283b",
+    "completed_at": 1795746626.36371,
+    "completed_head": "898ea028e91849038a3508522d1e42809882e403",
+    "completed_tree": "a826f9d6adf54d66263f32f3110e3ff3838ef836",
     "continuations": [],
     "last_phase": "phase 4",
-    "lease_until": 1795752347.39285,
+    "lease_until": 1795753758.84351,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "status": "completed",
-    "task_id": "cachedanswers-key-cache-1136",
-    "updated_at": 1795745147.39285,
+    "task_id": "history-import-offset-1137",
+    "updated_at": 1795746558.84351,
     "workspaces": [
       {
         "name": "modelduck",
@@ -20,78 +20,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[1/1] VERIFIED: recorded the backend-only UI verification for the tune estimate memo change; npm test fast proof passed and ui verify/finish succeeded",
-      "files_affected": [
-        ".aikit/ui.json",
-        ".aikit/ui_history.json"
-      ],
-      "impact_assessment": {
-        "benefits": "Strict delivery gate can verify the committed tree",
-        "mitigation": "ui verify, ui finish and strict delivery check",
-        "risks": "contract: UI history only; dependency: none; concurrency: none; state: UI history",
-        "why": "The UI contract digest had to be updated after src/server.js changed, but no visual view changed"
-      },
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "ui-verification-1130",
-      "timestamp": 1795740557.88057,
-      "timestamp_str": "2026-11-27 03:49:17",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          ""
-        ]
-      },
-      "description": "Task 'ui-verification-1130' completed successfully.",
-      "head": "b6cb99a0f3c2aa5c0e98fbd992d3cbc897d50ec2",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "ui-verification-1130",
-      "timestamp": 1795740568.80334,
-      "timestamp_str": "2026-11-27 03:49:28"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Cache a dual-key OpenAI model lookup index",
-      "files_affected": [
-        "src/openai.js",
-        "tests/openai-contract.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Rebuild the id and filename index only when the public model list changes, preserving exact first-match precedence",
-        "mitigation": "failing-first index-build test, duplicate-key precedence assertions, openai/server suites, benchmark and strict gates; revert on any lookup difference",
-        "risks": "contract: id lookups win over filename lookups and first list match wins for duplicate keys; dependency: listPublicRebuilds version; concurrency: process-local WeakMap; state: cache must invalidate on registry changes",
-        "why": "findModel rescans listPublic twice per /v1/models/{id} request and strips .gguf repeatedly; a 200-model 8,000-lookup prototype improved 60.141ms to 0.379ms"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "f0714206f943b4ed8d874c9fdd8c8233c68d0106ea60ceed59391b8c9c9ae5bc",
-      "status": "in_progress",
-      "task_id": "openai-model-index-1131",
-      "timestamp": 1795740761.62967,
-      "timestamp_str": "2026-11-27 03:52:41",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "checklists": "passed",
@@ -585,6 +513,87 @@
       "task_id": "cachedanswers-key-cache-1136",
       "timestamp": 1795745503.65365,
       "timestamp_str": "2026-11-27 05:11:43"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Persist a history.jsonl import byte offset in SQLite",
+      "files_affected": [
+        "benchmarks/history.mjs",
+        "tests/benchmark-history.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Read only appended bytes, skip an unchanged prefix and keep rebuild/truncation safe",
+        "mitigation": "failing-first appended-bytes test, rebuild/truncation tests, report A/B, full npm suite and strict gates",
+        "risks": "contract: run and link results stay identical; dependency: node:sqlite state table; concurrency: single process local; state: invalidate on truncation, rewrite, inode change or fewer database rows",
+        "why": "Every report and link re-parses a 6.8MB append-only history file and checks every imported uid even when the database is current, about 72ms per open"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "646556d13b782a5c7e210831cf3bd941ff01efd83993492bec5a4ce2dc996d55",
+      "status": "in_progress",
+      "task_id": "history-import-offset-1137",
+      "timestamp": 1795746076.63678,
+      "timestamp_str": "2026-11-27 05:21:16",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: bench:report 101.506ms to 68.976ms (1.47x) over five interleaved rounds with 0.1 percent control drift; failing appended-bytes test passes, rebuild and all history/report tests pass, full npm suite 1327 pass with one pre-existing skip",
+      "files_affected": [
+        "benchmarks/history.mjs",
+        "tests/benchmark-history.test.js",
+        ".aikit/decisions.md"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/history-import-offset-report-ab.mjs",
+          "baseline": 101.506,
+          "candidate": 68.976,
+          "command": "node history-import-offset-report-ab.mjs",
+          "control": "baseline/baseline 101.512ms vs 101.433ms",
+          "drift": "0.1",
+          "interleaved": "yes",
+          "metric": "bench:report on populated history",
+          "unit": "ms",
+          "workload": "five interleaved rounds on a 6.8MB history.jsonl and 15MB SQLite copy"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "history-import-offset-1137",
+      "timestamp": 1795746558.84351,
+      "timestamp_str": "2026-11-27 05:29:18",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          ""
+        ]
+      },
+      "description": "Task 'history-import-offset-1137' completed successfully.",
+      "head": "898ea028e91849038a3508522d1e42809882e403",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "history-import-offset-1137",
+      "timestamp": 1795746626.36371,
+      "timestamp_str": "2026-11-27 05:30:26"
     }
   ],
   "version": 1
