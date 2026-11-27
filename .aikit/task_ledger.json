@@ -3,60 +3,6 @@
   "checkpoints": [
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: reuse of finalized incumbent reports improved three 14-round big-tune A/Bs by 1.16x, 1.13x and 1.35x with identical decisions; cache observed 8 hits versus 4 builds per tune; full npm suite 1345 pass 0 fail 1 skip; real three-model tune gate passed 9/9 rates with zero delta",
-      "files_affected": [
-        "benchmarks/tune.mjs",
-        "tests/benchmark-tune.test.js",
-        ".aikit/decisions.md",
-        "benchmarks/history.jsonl"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/big-tune-ab.mjs",
-          "baseline": 2.449,
-          "candidate": 1.821,
-          "command": "node big-tune-ab.mjs",
-          "control": "identical decisions in every round",
-          "drift": "0.3",
-          "interleaved": "yes",
-          "metric": "14-round multi-axis grouped tune",
-          "unit": "ms",
-          "workload": "fourteen interleaved baseline/candidate rounds of a three-axis two-pass code tune"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "sweep-stats-cache-1161",
-      "timestamp": 1795783728.51412,
-      "timestamp_str": "2026-11-27 15:48:48",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          ""
-        ]
-      },
-      "description": "Task 'sweep-stats-cache-1161' completed successfully.",
-      "head": "ec8b0507e16e1449c56ba4d234029ca98aa26b7d",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "sweep-stats-cache-1161",
-      "timestamp": 1795783789.8294,
-      "timestamp_str": "2026-11-27 15:49:49"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "description": "[1/2] Reuse non-partial challenger reports too",
       "files_affected": [
         "benchmarks/tune.mjs",
@@ -446,6 +392,44 @@
       "task_id": "sibling-cap-early-return-1169",
       "timestamp": 1795787910.37648,
       "timestamp_str": "2026-11-27 16:58:30"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Memoize sweep base keys by current object",
+      "files_affected": [
+        "benchmarks/tune.mjs",
+        "tests/benchmark-tune.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Cache the derived base key on the current object identity and reuse it across sweeps",
+        "mitigation": "failing-first counter test, interleaved big-tune A/B with identical decisions, full suite and strict gates; revert if not measurable",
+        "risks": "contract: identical cache keys and decisions; dependency: current object identity; concurrency: process-local counter; state: cache scoped to one tune",
+        "why": "each sweep re-stringified the same current and forced settings although current is the same object until an axis changes it"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "2d5688bba968cf600a9b7bfbe58ae3e8fb0c2fd1ec521bdd23348ff80b88c659",
+      "status": "in_progress",
+      "task_id": "settings-key-memo-1170",
+      "timestamp": 1795788255.35999,
+      "timestamp_str": "2026-11-27 17:04:15",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "Task 'settings-key-memo-1170' abandoned: Rejected settings-key-memo-1170 after measurement: memoizing sweep base keys regressed two fourteen-round full-tune A/Bs (0.81x and 0.79x) with identical decisions because current objects change often and the WeakMap added overhead; production files restored",
+      "phase": "abandoned",
+      "phase_num": 2,
+      "status": "abandoned",
+      "task_id": "settings-key-memo-1170",
+      "timestamp": 1795788497.92514,
+      "timestamp_str": "2026-11-27 17:08:17"
     }
   ],
   "version": 1
