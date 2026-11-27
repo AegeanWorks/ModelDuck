@@ -2706,3 +2706,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Guard mcnemarLogSteps and signFlipGroupStates on NODE_TEST_CONTEXT like the rest of the diagnostics
 - **Cross-principle check:** PRINCIPLE-003: p-values and decisions are unchanged; PRINCIPLE-010: the last two production counter writes disappear from hot statistics paths; PRINCIPLE-014: full counter-using test suite plus repeated partial-credit decision A/Bs.
 - **Consequences**: All 136 targeted counter tests pass, as does the real three-model tune gate; six partial-credit full-tune A/Bs were positive in five runs with a median near 1.03x and identical decisions every round.
+
+### ADR-354: Scan the upper median from the right partition
+- **Date**: 2026-11-28
+- **Status**: Accepted
+- **Context**: medianQuick ran a second full quickselect to find the upper rank of an even-length array although the first selection already partitions the tail above the lower median
+- **Decision**: After selecting rank middle-1, find the upper median by scanning the tail for its minimum
+- **Cross-principle check:** PRINCIPLE-003: 20000 randomized arrays give bit-identical medians and every A/B round keeps identical decision hashes; PRINCIPLE-010: the second O(n log n) quickselect becomes one O(n) scan; PRINCIPLE-014: failing-first counter test plus repeated decision A/Bs.
+- **Consequences**: A randomized 20000-array equivalence probe and a failing-first counter test pass, as does the real three-model tune gate; eleven partial-credit full-tune A/Bs had a median speedup near 1.024x with identical decision hashes in every round.

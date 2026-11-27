@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { medianQuickComputations, score, scoreConversionComputations, stdevLoopComputations, zeroedMapBuildCount } from "../benchmarks/tune-measure.mjs";
+import { medianQuickComputations, medianUpperScanComputations, score, scoreConversionComputations, stdevLoopComputations, zeroedMapBuildCount } from "../benchmarks/tune-measure.mjs";
 
 // Minimal measurements stub: one seed, one item, all checks pass.
 const measurements = {
@@ -37,6 +37,27 @@ test("score selects its six medians in place without changing the stats", async 
   assert.equal(result.tokensPerSecond, 2);
   assert.equal(result.promptTokens, 8);
   assert.equal(result.prefillTps, 4000);
+});
+
+test("even-length medians scan the right partition for the upper rank", async () => {
+  const ids = ["i0", "i1", "i2", "i3"];
+  const even = {
+    measure: async () => ({
+      prompts: ids.map((id, index) => ({
+        id, passed: 1, total: 1, digest: id,
+        ms: 10 * (index + 1), outputTokens: index + 5, tokensPerSecond: 2 * (index + 1),
+        promptTokens: index + 8, firstTokenMs: index + 1,
+      })),
+      memoryBytes: 100,
+    }),
+  };
+  const before = medianUpperScanComputations();
+  const result = await score(even, { temperature: 0 }, ids, [42]);
+  assert.equal(medianUpperScanComputations(), before + 6, "all six medians used the fused upper scan");
+  assert.equal(result.latencyMs, 25);
+  assert.equal(result.outputTokens, 6.5);
+  assert.equal(result.tokensPerSecond, 5);
+  assert.equal(result.promptTokens, 9.5);
 });
 
 test("score derives its outcome maps in one pass", async () => {

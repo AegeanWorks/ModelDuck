@@ -41,8 +41,12 @@ export function median(values) {
 // rank in place is O(n) and skips both the copy and the full sort; callers of
 // the exported `median` still get the non-mutating version.
 let medianQuickBuilds = 0;
+let medianUpperScans = 0;
 export function medianQuickComputations() {
   return medianQuickBuilds;
+}
+export function medianUpperScanComputations() {
+  return medianUpperScans;
 }
 function selectRank(values, k, left = 0, right = values.length - 1) {
   while (left < right) {
@@ -69,7 +73,16 @@ function selectRank(values, k, left = 0, right = values.length - 1) {
 function medianQuick(values) {
   if (DIAGNOSTICS) medianQuickBuilds += 1;
   const middle = Math.floor(values.length / 2);
-  return values.length % 2 ? selectRank(values, middle) : (selectRank(values, middle - 1) + selectRank(values, middle)) / 2;
+  if (values.length % 2) return selectRank(values, middle);
+  // selectRank leaves values[middle-1] as the lower median and partitions the
+  // tail above it, so the upper median is simply the tail's minimum.
+  const lower = selectRank(values, middle - 1);
+  let upper = values[middle];
+  for (let index = middle + 1; index < values.length; index += 1) {
+    if (values[index] < upper) upper = values[index];
+  }
+  if (DIAGNOSTICS) medianUpperScans += 1;
+  return (lower + upper) / 2;
 }
 
 let stdevLoopBuilds = 0;
