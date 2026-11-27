@@ -45,9 +45,23 @@ function medianQuick(values) {
   return values.length % 2 ? selectRank(values, middle) : (selectRank(values, middle - 1) + selectRank(values, middle)) / 2;
 }
 
+let stdevLoopBuilds = 0;
+export function stdevLoopComputations() {
+  return stdevLoopBuilds;
+}
 function stdev(values) {
-  const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
-  return Math.sqrt(values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length);
+  stdevLoopBuilds += 1;
+  // Plain loops keep the two-pass arithmetic order (and every rounding bit)
+  // while avoiding a callback invocation for each value.
+  let total = 0;
+  for (let index = 0; index < values.length; index += 1) total += values[index];
+  const mean = total / values.length;
+  let squares = 0;
+  for (let index = 0; index < values.length; index += 1) {
+    const delta = values[index] - mean;
+    squares += delta * delta;
+  }
+  return Math.sqrt(squares / values.length);
 }
 
 /** Stable identity of one settings object; shared by the measurement cache and the gate answer cache (IDEA-1764). */

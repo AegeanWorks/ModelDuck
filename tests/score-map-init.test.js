@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { medianQuickComputations, score, scoreConversionComputations, zeroedMapBuildCount } from "../benchmarks/tune-measure.mjs";
+import { medianQuickComputations, score, scoreConversionComputations, stdevLoopComputations, zeroedMapBuildCount } from "../benchmarks/tune-measure.mjs";
 
 // Minimal measurements stub: one seed, one item, all checks pass.
 const measurements = {
@@ -47,4 +47,11 @@ test("score derives its outcome maps in one pass", async () => {
   assert.deepEqual(result.fractions, { i0: 1 });
   assert.deepEqual(result.credit, { i0: 1 });
   assert.deepEqual([...result.majority], [["i0", true]]);
+});
+
+test("score computes latency spread with the loop stdev", async () => {
+  const before = stdevLoopComputations();
+  const result = await score(measurements, { temperature: 0 }, ["i0"], [42]);
+  assert.equal(stdevLoopComputations(), before + 1);
+  assert.equal(result.latencySd, 0);
 });
