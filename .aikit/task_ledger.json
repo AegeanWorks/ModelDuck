@@ -1,17 +1,17 @@
 {
   "active_task": {
     "active_phase": 5,
-    "completed_at": 1795761812.72577,
-    "completed_head": "843df04acd5589f3013f65e30179c5425996d037",
-    "completed_tree": "fa138e33acda368f0361bc7c084912d238bf6d50",
+    "completed_at": 1795762029.8847,
+    "completed_head": "d7195ca6a96360718c441346a551e8d4d904e85b",
+    "completed_tree": "738bb7d380809120de5c4aa1a4770f8a63c49f4d",
     "continuations": [],
     "last_phase": "phase 4",
-    "lease_until": 1795768981.80799,
+    "lease_until": 1795769191.22614,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "status": "completed",
-    "task_id": "score-conversion-loop-1145",
-    "updated_at": 1795761781.80799,
+    "task_id": "score-stdev-loops-1146",
+    "updated_at": 1795761991.22614,
     "workspaces": [
       {
         "name": "modelduck",
@@ -20,80 +20,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          ""
-        ]
-      },
-      "description": "Task 'receipt-stat-ttl-1138' completed successfully.",
-      "head": "2c24cf31242c9a9c28957f27627ecf51587eef1e",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "receipt-stat-ttl-1138",
-      "timestamp": 1795754684.19033,
-      "timestamp_str": "2026-11-27 07:44:44"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Reuse one pairedDiffs result across all guard views of a candidate",
-      "files_affected": [
-        "benchmarks/tune.mjs",
-        "benchmarks/tune-measure.mjs",
-        "tests/benchmark-tune.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Compute the diffs once per candidate comparison while preserving b/c/p values exactly",
-        "mitigation": "failing-first counter test, group-guard tests, full tune suite and strict gates; revert on any guard difference",
-        "risks": "contract: guard b/c/p, group rates and winner unchanged; dependency: tune-measure pairedDiffs; concurrency: process-local counter; state: cache scoped to one balancedChoice call",
-        "why": "groupEvidence rebuilds the same ordered per-item differences for every coding view and every candidate in a sweep, repeating O(items) work G x C times"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "bbc6b27b0ed34bcf00af43d5c4a6f61d522f5b8fbbf95c0b1e0bcc8c9eff3137",
-      "status": "in_progress",
-      "task_id": "guard-shared-diffs-1139",
-      "timestamp": 1795757023.76498,
-      "timestamp_str": "2026-11-27 08:23:43",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Cache evaluator load signatures per settings object and width",
-      "files_affected": [
-        "benchmarks/tune-evaluate.mjs",
-        "tests/benchmark-tune-evaluate.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Compute the load object and model/context signatures once per candidate/width while preserving all load/reconfigure decisions",
-        "mitigation": "failing-first counter test, evaluator/tune tests, 1000-measure A/B and strict gates; revert on any load/reconfigure difference",
-        "risks": "contract: model/context signatures and returned load object unchanged; dependency: WeakMap; concurrency: process-local per evaluator; state: settings object assumed stable per candidate as the tuner constructs it",
-        "why": "ensureLoaded recomputes three pick maps and two JSON.stringify signatures on every measure call although a candidate's settings object is reused across seeds, looks and chunks"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "36658dc7e5996815379984d6184b7c6453d5273ca1b3f1a3dba6589007d4a193",
-      "status": "in_progress",
-      "task_id": "load-signature-cache-1140",
-      "timestamp": 1795757348.0762,
-      "timestamp_str": "2026-11-27 08:29:08",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "description": "Superseded by 'load-signature-cache-1140' without --complete or --reset",
@@ -553,6 +479,88 @@
       "task_id": "score-conversion-loop-1145",
       "timestamp": 1795761812.72577,
       "timestamp_str": "2026-11-27 09:43:32"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Replace stdev's two reduce closures with loops",
+      "files_affected": [
+        "benchmarks/tune-measure.mjs",
+        "tests/score-map-init.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Compute the same sum and squared deviations in plain loops, preserving the exact floating-point result",
+        "mitigation": "failing-first counter test, 20,000 randomized bit-equivalence cases, interleaved score A/B, full suite and strict gates",
+        "risks": "contract: bit-identical latencySd; dependency: none; concurrency: process-local counter; state: none",
+        "why": "stdev called reduce twice per score, invoking a closure for every latency value"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "ac7b99eb5d40e2bcedcd004d1c914084841917268662737354d5e57a88a72da9",
+      "status": "in_progress",
+      "task_id": "score-stdev-loops-1146",
+      "timestamp": 1795761910.74271,
+      "timestamp_str": "2026-11-27 09:45:10",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: loop stdev cut 20 scores from 1.368ms to 1.148ms (1.19x) with identical stats hash and 20,000 bit-identical randomized cases; full npm suite 1335 pass 0 fail 1 skip; real three-model tune gate passed 9/9 rows with deltas inside tolerance",
+      "files_affected": [
+        "benchmarks/tune-measure.mjs",
+        "tests/score-map-init.test.js",
+        ".aikit/decisions.md",
+        "benchmarks/history.jsonl"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/score-median-ab.mjs",
+          "baseline": 1.368,
+          "candidate": 1.148,
+          "command": "node score-median-ab.mjs",
+          "control": "identical stats hash 6eef9ac3341cc954b8d0082499cf833a9a130a219fd12919b42daa4100d74e1f",
+          "drift": "0.1",
+          "interleaved": "yes",
+          "metric": "20 score computations",
+          "unit": "ms",
+          "workload": "twelve interleaved baseline/candidate pairs over 48 items and 3 seeds"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "score-stdev-loops-1146",
+      "timestamp": 1795761991.22614,
+      "timestamp_str": "2026-11-27 09:46:31",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          ""
+        ]
+      },
+      "description": "Task 'score-stdev-loops-1146' completed successfully.",
+      "head": "d7195ca6a96360718c441346a551e8d4d904e85b",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "score-stdev-loops-1146",
+      "timestamp": 1795762029.8847,
+      "timestamp_str": "2026-11-27 09:47:09"
     }
   ],
   "version": 1
