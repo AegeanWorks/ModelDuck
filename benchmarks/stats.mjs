@@ -152,19 +152,45 @@ const SIGN_FLIP_PERMUTATIONS = 10000;
 // Seeded LCG inlined into the draw loop: `random() < 0.5` is exactly the
 // high-bit test `state < 0x80000000`, so no division or closure call is needed.
 // The state sequence and every sign choice are identical to the original lcg.
+// The sequence depends only on (count, permutations), not on the values, so it
+// is built once and reused: p-values and the logical draw count stay exact.
 let monteCarloDraws = 0;
+let signPatternBuilds = 0;
 export function monteCarloDrawCount() {
   return monteCarloDraws;
 }
-function monteCarloSignedSums(nonzero, permutations, visit) {
+export function signFlipPatternBuilds() {
+  return signPatternBuilds;
+}
+export function resetSignPatternCounter() {
+  signPatternBuilds = 0;
+}
+const SIGN_PATTERNS = new Map();
+function signPatterns(count, permutations) {
+  const key = `${count}:${permutations}`;
+  const cached = SIGN_PATTERNS.get(key);
+  if (cached) return cached;
+  const signs = new Int8Array(permutations * count);
   let state = 0x5EED;
   for (let draw = 0; draw < permutations; draw += 1) {
-    let sum = 0;
-    for (let index = 0; index < nonzero.length; index += 1) {
+    const base = draw * count;
+    for (let index = 0; index < count; index += 1) {
       state = (state * 1664525 + 1013904223) >>> 0;
-      monteCarloDraws += 1;
-      sum += state < 0x80000000 ? nonzero[index] : -nonzero[index];
+      signs[base + index] = state < 0x80000000 ? 1 : -1;
     }
+  }
+  signPatternBuilds += 1;
+  SIGN_PATTERNS.set(key, signs);
+  return signs;
+}
+function monteCarloSignedSums(nonzero, permutations, visit) {
+  const count = nonzero.length;
+  const signs = signPatterns(count, permutations);
+  monteCarloDraws += count * permutations;
+  for (let draw = 0; draw < permutations; draw += 1) {
+    const base = draw * count;
+    let sum = 0;
+    for (let index = 0; index < count; index += 1) sum += signs[base + index] * nonzero[index];
     visit(sum);
   }
 }

@@ -2528,3 +2528,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Scan the generation import path once, then pass the shared file list with each digest's answer/judge driver list to generationDigest and answerDigest
 - **Consequences**: A twelve-pair direct A/B improved 4.616ms to 3.459ms (1.33x) with identical answer and evidence digests. A failing-first scan counter and 35 gate/report tests pass. The real three-model tune gate passed all nine rows with both code deltas inside their tolerance.
 - **Cross-principle check:** PRINCIPLE-003: the shared file list is the same sorted import closure each digest built on its own, so answer and evidence digests stay byte-identical; PRINCIPLE-010: one import-closure scan replaces two; PRINCIPLE-014: failing-first scan counter plus gate-cache and report suites and a direct digest A/B; PRINCIPLE-016: the gate's answer fingerprint is unchanged, so cached answers stay valid.
+
+### ADR-331: Cache seeded sign patterns for Monte Carlo sign flips
+- **Date**: 2026-11-27
+- **Status**: Accepted
+- **Context**: monteCarloSignedSums rebuilt the same deterministic 10,000-by-count LCG sign matrix on every p-value although the seeded sequence depends only on count and permutations
+- **Decision**: Build the Int8Array sign table once per (count, permutations) and reuse it in the sum loop, counting logical draws exactly as before
+- **Consequences**: Six p-values stayed bit-identical in a twelve-pair interleaved A/B at 7.33x (23.029ms to 3.143ms); twelve clustered sweep comparisons stayed identical at 5.58x (46.657ms to 8.356ms). A failing-first counter and 38 stats tests pass, as does the real three-model tune gate with 9/9 rates unchanged.
+- **Cross-principle check:** PRINCIPLE-003: ±1 multiplication reproduces the original high-bit sign choice bit-for-bit, verified against the seeded reference and full sweep evidence; PRINCIPLE-010: the LCG state generation leaves the hot permutation loop; PRINCIPLE-013: the table is process-local and keyed by count and permutation width; PRINCIPLE-014: failing-first counter plus exact reference p-values and interleaved A/Bs.
