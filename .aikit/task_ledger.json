@@ -1,17 +1,17 @@
 {
   "active_task": {
     "active_phase": 5,
-    "completed_at": 1795769569.30786,
-    "completed_head": "4451f9e9f25cf845f742922e5b8f55cdc874cfb2",
-    "completed_tree": "b21f3252e49951552e1a3bedb3c025dff0fc6294",
+    "completed_at": 1795771657.32671,
+    "completed_head": "a25e6827fdf0fe9531f97efad4e0f78daf667d9d",
+    "completed_tree": "0e4da189407c0cd413f43d91b48f59661521aebe",
     "continuations": [],
     "last_phase": "phase 4",
-    "lease_until": 1795776712.59253,
+    "lease_until": 1795778795.0099,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "status": "completed",
-    "task_id": "sequential-score-accumulate-1151",
-    "updated_at": 1795769512.59253,
+    "task_id": "incremental-derived-stats-1152",
+    "updated_at": 1795771595.0099,
     "workspaces": [
       {
         "name": "modelduck",
@@ -20,88 +20,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Build score's plain outcome maps in one pass",
-      "files_affected": [
-        "benchmarks/tune-measure.mjs",
-        "tests/score-map-init.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Fill the four results in one loop over fractions, removing intermediate arrays and GC pressure",
-        "mitigation": "failing-first counter test, interleaved score A/B with identical hash, full suite and strict gates",
-        "risks": "contract: identical map keys, values and insertion order; dependency: none; concurrency: process-local counter; state: none",
-        "why": "score created eight intermediate pair arrays to derive majority, outcomes, fractions and credit from two maps on every rung"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "43d1c88b0ecb0d2eadf020b7c6ec35a86ca630ff5902efdd07730efcc69c7548",
-      "status": "in_progress",
-      "task_id": "score-conversion-loop-1145",
-      "timestamp": 1795761695.74285,
-      "timestamp_str": "2026-11-27 09:41:35",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: one-pass outcome derivation cut 20 scores from 1.434ms to 1.181ms (1.21x) with an identical stats hash; full npm suite 1334 pass 0 fail 1 skip; real three-model tune gate passed 9/9 rates with zero delta and 84 cached answers",
-      "files_affected": [
-        "benchmarks/tune-measure.mjs",
-        "tests/score-map-init.test.js",
-        ".aikit/decisions.md",
-        "benchmarks/history.jsonl"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/score-median-ab.mjs",
-          "baseline": 1.434,
-          "candidate": 1.181,
-          "command": "node score-median-ab.mjs",
-          "control": "identical stats hash 6eef9ac3341cc954b8d0082499cf833a9a130a219fd12919b42daa4100d74e1f",
-          "drift": "0.1",
-          "interleaved": "yes",
-          "metric": "20 score computations",
-          "unit": "ms",
-          "workload": "twelve interleaved baseline/candidate pairs over 48 items and 3 seeds"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "score-conversion-loop-1145",
-      "timestamp": 1795761781.80799,
-      "timestamp_str": "2026-11-27 09:43:01",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          ""
-        ]
-      },
-      "description": "Task 'score-conversion-loop-1145' completed successfully.",
-      "head": "843df04acd5589f3013f65e30179c5425996d037",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "score-conversion-loop-1145",
-      "timestamp": 1795761812.72577,
-      "timestamp_str": "2026-11-27 09:43:32"
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "description": "[1/2] Replace stdev's two reduce closures with loops",
@@ -561,6 +479,100 @@
       "task_id": "sequential-score-accumulate-1151",
       "timestamp": 1795769569.30786,
       "timestamp_str": "2026-11-27 11:52:49"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Maintain score's derived per-item objects incrementally",
+      "files_affected": [
+        "benchmarks/tune-measure.mjs",
+        "tests/benchmark-tune-stats.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Update the four derived maps for newly reached items only, keeping the same values and finalize output",
+        "mitigation": "failing-first counter test, exact sequential A/B hash and accounting, full suite and strict gates; revert on any difference",
+        "risks": "contract: identical per-item objects and stats; dependency: score state helpers; concurrency: process-local counter; state: derived maps scoped to one score",
+        "why": "finalizeScore rebuilt majority, outcomes, fractions and credit for every item at every early-stop look although only the newly reached items change"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "168bfccd357680d77885e425ae6fd3d1ddead92710351acdd8073f23d2b96058",
+      "status": "in_progress",
+      "task_id": "incremental-derived-stats-1152",
+      "timestamp": 1795769729.03753,
+      "timestamp_str": "2026-11-27 11:55:29",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: incremental derived maps cut 20 sequential scores from 4.769ms to 3.978ms (1.20x) and a 14-round big tune from 5.886ms to 4.914ms (1.198x) with identical stats and decisions; full npm suite 1340 pass 0 fail 1 skip; real three-model tune gate passed 9/9 rates with zero delta",
+      "files_affected": [
+        "benchmarks/tune-measure.mjs",
+        "tests/benchmark-tune-stats.test.js",
+        ".aikit/decisions.md",
+        "benchmarks/history.jsonl"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/sequential-score-ab.mjs",
+          "baseline": 4.769,
+          "candidate": 3.978,
+          "command": "node sequential-score-ab.mjs",
+          "control": "identical stats hash 6eef9ac3341cc954b8d0082499cf833a9a130a219fd12919b42daa4100d74e1f and 240 measure calls",
+          "drift": "0.2",
+          "interleaved": "yes",
+          "metric": "20 sequential early-stop evaluations",
+          "unit": "ms",
+          "workload": "twelve interleaved baseline/candidate pairs over 48 items, 3 seeds and four looks"
+        },
+        {
+          "artifact": "local-only/big-tune-ab.mjs",
+          "baseline": 5.886,
+          "candidate": 4.914,
+          "command": "node big-tune-ab.mjs",
+          "control": "identical decisions in every round",
+          "drift": "0.25",
+          "interleaved": "yes",
+          "metric": "14-round multi-axis grouped tune",
+          "unit": "ms",
+          "workload": "fourteen interleaved baseline/candidate rounds of a three-axis two-pass code tune"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "incremental-derived-stats-1152",
+      "timestamp": 1795771595.0099,
+      "timestamp_str": "2026-11-27 12:26:35",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          ""
+        ]
+      },
+      "description": "Task 'incremental-derived-stats-1152' completed successfully.",
+      "head": "a25e6827fdf0fe9531f97efad4e0f78daf667d9d",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "incremental-derived-stats-1152",
+      "timestamp": 1795771657.32671,
+      "timestamp_str": "2026-11-27 12:27:37"
     }
   ],
   "version": 1
