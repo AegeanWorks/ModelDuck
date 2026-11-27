@@ -3,44 +3,6 @@
   "checkpoints": [
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "Task 'slot-family-cache-1160' abandoned: Rejected slot-family-cache-1160 after measurement: storing the cap-free family on the slot regressed two fourteen-round full-tune A/Bs (0.955x and 0.908x) with identical decisions; production files restored",
-      "phase": "abandoned",
-      "phase_num": 2,
-      "status": "abandoned",
-      "task_id": "slot-family-cache-1160",
-      "timestamp": 1795782878.51477,
-      "timestamp_str": "2026-11-27 15:34:38"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Reuse sweep stats for identical settings and rungs",
-      "files_affected": [
-        "benchmarks/tune.mjs",
-        "tests/benchmark-tune.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Cache finalized reports by settings, rung and seed count within one tune and reuse them when inputs match",
-        "mitigation": "failing-first counter test, interleaved big-tune A/B with identical decisions, full suite and strict gates; revert on any decision change or neutral result",
-        "risks": "contract: identical decisions and accounting; dependency: settingsKey and context; concurrency: process-local counter; state: cache scoped to one tune",
-        "why": "descend re-scored the incumbent for each axis even when no earlier axis changed the settings, recomputing the same report from cached answers"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "aaae3de11119f4bf70033f2a2acc44f3ac7cd3c37291bb6d84fa2b5caf2db12a",
-      "status": "in_progress",
-      "task_id": "sweep-stats-cache-1161",
-      "timestamp": 1795783047.46269,
-      "timestamp_str": "2026-11-27 15:37:27",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "checklists": "passed",
       "description": "[2/2] VERIFIED: reuse of finalized incumbent reports improved three 14-round big-tune A/Bs by 1.16x, 1.13x and 1.35x with identical decisions; cache observed 8 hits versus 4 builds per tune; full npm suite 1345 pass 0 fail 1 skip; real three-model tune gate passed 9/9 rates with zero delta",
       "files_affected": [
@@ -446,6 +408,44 @@
       "task_id": "diff-cache-1168",
       "timestamp": 1795787179.63825,
       "timestamp_str": "2026-11-27 16:46:19"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Skip donor filtering when a cap family has one slot",
+      "files_affected": [
+        "benchmarks/tune-measure.mjs",
+        "tests/benchmark-tune-stats.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Return missing items directly when no sibling slot can donate, preserving reuse when siblings exist",
+        "mitigation": "failing-first counter test, interleaved big-tune A/B with identical decisions, full suite and strict gates; revert if not measurable",
+        "risks": "contract: identical cap reuse and accounting; dependency: capSlots shape; concurrency: process-local counter; state: slot family map",
+        "why": "every measure filtered the cap family to find sibling donors although most families have only the current slot"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "545ded7658b985db69751d86235cc8526040524e46c241f1865a0b463b489320",
+      "status": "in_progress",
+      "task_id": "sibling-cap-early-return-1169",
+      "timestamp": 1795787723.60538,
+      "timestamp_str": "2026-11-27 16:55:23",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "Task 'sibling-cap-early-return-1169' abandoned: Rejected sibling-cap-early-return-1169 after measurement: skipping donor filtering for lone cap slots was neutral-to-regressive across five fourteen-round full-tune A/Bs (median 0.91x) with identical decisions; production files restored",
+      "phase": "abandoned",
+      "phase_num": 2,
+      "status": "abandoned",
+      "task_id": "sibling-cap-early-return-1169",
+      "timestamp": 1795787910.37648,
+      "timestamp_str": "2026-11-27 16:58:30"
     }
   ],
   "version": 1
