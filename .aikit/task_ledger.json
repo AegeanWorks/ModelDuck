@@ -1,17 +1,17 @@
 {
   "active_task": {
     "active_phase": 5,
-    "completed_at": 1795811445.65234,
-    "completed_head": "4a5549b4016f37900f5f166e88b0e9161d00367e",
-    "completed_tree": "575062832e9e87b4ba162e912048e4ee744ba64e",
+    "completed_at": 1795816408.60856,
+    "completed_head": "5445063c1f2d7533374e399cddbe1e4583eb43c9",
+    "completed_tree": "c2f8734ce8b9aa5ec3f344c5dad314d5a5f0e2a2",
     "continuations": [],
     "last_phase": "phase 4",
-    "lease_until": 1795818494.18863,
+    "lease_until": 1795823516.57728,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "status": "completed",
-    "task_id": "test-only-diagnostics-1190",
-    "updated_at": 1795811294.18863,
+    "task_id": "minimal-intermediate-stats-1193",
+    "updated_at": 1795816316.57728,
     "workspaces": [
       {
         "name": "modelduck",
@@ -20,81 +20,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "Task 'binomial-cache-1182' abandoned: Rejected binomial-cache-1182 after measurement: caching binomial rows was neutral across four partial-credit full-tune A/Bs (median 1.01x) with identical decisions; production files restored",
-      "phase": "abandoned",
-      "phase_num": 2,
-      "status": "abandoned",
-      "task_id": "binomial-cache-1182",
-      "timestamp": 1795797312.49992,
-      "timestamp_str": "2026-11-27 19:35:12"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Omit solved and ci95 at intermediate looks",
-      "files_affected": [
-        "benchmarks/tune-measure.mjs",
-        "tests/benchmark-tune-stats.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Set those two fields to null at intermediate looks and keep the full report at the final look",
-        "mitigation": "failing-first counter test, partial-credit full-tune A/B with identical decisions, full suite and strict gates; revert if not measurable",
-        "risks": "contract: identical stop decisions and final reports; dependency: stop guard fields; concurrency: process-local counter; state: none",
-        "why": "light finalize still computed a rounded solved count and Wilson interval although the early-stop guard reads neither"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "1745d260413a1572473a7d740094fb555541a361610f563d2718c5acf57a5276",
-      "status": "in_progress",
-      "task_id": "light-finalize-minimal-1183",
-      "timestamp": 1795802902.82083,
-      "timestamp_str": "2026-11-27 21:08:22",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: omitting solved and ci95 at intermediate looks improved four 10-round partial-credit full-tune A/Bs by 1.04x to 1.16x with identical decisions; full npm suite 1350 pass 0 fail 1 skip; real three-model tune gate passed 9/9 rates with zero delta",
-      "files_affected": [
-        "benchmarks/tune-measure.mjs",
-        "tests/benchmark-tune-stats.test.js",
-        ".aikit/decisions.md",
-        "benchmarks/history.jsonl"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/big-tune-partial-ab.mjs",
-          "baseline": 3.852,
-          "candidate": 3.315,
-          "command": "node big-tune-partial-ab.mjs",
-          "control": "identical settings, pAdjusted and sweep decisions in every round",
-          "drift": "0.3",
-          "interleaved": "yes",
-          "metric": "10-round partial-credit multi-axis grouped tune",
-          "unit": "ms",
-          "workload": "ten interleaved baseline/candidate rounds of a three-axis two-pass code tune with three checks per item"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "light-finalize-minimal-1183",
-      "timestamp": 1795803366.83238,
-      "timestamp_str": "2026-11-27 21:16:06",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "delivery": {
@@ -467,6 +392,88 @@
       "task_id": "test-only-diagnostics-1190",
       "timestamp": 1795811445.65234,
       "timestamp_str": "2026-11-27 23:30:45"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Build only the stop guard's fields at intermediate looks",
+      "files_affected": [
+        "benchmarks/tune-measure.mjs",
+        "tests/benchmark-tune-stats.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Return a three-field object at intermediate looks and keep the full report for stopped and final looks",
+        "mitigation": "failing-first field test, partial-credit full-tune A/B with identical decisions, full suite and strict gates; revert if not measurable",
+        "risks": "contract: identical stop decisions and final reports; dependency: shouldStop field use; concurrency: process-local counter; state: none",
+        "why": "light finalize still allocated a full 25-field stats object although shouldStop reads only paired evidence containers"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "461e64643356a9f586ed55f511b9d9284476e8480ba27c74b1c2c1f61c2bd6f2",
+      "status": "in_progress",
+      "task_id": "minimal-intermediate-stats-1193",
+      "timestamp": 1795815623.67429,
+      "timestamp_str": "2026-11-28 00:40:23",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: minimal intermediate stop stats improved six partial-credit full-tune A/Bs in five runs with median near 1.10x and identical decisions; full npm suite 1351 pass 0 fail 1 skip; real three-model tune gate passed 9/9 rates with zero delta",
+      "files_affected": [
+        "benchmarks/tune-measure.mjs",
+        "tests/benchmark-tune-stats.test.js",
+        ".aikit/decisions.md",
+        "benchmarks/history.jsonl"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/big-tune-partial-ab.mjs",
+          "baseline": 3.202,
+          "candidate": 2.821,
+          "command": "node big-tune-partial-ab.mjs",
+          "control": "identical settings, pAdjusted and sweep decisions in every round",
+          "drift": "0.2",
+          "interleaved": "yes",
+          "metric": "10-round partial-credit multi-axis grouped tune",
+          "unit": "ms",
+          "workload": "ten interleaved baseline/candidate rounds of a three-axis two-pass code tune with three checks per item"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "minimal-intermediate-stats-1193",
+      "timestamp": 1795816316.57728,
+      "timestamp_str": "2026-11-28 00:51:56",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          ""
+        ]
+      },
+      "description": "Task 'minimal-intermediate-stats-1193' completed successfully.",
+      "head": "5445063c1f2d7533374e399cddbe1e4583eb43c9",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "minimal-intermediate-stats-1193",
+      "timestamp": 1795816408.60856,
+      "timestamp_str": "2026-11-28 00:53:28"
     }
   ],
   "version": 1
