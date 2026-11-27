@@ -764,6 +764,12 @@ let itemOutcomesReads = 0;
 export function itemOutcomesReadCount() {
   return itemOutcomesReads;
 }
+// Test seam: how many settings objects are serialized only to be discarded
+// once an item has reached its distinct-setting cap.
+let itemOutcomeKeyStringifyCount = 0;
+export function itemOutcomeKeyStringifies() {
+  return itemOutcomeKeyStringifyCount;
+}
 
 export async function itemOutcomes(dir, { profileId, minObservations = 6, minSettings = 2, fingerprint = null, historyCache = null, retainRuns = 0, retainMinRows = 1000 } = {}) {
   const names = await fs.promises.readdir(dir).catch(() => []);
@@ -799,11 +805,14 @@ export async function itemOutcomes(dir, { profileId, minObservations = 6, minSet
     if ((Number(row.passed) || 0) >= total) entry.right += 1;
     else entry.wrong += 1;
     // Greedy load-stage repeats of one setting must not saturate an item (S6).
-    try {
-      const key = JSON.stringify(row.settings ?? null);
-      if (entry.settings.size < 16) entry.settings.add(key);
-    } catch {
-      // unstringifiable settings still count as a look, just not a new setting
+    // Once the cap is reached the key would be discarded, so do not serialize it.
+    if (entry.settings.size < 16) {
+      itemOutcomeKeyStringifyCount += 1;
+      try {
+        entry.settings.add(JSON.stringify(row.settings ?? null));
+      } catch {
+        // unstringifiable settings still count as a look, just not a new setting
+      }
     }
     counts.set(row.item, entry);
   };

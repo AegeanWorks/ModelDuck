@@ -4,7 +4,26 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { itemOutcomes, itemOutcomesReadCount, startRun } from "../src/tune-runs.js";
+import { itemOutcomeKeyStringifies, itemOutcomes, itemOutcomesReadCount, startRun } from "../src/tune-runs.js";
+
+test("itemOutcomes stops serializing settings after the distinct-setting cap", async (t) => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "md-iostrings-"));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const fp = { suiteVersion: 18, taskHash: "h", nodeLlamaCpp: "x", tunerVersion: 12 };
+  const rec = await startRun(dir, { profileId: "p", model: "m", request: {}, fingerprint: fp });
+  await rec.answers(Array.from({ length: 40 }, (_, index) => ({
+    item: "capped",
+    seed: 42,
+    settings: { threads: index },
+    passed: 1,
+    total: 1,
+  })));
+  await rec.finish({ outcome: "complete" });
+  const before = itemOutcomeKeyStringifies();
+  const result = await itemOutcomes(dir, { profileId: "p", fingerprint: fp });
+  assert.deepEqual(result.counts, { capped: { right: 40, wrong: 0, seen: 40, settings: 16 } });
+  assert.equal(itemOutcomeKeyStringifies(), before + 16, "only the first 16 distinct settings are serialized");
+});
 
 test("itemOutcomes reads each answer file once and keeps counts", async (t) => {
   const dir = await mkdtemp(path.join(os.tmpdir(), "md-ioreads-"));
