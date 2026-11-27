@@ -3,44 +3,6 @@
   "checkpoints": [
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Reuse costDelta results across sweeps",
-      "files_affected": [
-        "benchmarks/tune.mjs",
-        "tests/benchmark-tune.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Cache costDelta by immutable report pair, tie band and cost field within one tune",
-        "mitigation": "failing-first counter test, interleaved big-tune A/B with identical decisions, full suite and strict gates; revert if not measurable",
-        "risks": "contract: identical selection decisions; dependency: report object identity; concurrency: process-local counter; state: cache scoped to one tune",
-        "why": "choose recomputed per-item cost differences for report pairs that recur now that reports are cached"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "04d3e197f37871c3c4d069fd9153d1aaa719dd74bd0e9516a08079a73d2e6f02",
-      "status": "in_progress",
-      "task_id": "cost-delta-cache-1172",
-      "timestamp": 1795788922.13461,
-      "timestamp_str": "2026-11-27 17:15:22",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "Task 'cost-delta-cache-1172' abandoned: Rejected cost-delta-cache-1172 after measurement: tune-wide costDelta cache had only 1 hit per big tune and was neutral-to-regressive across four full-tune A/Bs (median 0.95x) with identical decisions; production files restored",
-      "phase": "abandoned",
-      "phase_num": 2,
-      "status": "abandoned",
-      "task_id": "cost-delta-cache-1172",
-      "timestamp": 1795789160.20134,
-      "timestamp_str": "2026-11-27 17:19:20"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "description": "[1/2] Reuse public report summaries across sweeps",
       "files_affected": [
         "benchmarks/tune.mjs",
@@ -430,6 +392,45 @@
       "task_id": "paired-values-1180",
       "timestamp": 1795794590.10327,
       "timestamp_str": "2026-11-27 18:49:50"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Skip stop p-values when losses do not lead",
+      "files_affected": [
+        "benchmarks/tune-measure.mjs",
+        "benchmarks/tune.mjs",
+        "tests/benchmark-tune-stats.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Compute paired b/c first and only run the permutation test when the loss direction can trigger a stop",
+        "mitigation": "failing-first counter test, partial-credit full-tune A/B with identical decisions, full suite and strict gates; revert if not measurable",
+        "risks": "contract: identical stop decisions and p-values when reported; dependency: shouldStop guard; concurrency: process-local counter; state: none",
+        "why": "the early-stop guard computed a full sign-flip p-value at every look although it fails immediately when b is not greater than c"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "4b4a3858f8a6428613be8a4aa552ec6a4fdb07d9f06c77749b4dec1ba02f1a6f",
+      "status": "in_progress",
+      "task_id": "paired-counts-guard-1181",
+      "timestamp": 1795794731.23837,
+      "timestamp_str": "2026-11-27 18:52:11",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "Task 'paired-counts-guard-1181' abandoned: Rejected paired-counts-guard-1181 after measurement: direction-first paired guard was neutral across four partial-credit full-tune A/Bs (median 0.98x) with identical decisions because losses lead often and the extra array/call overhead offset skipped p-values; production files restored",
+      "phase": "abandoned",
+      "phase_num": 2,
+      "status": "abandoned",
+      "task_id": "paired-counts-guard-1181",
+      "timestamp": 1795795093.92685,
+      "timestamp_str": "2026-11-27 18:58:13"
     }
   ],
   "version": 1
