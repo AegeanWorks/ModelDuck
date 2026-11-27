@@ -1,81 +1,25 @@
 {
-  "active_task": null,
+  "active_task": {
+    "active_phase": 5,
+    "completed_at": 1795819766.52654,
+    "completed_head": "3dcb9d2b1d42935d1b607604ffc1d1a8df5f4cea",
+    "completed_tree": "1811d67e367d959f272c9b9f390c83976bebdb54",
+    "continuations": [],
+    "last_phase": "phase 4",
+    "lease_until": 1795826923.31664,
+    "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+    "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+    "status": "completed",
+    "task_id": "fused-upper-median-1198",
+    "updated_at": 1795819723.31664,
+    "workspaces": [
+      {
+        "name": "modelduck",
+        "path": "projects/modelduck"
+      }
+    ]
+  },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "Task 'fused-derived-writes-1188' abandoned: Rejected fused-derived-writes-1188 after measurement: writing derived values inside accumulateScore was neutral across four partial-credit full-tune A/Bs (median 1.00x) with identical decisions; production files restored",
-      "phase": "abandoned",
-      "phase_num": 2,
-      "status": "abandoned",
-      "task_id": "fused-derived-writes-1188",
-      "timestamp": 1795808084.73695,
-      "timestamp_str": "2026-11-27 22:34:44"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Inline the item pass check in accumulateScore",
-      "files_affected": [
-        "benchmarks/tune-measure.mjs",
-        "tests/benchmark-tune-stats.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Inline the same predicate with identical short-circuit order and result",
-        "mitigation": "failing-first equivalence test, partial-credit full-tune A/B with identical decisions, full suite and strict gates; revert if not measurable",
-        "risks": "contract: identical pass flags and stats; dependency: stats.mjs itemPassed semantics; concurrency: process-local counter; state: none",
-        "why": "accumulateScore calls itemPassed for every prompt although the check is three property comparisons"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "d8dd647e3190d82406e84e2300f754cb58a0b322a18418f1ffa6a111c79e7c00",
-      "status": "in_progress",
-      "task_id": "inline-item-passed-1189",
-      "timestamp": 1795808620.96561,
-      "timestamp_str": "2026-11-27 22:43:40",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: inlining the item pass predicate improved five of six partial-credit full-tune A/Bs with a median near 1.03x and identical decisions; equivalence test over all answer shapes and 140 targeted tests pass; full npm suite 1351 pass 0 fail 1 skip; real three-model tune gate passed 9/9 rates with zero delta",
-      "files_affected": [
-        "benchmarks/tune-measure.mjs",
-        "tests/benchmark-tune-stats.test.js",
-        ".aikit/decisions.md",
-        "benchmarks/history.jsonl"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/big-tune-partial-ab.mjs",
-          "baseline": 2.939,
-          "candidate": 2.809,
-          "command": "node big-tune-partial-ab.mjs",
-          "control": "identical settings, pAdjusted and sweep decisions in every round",
-          "drift": "0.15",
-          "interleaved": "yes",
-          "metric": "10-round partial-credit multi-axis grouped tune",
-          "unit": "ms",
-          "workload": "ten interleaved baseline/candidate rounds of a three-axis two-pass code tune with three checks per item"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "inline-item-passed-1189",
-      "timestamp": 1795808884.18078,
-      "timestamp_str": "2026-11-27 22:48:04",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "delivery": {
@@ -486,6 +430,88 @@
       "task_id": "settingskey-identity-cache-1197",
       "timestamp": 1795818489.79068,
       "timestamp_str": "2026-11-28 01:28:09"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Find the upper median by scanning the right partition",
+      "files_affected": [
+        "benchmarks/tune-measure.mjs",
+        "tests/benchmark-tune-stats.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "After selecting rank middle-1, the upper median is the minimum of the right partition, found in one linear pass",
+        "mitigation": "failing-first counter test plus randomized equivalence probe, full targeted suite, partial-credit full-tune A/B with identical decision hashes; revert if not measurable",
+        "risks": "contract: bit-identical medians and decisions; dependency: selectRank partition invariant; concurrency: process-local counter; state: none",
+        "why": "medianQuick ran a second full quickselect for even-length arrays although the first selection partitions the array around the lower median"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "5479d3a22e8310df9bb3f8faa86f27b4d08bb5d3090f311f6a68d89d439add3f",
+      "status": "in_progress",
+      "task_id": "fused-upper-median-1198",
+      "timestamp": 1795819291.16034,
+      "timestamp_str": "2026-11-28 01:41:31",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: fused upper median scan passed a 20000-array equivalence probe and failing-first counter test; full npm suite 1352 pass 0 fail 1 skip; real three-model tune gate 9/9 zero delta; eleven partial-credit full-tune A/Bs had median 1.024x with identical decision hashes",
+      "files_affected": [
+        "benchmarks/tune-measure.mjs",
+        "tests/score-map-init.test.js",
+        ".aikit/decisions.md",
+        "benchmarks/history.jsonl"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/long-ab.mjs",
+          "baseline": 2.378,
+          "candidate": 2.322,
+          "command": "node long-ab.mjs",
+          "control": "identical settings, pAdjusted and sweep decisions in every round",
+          "drift": "0.2",
+          "interleaved": "yes",
+          "metric": "10-round partial-credit multi-axis grouped tune",
+          "unit": "ms",
+          "workload": "180 interleaved baseline/candidate rounds of a three-axis two-pass code tune with three checks per item"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "fused-upper-median-1198",
+      "timestamp": 1795819723.31664,
+      "timestamp_str": "2026-11-28 01:48:43",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          ""
+        ]
+      },
+      "description": "Task 'fused-upper-median-1198' completed successfully.",
+      "head": "3dcb9d2b1d42935d1b607604ffc1d1a8df5f4cea",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "fused-upper-median-1198",
+      "timestamp": 1795819766.52654,
+      "timestamp_str": "2026-11-28 01:49:26"
     }
   ],
   "version": 1
