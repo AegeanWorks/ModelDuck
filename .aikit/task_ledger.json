@@ -1,17 +1,17 @@
 {
   "active_task": {
     "active_phase": 5,
-    "completed_at": 1795760332.31463,
-    "completed_head": "d3bcef5221fe8b090a06f5c019aaf50e87cd591c",
-    "completed_tree": "27bec429a62b105328d025d21b362d0dfbcc0c72",
+    "completed_at": 1795761037.76178,
+    "completed_head": "0ce6183fab2b25e9f8f1986e85588ce3e9974a46",
+    "completed_tree": "fd6e2688faaa85d1cc58e8a3832fbb37ff97e926",
     "continuations": [],
     "last_phase": "phase 4",
-    "lease_until": 1795767486.06264,
+    "lease_until": 1795768182.84393,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "status": "completed",
-    "task_id": "gate-shared-files-1142",
-    "updated_at": 1795760286.06264,
+    "task_id": "signflip-pattern-cache-1143",
+    "updated_at": 1795760982.84393,
     "workspaces": [
       {
         "name": "modelduck",
@@ -20,87 +20,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          ""
-        ]
-      },
-      "description": "Task 'history-scope-migration-1135' completed successfully.",
-      "head": "a3c8b208f5b386f562cf141933ef328bc37a4e99",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "history-scope-migration-1135",
-      "timestamp": 1795743697.86488,
-      "timestamp_str": "2026-11-27 04:41:37"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Cache settings serialization for reused cachedAnswers grouping keys",
-      "files_affected": [
-        "src/tune-runs.js",
-        "tests/cachedanswers-reads.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Serialize each reused settings object once per history cache with a bounded LRU-style FIFO and preserve group output exactly",
-        "mitigation": "failing-first hit/eviction counter tests, cachedAnswers and tune-runs suites, benchmark and strict gates; revert on any group change",
-        "risks": "contract: key string and grouping order unchanged; dependency: WeakMap; concurrency: process-local per-cache; state: bound and reset with the history cache",
-        "why": "cachedAnswers reuses parsed row objects from the history cache but still JSON.stringify each row's settings on every call just to rebuild the same grouping key"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "55f3b354adc09766fff116c9e6b2b662d3337ace442d94c7fe2afc4f14c6e5af",
-      "status": "in_progress",
-      "task_id": "cachedanswers-key-cache-1136",
-      "timestamp": 1795744045.65105,
-      "timestamp_str": "2026-11-27 04:47:25",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: 20,000-row 40-call A/B 7,020.800ms to 6,280.008ms (1.12x) under 15 percent control drift with identical groups and 15,000 settings-key hits; 56 targeted tests and full npm suite (1326 pass, one pre-existing skip) pass",
-      "files_affected": [
-        "src/tune-runs.js",
-        "tests/cachedanswers-reads.test.js",
-        ".aikit/decisions.md"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/answer-keys-production-ab.mjs",
-          "baseline": 7020.8,
-          "candidate": 6280.008,
-          "command": "node answer-keys-production-ab.mjs",
-          "control": "baseline/baseline 6113.005ms vs 7029.707ms with identical grouping hash",
-          "drift": "15",
-          "interleaved": "yes",
-          "metric": "20,000-row cachedAnswers restore",
-          "unit": "ms",
-          "workload": "40 repeated cachedAnswers calls after itemOutcomes priming over four 5,000-answer runs, six interleaved pairs against the committed prior version"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "cachedanswers-key-cache-1136",
-      "timestamp": 1795745147.39285,
-      "timestamp_str": "2026-11-27 05:05:47",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "delivery": {
@@ -538,6 +457,100 @@
       "task_id": "gate-shared-files-1142",
       "timestamp": 1795760332.31463,
       "timestamp_str": "2026-11-27 09:18:52"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Cache seeded sign patterns for Monte Carlo sign-flip tests",
+      "files_affected": [
+        "benchmarks/stats.mjs",
+        "tests/signflip-monte-carlo.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Build the Int8Array sign table once per (count, permutations) and reuse it for every p-value; preserve exact draw counts and decisions",
+        "mitigation": "failing-first counter and equivalence tests, interleaved A/B, full suite and strict gates; revert on any p-value change",
+        "risks": "contract: identical p-values and draw counter; dependency: stats.mjs callers; concurrency: process-local cache; state: table keyed by count/permutations",
+        "why": "monteCarloSignedSums regenerated the same 10,000 x count LCG sign matrix on every call although the seeded sequence depends only on count and permutations"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "98f8a9b4ed4efd602a00e772da2a94b4c042ed8321db8faf44339686470fbb2d",
+      "status": "in_progress",
+      "task_id": "signflip-pattern-cache-1143",
+      "timestamp": 1795760379.23856,
+      "timestamp_str": "2026-11-27 09:19:39",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: cached sign table cut six p-value computations from 23.029ms to 3.143ms (7.33x) and twelve clustered sweep comparisons from 46.657ms to 8.356ms (5.58x) with identical evidence; full npm suite 1332 pass 0 fail 1 skip; real three-model tune gate passed 9/9 rates with zero delta",
+      "files_affected": [
+        "benchmarks/stats.mjs",
+        "tests/signflip-monte-carlo.test.js",
+        ".aikit/decisions.md",
+        "benchmarks/history.jsonl"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/signflip-ab.mjs",
+          "baseline": 23.029,
+          "candidate": 3.143,
+          "command": "node signflip-ab.mjs",
+          "control": "identical p-values 0,1,0.0001,0.9999,0,1",
+          "drift": "0.3",
+          "interleaved": "yes",
+          "metric": "six Monte Carlo sign-flip p-values",
+          "unit": "ms",
+          "workload": "twelve interleaved baseline/candidate pairs over three 30-64 value vectors"
+        },
+        {
+          "artifact": "local-only/signflip-sweep-ab.mjs",
+          "baseline": 46.657,
+          "candidate": 8.356,
+          "command": "node signflip-sweep-ab.mjs",
+          "control": "identical b/c/p/cluster values",
+          "drift": "0.5",
+          "interleaved": "yes",
+          "metric": "twelve clustered sweep evidence comparisons",
+          "unit": "ms",
+          "workload": "twelve interleaved pairs of six distinct before/after 48-item stat pairs"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "signflip-pattern-cache-1143",
+      "timestamp": 1795760982.84393,
+      "timestamp_str": "2026-11-27 09:29:42",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          ""
+        ]
+      },
+      "description": "Task 'signflip-pattern-cache-1143' completed successfully.",
+      "head": "0ce6183fab2b25e9f8f1986e85588ce3e9974a46",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "signflip-pattern-cache-1143",
+      "timestamp": 1795761037.76178,
+      "timestamp_str": "2026-11-27 09:30:37"
     }
   ],
   "version": 1
