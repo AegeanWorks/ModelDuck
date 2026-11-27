@@ -3,60 +3,6 @@
   "checkpoints": [
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: single-array exact sign sums improved three 10-round partial-credit full-tune A/Bs by 1.16x to 1.29x with identical decisions; 5000 random plus 44 threshold-tie p-values matched the reference; full npm suite 1348 pass 0 fail 1 skip; real three-model tune gate passed 9/9 rates with zero delta",
-      "files_affected": [
-        "benchmarks/stats.mjs",
-        "tests/benchmark-stats.test.js",
-        ".aikit/decisions.md",
-        "benchmarks/history.jsonl"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/big-tune-partial-ab.mjs",
-          "baseline": 10.985,
-          "candidate": 8.547,
-          "command": "node big-tune-partial-ab.mjs",
-          "control": "identical settings, pAdjusted and sweep decisions in every round",
-          "drift": "0.3",
-          "interleaved": "yes",
-          "metric": "10-round partial-credit multi-axis grouped tune",
-          "unit": "ms",
-          "workload": "ten interleaved baseline/candidate rounds of a three-axis two-pass code tune with three checks per item"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "exact-sums-single-array-1176",
-      "timestamp": 1795790781.8004,
-      "timestamp_str": "2026-11-27 17:46:21",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          ""
-        ]
-      },
-      "description": "Task 'exact-sums-single-array-1176' completed successfully.",
-      "head": "b198c08ea2efc5ca8132bf61ba4ff0f26dd7dad5",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "exact-sums-single-array-1176",
-      "timestamp": 1795790876.98157,
-      "timestamp_str": "2026-11-27 17:47:56"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "description": "[1/2] Group repeated magnitudes in exact sign-flip enumeration",
       "files_affected": [
         "benchmarks/stats.mjs",
@@ -447,6 +393,45 @@
       "task_id": "passed-running-sum-1184",
       "timestamp": 1795805020.88577,
       "timestamp_str": "2026-11-27 21:43:40"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Skip the rate sum at intermediate looks",
+      "files_affected": [
+        "benchmarks/tune-measure.mjs",
+        "benchmarks/tune.mjs",
+        "tests/benchmark-tune-stats.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Set rate to null at intermediate looks and skip the fraction sum and array allocation there",
+        "mitigation": "failing-first test, partial-credit full-tune A/B with identical decisions, full suite and strict gates; revert if not measurable",
+        "risks": "contract: identical stop decisions and final reports; dependency: stop guard fields; concurrency: process-local counter; state: none",
+        "why": "light finalize still summed all fractions to produce a rate although the stop guard only reads paired evidence"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "427a5e33abe84ee2a14d2597b8ff9b93c5f53ec369748ab1f1b2922d465d1bc1",
+      "status": "in_progress",
+      "task_id": "light-finalize-no-rate-1185",
+      "timestamp": 1795805153.91175,
+      "timestamp_str": "2026-11-27 21:45:53",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "Task 'light-finalize-no-rate-1185' abandoned: Rejected light-finalize-no-rate-1185 after measurement: skipping the intermediate rate was neutral across four partial-credit full-tune A/Bs (median 0.97x) with identical decisions; production files restored",
+      "phase": "abandoned",
+      "phase_num": 2,
+      "status": "abandoned",
+      "task_id": "light-finalize-no-rate-1185",
+      "timestamp": 1795805286.08838,
+      "timestamp_str": "2026-11-27 21:48:06"
     }
   ],
   "version": 1
