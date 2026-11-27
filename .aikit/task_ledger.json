@@ -1,17 +1,17 @@
 {
   "active_task": {
     "active_phase": 5,
-    "completed_at": 1795754684.19033,
-    "completed_head": "2c24cf31242c9a9c28957f27627ecf51587eef1e",
-    "completed_tree": "ec6b3fcbf73f2103e36439648687a1323ea8745e",
+    "completed_at": 1795758219.11785,
+    "completed_head": "16bcf65a89099376161f52ab71bf03f820563d06",
+    "completed_tree": "1f13c6b49b9c4bafebb5ea1a3ba28605490d20b3",
     "continuations": [],
     "last_phase": "phase 4",
-    "lease_until": 1795761739.61671,
+    "lease_until": 1795765312.39562,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "status": "completed",
-    "task_id": "receipt-stat-ttl-1138",
-    "updated_at": 1795754539.61671,
+    "task_id": "load-signature-cache-1140",
+    "updated_at": 1795758112.39562,
     "workspaces": [
       {
         "name": "modelduck",
@@ -20,164 +20,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: repeated preset lookups improved 0.068ms to 0.056ms for 3x16, stayed neutral at 0.063ms to 0.062ms for 3x60, and improved 1.329ms to 0.207ms for 30x60 over 200 requests; 48 targeted tests and full npm suite (1321 pass, one pre-existing skip) pass",
-      "files_affected": [
-        "src/server.js",
-        "tests/server.test.js",
-        ".aikit/decisions.md"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/preset-model-index-production-ab.mjs",
-          "baseline": 0.068,
-          "candidate": 0.056,
-          "command": "node preset-model-index-production-ab.mjs",
-          "control": "identical lookup results in all cases",
-          "drift": "0",
-          "interleaved": "yes",
-          "metric": "3 presets 16 models",
-          "unit": "ms",
-          "workload": "200 repeated preset lookup requests, ten interleaved rounds"
-        },
-        {
-          "artifact": "local-only/preset-model-index-production-ab.mjs",
-          "baseline": 0.063,
-          "candidate": 0.062,
-          "command": "node preset-model-index-production-ab.mjs",
-          "control": "neutral within noise, identical results",
-          "drift": "0",
-          "interleaved": "yes",
-          "metric": "3 presets 60 models",
-          "unit": "ms",
-          "workload": "200 repeated preset lookup requests, ten interleaved rounds"
-        },
-        {
-          "artifact": "local-only/preset-model-index-production-ab.mjs",
-          "baseline": 1.329,
-          "candidate": 0.207,
-          "command": "node preset-model-index-production-ab.mjs",
-          "control": "identical lookup results in all cases",
-          "drift": "0",
-          "interleaved": "yes",
-          "metric": "30 presets 60 models",
-          "unit": "ms",
-          "workload": "200 repeated preset lookup requests, ten interleaved rounds"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "preset-model-index-1132",
-      "timestamp": 1795741426.86145,
-      "timestamp_str": "2026-11-27 04:03:46",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          ""
-        ]
-      },
-      "description": "Task 'preset-model-index-1132' completed successfully.",
-      "head": "48b5b8efda5b691659366033671809f0658041cb",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "preset-model-index-1132",
-      "timestamp": 1795741546.72007,
-      "timestamp_str": "2026-11-27 04:05:46"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Stop serializing settings after the distinct-setting cap in itemOutcomes",
-      "files_affected": [
-        "src/tune-runs.js",
-        "tests/itemoutcomes-reads.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Skip the discarded key serialization while preserving every count and saturation verdict",
-        "mitigation": "failing-first stringify-counter test, itemOutcomes/cachedAnswers suites, 20k-row A/B and strict gates; revert if any count changes",
-        "risks": "contract: counts, distinct-setting sizes and saturation unchanged; dependency: none; concurrency: process-local counter; state: existing counts map only",
-        "why": "countRow serializes every row's settings even after an item already has 16 distinct settings, so 20,000 rows wasted 18,400 stringifies; prototype improved 8.162ms to 1.406ms"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "d5c4fe8e9f012f514238a792c654c61fdffe07b41511b4cd726d1daf687842d8",
-      "status": "in_progress",
-      "task_id": "item-outcomes-stringify-1133",
-      "timestamp": 1795742091.77452,
-      "timestamp_str": "2026-11-27 04:14:51",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: 20,000-row itemOutcomes A/B 37.635ms to 31.634ms (1.19x) with identical counts and saturation under 0.4 percent control drift; 22 targeted tests and full npm suite (1322 pass, one pre-existing skip) pass",
-      "files_affected": [
-        "src/tune-runs.js",
-        "tests/itemoutcomes-reads.test.js",
-        ".aikit/decisions.md"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/item-outcomes-production-ab.mjs",
-          "baseline": 37.635,
-          "candidate": 31.634,
-          "command": "node item-outcomes-production-ab.mjs",
-          "control": "baseline/baseline 33.458ms vs 33.577ms with identical outcome hash",
-          "drift": "0.4",
-          "interleaved": "yes",
-          "metric": "20,000-row itemOutcomes",
-          "unit": "ms",
-          "workload": "six interleaved old/new pairs against the committed prior version over one 20,000-answer run, 100 items and 30-key settings objects"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "item-outcomes-stringify-1133",
-      "timestamp": 1795742293.64961,
-      "timestamp_str": "2026-11-27 04:18:13",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          ""
-        ]
-      },
-      "description": "Task 'item-outcomes-stringify-1133' completed successfully.",
-      "head": "194d85310626c21f7d0d390b62633e0f145666b2",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "item-outcomes-stringify-1133",
-      "timestamp": 1795742417.2776,
-      "timestamp_str": "2026-11-27 04:20:17"
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "description": "[1/2] Add a short TTL to the listProfiles per-file stat pass",
@@ -594,6 +436,143 @@
       "task_id": "receipt-stat-ttl-1138",
       "timestamp": 1795754684.19033,
       "timestamp_str": "2026-11-27 07:44:44"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Reuse one pairedDiffs result across all guard views of a candidate",
+      "files_affected": [
+        "benchmarks/tune.mjs",
+        "benchmarks/tune-measure.mjs",
+        "tests/benchmark-tune.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Compute the diffs once per candidate comparison while preserving b/c/p values exactly",
+        "mitigation": "failing-first counter test, group-guard tests, full tune suite and strict gates; revert on any guard difference",
+        "risks": "contract: guard b/c/p, group rates and winner unchanged; dependency: tune-measure pairedDiffs; concurrency: process-local counter; state: cache scoped to one balancedChoice call",
+        "why": "groupEvidence rebuilds the same ordered per-item differences for every coding view and every candidate in a sweep, repeating O(items) work G x C times"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "bbc6b27b0ed34bcf00af43d5c4a6f61d522f5b8fbbf95c0b1e0bcc8c9eff3137",
+      "status": "in_progress",
+      "task_id": "guard-shared-diffs-1139",
+      "timestamp": 1795757023.76498,
+      "timestamp_str": "2026-11-27 08:23:43",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Cache evaluator load signatures per settings object and width",
+      "files_affected": [
+        "benchmarks/tune-evaluate.mjs",
+        "tests/benchmark-tune-evaluate.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Compute the load object and model/context signatures once per candidate/width while preserving all load/reconfigure decisions",
+        "mitigation": "failing-first counter test, evaluator/tune tests, 1000-measure A/B and strict gates; revert on any load/reconfigure difference",
+        "risks": "contract: model/context signatures and returned load object unchanged; dependency: WeakMap; concurrency: process-local per evaluator; state: settings object assumed stable per candidate as the tuner constructs it",
+        "why": "ensureLoaded recomputes three pick maps and two JSON.stringify signatures on every measure call although a candidate's settings object is reused across seeds, looks and chunks"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "36658dc7e5996815379984d6184b7c6453d5273ca1b3f1a3dba6589007d4a193",
+      "status": "in_progress",
+      "task_id": "load-signature-cache-1140",
+      "timestamp": 1795757348.0762,
+      "timestamp_str": "2026-11-27 08:29:08",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "Superseded by 'load-signature-cache-1140' without --complete or --reset",
+      "phase": "superseded",
+      "phase_num": 2,
+      "status": "superseded",
+      "task_id": "guard-shared-diffs-1139",
+      "timestamp": 1795757348.0762,
+      "timestamp_str": "2026-11-27 08:29:08"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: 1,000 repeated evaluations improved 10.662ms to 9.013ms (1.18x) with identical rows, one load and nine signature builds; guard diff builds dropped 8 to 1 with identical evidence and no measured wall gain; real three-model tune gate passed 9/9 rates with zero delta; 108 targeted tests and full npm suite (1330 pass, one pre-existing skip) pass",
+      "files_affected": [
+        "benchmarks/tune-evaluate.mjs",
+        "benchmarks/tune-measure.mjs",
+        "benchmarks/tune.mjs",
+        "tests/benchmark-tune-evaluate.test.js",
+        "tests/benchmark-tune.test.js",
+        ".aikit/decisions.md",
+        "benchmarks/history.jsonl"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/load-signature-ab.mjs",
+          "baseline": 10.662,
+          "candidate": 9.013,
+          "command": "node load-signature-ab.mjs",
+          "control": "identical result hash 2245effc3b2c6f7303fc1e046c73cced5ded7f377933378449a8be44e758377f, one load and no reconfigure",
+          "drift": "0.5",
+          "interleaved": "yes",
+          "metric": "1,000 repeated tune evaluations",
+          "unit": "ms",
+          "workload": "eight interleaved old/new pairs with one reused candidate settings object and one benchmark item"
+        },
+        {
+          "artifact": "local-only/guard-diff-count.mjs",
+          "baseline": 8.0,
+          "candidate": 1.0,
+          "command": "node guard-diff-count.mjs",
+          "control": "identical group evidence",
+          "drift": "0",
+          "interleaved": "no",
+          "metric": "guard pairedDiff builds",
+          "qualified": "no",
+          "unit": "builds",
+          "workload": "eight coding views over the same before/after pair"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "load-signature-cache-1140",
+      "timestamp": 1795758112.39562,
+      "timestamp_str": "2026-11-27 08:41:52",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          ""
+        ]
+      },
+      "description": "Task 'load-signature-cache-1140' completed successfully.",
+      "head": "16bcf65a89099376161f52ab71bf03f820563d06",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "load-signature-cache-1140",
+      "timestamp": 1795758219.11785,
+      "timestamp_str": "2026-11-27 08:43:39"
     }
   ],
   "version": 1
