@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { createTuneEstimator, DEFAULT_STEPS, promptAxes } from "../benchmarks/tune-grid.mjs";
-import { Measurements } from "../benchmarks/tune-measure.mjs";
+import { Measurements, pairedDiffComputations, pairedDiffs, resetPairedDiffCounter } from "../benchmarks/tune-measure.mjs";
 import { predictWeightedMs, speedStage, taskProfiles } from "../benchmarks/tune-speed.mjs";
 import { groupEvidence, measurePresets, tune } from "../benchmarks/tune.mjs";
 import { withEngine } from "../benchmarks/tune-job.mjs";
@@ -1441,6 +1441,20 @@ test("the tolerance counts items, not rounded percents (D4)", async () => {
     });
     assert.equal(tasks.math.settings.maxTokens, 64, `one item lost is within tolerance on ${size} items`);
   }
+});
+
+test("groupEvidence reuses supplied paired diffs across views", () => {
+  const ids = Array.from({ length: 16 }, (_value, index) => `i${index}`);
+  const before = { fractions: Object.fromEntries(ids.map((id) => [id, 1])) };
+  const after = { fractions: Object.fromEntries(ids.map((id) => [id, ids.indexOf(id) < 5 ? 0 : 1])) };
+  resetPairedDiffCounter();
+  const diffs = pairedDiffs(before, after);
+  const builds = pairedDiffComputations();
+  const first = groupEvidence(before, after, ids.slice(0, 8), null, diffs);
+  const second = groupEvidence(before, after, ids.slice(8), null, diffs);
+  assert.equal(pairedDiffComputations(), builds, "two views share one diff pass");
+  assert.equal(first.b + second.b, 5);
+  assert.equal(first.c + second.c, 0);
 });
 
 test("the search's regression guard spends its alpha on the loss side", async () => {

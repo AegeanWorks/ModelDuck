@@ -2504,3 +2504,19 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Reuse a positive receipt's stat validation for one second, while keeping writer invalidation, stamp validation on expiry and the separate short negative TTL
 - **Consequences**: A 200-receipt 50-poll A/B improved 81.319ms to 5.803ms (14.01x) with identical receipt digests and 2.2 percent control drift. A failing-first stat-counter test, invalidation tests and 54 targeted tests pass, and the full npm suite passed 1328 with one pre-existing skip.
 - **Cross-principle check:** PRINCIPLE-003: stamp validation still runs on expiry and writer invalidation clears positive entries, so edited receipts are detected; PRINCIPLE-010: 9,950 repeat stats are skipped per benchmark run; PRINCIPLE-013: the TTL is process-local and resettable; PRINCIPLE-014: failing-first TTL/counter test plus receipt, server and registry suites.
+
+### ADR-328: Share paired diffs across guard views
+- **Date**: 2026-11-27
+- **Status**: Accepted
+- **Context**: balancedChoice recomputed the same ordered per-item differences for every coding view and every candidate, once per view even though the comparison pair was fixed
+- **Decision**: Compute pairedDiffs once per candidate comparison and filter that shared result for each view; keep public groupEvidence behavior unchanged when no shared diff is supplied
+- **Consequences**: An eight-view counter check dropped pairedDiff builds from eight to one with identical b/c/p evidence. Full clustered and plain sweep A/Bs were neutral within noise (0.9x to 1.02x) because Monte Carlo signature draws dominate; no wall-time gain is claimed. All tune tests pass.
+- **Cross-principle check:** PRINCIPLE-003: shared diffs are derived from the same ordered before/after comparison and filtered per view, so b/c/p and guard outcomes are unchanged; PRINCIPLE-010: repeated per-view diff construction is removed; PRINCIPLE-014: failing-first counter test plus group-guard tests and full tune suite.
+
+### ADR-329: Cache evaluator load signatures per settings object
+- **Date**: 2026-11-27
+- **Status**: Accepted
+- **Context**: ensureLoaded rebuilt three pick maps and two JSON.stringify signatures on every evaluate call although a tune candidate reuses one settings object across seeds, looks and chunks
+- **Decision**: Keep a WeakMap per evaluator from settings object and width to the derived load object and model/context signatures, so repeated measures of one candidate reuse the same signatures and load decisions
+- **Consequences**: A 1,000-call interleaved A/B improved 10.662ms to 9.013ms (1.18x) with identical result rows, one load and no reconfigure; the nine candidate measurements performed nine signature builds. One hundred eight evaluator/tune tests pass, and the real three-model tune gate passed all nine task rates with zero delta and 84 fresh answers plus paraphrase probes.
+- **Cross-principle check:** PRINCIPLE-003: the cached load object and signature strings are computed from the same LOAD_KEYS and width, so load/reconfigure decisions and answers are unchanged; PRINCIPLE-010: repeated pick and JSON.stringify work is removed on the hot measure path; PRINCIPLE-013: the WeakMap is process-local and scoped to one evaluator; PRINCIPLE-014: failing-first counter test, exact row hash and evaluator/tune suites.

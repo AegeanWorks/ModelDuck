@@ -43,8 +43,15 @@ const ANSWER_STARTED = Symbol("answerStarted");
 const JUDGE_CONCURRENCY = 4;
 
 let pickComputes = 0;
+let loadSignatureComputes = 0;
 export function pickComputations() {
   return pickComputes;
+}
+export function loadSignatureComputations() {
+  return loadSignatureComputes;
+}
+export function resetLoadSignatureCounter() {
+  loadSignatureComputes = 0;
 }
 export const pick = (settings, keys) => {
   pickComputes += 1;
@@ -84,6 +91,32 @@ export function createEvaluator({ engine, modelId, prompts = PROMPTS, systemProm
   let contextSignature = null;
   let memoryBytes = null;
   let gpuVram = null;
+  // One candidate's settings object is reused across seeds, looks and chunks.
+  // Keep its derived load object and signatures beside it, keyed by width.
+  const loadSignatures = new WeakMap();
+  function loadSignature(settings, width) {
+    const build = () => {
+      loadSignatureComputes += 1;
+      const load = { ...LOAD_DEFAULTS, ...pick(settings, LOAD_KEYS), ...(settings.engine ? { engine: settings.engine } : {}), sequences: Math.max(1, width) };
+      return {
+        load,
+        nextModel: JSON.stringify(pick(load, [...MODEL_LEVEL_KEYS, "engine"])),
+        nextContext: JSON.stringify(pick(load, CONTEXT_LEVEL_KEYS)),
+      };
+    };
+    if (!settings || typeof settings !== "object") return build();
+    let byWidth = loadSignatures.get(settings);
+    if (!byWidth) {
+      byWidth = new Map();
+      loadSignatures.set(settings, byWidth);
+    }
+    let built = byWidth.get(width);
+    if (!built) {
+      built = build();
+      byWidth.set(width, built);
+    }
+    return built;
+  }
 
   /**
    * How many answers this call may run at once. Sequences share the context, so
@@ -101,9 +134,7 @@ export function createEvaluator({ engine, modelId, prompts = PROMPTS, systemProm
 
   async function ensureLoaded(settings, width = settings.parallelism === 1 ? 1 : parallel) {
     // `engine` names an external engine for this candidate (ADR-156); it is not a saved load key.
-    const load = { ...LOAD_DEFAULTS, ...pick(settings, LOAD_KEYS), ...(settings.engine ? { engine: settings.engine } : {}), sequences: Math.max(1, width) };
-    const nextModel = JSON.stringify(pick(load, [...MODEL_LEVEL_KEYS, "engine"]));
-    const nextContext = JSON.stringify(pick(load, CONTEXT_LEVEL_KEYS));
+    const { load, nextModel, nextContext } = loadSignature(settings, width);
     if (modelSignature === nextModel && contextSignature === nextContext) return load;
     const reloadModel = modelSignature !== nextModel;
     modelSignature = null;

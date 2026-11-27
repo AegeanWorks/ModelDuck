@@ -582,7 +582,15 @@ export const publicStats = ({ majority: _majority, itemLatency: _latency, itemTo
  * runs share: partial credit (G6), then seed fractions (S2), then majority
  * votes. Returns [{ id, diff }] with zero diffs dropped.
  */
+let pairedDiffBuilds = 0;
+export function pairedDiffComputations() {
+  return pairedDiffBuilds;
+}
+export function resetPairedDiffCounter() {
+  pairedDiffBuilds = 0;
+}
 export function pairedDiffs(before, after) {
+  pairedDiffBuilds += 1;
   if (before.credit && after.credit) {
     return Object.entries(before.credit)
       .filter(([id]) => id in after.credit)

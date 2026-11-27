@@ -131,9 +131,9 @@ const MIN_GROUP_ITEMS = 8;
  * evidence powers - the old two-sided tests spent half their alpha on a gain
  * tail that can never fire.
  */
-export function groupEvidence(before, after, ids, clusterOf = null) {
+export function groupEvidence(before, after, ids, clusterOf = null, suppliedDiffs = null) {
   const inView = new Set(ids);
-  const diffs = pairedDiffs(before, after).filter(({ id }) => inView.has(id));
+  const diffs = (suppliedDiffs ?? pairedDiffs(before, after)).filter(({ id }) => inView.has(id));
   let b = 0;
   let c = 0;
   for (const { diff } of diffs) {
@@ -159,9 +159,9 @@ export function groupEvidence(before, after, ids, clusterOf = null) {
 const groupRate = (stats, ids) => (ids.length ? round((ids.filter((id) => stats.majority.get(id)).length / ids.length) * 100) : null);
 
 /** Per-view rate and paired evidence for a candidate against the current setting. */
-function groupStats(before, after, groups, clusterOf = null) {
+function groupStats(before, after, groups, clusterOf = null, diffs = null) {
   return Object.fromEntries(Object.entries(groups).map(([group, ids]) => {
-    const evidence = groupEvidence(before, after, ids, clusterOf);
+    const evidence = groupEvidence(before, after, ids, clusterOf, diffs);
     return [group, { items: ids.length, rate: groupRate(after, ids), before: groupRate(before, ids), ...evidence, worse: evidence.b > evidence.c && evidence.pValue < 0.05 }];
   }));
 }
@@ -198,14 +198,14 @@ function balancedChoice({ survivors, incumbent, chosen, itemIds, context, floor,
   if (Object.keys(usable).length < 2) return null;
   const groupCache = new Map();
   const groupsFor = (after, clusterOf) => {
-    let byMode = groupCache.get(after);
-    if (!byMode) {
-      byMode = new Map();
-      groupCache.set(after, byMode);
+    let entry = groupCache.get(after);
+    if (!entry) {
+      entry = { byMode: new Map(), diffs: pairedDiffs(incumbent.stats, after) };
+      groupCache.set(after, entry);
     }
     const mode = clusterOf ? "clustered" : "item";
-    if (!byMode.has(mode)) byMode.set(mode, groupStats(incumbent.stats, after, usable, clusterOf));
-    return byMode.get(mode);
+    if (!entry.byMode.has(mode)) entry.byMode.set(mode, groupStats(incumbent.stats, after, usable, clusterOf, entry.diffs));
+    return entry.byMode.get(mode);
   };
   const chosenGroups = groupsFor(chosen.stats, context.clusterOf);
   const worse = Object.entries(chosenGroups).filter(([, entry]) => entry.worse).map(([group]) => group);

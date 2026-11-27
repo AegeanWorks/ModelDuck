@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { createEvaluator } from "../benchmarks/tune-evaluate.mjs";
+import { createEvaluator, loadSignatureComputations, resetLoadSignatureCounter } from "../benchmarks/tune-evaluate.mjs";
 import { javascriptTestCacheStats, resetJavaScriptTestCache } from "../benchmarks/suite.mjs";
 
 function recordingEngine(reply = () => "quack") {
@@ -102,6 +102,19 @@ test("serial batches overlap at most four judges while generation and result ord
   assert.deepEqual(out.prompts.map((row) => row.id), prompts.map((prompt) => prompt.id));
   assert.deepEqual(seen, prompts.map((prompt) => prompt.id), "onItem keeps result order");
   assert.ok(out.prompts.every((row) => row.passed === 1));
+});
+
+test("load signatures are computed once per settings object and width", async () => {
+  resetLoadSignatureCounter();
+  const engine = recordingEngine(() => "0");
+  const evaluate = createEvaluator({ engine, modelId: "m1" });
+  const settings = { ...SETTINGS };
+  await evaluate(settings, ["read-sumTo-1"], 42);
+  const before = loadSignatureComputations();
+  await evaluate(settings, ["read-sumTo-1"], 43);
+  assert.equal(loadSignatureComputations(), before, "a reused settings object does not rebuild signatures");
+  assert.equal(engine.loads.length, 1);
+  assert.equal(engine.reconfigures.length, 0);
 });
 
 test("the model reloads only for model-level settings; context-level changes reconfigure in place", async () => {
