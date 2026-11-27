@@ -3,51 +3,6 @@
   "checkpoints": [
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          ""
-        ]
-      },
-      "description": "Task 'patch-key-reuse-1163' completed successfully.",
-      "head": "d5f85903356ed454cb1c3ce10e77d3610d55c9f1",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "patch-key-reuse-1163",
-      "timestamp": 1795784797.45844,
-      "timestamp_str": "2026-11-27 16:06:37"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Skip candidate event objects when no handler is installed",
-      "files_affected": [
-        "benchmarks/tune.mjs",
-        "tests/benchmark-tune.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Guard event construction behind a flag set only for a real handler, preserving decisions and all callback behavior",
-        "mitigation": "failing-first counter test, interleaved big-tune A/B with identical decisions, full suite and strict gates; revert if not measurable",
-        "risks": "contract: no callback sees a different event stream; dependency: onEvent default; concurrency: process-local counter; state: none",
-        "why": "sweepCore built a progress object for every candidate even when the default no-op onEvent is used"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "6089aee901385f927771b322cf3f04ade0a0425c39146a46875cf0a64853fad9",
-      "status": "in_progress",
-      "task_id": "skip-noop-events-1164",
-      "timestamp": 1795784975.39224,
-      "timestamp_str": "2026-11-27 16:09:35",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "description": "Task 'skip-noop-events-1164' abandoned: Rejected skip-noop-events-1164 after measurement: skipping candidate event objects for the default no-op handler was neutral across five fourteen-round full-tune A/Bs (median 1.02x with a 0.93x outlier) with identical decisions; production files restored",
       "phase": "abandoned",
       "phase_num": 2,
@@ -403,6 +358,44 @@
       "task_id": "cost-delta-cache-1172",
       "timestamp": 1795789160.20134,
       "timestamp_str": "2026-11-27 17:19:20"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Reuse public report summaries across sweeps",
+      "files_affected": [
+        "benchmarks/tune.mjs",
+        "tests/benchmark-tune.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Cache publicStats by immutable stats object identity within one tune and reuse identical summaries",
+        "mitigation": "failing-first counter test, interleaved big-tune A/B with identical decisions, full suite and strict gates; revert if not measurable",
+        "risks": "contract: identical report records; dependency: stats object identity; concurrency: process-local counter; state: cache scoped to one tune",
+        "why": "record.rungs rebuilt the same public summary for cached stats objects that recur across axes and passes"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "648734b15d5e8d5b23b25f4de70d5ff9f1c374e0bc664820bc174e67639997fb",
+      "status": "in_progress",
+      "task_id": "public-stats-reuse-1173",
+      "timestamp": 1795789271.14202,
+      "timestamp_str": "2026-11-27 17:21:11",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "Task 'public-stats-reuse-1173' abandoned: Rejected public-stats-reuse-1173 after measurement: caching public summaries regressed two fourteen-round full-tune A/Bs (0.81x and 0.77x) with identical decisions because the spread into candidate records still allocates; production files restored",
+      "phase": "abandoned",
+      "phase_num": 2,
+      "status": "abandoned",
+      "task_id": "public-stats-reuse-1173",
+      "timestamp": 1795789461.81768,
+      "timestamp_str": "2026-11-27 17:24:21"
     }
   ],
   "version": 1
