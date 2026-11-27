@@ -328,6 +328,11 @@ export function isQuotaExceeded(runs, quota) {
 export const DEADLINE_CHUNK = 4;
 
 /** Per-item result cache with a run budget; a rung only asks for the items it has not seen. */
+let rangedMeasureBuilds = 0;
+export function rangedMeasureComputations() {
+  return rangedMeasureBuilds;
+}
+
 export class Measurements {
   constructor(evaluate, maxRuns, onAnswers = () => {}, { quota = QUOTA_DEFAULT, deadline = Infinity, clock = Date.now } = {}) {
     this.evaluate = evaluate;
@@ -451,11 +456,17 @@ export class Measurements {
     return added;
   }
 
-  async measure(settings, itemIds, seed) {
+  async measure(settings, itemIds, seed, { from = 0, to = itemIds.length } = {}) {
+    rangedMeasureBuilds += 1;
     const slot = this.#slotFor(settings, seed);
     const key = this.prefetched.size ? slotKeyOf(settings, seed) : null;
     const pending = key ? this.prefetched.get(key) : null;
-    const missing = this.#reuseFromSiblingCap(settings, seed, slot, itemIds.filter((id) => !slot.items.has(id)), pending);
+    const missingIds = [];
+    for (let index = from; index < to; index += 1) {
+      const id = itemIds[index];
+      if (!slot.items.has(id)) missingIds.push(id);
+    }
+    const missing = this.#reuseFromSiblingCap(settings, seed, slot, missingIds, pending);
     if (missing.length) {
       if (this.exhausted) return null;
       // With a time budget the items are asked a few at a time so the tune stops close to it,
@@ -498,8 +509,10 @@ export class Measurements {
         slot.gpuVram = out.gpuVram ?? slot.gpuVram;
       }
     }
-    this.reusedRows += itemIds.length - missing.length;
-    return { prompts: itemIds.map((id) => slot.items.get(id)), memoryBytes: slot.memoryBytes, gpuVram: slot.gpuVram };
+    this.reusedRows += to - missing.length;
+    const prompts = [];
+    for (let index = from; index < to; index += 1) prompts.push(slot.items.get(itemIds[index]));
+    return { prompts, memoryBytes: slot.memoryBytes, gpuVram: slot.gpuVram };
   }
 }
 
@@ -567,8 +580,9 @@ function createScoreState(ids) {
   };
 }
 
-function extendScoreState(state, ids) {
-  for (const id of ids) {
+function extendScoreState(state, ids, from, to) {
+  for (let index = from; index < to; index += 1) {
+    const id = ids[index];
     if (!state.fractions.has(id)) {
       state.fractions.set(id, 0);
       state.credit.set(id, 0);
@@ -648,7 +662,7 @@ let lightFinalizeBuilds = 0;
 export function lightFinalizeComputations() {
   return lightFinalizeBuilds;
 }
-function finalizeScore(state, itemIds, usedLength, summarize = true) {
+function finalizeScore(state, itemCount, usedLength, summarize = true) {
   const { fractions, latencies, tokens, speeds, promptTokenCounts, prefillSpeeds, decodeSpeeds } = state;
   const passed = [...fractions.values()].reduce((sum, value) => sum + value, 0);
   // Fractional solved count (seed-averaged) for a rounding-free tolerance (D4):
@@ -659,9 +673,9 @@ function finalizeScore(state, itemIds, usedLength, summarize = true) {
     // medians and the spread are omitted here and rebuilt if the look stops.
     lightFinalizeBuilds += 1;
     return {
-      rate: itemIds.length ? round((passed / itemIds.length) * 100) : 0,
+      rate: itemCount ? round((passed / itemCount) * 100) : 0,
       solved,
-      ci95: wilson(passed, itemIds.length),
+      ci95: wilson(passed, itemCount),
       latencyMs: null,
       latencySd: null,
       outputTokens: null,
@@ -671,11 +685,11 @@ function finalizeScore(state, itemIds, usedLength, summarize = true) {
       promptTokens: null,
       prefillTps: null,
       decodeTps: null,
-      items: itemIds.length,
+      items: itemCount,
       seeds: usedLength,
       memoryBytes: state.memoryBytes,
       ...(state.gpuVram !== undefined && { gpuVram: state.gpuVram }),
-      failed: state.errors === itemIds.length * usedLength,
+      failed: state.errors === itemCount * usedLength,
       error: state.firstError,
       majority: state.majority,
       outcomes: state.outcomes,
@@ -691,9 +705,9 @@ function finalizeScore(state, itemIds, usedLength, summarize = true) {
   }
   return {
     // No items is a zero rate, not NaN: an empty rung must compare and report, never poison ordering.
-    rate: itemIds.length ? round((passed / itemIds.length) * 100) : 0,
+    rate: itemCount ? round((passed / itemCount) * 100) : 0,
     solved,
-    ci95: wilson(passed, itemIds.length),
+    ci95: wilson(passed, itemCount),
     latencyMs: latencies.length ? round(medianQuick(latencies)) : null,
     latencySd: latencies.length ? round(stdev(latencies)) : null,
     outputTokens: tokens.length ? round(medianQuick(tokens)) : null,
@@ -705,12 +719,12 @@ function finalizeScore(state, itemIds, usedLength, summarize = true) {
     promptTokens: promptTokenCounts.length ? round(medianQuick(promptTokenCounts)) : null,
     prefillTps: prefillSpeeds.length ? round(medianQuick(prefillSpeeds), 2) : null,
     decodeTps: decodeSpeeds.length ? round(medianQuick(decodeSpeeds), 2) : null,
-    items: itemIds.length,
+    items: itemCount,
     seeds: usedLength,
     memoryBytes: state.memoryBytes,
     ...(state.gpuVram !== undefined && { gpuVram: state.gpuVram }),
     // Every answer errored: the settings did not load or run, which is not a measurement.
-    failed: state.errors === itemIds.length * usedLength,
+    failed: state.errors === itemCount * usedLength,
     error: state.firstError,
     majority: state.majority,
     outcomes: state.outcomes,
@@ -735,7 +749,7 @@ export async function score(measurements, settings, itemIds, seeds) {
     accumulateScore(state, measured.prompts, used.length, seed === used[0]);
   }
   updateDerived(state, itemIds, 0, itemIds.length);
-  return finalizeScore(state, itemIds, used.length);
+  return finalizeScore(state, itemIds.length, used.length);
 }
 
 export const publicStats = ({ majority: _majority, itemLatency: _latency, itemTokens: _tokens, itemPrompt: _prompt, itemSpeed: _speed, itemThroughput: _throughput, digests: _digests, ...stats }) => stats;
@@ -892,26 +906,25 @@ export async function scoreSequential(measurements, settings, itemIds, seeds, { 
   let stats = null;
   let done = 0;
   for (const point of points) {
-    const prefix = itemIds.slice(0, point);
     if (point > done) {
       const from = done;
       sequentialAccumulateBuilds += 1;
-      extendScoreState(state, itemIds.slice(done, point));
+      extendScoreState(state, itemIds, from, point);
       for (const seed of used) {
-        // The full prefix is still asked for so answer-reuse accounting is the
-        // same as a plain score; only the newly reached rows are accumulated.
-        const measured = await measurements.measure(settings, prefix, seed);
+        // The whole rung array is passed so answer-reuse accounting counts the
+        // cached prefix; the range limits evaluation and returned rows to it.
+        const measured = await measurements.measure(settings, itemIds, seed, { from, to: point });
         if (!measured) return null;
         noteMemory(state, measured);
-        accumulateScore(state, measured.prompts.slice(from, point), used.length, seed === used[0]);
+        accumulateScore(state, measured.prompts, used.length, seed === used[0]);
       }
       updateDerived(state, itemIds, from, point);
       done = point;
     }
     const intermediate = point !== itemIds.length && stopSignalOnly;
-    stats = finalizeScore(state, prefix, used.length, !intermediate);
+    stats = finalizeScore(state, point, used.length, !intermediate);
     if (point === itemIds.length) break;
-    if (shouldStop?.(stats, point)) return { ...finalizeScore(state, prefix, used.length), partial: true };
+    if (shouldStop?.(stats, point)) return { ...finalizeScore(state, point, used.length), partial: true };
   }
   return stats;
 }

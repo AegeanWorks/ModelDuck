@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { monteCarloDrawCount } from "../benchmarks/stats.mjs";
-import { Measurements, derivedUpdateComputations, lightFinalizeComputations, paired, pairedClustered, round, roundCacheStats, score, scoreSequential, sequentialAccumulateComputations } from "../benchmarks/tune-measure.mjs";
+import { Measurements, derivedUpdateComputations, lightFinalizeComputations, paired, pairedClustered, rangedMeasureComputations, round, roundCacheStats, score, scoreSequential, sequentialAccumulateComputations } from "../benchmarks/tune-measure.mjs";
 import { createSweepEvidenceCache, tune } from "../benchmarks/tune.mjs";
 
 /**
@@ -219,6 +219,24 @@ test("scoreSequential can skip unused summaries at intermediate looks", async ()
   });
   assert.equal(stopped.partial, true);
   assert.equal(stopped.latencyMs, 10, "a stopped report is rebuilt in full");
+});
+
+test("sequential scoring measures half-open rung ranges", async () => {
+  const ids = Array.from({ length: 12 }, (_value, index) => `i${index}`);
+  const measuredRanges = [];
+  const measurements = new Measurements(async (_settings, itemIds) => {
+    measuredRanges.push(itemIds.length);
+    return {
+      prompts: itemIds.map((id) => ({ id, passed: 1, total: 1, ms: 10, outputTokens: 5, tokensPerSecond: 2, digest: id })),
+      memoryBytes: 100,
+    };
+  }, 100);
+  const before = rangedMeasureComputations();
+  const stats = await scoreSequential(measurements, { temperature: 0 }, ids, [42], { lookAt: [4, 8], shouldStop: () => false });
+  assert.ok(rangedMeasureComputations() > before, "looks use the ranged measure path");
+  assert.deepEqual(measuredRanges, [4, 4, 4], "only newly reached items are evaluated, not sliced prefixes");
+  assert.equal(stats.rate, 100);
+  assert.equal(measurements.reusedRows, 12, "reuse accounting still counts cached prefix items");
 });
 
 test("score counts empty answers as give-ups beside truncation (lit §8)", async () => {

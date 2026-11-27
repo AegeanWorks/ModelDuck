@@ -2602,3 +2602,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Add an opt-in light finalize for intermediate looks that omits the unused summaries and rebuilds the full report only when a candidate stops or finishes
 - **Cross-principle check:** PRINCIPLE-003: the guard reads only paired pass evidence and a stopped look is rebuilt in full, so final stats and decisions are unchanged; PRINCIPLE-010: six medians and a spread are skipped on looks that cannot use them; PRINCIPLE-013: the light flag is opt-in so external callers keep full reports; PRINCIPLE-014: failing-first counter, exact hash/accounting A/B and repeated big-tune decision A/Bs.
 - **Consequences**: A twelve-pair interleaved A/B over 20 sequential scores improved 3.923ms to 3.399ms (1.15x) with an identical stats hash and measurement count; two fourteen-round big-tune A/Bs improved about 1.10x with identical decisions per round. A failing-first counter and 126 tune tests pass, as does the real three-model tune gate.
+
+### ADR-341: Measure half-open item ranges
+- **Date**: 2026-11-27
+- **Status**: Accepted
+- **Context**: scoreSequential sliced a fresh prefix array and a fresh prompt array at each look although every answer after the first look came from the cache
+- **Decision**: Pass the whole rung with half-open range bounds to measure, which evaluates and returns only that range while accounting reuse against the full prefix
+- **Consequences**: A twelve-pair interleaved A/B over 20 sequential scores improved 2.212ms to 1.634ms (1.35x) with an identical stats hash and measurement count; three fourteen-round big-tune A/Bs were noisy with a median near 1.09x and identical decisions per round. A failing-first counter and 127 tune tests pass, as does the real three-model tune gate.
+- **Cross-principle check:** PRINCIPLE-003: ranges select the same items as sliced prefixes and reuse accounting uses the full prefix length, verified by an identical stats hash and measurement count; PRINCIPLE-010: prefix/prompt slice allocations disappear from every look; PRINCIPLE-013: range bounds are plain arguments; PRINCIPLE-014: failing-first counter, exact hash/accounting A/B and repeated big-tune decision A/Bs.
