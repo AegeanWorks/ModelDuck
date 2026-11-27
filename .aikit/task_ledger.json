@@ -1,17 +1,17 @@
 {
   "active_task": {
     "active_phase": 5,
-    "completed_at": 1795761630.9855,
-    "completed_head": "f772a9f8818732ef4faed9d131209f31eef66044",
-    "completed_tree": "435c660d03478eda3e0a6c243bb4135e8b533d5e",
+    "completed_at": 1795761812.72577,
+    "completed_head": "843df04acd5589f3013f65e30179c5425996d037",
+    "completed_tree": "fa138e33acda368f0361bc7c084912d238bf6d50",
     "continuations": [],
     "last_phase": "phase 4",
-    "lease_until": 1795768784.70646,
+    "lease_until": 1795768981.80799,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "status": "completed",
-    "task_id": "score-median-select-1144",
-    "updated_at": 1795761584.70646,
+    "task_id": "score-conversion-loop-1145",
+    "updated_at": 1795761781.80799,
     "workspaces": [
       {
         "name": "modelduck",
@@ -20,87 +20,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          ""
-        ]
-      },
-      "description": "Task 'history-import-offset-1137' completed successfully.",
-      "head": "898ea028e91849038a3508522d1e42809882e403",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "history-import-offset-1137",
-      "timestamp": 1795746626.36371,
-      "timestamp_str": "2026-11-27 05:30:26"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Add a short TTL around positive receipt stat validation",
-      "files_affected": [
-        "src/downloader.js",
-        "tests/receipt-cache.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Skip repeat stat calls within a one-second window while keeping writer invalidation and stamp validation on expiry",
-        "mitigation": "failing-first stat-counter test, invalidation tests, 200-receipt A/B, full npm suite and strict gates",
-        "risks": "contract: edited receipts are still detected after TTL or invalidation; dependency: Date.now via injectable clock; concurrency: process-local cache; state: TTL stored per cached receipt",
-        "why": "Present receipts are cached but every API poll still stats each sidecar to validate them; 200 receipts cost about 5ms per poll on this host"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "52f6f8326254a053efc08469f0c12fda6c06ecac3f97fa17e2e04d1129ebe421",
-      "status": "in_progress",
-      "task_id": "receipt-stat-ttl-1138",
-      "timestamp": 1795754181.63616,
-      "timestamp_str": "2026-11-27 07:36:21",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: 200 receipts over 50 polls improved 81.319ms to 5.803ms (14.01x) with identical digests and 2.2 percent control drift; 54 targeted tests and full npm suite (1328 pass, one pre-existing skip) pass",
-      "files_affected": [
-        "src/downloader.js",
-        "tests/receipt-cache.test.js",
-        ".aikit/decisions.md"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/receipt-ttl-ab.mjs",
-          "baseline": 81.319,
-          "candidate": 5.803,
-          "command": "node receipt-ttl-ab.mjs",
-          "control": "baseline/baseline 79.386ms vs 81.168ms with identical receipt digests",
-          "drift": "2.2",
-          "interleaved": "yes",
-          "metric": "200-receipt polling",
-          "unit": "ms",
-          "workload": "50 polls of 200 cached receipts with a fixed clock, eight interleaved pairs against the committed prior version"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "receipt-stat-ttl-1138",
-      "timestamp": 1795754539.61671,
-      "timestamp_str": "2026-11-27 07:42:19",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "delivery": {
@@ -552,6 +471,88 @@
       "task_id": "score-median-select-1144",
       "timestamp": 1795761630.9855,
       "timestamp_str": "2026-11-27 09:40:30"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Build score's plain outcome maps in one pass",
+      "files_affected": [
+        "benchmarks/tune-measure.mjs",
+        "tests/score-map-init.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Fill the four results in one loop over fractions, removing intermediate arrays and GC pressure",
+        "mitigation": "failing-first counter test, interleaved score A/B with identical hash, full suite and strict gates",
+        "risks": "contract: identical map keys, values and insertion order; dependency: none; concurrency: process-local counter; state: none",
+        "why": "score created eight intermediate pair arrays to derive majority, outcomes, fractions and credit from two maps on every rung"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "43d1c88b0ecb0d2eadf020b7c6ec35a86ca630ff5902efdd07730efcc69c7548",
+      "status": "in_progress",
+      "task_id": "score-conversion-loop-1145",
+      "timestamp": 1795761695.74285,
+      "timestamp_str": "2026-11-27 09:41:35",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: one-pass outcome derivation cut 20 scores from 1.434ms to 1.181ms (1.21x) with an identical stats hash; full npm suite 1334 pass 0 fail 1 skip; real three-model tune gate passed 9/9 rates with zero delta and 84 cached answers",
+      "files_affected": [
+        "benchmarks/tune-measure.mjs",
+        "tests/score-map-init.test.js",
+        ".aikit/decisions.md",
+        "benchmarks/history.jsonl"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/score-median-ab.mjs",
+          "baseline": 1.434,
+          "candidate": 1.181,
+          "command": "node score-median-ab.mjs",
+          "control": "identical stats hash 6eef9ac3341cc954b8d0082499cf833a9a130a219fd12919b42daa4100d74e1f",
+          "drift": "0.1",
+          "interleaved": "yes",
+          "metric": "20 score computations",
+          "unit": "ms",
+          "workload": "twelve interleaved baseline/candidate pairs over 48 items and 3 seeds"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "score-conversion-loop-1145",
+      "timestamp": 1795761781.80799,
+      "timestamp_str": "2026-11-27 09:43:01",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          ""
+        ]
+      },
+      "description": "Task 'score-conversion-loop-1145' completed successfully.",
+      "head": "843df04acd5589f3013f65e30179c5425996d037",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "score-conversion-loop-1145",
+      "timestamp": 1795761812.72577,
+      "timestamp_str": "2026-11-27 09:43:32"
     }
   ],
   "version": 1
