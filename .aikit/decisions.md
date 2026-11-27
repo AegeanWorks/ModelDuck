@@ -2650,3 +2650,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Create one paired-evidence cache per tune and reuse it in every sweep, keyed by the immutable stats objects
 - **Cross-principle check:** PRINCIPLE-003: the same immutable report pair yields the same paired evidence and decisions stayed unchanged in all four A/B rounds; PRINCIPLE-010: repeated report pairs are compared once per tune; PRINCIPLE-013: the cache is scoped to one tune context; PRINCIPLE-014: failing-first counter and repeated big-tune decision A/Bs.
 - **Consequences**: Four fourteen-round big-tune A/Bs improved 1.10x to 1.20x with identical decisions every round; a counter test observed 16 hits versus 9 builds and 132 tune tests pass, as does the real three-model tune gate.
+
+### ADR-347: Build exact sign sums with one array
+- **Date**: 2026-11-27
+- **Status**: Accepted
+- **Context**: profiling a partial-credit tune showed exactSignedSums at 34 percent of runtime, allocating and filling two Float64Arrays when one signed-sum array suffices
+- **Decision**: Compute signed sums directly with the low-bit recurrence signed[mask] = signed[mask ^ low] + 2*value, relying on the 1e-12 comparison tolerance for the 1-ULP rounding difference
+- **Cross-principle check:** PRINCIPLE-003: p-values matched the two-array reference over 5,044 cases and decisions were identical in every A/B round; PRINCIPLE-010: one Float64Array and one pass instead of two; PRINCIPLE-014: failing-first equivalence test, mask-count guard and repeated partial-credit decision A/Bs.
+- **Consequences**: Five thousand random and 44 threshold-tie p-values matched the two-array reference. Three 10-round partial-credit full-tune A/Bs improved 1.16x to 1.29x with identical decisions; a failing-first equivalence test and 133 stats/tune tests pass, as does the real three-model tune gate.

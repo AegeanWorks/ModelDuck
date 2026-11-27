@@ -202,18 +202,22 @@ let signFlipMasks = 0;
 export function signFlipMaskCount() {
   return signFlipMasks;
 }
+// A signed sum is 2*(sum of values at set bits) - (sum of all values). The
+// low-bit recurrence gives signed[mask] = signed[mask ^ low] + 2*value in O(1),
+// so the second Float64Array is unnecessary. The 1-ULP rounding difference is
+// absorbed by the 1e-12 comparison tolerance in both sign-flip p-values.
 function exactSignedSums(nonzero) {
   const total = 2 ** nonzero.length;
-  const sums = new Float64Array(total);
-  const all = nonzero.reduce((sum, value) => sum + value, 0);
   const signed = new Float64Array(total);
+  const all = nonzero.reduce((sum, value) => sum + value, 0);
   for (let mask = 0; mask < total; mask += 1) {
     signFlipMasks += 1;
     if (mask) {
       const low = mask & -mask;
-      sums[mask] = sums[mask ^ low] + nonzero[31 - Math.clz32(low)];
+      signed[mask] = signed[mask ^ low] + 2 * nonzero[31 - Math.clz32(low)];
+    } else {
+      signed[mask] = -all;
     }
-    signed[mask] = 2 * sums[mask] - all;
   }
   return signed;
 }

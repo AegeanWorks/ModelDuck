@@ -37,6 +37,34 @@ test("the sign-flip test uses magnitudes a majority vote throws away (S2)", () =
   assert.ok(p < mcnemarExact(0, 3), "fractions beat the majority vote");
 });
 
+test("single-array exact sign sums keep every permutation p-value", () => {
+  // Reference: explicit two-array subset sums, the implementation this replaces.
+  const reference = (values) => {
+    const nz = values.filter((value) => value !== 0);
+    const total = 2 ** nz.length;
+    const sums = new Float64Array(total);
+    const all = nz.reduce((sum, value) => sum + value, 0);
+    for (let mask = 1; mask < total; mask += 1) {
+      const low = mask & -mask;
+      sums[mask] = sums[mask ^ low] + nz[31 - Math.clz32(low)];
+    }
+    const observed = Math.abs(all);
+    let extreme = 0;
+    for (let mask = 0; mask < total; mask += 1) {
+      if (Math.abs(2 * sums[mask] - all) >= observed - 1e-12) extreme += 1;
+    }
+    return extreme / total;
+  };
+  const families = [
+    Array.from({ length: 12 }, (_value, index) => (index % 2 ? 1 : -1) / 3 + (index % 4 === 0 ? 0.01 : 0)),
+    Array.from({ length: 14 }, (_value, index) => (index % 3 === 0 ? 0.1 : index % 3 === 1 ? -0.2 : 0.3)),
+    Array.from({ length: 16 }, (_value, index) => (index % 5 === 0 ? -1 : 1) / 7 + (index % 3 === 0 ? 0.02 : 0)),
+  ];
+  for (const values of families) {
+    assert.equal(signFlipPValue(values), reference(values));
+  }
+});
+
 test("the sign-flip Monte Carlo is deterministic and bounded (S2)", () => {
   const diffs = Array.from({ length: 25 }, (_, index) => (index % 3 === 0 ? -0.5 : 0.25));
   const first = signFlipPValue(diffs);
