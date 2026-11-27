@@ -534,6 +534,10 @@ function createScoreState(ids) {
     // fraction of cases is a finer signal for the paired test. The headline
     // rate stays all-or-nothing.
     credit: zeroed(),
+    majority: new Map(),
+    outcomes: {},
+    fractionsPlain: {},
+    creditPlain: {},
     itemLatency: new Map(),
     itemTokens: new Map(),
     itemPrompt: new Map(),
@@ -621,26 +625,31 @@ function accumulateScore(state, prompts, usedLength, captureDigests) {
   }
 }
 
+let derivedUpdateBuilds = 0;
+export function derivedUpdateComputations() {
+  return derivedUpdateBuilds;
+}
+function updateDerived(state, itemIds, from, to) {
+  derivedUpdateBuilds += 1;
+  scoreConversionBuilds += 1;
+  for (let index = from; index < to; index += 1) {
+    const id = itemIds[index];
+    const fraction = state.fractions.get(id);
+    if (fraction === undefined) continue;
+    const passed = fraction >= 0.5;
+    state.majority.set(id, passed);
+    state.outcomes[id] = passed ? 1 : 0;
+    state.fractionsPlain[id] = Math.round(fraction * 10000) / 10000;
+    state.creditPlain[id] = Math.round(state.credit.get(id) * 10000) / 10000;
+  }
+}
+
 function finalizeScore(state, itemIds, usedLength) {
-  const { fractions, credit, latencies, tokens, speeds, promptTokenCounts, prefillSpeeds, decodeSpeeds } = state;
+  const { fractions, latencies, tokens, speeds, promptTokenCounts, prefillSpeeds, decodeSpeeds } = state;
   const passed = [...fractions.values()].reduce((sum, value) => sum + value, 0);
   // Fractional solved count (seed-averaged) for a rounding-free tolerance (D4):
   // one item lost by majority at 3 seeds counts as 0.67 items, not as a rounded point.
   const solved = Math.round(passed * 1000) / 1000;
-  // Derive the internal maps and their plain result objects in one pass; the
-  // old four Object.fromEntries calls allocated eight intermediate pair arrays.
-  scoreConversionBuilds += 1;
-  const majority = new Map();
-  const outcomes = {};
-  const fractionsPlain = {};
-  const creditPlain = {};
-  for (const [id, fraction] of fractions) {
-    const passed = fraction >= 0.5;
-    majority.set(id, passed);
-    outcomes[id] = passed ? 1 : 0;
-    fractionsPlain[id] = Math.round(fraction * 10000) / 10000;
-    creditPlain[id] = Math.round(credit.get(id) * 10000) / 10000;
-  }
   return {
     // No items is a zero rate, not NaN: an empty rung must compare and report, never poison ordering.
     rate: itemIds.length ? round((passed / itemIds.length) * 100) : 0,
@@ -664,10 +673,10 @@ function finalizeScore(state, itemIds, usedLength) {
     // Every answer errored: the settings did not load or run, which is not a measurement.
     failed: state.errors === itemIds.length * usedLength,
     error: state.firstError,
-    majority,
-    outcomes,
-    fractions: fractionsPlain,
-    credit: creditPlain,
+    majority: state.majority,
+    outcomes: state.outcomes,
+    fractions: state.fractionsPlain,
+    credit: state.creditPlain,
     itemLatency: state.itemLatency,
     itemTokens: state.itemTokens,
     itemPrompt: state.itemPrompt,
@@ -686,6 +695,7 @@ export async function score(measurements, settings, itemIds, seeds) {
     noteMemory(state, measured);
     accumulateScore(state, measured.prompts, used.length, seed === used[0]);
   }
+  updateDerived(state, itemIds, 0, itemIds.length);
   return finalizeScore(state, itemIds, used.length);
 }
 
@@ -845,6 +855,7 @@ export async function scoreSequential(measurements, settings, itemIds, seeds, { 
   for (const point of points) {
     const prefix = itemIds.slice(0, point);
     if (point > done) {
+      const from = done;
       sequentialAccumulateBuilds += 1;
       extendScoreState(state, itemIds.slice(done, point));
       for (const seed of used) {
@@ -853,8 +864,9 @@ export async function scoreSequential(measurements, settings, itemIds, seeds, { 
         const measured = await measurements.measure(settings, prefix, seed);
         if (!measured) return null;
         noteMemory(state, measured);
-        accumulateScore(state, measured.prompts.slice(done, point), used.length, seed === used[0]);
+        accumulateScore(state, measured.prompts.slice(from, point), used.length, seed === used[0]);
       }
+      updateDerived(state, itemIds, from, point);
       done = point;
     }
     stats = finalizeScore(state, prefix, used.length);

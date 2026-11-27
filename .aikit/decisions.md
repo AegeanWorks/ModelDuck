@@ -2586,3 +2586,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Share one per-item accumulator across looks, adding only newly reached rows and finalizing the identical full report at each look
 - **Cross-principle check:** PRINCIPLE-003: the same accumulation order, seed averaging and full-prefix finalize produce an identical stats hash and measurement count; PRINCIPLE-010: newly reached items are looped once instead of every prefix item at every look; PRINCIPLE-013: the accumulator is scoped to one sequential call; PRINCIPLE-014: failing-first counter, exact hash/accounting A/B and full tune suites.
 - **Consequences**: A twelve-pair interleaved A/B over 20 sequential scores improved 5.501ms to 3.836ms (1.43x) with identical stats hash and identical measurement counts; full-tune A/Bs were positive but noisy (median roughly 1.02x to 1.19x). A failing-first counter and 124 tune tests pass, as does the real three-model tune gate.
+
+### ADR-339: Update derived score objects incrementally
+- **Date**: 2026-11-27
+- **Status**: Accepted
+- **Context**: finalizeScore rebuilt the majority map and three plain per-item objects for every item at every early-stop look although only newly reached items change
+- **Decision**: Keep the four derived maps in the score accumulator and update only the items reached by each look
+- **Cross-principle check:** PRINCIPLE-003: the same fraction/credit values and rounding produce identical per-item objects and an identical sequential hash; PRINCIPLE-010: per-item derived values are written once instead of once per look; PRINCIPLE-013: derived maps are scoped to one score accumulator; PRINCIPLE-014: failing-first counter, exact hash/accounting A/B and big-tune decision A/B.
+- **Consequences**: A twelve-pair interleaved A/B over 20 sequential scores improved 4.769ms to 3.978ms (1.20x) with an identical stats hash and measurement count; a fourteen-round big-tune A/B improved 5.886ms to 4.914ms (1.198x) with identical decisions per round. A failing-first counter and 125 tune tests pass, as does the real three-model tune gate.

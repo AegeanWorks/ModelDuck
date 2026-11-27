@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { monteCarloDrawCount } from "../benchmarks/stats.mjs";
-import { Measurements, paired, pairedClustered, round, roundCacheStats, score, scoreSequential, sequentialAccumulateComputations } from "../benchmarks/tune-measure.mjs";
+import { Measurements, derivedUpdateComputations, paired, pairedClustered, round, roundCacheStats, score, scoreSequential, sequentialAccumulateComputations } from "../benchmarks/tune-measure.mjs";
 import { createSweepEvidenceCache, tune } from "../benchmarks/tune.mjs";
 
 /**
@@ -175,6 +175,20 @@ test("scoreSequential accumulates each newly measured item once", async () => {
   assert.equal(stats.items, 12);
   assert.equal(stats.rate, 100);
   assert.equal(measurements.reusedRows, 12, "the four and eight item prefixes are still served from the cache");
+});
+
+test("sequential scoring updates derived per-item objects once per new item", async () => {
+  const ids = Array.from({ length: 12 }, (_value, index) => `i${index}`);
+  const measurements = new Measurements(async (_settings, itemIds) => ({
+    prompts: itemIds.map((id) => ({ id, passed: 1, total: 1, ms: 10, outputTokens: 5, tokensPerSecond: 2, digest: id })),
+    memoryBytes: 100,
+  }), 100);
+  const before = derivedUpdateComputations();
+  const stats = await scoreSequential(measurements, { temperature: 0 }, ids, [42], { lookAt: [4, 8], shouldStop: () => false });
+  assert.equal(derivedUpdateComputations(), before + 3, "one update per reached look");
+  assert.deepEqual(stats.outcomes, Object.fromEntries(ids.map((id) => [id, 1])));
+  assert.deepEqual(stats.fractions, Object.fromEntries(ids.map((id) => [id, 1])));
+  assert.deepEqual([...stats.majority], ids.map((id) => [id, true]));
 });
 
 test("score counts empty answers as give-ups beside truncation (lit §8)", async () => {
