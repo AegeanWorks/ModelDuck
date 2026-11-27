@@ -3,71 +3,6 @@
   "checkpoints": [
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Cache challenger reports by frozen patch identity",
-      "files_affected": [
-        "benchmarks/tune.mjs",
-        "tests/benchmark-tune.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Use a WeakMap keyed by the patch object plus a once-per-sweep settings key and rung prefix, then reuse complete challenger reports",
-        "mitigation": "failing-first counter test, interleaved big-tune A/B with identical decisions and measurable gain, full suite and strict gates; revert if neutral",
-        "risks": "contract: identical decisions, partial reports never reused; dependency: patch object identity; concurrency: process-local counter; state: cache scoped to one tune",
-        "why": "settingsKey re-stringified settings for every challenger although axis patches are frozen objects reused across passes"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "fd05bbb8359fe2432c10d3b1377ff373ee7a8c3489bf0ffba41036cb4afe4e38",
-      "status": "in_progress",
-      "task_id": "patch-key-reuse-1163",
-      "timestamp": 1795784158.1094,
-      "timestamp_str": "2026-11-27 15:55:58",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: memoized settings keys by frozen patch and reused complete challenger reports; five 14-round big-tune A/Bs ranged 1.01x to 1.38x with identical decisions and no regressions; full npm suite 1346 pass 0 fail 1 skip; real three-model tune gate passed 9/9 rates with zero delta",
-      "files_affected": [
-        "benchmarks/tune.mjs",
-        "tests/benchmark-tune.test.js",
-        ".aikit/decisions.md",
-        "benchmarks/history.jsonl"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/big-tune-ab.mjs",
-          "baseline": 1.96,
-          "candidate": 1.938,
-          "command": "node big-tune-ab.mjs",
-          "control": "identical decisions in every round",
-          "drift": "0.2",
-          "interleaved": "yes",
-          "metric": "14-round multi-axis grouped tune",
-          "unit": "ms",
-          "workload": "fourteen interleaved baseline/candidate rounds of a three-axis two-pass code tune"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "patch-key-reuse-1163",
-      "timestamp": 1795784736.87414,
-      "timestamp_str": "2026-11-27 16:05:36",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "delivery": {
         "forced": false,
         "roots": [
@@ -430,6 +365,44 @@
       "task_id": "group-guard-cache-1171",
       "timestamp": 1795788806.32985,
       "timestamp_str": "2026-11-27 17:13:26"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Reuse costDelta results across sweeps",
+      "files_affected": [
+        "benchmarks/tune.mjs",
+        "tests/benchmark-tune.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Cache costDelta by immutable report pair, tie band and cost field within one tune",
+        "mitigation": "failing-first counter test, interleaved big-tune A/B with identical decisions, full suite and strict gates; revert if not measurable",
+        "risks": "contract: identical selection decisions; dependency: report object identity; concurrency: process-local counter; state: cache scoped to one tune",
+        "why": "choose recomputed per-item cost differences for report pairs that recur now that reports are cached"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "04d3e197f37871c3c4d069fd9153d1aaa719dd74bd0e9516a08079a73d2e6f02",
+      "status": "in_progress",
+      "task_id": "cost-delta-cache-1172",
+      "timestamp": 1795788922.13461,
+      "timestamp_str": "2026-11-27 17:15:22",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "Task 'cost-delta-cache-1172' abandoned: Rejected cost-delta-cache-1172 after measurement: tune-wide costDelta cache had only 1 hit per big tune and was neutral-to-regressive across four full-tune A/Bs (median 0.95x) with identical decisions; production files restored",
+      "phase": "abandoned",
+      "phase_num": 2,
+      "status": "abandoned",
+      "task_id": "cost-delta-cache-1172",
+      "timestamp": 1795789160.20134,
+      "timestamp_str": "2026-11-27 17:19:20"
     }
   ],
   "version": 1
