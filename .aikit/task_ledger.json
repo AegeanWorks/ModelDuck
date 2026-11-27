@@ -1,78 +1,6 @@
 {
-  "active_task": {
-    "active_phase": 5,
-    "completed_at": 1795821165.14588,
-    "completed_head": "7586c394df89f3770fa87a5ebfc05aca9630b347",
-    "completed_tree": "5bffc25842332b46bd5a2b903dbe100ad0ec7d24",
-    "continuations": [],
-    "last_phase": "phase 4",
-    "lease_until": 1795828294.92168,
-    "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-    "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-    "status": "completed",
-    "task_id": "exact-prealloc-1201",
-    "updated_at": 1795821094.92168,
-    "workspaces": [
-      {
-        "name": "modelduck",
-        "path": "projects/modelduck"
-      }
-    ]
-  },
+  "active_task": null,
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: gating the last two diagnostic counters improved six partial-credit full-tune A/Bs in five runs with median near 1.03x and identical decisions; full npm suite 1351 pass 0 fail 1 skip; real three-model tune gate passed 9/9 rates with zero delta",
-      "files_affected": [
-        "benchmarks/stats.mjs",
-        ".aikit/decisions.md",
-        "benchmarks/history.jsonl"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/big-tune-partial-ab.mjs",
-          "baseline": 3.281,
-          "candidate": 3.062,
-          "command": "node big-tune-partial-ab.mjs",
-          "control": "identical settings, pAdjusted and sweep decisions in every round",
-          "drift": "0.2",
-          "interleaved": "yes",
-          "metric": "10-round partial-credit multi-axis grouped tune",
-          "unit": "ms",
-          "workload": "ten interleaved baseline/candidate rounds of a three-axis two-pass code tune with three checks per item"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "gate-last-diagnostics-1194",
-      "timestamp": 1795817113.65663,
-      "timestamp_str": "2026-11-28 01:05:13",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          ""
-        ]
-      },
-      "description": "Task 'gate-last-diagnostics-1194' completed successfully.",
-      "head": "8a850786cdb1c47ecbe924f78da23fe66249bc34",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "gate-last-diagnostics-1194",
-      "timestamp": 1795817191.38548,
-      "timestamp_str": "2026-11-28 01:06:31"
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "description": "[1/2] Skip diff objects for uniform-magnitude paired evidence",
@@ -514,6 +442,44 @@
       "task_id": "exact-prealloc-1201",
       "timestamp": 1795821165.14588,
       "timestamp_str": "2026-11-28 02:12:45"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Sum fractional passes with a direct loop",
+      "files_affected": [
+        "benchmarks/tune-measure.mjs",
+        "tests/score-map-init.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "A for...of loop accumulates the identical sum without the temporary array or callback",
+        "mitigation": "failing-first counter test, full targeted suite, partial-credit full-tune A/B with identical decision hashes; revert if not measurable",
+        "risks": "contract: bit-identical sum, rate, solved and decisions; dependency: fractions Map iteration order; concurrency: process-local counter; state: none",
+        "why": "finalizeScore built a 48-element array from fractions.values() only to feed a reduce callback"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "1533f4bc5b8b029870be896b435a85ff28f62106261352a5c1166c7ae8ec8c71",
+      "status": "in_progress",
+      "task_id": "passed-sum-loop-1202",
+      "timestamp": 1795821855.28036,
+      "timestamp_str": "2026-11-28 02:24:15",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "Task 'passed-sum-loop-1202' abandoned: Rejected passed-sum-loop-1202: replacing the spread/reduce pass sum with a direct loop was 2x in isolation but five interleaved full-tune A/Bs were noise-level (0.82, 0.75, 1.00, 1.08, 1.00; median 1.00) with identical decisions; production files restored",
+      "phase": "abandoned",
+      "phase_num": 2,
+      "status": "abandoned",
+      "task_id": "passed-sum-loop-1202",
+      "timestamp": 1795821979.8769,
+      "timestamp_str": "2026-11-28 02:26:19"
     }
   ],
   "version": 1
