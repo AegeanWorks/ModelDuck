@@ -4,7 +4,7 @@ import test from "node:test";
 import { createTuneEstimator, DEFAULT_STEPS, promptAxes } from "../benchmarks/tune-grid.mjs";
 import { Measurements, pairedDiffComputations, pairedDiffs, pairedDiffScanComputations, resetPairedDiffCounter } from "../benchmarks/tune-measure.mjs";
 import { predictWeightedMs, speedStage, taskProfiles } from "../benchmarks/tune-speed.mjs";
-import { groupEvidence, groupedGuardStats, measurePresets, tune } from "../benchmarks/tune.mjs";
+import { groupEvidence, groupedGuardStats, measurePresets, sweepStatsCacheStats, tune } from "../benchmarks/tune.mjs";
 import { withEngine } from "../benchmarks/tune-job.mjs";
 
 const ids = (prefix, count) => Array.from({ length: count }, (_value, index) => `${prefix}-${index}`);
@@ -1454,6 +1454,32 @@ test("the tolerance counts items, not rounded percents (D4)", async () => {
     });
     assert.equal(tasks.math.settings.maxTokens, 64, `one item lost is within tolerance on ${size} items`);
   }
+});
+
+test("sweeps reuse an identical settings report across axes", async () => {
+  const items = ids("math", 8);
+  const before = sweepStatsCacheStats();
+  const { sweeps } = await tune({
+    evaluate: async (_settings, itemIds) => ({
+      prompts: itemIds.map((id) => ({ id, passed: 1, total: 1, ms: 10, outputTokens: 5, digest: id })),
+    }),
+    base: { temperature: 0 },
+    tasks: ["math"],
+    stages: ["sampling"],
+    rungs: { math: [items] },
+    hardware: { logicalCores: 12 },
+    qualityAxes: [],
+    speedAxes: [],
+    samplingAxes: () => [
+      { name: "first", patches: [{ temperature: 0 }, { temperature: 0.6 }] },
+      { name: "second", patches: [{ temperature: 0 }, { temperature: 0.6 }] },
+    ],
+    options: { seeds: [42], passes: 1 },
+  });
+  const after = sweepStatsCacheStats();
+  assert.ok(after.builds > before.builds, "reports are computed");
+  assert.ok(after.hits > before.hits, "an unchanged incumbent reuses its earlier report");
+  assert.equal(sweeps.length, 2);
 });
 
 test("groupEvidence reuses supplied paired diffs across views", () => {

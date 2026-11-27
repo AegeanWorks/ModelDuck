@@ -5,7 +5,7 @@ import {
   speedAxes as defaultSpeedAxes,
   isValidCombination,
 } from "./tune-grid.mjs";
-import { Measurements, axisKeys, candidatesFor, costDelta, createRungAccumulator, lookPoints, paired, pairedClustered, pairedDiffs, pick, publicStats, round, score, scoreFromAccumulator, scoreSequential, solvedCount } from "./tune-measure.mjs";
+import { Measurements, axisKeys, candidatesFor, costDelta, createRungAccumulator, lookPoints, paired, pairedClustered, pairedDiffs, pick, publicStats, round, score, scoreFromAccumulator, scoreSequential, settingsKey, solvedCount } from "./tune-measure.mjs";
 import { DEFAULT_ADAPTIVE, ItemInformation, promisingChallengers } from "./tune-adaptive.mjs";
 import { deviceStage } from "./tune-device.mjs";
 import { holm, mcnemarExact, mcnemarOneSided, signFlipOneSided } from "./stats.mjs";
@@ -237,6 +237,12 @@ function balancedChoice({ survivors, incumbent, chosen, itemIds, context, floor,
 }
 
 /** One axis: successive halving over the rungs (or one full rung), stopping a value that falls significantly behind, then the selection rule on the last rung. */
+let sweepStatsHits = 0;
+let sweepStatsBuilds = 0;
+export function sweepStatsCacheStats() {
+  return { hits: sweepStatsHits, builds: sweepStatsBuilds };
+}
+
 async function sweepCore(context, { stage, task, axis, current, rungs, forced, cost, confirmItems = null }) {
   const { measurements, options } = context;
   const { candidates, skipped } = candidatesFor(axis, current, context.valid);
@@ -269,9 +275,20 @@ async function sweepCore(context, { stage, task, axis, current, rungs, forced, c
     for (const entry of ordered) {
       const settings = { ...current, ...entry.patch, ...forced };
       if (entry.incumbent) {
-        entry.stats = rungState
-          ? await scoreFromAccumulator(rungState, measurements, settings, itemIds, rungDone, itemIds.length, levelSeeds)
-          : await score(measurements, settings, itemIds, levelSeeds);
+        // Rungs are nested prefixes of one ordered rung, so length and ends
+        // identify the prefix without joining every item id on every sweep.
+        const cacheKey = `${settingsKey(settings)}|${itemIds.length}|${itemIds[0]}|${itemIds[itemIds.length - 1]}|${levelSeeds.length}`;
+        const cached = context.statsCache?.get(cacheKey);
+        if (cached) {
+          sweepStatsHits += 1;
+          entry.stats = cached;
+        } else {
+          entry.stats = rungState
+            ? await scoreFromAccumulator(rungState, measurements, settings, itemIds, rungDone, itemIds.length, levelSeeds)
+            : await score(measurements, settings, itemIds, levelSeeds);
+          sweepStatsBuilds += 1;
+          context.statsCache?.set(cacheKey, entry.stats);
+        }
       }
       else {
         // A challenger stops at the first look where it is significantly worse than the best completed value (ADR-063).
@@ -718,7 +735,7 @@ export async function tune({
   const threadCap = hardware.logicalCores ? Math.max(1, Math.floor(hardware.logicalCores * 0.75)) : Infinity;
   const start = (base.threads ?? 0) > threadCap ? { ...base, threads: threadCap } : base;
   const state = resume ? { ...emptyProgress(), ...structuredClone(resume) } : emptyProgress();
-  const context = { options: settings, measurements: new Measurements(evaluate, settings.maxRuns, onAnswers, { quota: settings.quota ?? Infinity, deadline: settings.deadline ?? Infinity, ...(settings.clock && { clock: settings.clock }) }), sweeps: state.sweeps, onEvent, stageBest: -Infinity, stageBestSolved: -Infinity, valid: isValidCombination, typeOf, groupOf, clusterOf, information: new ItemInformation(), adaptiveSubsets: new Map(), stageBestBy: new Map(), stageBestKey: undefined, holmMinCount: 0 };
+  const context = { options: settings, measurements: new Measurements(evaluate, settings.maxRuns, onAnswers, { quota: settings.quota ?? Infinity, deadline: settings.deadline ?? Infinity, ...(settings.clock && { clock: settings.clock }) }), sweeps: state.sweeps, onEvent, statsCache: new Map(), stageBest: -Infinity, stageBestSolved: -Infinity, valid: isValidCombination, typeOf, groupOf, clusterOf, information: new ItemInformation(), adaptiveSubsets: new Map(), stageBestBy: new Map(), stageBestKey: undefined, holmMinCount: 0 };
   for (const live of prefetched ?? []) {
     try {
       context.measurements.prefetch(live.settings, live.seed, [live.row], live);

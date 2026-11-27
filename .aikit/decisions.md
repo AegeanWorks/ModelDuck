@@ -2626,3 +2626,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Add an opt-in lean mode to score, scoreSequential and the rung accumulator that skips those two maps while keeping every stats field the tune reads
 - **Cross-principle check:** PRINCIPLE-003: every field the tune reads is unchanged and decisions are identical in every A/B round; PRINCIPLE-010: per-prompt throughput and digest work disappears from the hot score path; PRINCIPLE-011: the default path keeps the maps for other callers; PRINCIPLE-014: failing-first counter and repeated big-tune decision A/Bs.
 - **Consequences**: Three fourteen-round big-tune A/Bs improved 1.19x, 0.99x and 1.13x with identical decisions every round; a failing-first counter test and 129 tune tests pass, as does the real three-model tune gate. Direct score callers keep the maps by default.
+
+### ADR-344: Reuse finalized sweep reports across axes
+- **Date**: 2026-11-27
+- **Status**: Accepted
+- **Context**: descend re-scored the incumbent at every axis even when no earlier axis changed the settings, recomputing the same report from cached answers
+- **Decision**: Cache finalized incumbent reports by settings, rung prefix and seed count within one tune and reuse them when the inputs match
+- **Cross-principle check:** PRINCIPLE-003: identical inputs produce the same finalized report and decisions stay unchanged in every A/B round; PRINCIPLE-010: unchanged incumbents are scored once instead of once per axis; PRINCIPLE-013: the cache is scoped to one tune context; PRINCIPLE-014: failing-first counter, cache-hit observation and repeated big-tune decision A/Bs.
+- **Consequences**: Three fourteen-round big-tune A/Bs improved 1.16x, 1.13x and 1.35x with identical decisions every round; a failing-first counter test and 130 tune tests pass, as does the real three-model tune gate. A shorter prefix key avoids joining item ids on every sweep.
