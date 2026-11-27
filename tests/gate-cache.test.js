@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { ANSWER_DRIVER_FILES, GATE_DRIVER_FILES, JUDGE_DRIVER_FILES, answerDigest, answerFingerprint, gateCacheFile, generationDigest, generationPathFiles, loadGateCache, mergeAnswerGroups, saveGateCache } from "../benchmarks/gate-cache.mjs";
+import { ANSWER_DRIVER_FILES, GATE_DRIVER_FILES, JUDGE_DRIVER_FILES, answerDigest, answerFingerprint, gateCacheFile, gateCacheStats, generationDigest, generationPathFiles, loadGateCache, mergeAnswerGroups, saveGateCache } from "../benchmarks/gate-cache.mjs";
 import { measurePresets } from "../benchmarks/tune.mjs";
 
 // IDEA-1764: the gate persists its measured answers under a strict fingerprint
@@ -18,6 +18,17 @@ async function makeRoot() {
   const root = await mkdtemp(path.join(os.tmpdir(), "modelduck-gate-cache-"));
   return { root, cleanup: () => rm(root, { recursive: true, force: true }) };
 }
+
+test("both gate digests can share one generation-path scan", async () => {
+  const repoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
+  const before = gateCacheStats().generationPathScans;
+  const files = await generationPathFiles(repoRoot);
+  const answer = await answerDigest(repoRoot, files.concat(ANSWER_DRIVER_FILES).sort());
+  const evidence = await generationDigest(repoRoot, files.concat(GATE_DRIVER_FILES).sort());
+  assert.equal(gateCacheStats().generationPathScans, before + 1);
+  assert.match(answer, /^[0-9a-f]{32}$/);
+  assert.match(evidence, /^[0-9a-f]{32}$/);
+});
 
 test("generationDigest digests the generation-path files and tracks edits", async (t) => {
   const { root, cleanup } = await makeRoot();

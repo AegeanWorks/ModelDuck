@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { AppError } from "../src/errors.js";
 import { ensureDirectory } from "../src/fs-atomic.js";
 import { resolvePaths } from "../src/config.js";
-import { answerDigest, answerFingerprint, cachedRowCount, gateCacheFile, generationDigest, loadGateCache, mergeAnswerGroups, probeDisagrees, saveGateCache, tripwireWindow } from "./gate-cache.mjs";
+import { ANSWER_DRIVER_FILES, GATE_DRIVER_FILES, answerDigest, answerFingerprint, cachedRowCount, gateCacheFile, generationDigest, generationPathFiles, loadGateCache, mergeAnswerGroups, probeDisagrees, saveGateCache, tripwireWindow } from "./gate-cache.mjs";
 import { currentGitInfo, recordRun } from "./history.mjs";
 import { CORE_MODEL_IDS } from "./matrix.mjs";
 import { BENCHMARK_MODELS } from "./suite.mjs";
@@ -177,8 +177,9 @@ async function gate(options, home) {
   // answer half of the code (engine closure and the drivers that frame
   // prompts and settings), so a cached answer always comes from a
   // bit-identical answer world; judge code runs fresh on every gate.
-  const codeDigest = await generationDigest(repoRoot);
-  const answersDigest = await answerDigest(repoRoot);
+  const generationFiles = await generationPathFiles(repoRoot);
+  const codeDigest = await generationDigest(repoRoot, generationFiles.concat(GATE_DRIVER_FILES).sort());
+  const answersDigest = await answerDigest(repoRoot, generationFiles.concat(ANSWER_DRIVER_FILES).sort());
   // The models are independent measurements (own engine, own cache file), so
   // they run concurrently in a bounded pool: wall time becomes the slowest
   // model instead of the sum. Answers cannot change — each model keeps its

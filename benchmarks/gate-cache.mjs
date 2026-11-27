@@ -60,6 +60,10 @@ export function gateCacheFile(root, modelId) {
 }
 
 const RELATIVE_FROM = /(?:from|import)\s+["'](\.[^"']+)["']/g;
+let generationPathScans = 0;
+export function gateCacheStats() {
+  return { generationPathScans };
+}
 
 function toRepoPath(root, absolute) {
   return path.relative(root, absolute).split(path.sep).join("/");
@@ -74,6 +78,7 @@ function toRepoPath(root, absolute) {
  * are deliberately not chased; the engine loads statically).
  */
 export async function generationPathFiles(root, entry = "src/engine.js") {
+  generationPathScans += 1;
   const seen = new Set();
   const queue = [entry];
   const files = [];

@@ -2520,3 +2520,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Keep a WeakMap per evaluator from settings object and width to the derived load object and model/context signatures, so repeated measures of one candidate reuse the same signatures and load decisions
 - **Consequences**: A 1,000-call interleaved A/B improved 10.662ms to 9.013ms (1.18x) with identical result rows, one load and no reconfigure; the nine candidate measurements performed nine signature builds. One hundred eight evaluator/tune tests pass, and the real three-model tune gate passed all nine task rates with zero delta and 84 fresh answers plus paraphrase probes.
 - **Cross-principle check:** PRINCIPLE-003: the cached load object and signature strings are computed from the same LOAD_KEYS and width, so load/reconfigure decisions and answers are unchanged; PRINCIPLE-010: repeated pick and JSON.stringify work is removed on the hot measure path; PRINCIPLE-013: the WeakMap is process-local and scoped to one evaluator; PRINCIPLE-014: failing-first counter test, exact row hash and evaluator/tune suites.
+
+### ADR-330: Share one generation-path scan between gate digests
+- **Date**: 2026-11-27
+- **Status**: Accepted
+- **Context**: tune-gate computed answer and evidence digests independently, rebuilding and re-reading the same engine import closure twice
+- **Decision**: Scan the generation import path once, then pass the shared file list with each digest's answer/judge driver list to generationDigest and answerDigest
+- **Consequences**: A twelve-pair direct A/B improved 4.616ms to 3.459ms (1.33x) with identical answer and evidence digests. A failing-first scan counter and 35 gate/report tests pass. The real three-model tune gate passed all nine rows with both code deltas inside their tolerance.
+- **Cross-principle check:** PRINCIPLE-003: the shared file list is the same sorted import closure each digest built on its own, so answer and evidence digests stay byte-identical; PRINCIPLE-010: one import-closure scan replaces two; PRINCIPLE-014: failing-first scan counter plus gate-cache and report suites and a direct digest A/B; PRINCIPLE-016: the gate's answer fingerprint is unchanged, so cached answers stay valid.
