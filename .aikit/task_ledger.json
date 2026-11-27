@@ -1,100 +1,25 @@
 {
-  "active_task": null,
+  "active_task": {
+    "active_phase": 5,
+    "completed_at": 1795780261.2893,
+    "completed_head": "2d3e4c829215f5eae9f3e7f7060587f81faec4c5",
+    "completed_tree": "fe4717c7d7bbbc5125a2e48f83409f414ce155ef",
+    "continuations": [],
+    "last_phase": "phase 4",
+    "lease_until": 1795787388.68189,
+    "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+    "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+    "status": "completed",
+    "task_id": "rung-accumulate-1156",
+    "updated_at": 1795780188.68189,
+    "workspaces": [
+      {
+        "name": "modelduck",
+        "path": "projects/modelduck"
+      }
+    ]
+  },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          ""
-        ]
-      },
-      "description": "Task 'grouped-guard-rates-1148' completed successfully.",
-      "head": "eb149bbc987bd19674d067ace43ac511d9ea4229",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "grouped-guard-rates-1148",
-      "timestamp": 1795766267.08883,
-      "timestamp_str": "2026-11-27 10:57:47"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Memoize rounded benchmark values",
-      "files_affected": [
-        "benchmarks/tune-measure.mjs",
-        "tests/benchmark-tune-stats.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Cache the exact rounding result per value and digit width with a bounded map, preserving bit-identical outputs",
-        "mitigation": "failing-first cache-counter test, interleaved round and full-tune A/Bs with identical decisions, full suite and strict gates",
-        "risks": "contract: identical rounded values including NaN and zero; dependency: exported round used by tune; concurrency: process-local cache; state: bounded process-local maps",
-        "why": "round calls Number(value.toFixed(digits)) on many repeated rates and medians across every score and guard"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "3e8b423b14f4f628382deb69089c7e6bebfa5dc0c964ebc52d21ddcbaaa04f44",
-      "status": "in_progress",
-      "task_id": "round-memo-1149",
-      "timestamp": 1795766436.70726,
-      "timestamp_str": "2026-11-27 11:00:36",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: memoized round improved 10,000 calls from 2.229ms to 0.834ms (2.67x) and a full tune from 1.298ms to 1.143ms (1.136x) with identical decisions; full npm suite 1338 pass 0 fail 1 skip; real three-model tune gate passed 9/9 rates with zero delta",
-      "files_affected": [
-        "benchmarks/tune-measure.mjs",
-        "tests/benchmark-tune-stats.test.js",
-        ".aikit/decisions.md",
-        "benchmarks/history.jsonl"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/round-ab.mjs",
-          "baseline": 2.229,
-          "candidate": 0.834,
-          "command": "node round-ab.mjs",
-          "control": "identical output hash 5ee5ef43c41510168a33e0d132ff07989fa04ae94f8594be675eb4bc3fa51488",
-          "drift": "0.08",
-          "interleaved": "yes",
-          "metric": "10000 round calls",
-          "unit": "ms",
-          "workload": "ten interleaved baseline/candidate pairs over 2000 repeated rate values multiplied five times"
-        },
-        {
-          "artifact": "local-only/round-tune-ab.mjs",
-          "baseline": 1.298,
-          "candidate": 1.143,
-          "command": "node round-tune-ab.mjs",
-          "control": "identical settings and sweep hash c233d475ba91db8ce70b236579aa82237ffeb069fc21f5f7a3acc22d86c3161d",
-          "drift": "0.08",
-          "interleaved": "yes",
-          "metric": "full synthetic tune",
-          "unit": "ms",
-          "workload": "thirty interleaved baseline/candidate pairs over a two-seed one-axis tune"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "round-memo-1149",
-      "timestamp": 1795767626.46881,
-      "timestamp_str": "2026-11-27 11:20:26",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "delivery": {
@@ -553,6 +478,90 @@
       "task_id": "round-fast-path-1155",
       "timestamp": 1795777662.73334,
       "timestamp_str": "2026-11-27 14:07:42"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Accumulate the incumbent's stats across rungs",
+      "files_affected": [
+        "benchmarks/tune-measure.mjs",
+        "benchmarks/tune.mjs",
+        "tests/benchmark-tune-stats.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Keep one score accumulator for the incumbent across rungs and finalize identical stats at each rung",
+        "mitigation": "failing-first equivalence test, exact big-tune decision A/B, full suite and strict gates; revert on any decision or accounting change",
+        "risks": "contract: identical stats, decisions and measure order; dependency: tune-measure helpers; concurrency: process-local counter; state: accumulator scoped to one sweep",
+        "why": "sweepCore re-scored the incumbent from scratch at each growing rung, re-looping the first items although their answers were cached"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "db1a5b27484fd4b8faa7a458e1a4e171e3a2adcb55a3a851f050c255332e23f9",
+      "status": "in_progress",
+      "task_id": "rung-accumulate-1156",
+      "timestamp": 1795777799.86351,
+      "timestamp_str": "2026-11-27 14:09:59",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: carried incumbent score across rungs; three 14-round big-tune A/Bs improved 1.06x, 1.15x and 1.165x with identical decisions every round; full npm suite 1343 pass 0 fail 1 skip; real three-model tune gate passed 9/9 rates with zero delta",
+      "files_affected": [
+        "benchmarks/tune-measure.mjs",
+        "benchmarks/tune.mjs",
+        "tests/benchmark-tune-stats.test.js",
+        ".aikit/decisions.md",
+        "benchmarks/history.jsonl"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/big-tune-ab.mjs",
+          "baseline": 2.716,
+          "candidate": 2.332,
+          "command": "node big-tune-ab.mjs",
+          "control": "identical decisions in every round",
+          "drift": "0.25",
+          "interleaved": "yes",
+          "metric": "14-round multi-axis grouped tune",
+          "unit": "ms",
+          "workload": "fourteen interleaved baseline/candidate rounds of a three-axis two-pass code tune"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "rung-accumulate-1156",
+      "timestamp": 1795780188.68189,
+      "timestamp_str": "2026-11-27 14:49:48",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          ""
+        ]
+      },
+      "description": "Task 'rung-accumulate-1156' completed successfully.",
+      "head": "2d3e4c829215f5eae9f3e7f7060587f81faec4c5",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "rung-accumulate-1156",
+      "timestamp": 1795780261.2893,
+      "timestamp_str": "2026-11-27 14:51:01"
     }
   ],
   "version": 1
