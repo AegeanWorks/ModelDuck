@@ -1,17 +1,17 @@
 {
   "active_task": {
     "active_phase": 5,
-    "completed_at": 1795743697.86488,
-    "completed_head": "a3c8b208f5b386f562cf141933ef328bc37a4e99",
-    "completed_tree": "0b972efb4aee864679e7e6b6474f92d367dfceac",
+    "completed_at": 1795745503.65365,
+    "completed_head": "1290736137947843e0243121af94ee39995a84b9",
+    "completed_tree": "a162a61c9520e0bb76545aa1325008fa55da283b",
     "continuations": [],
     "last_phase": "phase 4",
-    "lease_until": 1795750812.77976,
+    "lease_until": 1795752347.39285,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "status": "completed",
-    "task_id": "history-scope-migration-1135",
-    "updated_at": 1795743612.77976,
+    "task_id": "cachedanswers-key-cache-1136",
+    "updated_at": 1795745147.39285,
     "workspaces": [
       {
         "name": "modelduck",
@@ -20,53 +20,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Memoize model-independent tune estimates per steps and options",
-      "files_affected": [],
-      "impact_assessment": {
-        "benefits": "Compute each distinct estimate once per request while preserving every returned field and fallback",
-        "mitigation": "failing-first memoization counter test, full tune-grid/tune/server tests, route output comparison and strict gates; revert on any estimate change",
-        "risks": "contract: identical estimate values and key sensitivity to steps identity and options; dependency: existing pure estimate functions; concurrency: process-local per-request helper; state: bounded per-helper Map",
-        "why": "The tune estimate route recomputes expectedAnswers and estimateTune six times per installed model although their arguments are identical; a 60-model prototype improved 6.514ms to 0.109ms with identical JSON"
-      },
-      "phase": "in_progress",
-      "phase_num": 2,
-      "plan_digest": "1049f69c89a3f01c37598fb487e1336646eebe169f0957996d2d552aae5e0c45",
-      "status": "in_progress",
-      "task_id": "tune-estimate-memo-1129",
-      "timestamp": 1795739691.10447,
-      "timestamp_str": "2026-11-27 03:34:51"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: production 60-model route A/B 6.587ms to 0.147ms (44.8x) with identical output across 24 option combinations and 3.6 percent control drift; server and tune-grid tests pass; full npm suite passed 1319 with one pre-existing skip; documentation and secret gates pass",
-      "files_affected": [],
-      "phase": "in_progress",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "tune-estimate-memo-1129",
-      "timestamp": 1795739976.0761,
-      "timestamp_str": "2026-11-27 03:39:36"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          ""
-        ]
-      },
-      "description": "Task 'tune-estimate-memo-1129' completed successfully.",
-      "head": "0859124eca827e46cda4a7da5347b999d4472eab",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "tune-estimate-memo-1129",
-      "timestamp": 1795740037.29286,
-      "timestamp_str": "2026-11-27 03:40:37"
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "checklists": "passed",
@@ -551,6 +504,87 @@
       "task_id": "history-scope-migration-1135",
       "timestamp": 1795743697.86488,
       "timestamp_str": "2026-11-27 04:41:37"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Cache settings serialization for reused cachedAnswers grouping keys",
+      "files_affected": [
+        "src/tune-runs.js",
+        "tests/cachedanswers-reads.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Serialize each reused settings object once per history cache with a bounded LRU-style FIFO and preserve group output exactly",
+        "mitigation": "failing-first hit/eviction counter tests, cachedAnswers and tune-runs suites, benchmark and strict gates; revert on any group change",
+        "risks": "contract: key string and grouping order unchanged; dependency: WeakMap; concurrency: process-local per-cache; state: bound and reset with the history cache",
+        "why": "cachedAnswers reuses parsed row objects from the history cache but still JSON.stringify each row's settings on every call just to rebuild the same grouping key"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "55f3b354adc09766fff116c9e6b2b662d3337ace442d94c7fe2afc4f14c6e5af",
+      "status": "in_progress",
+      "task_id": "cachedanswers-key-cache-1136",
+      "timestamp": 1795744045.65105,
+      "timestamp_str": "2026-11-27 04:47:25",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: 20,000-row 40-call A/B 7,020.800ms to 6,280.008ms (1.12x) under 15 percent control drift with identical groups and 15,000 settings-key hits; 56 targeted tests and full npm suite (1326 pass, one pre-existing skip) pass",
+      "files_affected": [
+        "src/tune-runs.js",
+        "tests/cachedanswers-reads.test.js",
+        ".aikit/decisions.md"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/answer-keys-production-ab.mjs",
+          "baseline": 7020.8,
+          "candidate": 6280.008,
+          "command": "node answer-keys-production-ab.mjs",
+          "control": "baseline/baseline 6113.005ms vs 7029.707ms with identical grouping hash",
+          "drift": "15",
+          "interleaved": "yes",
+          "metric": "20,000-row cachedAnswers restore",
+          "unit": "ms",
+          "workload": "40 repeated cachedAnswers calls after itemOutcomes priming over four 5,000-answer runs, six interleaved pairs against the committed prior version"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "cachedanswers-key-cache-1136",
+      "timestamp": 1795745147.39285,
+      "timestamp_str": "2026-11-27 05:05:47",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          ""
+        ]
+      },
+      "description": "Task 'cachedanswers-key-cache-1136' completed successfully.",
+      "head": "1290736137947843e0243121af94ee39995a84b9",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "cachedanswers-key-cache-1136",
+      "timestamp": 1795745503.65365,
+      "timestamp_str": "2026-11-27 05:11:43"
     }
   ],
   "version": 1

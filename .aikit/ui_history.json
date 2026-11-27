@@ -4905,5 +4905,35 @@
     "surface": "app",
     "surface_digest": "8d211ba30619cc50319d4e2783ccf849a8991ed561920315c4ff0bc6ef1f2429",
     "visual_change": true
+  },
+  {
+    "allowed_removals": [],
+    "allowed_tests": [],
+    "baseline_commit": "7243faa",
+    "baseline_digest": "8d211ba30619cc50319d4e2783ccf849a8991ed561920315c4ff0bc6ef1f2429",
+    "changed_paths": [],
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "finished_at": 1795745490.6689,
+    "mode": "visual",
+    "no_change_reason": "Restore grouping-key cache is server-side only; no visual surface changed",
+    "no_visual_reason": "",
+    "review": {
+      "reviewed_at": 1795745490.66888,
+      "reviewer": "agent:opencode",
+      "snapshot_digest": "",
+      "snapshot_entries": 0,
+      "surface": "app",
+      "surface_digest": "69f9c08fe27739e2184b733f90b5cfb5639253d197189e2391f686eb3af59860",
+      "visual": true
+    },
+    "reviewer": "agent:opencode",
+    "schema": 1,
+    "started_at": 1795745466.38395,
+    "strikes": 0,
+    "surface": "app",
+    "surface_digest": "69f9c08fe27739e2184b733f90b5cfb5639253d197189e2391f686eb3af59860",
+    "visual_change": true
   }
 ]
