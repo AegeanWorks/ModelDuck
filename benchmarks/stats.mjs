@@ -219,6 +219,10 @@ function binomials(count) {
   }
   return row;
 }
+let exactPreallocBuilds = 0;
+export function exactPreallocComputations() {
+  return exactPreallocBuilds;
+}
 function exactSignedSums(nonzero) {
   if (DIAGNOSTICS) signFlipMasks += 2 ** nonzero.length;
   const groups = new Map();
@@ -227,16 +231,23 @@ function exactSignedSums(nonzero) {
   let weights = [1];
   for (const [value, count] of groups) {
     const row = binomials(count);
-    const nextSums = [];
-    const nextWeights = [];
+    // Each level's size is known: one row per prior state and one column per
+    // possible positive count. Fill the exact-size arrays by index instead of
+    // growing them with push across tens of thousands of states.
+    const size = sums.length * (count + 1);
+    const nextSums = new Array(size);
+    const nextWeights = new Array(size);
+    let at = 0;
     for (let state = 0; state < sums.length; state += 1) {
       for (let positive = 0; positive <= count; positive += 1) {
-        nextSums.push(sums[state] + (2 * positive - count) * value);
-        nextWeights.push(weights[state] * row[positive]);
+        nextSums[at] = sums[state] + (2 * positive - count) * value;
+        nextWeights[at] = weights[state] * row[positive];
+        at += 1;
       }
     }
     sums = nextSums;
     weights = nextWeights;
+    if (DIAGNOSTICS) exactPreallocBuilds += 1;
   }
   if (DIAGNOSTICS) signFlipGroupStates += sums.length;
   return { sums, weights };

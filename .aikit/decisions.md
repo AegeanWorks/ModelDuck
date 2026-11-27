@@ -2730,3 +2730,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Add a values-only paired scan that keeps pairedDiffs' signal precedence and returns b/c with the values array directly
 - **Cross-principle check:** PRINCIPLE-003: the failing-first test compares b/c and p-values against pairedDiffs on credit, fractions and majority inputs; PRINCIPLE-010: one object allocation per differing item disappears; PRINCIPLE-014: equivalence test plus repeated decision A/Bs.
 - **Consequences**: A failing-first equivalence test and 145 targeted tests pass, as does the real three-model tune gate; eight partial-credit full-tune A/Bs had a median speedup near 1.021x with identical decision hashes in every round (one outlier regression under sustained load).
+
+### ADR-357: Preallocate exact sign-sum levels
+- **Date**: 2026-11-28
+- **Status**: Accepted
+- **Context**: exactSignedSums grew nextSums and nextWeights with push across hundreds of thousands of states per tune, reallocating the arrays repeatedly
+- **Decision**: Allocate each grouped level at its exact size once and fill it by index, keeping sums and weights bit-identical
+- **Cross-principle check:** PRINCIPLE-003: existing direct-enumeration tests confirm identical p-values and all A/B rounds keep identical decision hashes; PRINCIPLE-010: the exact-size arrays remove repeated growth reallocations; PRINCIPLE-014: failing-first counter test plus repeated decision A/Bs.
+- **Consequences**: A failing-first counter test and the direct-enumeration tests pass, as does the real three-model tune gate; eight partial-credit full-tune A/Bs had a median speedup near 1.03x with identical decision hashes in every round.

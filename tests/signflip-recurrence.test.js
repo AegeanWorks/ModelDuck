@@ -1,13 +1,23 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { signFlipMaskCount, signFlipOneSided, signFlipPValue } from "../benchmarks/stats.mjs";
+import { exactPreallocComputations, signFlipMaskCount, signFlipOneSided, signFlipPValue } from "../benchmarks/stats.mjs";
 
 test("exact enumeration uses the O(1) per-mask recurrence", () => {
   const diffs = [0.1, -0.2, 0.3, 0.4, -0.5, 0.2];
   const before = signFlipMaskCount();
   signFlipPValue(diffs);
   assert.equal(signFlipMaskCount(), before + 2 ** 6, "one operation per mask, not count per mask");
+});
+
+test("exact signed sums preallocate each grouped level", () => {
+  const diffs = [0.25, 0.25, -0.25, -0.25, 0.5, -0.5];
+  const before = exactPreallocComputations();
+  const p = signFlipPValue(diffs);
+  assert.ok(exactPreallocComputations() > before, "grouped levels used the preallocated path");
+  assert.ok(p >= 0 && p <= 1);
+  // Four distinct magnitudes produce four preallocated levels.
+  assert.equal(exactPreallocComputations(), before + 4);
 });
 
 test("exact sign-flip p-values match the direct enumeration", () => {
