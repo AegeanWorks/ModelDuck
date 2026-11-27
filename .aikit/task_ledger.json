@@ -1,72 +1,25 @@
 {
-  "active_task": null,
+  "active_task": {
+    "active_phase": 5,
+    "completed_at": 1795803454.34392,
+    "completed_head": "b1ee4e25ff4a00854a295b83e4763e980b1faf5b",
+    "completed_tree": "c9259d79f668ddd4f511815e1d495a31199ce9bb",
+    "continuations": [],
+    "last_phase": "phase 4",
+    "lease_until": 1795810566.83238,
+    "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+    "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+    "status": "completed",
+    "task_id": "light-finalize-minimal-1183",
+    "updated_at": 1795803366.83238,
+    "workspaces": [
+      {
+        "name": "modelduck",
+        "path": "projects/modelduck"
+      }
+    ]
+  },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Cache view membership sets and count with loops",
-      "files_affected": [
-        "benchmarks/tune.mjs",
-        "tests/benchmark-tune.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Build one Set per view per sweep and count majority passes with a plain loop",
-        "mitigation": "failing-first counter test, interleaved big-tune A/B with identical decisions, full suite and strict gates; revert if not measurable",
-        "risks": "contract: identical grouped evidence and decisions; dependency: group arrays stable per sweep; concurrency: process-local counter; state: sets scoped to one guard call",
-        "why": "groupEvidence rebuilt a Set per view per candidate and groupRate allocated a filtered array to count passes"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "8e42f7e8260d3bda98fca6324c51536856febec10ff31a121dcb99f7feb92e3c",
-      "status": "in_progress",
-      "task_id": "group-evidence-loop-1174",
-      "timestamp": 1795789561.93404,
-      "timestamp_str": "2026-11-27 17:26:01",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "Task 'group-evidence-loop-1174' abandoned: Rejected group-evidence-loop-1174 after measurement: caching six-item view Sets in a WeakMap regressed two fourteen-round full-tune A/Bs (0.80x and 0.77x) with identical decisions; groupRate was already a loop; production files restored",
-      "phase": "abandoned",
-      "phase_num": 2,
-      "status": "abandoned",
-      "task_id": "group-evidence-loop-1174",
-      "timestamp": 1795789680.56382,
-      "timestamp_str": "2026-11-27 17:28:00"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Replace rung snapshots with copy-on-write derived containers",
-      "files_affected": [
-        "benchmarks/tune-measure.mjs",
-        "tests/benchmark-tune-stats.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Create fresh derived containers per rung so finalize can return them directly without a second copy",
-        "mitigation": "failing-first counter test, interleaved big-tune A/B with identical decisions, full suite and strict gates; revert if not measurable",
-        "risks": "contract: identical rung reports and decisions; dependency: accumulator state shape; concurrency: process-local counter; state: accumulator scoped to one sweep",
-        "why": "each rung copied four per-item containers after mutating shared ones, doubling the write work across rungs"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "21b25ef8a81976db1ed54b0044546cf901ca39ffb71d70333125f8006936f16d",
-      "status": "in_progress",
-      "task_id": "rung-copy-on-write-1175",
-      "timestamp": 1795789800.04768,
-      "timestamp_str": "2026-11-27 17:30:00",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "description": "Task 'rung-copy-on-write-1175' abandoned: Rejected rung-copy-on-write-1175 after measurement: copy-on-write derived containers regressed four fourteen-round full-tune A/Bs (0.82x to 0.89x) with identical decisions; production files restored",
@@ -431,6 +384,88 @@
       "task_id": "binomial-cache-1182",
       "timestamp": 1795797312.49992,
       "timestamp_str": "2026-11-27 19:35:12"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Omit solved and ci95 at intermediate looks",
+      "files_affected": [
+        "benchmarks/tune-measure.mjs",
+        "tests/benchmark-tune-stats.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Set those two fields to null at intermediate looks and keep the full report at the final look",
+        "mitigation": "failing-first counter test, partial-credit full-tune A/B with identical decisions, full suite and strict gates; revert if not measurable",
+        "risks": "contract: identical stop decisions and final reports; dependency: stop guard fields; concurrency: process-local counter; state: none",
+        "why": "light finalize still computed a rounded solved count and Wilson interval although the early-stop guard reads neither"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "1745d260413a1572473a7d740094fb555541a361610f563d2718c5acf57a5276",
+      "status": "in_progress",
+      "task_id": "light-finalize-minimal-1183",
+      "timestamp": 1795802902.82083,
+      "timestamp_str": "2026-11-27 21:08:22",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: omitting solved and ci95 at intermediate looks improved four 10-round partial-credit full-tune A/Bs by 1.04x to 1.16x with identical decisions; full npm suite 1350 pass 0 fail 1 skip; real three-model tune gate passed 9/9 rates with zero delta",
+      "files_affected": [
+        "benchmarks/tune-measure.mjs",
+        "tests/benchmark-tune-stats.test.js",
+        ".aikit/decisions.md",
+        "benchmarks/history.jsonl"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/big-tune-partial-ab.mjs",
+          "baseline": 3.852,
+          "candidate": 3.315,
+          "command": "node big-tune-partial-ab.mjs",
+          "control": "identical settings, pAdjusted and sweep decisions in every round",
+          "drift": "0.3",
+          "interleaved": "yes",
+          "metric": "10-round partial-credit multi-axis grouped tune",
+          "unit": "ms",
+          "workload": "ten interleaved baseline/candidate rounds of a three-axis two-pass code tune with three checks per item"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "light-finalize-minimal-1183",
+      "timestamp": 1795803366.83238,
+      "timestamp_str": "2026-11-27 21:16:06",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          ""
+        ]
+      },
+      "description": "Task 'light-finalize-minimal-1183' completed successfully.",
+      "head": "b1ee4e25ff4a00854a295b83e4763e980b1faf5b",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "light-finalize-minimal-1183",
+      "timestamp": 1795803454.34392,
+      "timestamp_str": "2026-11-27 21:17:34"
     }
   ],
   "version": 1
