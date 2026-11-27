@@ -2536,3 +2536,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Build the Int8Array sign table once per (count, permutations) and reuse it in the sum loop, counting logical draws exactly as before
 - **Consequences**: Six p-values stayed bit-identical in a twelve-pair interleaved A/B at 7.33x (23.029ms to 3.143ms); twelve clustered sweep comparisons stayed identical at 5.58x (46.657ms to 8.356ms). A failing-first counter and 38 stats tests pass, as does the real three-model tune gate with 9/9 rates unchanged.
 - **Cross-principle check:** PRINCIPLE-003: ±1 multiplication reproduces the original high-bit sign choice bit-for-bit, verified against the seeded reference and full sweep evidence; PRINCIPLE-010: the LCG state generation leaves the hot permutation loop; PRINCIPLE-013: the table is process-local and keyed by count and permutation width; PRINCIPLE-014: failing-first counter plus exact reference p-values and interleaved A/Bs.
+
+### ADR-332: Select score medians in place
+- **Date**: 2026-11-27
+- **Status**: Accepted
+- **Context**: score copied and fully sorted six fresh arrays per rung although only the middle rank determines the summary
+- **Decision**: Use an in-place O(n) rank selection for the six score medians while keeping the exported non-mutating median for other callers
+- **Consequences**: A twelve-pair interleaved A/B over 20 scores per run improved 3.460ms to 1.783ms (1.94x) with an identical stats hash; 20,000 randomized median cases matched the sorted reference. A failing-first counter and 125 tune tests pass, as does the real three-model tune gate.

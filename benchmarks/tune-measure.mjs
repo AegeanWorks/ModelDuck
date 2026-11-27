@@ -10,6 +10,41 @@ export function median(values) {
   return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
 }
 
+// The score path only needs the middle of freshly built arrays. Selecting the
+// rank in place is O(n) and skips both the copy and the full sort; callers of
+// the exported `median` still get the non-mutating version.
+let medianQuickBuilds = 0;
+export function medianQuickComputations() {
+  return medianQuickBuilds;
+}
+function selectRank(values, k, left = 0, right = values.length - 1) {
+  while (left < right) {
+    const pivot = values[(left + right) >>> 1];
+    let low = left;
+    let high = right;
+    while (low <= high) {
+      while (values[low] < pivot) low += 1;
+      while (values[high] > pivot) high -= 1;
+      if (low <= high) {
+        const held = values[low];
+        values[low] = values[high];
+        values[high] = held;
+        low += 1;
+        high -= 1;
+      }
+    }
+    if (k <= high) right = high;
+    else if (k >= low) left = low;
+    else return values[k];
+  }
+  return values[k];
+}
+function medianQuick(values) {
+  medianQuickBuilds += 1;
+  const middle = Math.floor(values.length / 2);
+  return values.length % 2 ? selectRank(values, middle) : (selectRank(values, middle - 1) + selectRank(values, middle)) / 2;
+}
+
 function stdev(values) {
   const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
   return Math.sqrt(values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length);
@@ -544,17 +579,17 @@ export async function score(measurements, settings, itemIds, seeds) {
     rate: itemIds.length ? round((passed / itemIds.length) * 100) : 0,
     solved,
     ci95: wilson(passed, itemIds.length),
-    latencyMs: latencies.length ? round(median(latencies)) : null,
+    latencyMs: latencies.length ? round(medianQuick(latencies)) : null,
     latencySd: latencies.length ? round(stdev(latencies)) : null,
-    outputTokens: tokens.length ? round(median(tokens)) : null,
-    tokensPerSecond: speeds.length ? round(median(speeds), 2) : null,
+    outputTokens: tokens.length ? round(medianQuick(tokens)) : null,
+    tokensPerSecond: speeds.length ? round(medianQuick(speeds), 2) : null,
     // Share of non-error answers cut off by the token budget (M1); a tuned cap must keep this near zero.
     truncationRate: answered ? round((truncated / answered) * 100) : null,
     // Share of non-error answers that are empty (lit §8); the agentic give-up rate.
     giveUpRate: answered ? round((empty / answered) * 100) : null,
-    promptTokens: promptTokenCounts.length ? round(median(promptTokenCounts)) : null,
-    prefillTps: prefillSpeeds.length ? round(median(prefillSpeeds), 2) : null,
-    decodeTps: decodeSpeeds.length ? round(median(decodeSpeeds), 2) : null,
+    promptTokens: promptTokenCounts.length ? round(medianQuick(promptTokenCounts)) : null,
+    prefillTps: prefillSpeeds.length ? round(medianQuick(prefillSpeeds), 2) : null,
+    decodeTps: decodeSpeeds.length ? round(medianQuick(decodeSpeeds), 2) : null,
     items: itemIds.length,
     seeds: used.length,
     memoryBytes,
