@@ -1,17 +1,17 @@
 {
   "active_task": {
     "active_phase": 5,
-    "completed_at": 1795764794.06629,
-    "completed_head": "cc6eccbd2282ee0e0b37eb1bdb165208681dff15",
-    "completed_tree": "16c1c41fcc995163f8d4c7d03000d71b41525ecd",
+    "completed_at": 1795766267.08883,
+    "completed_head": "eb149bbc987bd19674d067ace43ac511d9ea4229",
+    "completed_tree": "368f3f7c2b3e4f3eed3d17227926d5ea080bb8c6",
     "continuations": [],
     "last_phase": "phase 4",
-    "lease_until": 1795771938.57776,
+    "lease_until": 1795773423.97632,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "status": "completed",
-    "task_id": "paired-diff-scan-1147",
-    "updated_at": 1795764738.57776,
+    "task_id": "grouped-guard-rates-1148",
+    "updated_at": 1795766223.97632,
     "workspaces": [
       {
         "name": "modelduck",
@@ -20,73 +20,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Add a light score path for intermediate early-stop looks",
-      "files_affected": [
-        "benchmarks/tune-measure.mjs",
-        "tests/benchmark-tune-stats.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Accumulate only fractions and credit at intermediate looks and build the full report once when a candidate finishes or stops",
-        "mitigation": "failing-first light-counter test, sweep A/B with exact hash, full tune tests and strict gates; revert on any decision/report change",
-        "risks": "contract: shouldStop b/c/p and final full stats unchanged; dependency: Measurements cache; concurrency: process-local counter; state: stopped partial reports still full shape",
-        "why": "scoreSequential rebuilt all quality, latency, token, speed and digest maps at every look although shouldStop only consumes paired credit/outcomes"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "ba00105aac84867356384126a30c15d35c41548908ea16112e7f0b2d06cc90d7",
-      "status": "in_progress",
-      "task_id": "stop-score-light-1141",
-      "timestamp": 1795758362.16883,
-      "timestamp_str": "2026-11-27 08:46:02",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "Task 'stop-score-light-1141' abandoned: Rejected stop-score-light-1141 after measurement: light intermediate scoring plus a full stopped report regressed 0.81x at first look and 0.95x at a later look with identical reports; production files restored",
-      "phase": "abandoned",
-      "phase_num": 2,
-      "status": "abandoned",
-      "task_id": "stop-score-light-1141",
-      "timestamp": 1795758608.62272,
-      "timestamp_str": "2026-11-27 08:50:08"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Share one generation-path file list between gate digests",
-      "files_affected": [
-        "benchmarks/gate-cache.mjs",
-        "benchmarks/tune-gate.mjs",
-        "tests/gate-cache.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Scan the generation path once per gate and pass the file list to both digests with identical results",
-        "mitigation": "failing-first scan counter, gate-cache and report tests, direct digest A/B and strict gates",
-        "risks": "contract: both content digests unchanged; dependency: gate-cache file list args; concurrency: process-local counter; state: none",
-        "why": "tune-gate computes generationDigest and answerDigest separately and each rebuilds and re-reads the same engine import closure"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "c48c314d29944c0ad04d5de68b8e58e3b958192d4f72e6e77b95c80fe7c97afc",
-      "status": "in_progress",
-      "task_id": "gate-shared-files-1142",
-      "timestamp": 1795758771.34412,
-      "timestamp_str": "2026-11-27 08:52:51",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "checklists": "passed",
@@ -563,6 +496,88 @@
       "task_id": "paired-diff-scan-1147",
       "timestamp": 1795764794.06629,
       "timestamp_str": "2026-11-27 10:33:14"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Count grouped guard before-rates once and loop over view items",
+      "files_affected": [
+        "benchmarks/tune.mjs",
+        "tests/benchmark-tune.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Compute each before-rate once per balancedChoice and count passes with a plain loop",
+        "mitigation": "failing-first counter test on the grouped-code tune, interleaved guard A/B, full suite and strict gates",
+        "risks": "contract: identical group stats and guard decisions; dependency: groupStats signature; concurrency: process-local counters; state: none",
+        "why": "groupStats recomputed the incumbent's per-view rate for every survivor and allocated an array per view via filter"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "6c66dfde1020e311db5b07078cc5880386044093dbc6041b11b012dc6cb2f5af",
+      "status": "in_progress",
+      "task_id": "grouped-guard-rates-1148",
+      "timestamp": 1795764939.37401,
+      "timestamp_str": "2026-11-27 10:35:39",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: grouped guard improved real code tunes from 0.9039ms to 0.8155ms (1.11x) with identical guard hash and 52 cached before-rates; full npm suite 1337 pass 0 fail 1 skip; real three-model tune gate passed 9/9 rates with zero delta",
+      "files_affected": [
+        "benchmarks/tune.mjs",
+        "tests/benchmark-tune.test.js",
+        ".aikit/decisions.md",
+        "benchmarks/history.jsonl"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/grouped-guard-ab.mjs",
+          "baseline": 0.9039,
+          "candidate": 0.8155,
+          "command": "node grouped-guard-ab.mjs",
+          "control": "identical guard hash 158a575832e4d5a7627ad47343f051558d3c568c2fc200769237b35fbc49d4f6",
+          "drift": "0.05",
+          "interleaved": "yes",
+          "metric": "grouped code tune with two views and two candidates",
+          "unit": "ms",
+          "workload": "twelve interleaved baseline/candidate pairs over a real tune() with groupOf"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "grouped-guard-rates-1148",
+      "timestamp": 1795766223.97632,
+      "timestamp_str": "2026-11-27 10:57:03",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          ""
+        ]
+      },
+      "description": "Task 'grouped-guard-rates-1148' completed successfully.",
+      "head": "eb149bbc987bd19674d067ace43ac511d9ea4229",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "grouped-guard-rates-1148",
+      "timestamp": 1795766267.08883,
+      "timestamp_str": "2026-11-27 10:57:47"
     }
   ],
   "version": 1
