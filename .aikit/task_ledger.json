@@ -3,44 +3,6 @@
   "checkpoints": [
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Reuse public report summaries across sweeps",
-      "files_affected": [
-        "benchmarks/tune.mjs",
-        "tests/benchmark-tune.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Cache publicStats by immutable stats object identity within one tune and reuse identical summaries",
-        "mitigation": "failing-first counter test, interleaved big-tune A/B with identical decisions, full suite and strict gates; revert if not measurable",
-        "risks": "contract: identical report records; dependency: stats object identity; concurrency: process-local counter; state: cache scoped to one tune",
-        "why": "record.rungs rebuilt the same public summary for cached stats objects that recur across axes and passes"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "648734b15d5e8d5b23b25f4de70d5ff9f1c374e0bc664820bc174e67639997fb",
-      "status": "in_progress",
-      "task_id": "public-stats-reuse-1173",
-      "timestamp": 1795789271.14202,
-      "timestamp_str": "2026-11-27 17:21:11",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "Task 'public-stats-reuse-1173' abandoned: Rejected public-stats-reuse-1173 after measurement: caching public summaries regressed two fourteen-round full-tune A/Bs (0.81x and 0.77x) with identical decisions because the spread into candidate records still allocates; production files restored",
-      "phase": "abandoned",
-      "phase_num": 2,
-      "status": "abandoned",
-      "task_id": "public-stats-reuse-1173",
-      "timestamp": 1795789461.81768,
-      "timestamp_str": "2026-11-27 17:24:21"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "description": "[1/2] Cache view membership sets and count with loops",
       "files_affected": [
         "benchmarks/tune.mjs",
@@ -431,6 +393,44 @@
       "task_id": "paired-counts-guard-1181",
       "timestamp": 1795795093.92685,
       "timestamp_str": "2026-11-27 18:58:13"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Cache binomial rows by group count",
+      "files_affected": [
+        "benchmarks/stats.mjs",
+        "tests/benchmark-stats.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Memoize rows by count with a bounded map, preserving every coefficient and p-value",
+        "mitigation": "failing-first counter test, partial-credit full-tune A/B with identical decisions, full suite and strict gates; revert if not measurable",
+        "risks": "contract: identical coefficients and p-values; dependency: pure helper; concurrency: process-local cache; state: bounded map",
+        "why": "grouped exact sums rebuilt the same binomial coefficient row for repeated group sizes"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "a6e87af824805dfd34bf3c3e5f510d812368b2a0b86c107cb5afb2cb218cbd69",
+      "status": "in_progress",
+      "task_id": "binomial-cache-1182",
+      "timestamp": 1795796897.48519,
+      "timestamp_str": "2026-11-27 19:28:17",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "Task 'binomial-cache-1182' abandoned: Rejected binomial-cache-1182 after measurement: caching binomial rows was neutral across four partial-credit full-tune A/Bs (median 1.01x) with identical decisions; production files restored",
+      "phase": "abandoned",
+      "phase_num": 2,
+      "status": "abandoned",
+      "task_id": "binomial-cache-1182",
+      "timestamp": 1795797312.49992,
+      "timestamp_str": "2026-11-27 19:35:12"
     }
   ],
   "version": 1
