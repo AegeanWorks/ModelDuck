@@ -1,17 +1,17 @@
 {
   "active_task": {
     "active_phase": 5,
-    "completed_at": 1795746626.36371,
-    "completed_head": "898ea028e91849038a3508522d1e42809882e403",
-    "completed_tree": "a826f9d6adf54d66263f32f3110e3ff3838ef836",
+    "completed_at": 1795754684.19033,
+    "completed_head": "2c24cf31242c9a9c28957f27627ecf51587eef1e",
+    "completed_tree": "ec6b3fcbf73f2103e36439648687a1323ea8745e",
     "continuations": [],
     "last_phase": "phase 4",
-    "lease_until": 1795753758.84351,
+    "lease_until": 1795761739.61671,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "status": "completed",
-    "task_id": "history-import-offset-1137",
-    "updated_at": 1795746558.84351,
+    "task_id": "receipt-stat-ttl-1138",
+    "updated_at": 1795754539.61671,
     "workspaces": [
       {
         "name": "modelduck",
@@ -20,87 +20,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: 200-model 8,000-lookup A/B 57.222ms to 0.526ms (108.7x) with identical results and 0.5 percent A/A drift; 98 targeted tests and full npm suite (1320 pass, one pre-existing skip) pass",
-      "files_affected": [
-        "src/openai.js",
-        "tests/openai-contract.test.js",
-        ".aikit/decisions.md"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/openai-model-index-production-ab.mjs",
-          "baseline": 57.222,
-          "candidate": 0.526,
-          "command": "node openai-model-index-production-ab.mjs",
-          "control": "baseline/baseline 57.222ms vs 57.495ms with identical results",
-          "drift": "0.5",
-          "interleaved": "yes",
-          "metric": "200-model OpenAI lookup",
-          "unit": "ms",
-          "workload": "8,000 interleaved old/new lookups covering ids, exact file names, stripped file names and misses"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "openai-model-index-1131",
-      "timestamp": 1795740944.54341,
-      "timestamp_str": "2026-11-27 03:55:44",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          ""
-        ]
-      },
-      "description": "Task 'openai-model-index-1131' completed successfully.",
-      "head": "eaa439784a31c040754a8c12bed8e6e72c2a39a7",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "openai-model-index-1131",
-      "timestamp": 1795741063.4379,
-      "timestamp_str": "2026-11-27 03:57:43"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Cache a profile-ID model map for shipped preset routes",
-      "files_affected": [
-        "src/server.js",
-        "tests/server.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Build the model map once per registry version and serve every preset lookup in constant time",
-        "mitigation": "failing-first lookup/index test, server suite, benchmark across 3 and 30 presets, npm test and strict gates; revert on any lookup or route difference",
-        "risks": "contract: first public-list match wins and id lookups are unchanged; dependency: listPublicRebuilds version; concurrency: process-local WeakMap; state: invalidate on scan/delete",
-        "why": "The preset routes scan the public model list once per recipe; with 30 presets and 60 models a synthetic A/B improved 2.871ms to 0.392ms, but a short three-preset request can regress, so the map must be version-cached across requests"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "3d4afcc0c92069abe665821357212f9eda402befd2a4b25091fde6789ee151ab",
-      "status": "in_progress",
-      "task_id": "preset-model-index-1132",
-      "timestamp": 1795741249.77846,
-      "timestamp_str": "2026-11-27 04:00:49",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "checklists": "passed",
@@ -594,6 +513,87 @@
       "task_id": "history-import-offset-1137",
       "timestamp": 1795746626.36371,
       "timestamp_str": "2026-11-27 05:30:26"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Add a short TTL around positive receipt stat validation",
+      "files_affected": [
+        "src/downloader.js",
+        "tests/receipt-cache.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Skip repeat stat calls within a one-second window while keeping writer invalidation and stamp validation on expiry",
+        "mitigation": "failing-first stat-counter test, invalidation tests, 200-receipt A/B, full npm suite and strict gates",
+        "risks": "contract: edited receipts are still detected after TTL or invalidation; dependency: Date.now via injectable clock; concurrency: process-local cache; state: TTL stored per cached receipt",
+        "why": "Present receipts are cached but every API poll still stats each sidecar to validate them; 200 receipts cost about 5ms per poll on this host"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "52f6f8326254a053efc08469f0c12fda6c06ecac3f97fa17e2e04d1129ebe421",
+      "status": "in_progress",
+      "task_id": "receipt-stat-ttl-1138",
+      "timestamp": 1795754181.63616,
+      "timestamp_str": "2026-11-27 07:36:21",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: 200 receipts over 50 polls improved 81.319ms to 5.803ms (14.01x) with identical digests and 2.2 percent control drift; 54 targeted tests and full npm suite (1328 pass, one pre-existing skip) pass",
+      "files_affected": [
+        "src/downloader.js",
+        "tests/receipt-cache.test.js",
+        ".aikit/decisions.md"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/receipt-ttl-ab.mjs",
+          "baseline": 81.319,
+          "candidate": 5.803,
+          "command": "node receipt-ttl-ab.mjs",
+          "control": "baseline/baseline 79.386ms vs 81.168ms with identical receipt digests",
+          "drift": "2.2",
+          "interleaved": "yes",
+          "metric": "200-receipt polling",
+          "unit": "ms",
+          "workload": "50 polls of 200 cached receipts with a fixed clock, eight interleaved pairs against the committed prior version"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "receipt-stat-ttl-1138",
+      "timestamp": 1795754539.61671,
+      "timestamp_str": "2026-11-27 07:42:19",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          ""
+        ]
+      },
+      "description": "Task 'receipt-stat-ttl-1138' completed successfully.",
+      "head": "2c24cf31242c9a9c28957f27627ecf51587eef1e",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "receipt-stat-ttl-1138",
+      "timestamp": 1795754684.19033,
+      "timestamp_str": "2026-11-27 07:44:44"
     }
   ],
   "version": 1
