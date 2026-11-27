@@ -471,8 +471,12 @@ export class Measurements {
  * is spent. Internal per-item maps are removed by `publicStats`.
  */
 let zeroedMapBuilds = 0;
+let scoreConversionBuilds = 0;
 export function zeroedMapBuildCount() {
   return zeroedMapBuilds;
+}
+export function scoreConversionComputations() {
+  return scoreConversionBuilds;
 }
 
 export async function score(measurements, settings, itemIds, seeds) {
@@ -567,13 +571,20 @@ export async function score(measurements, settings, itemIds, seeds) {
   // Fractional solved count (seed-averaged) for a rounding-free tolerance (D4):
   // one item lost by majority at 3 seeds counts as 0.67 items, not as a rounded point.
   const solved = Math.round(passed * 1000) / 1000;
-  const majority = new Map([...fractions].map(([id, fraction]) => [id, fraction >= 0.5]));
-  // Plain per-item outcomes for the paired gate (V1); the Map stays internal.
-  const outcomes = Object.fromEntries([...majority].map(([id, passed]) => [id, passed ? 1 : 0]));
-  // Seed-averaged pass per item for the sign-flip test (S2); the Map stays internal.
-  const fractionsPlain = Object.fromEntries([...fractions].map(([id, fraction]) => [id, Math.round(fraction * 10000) / 10000]));
-  // Seed-averaged partial credit per item (G6); the Map stays internal.
-  const creditPlain = Object.fromEntries([...credit].map(([id, value]) => [id, Math.round(value * 10000) / 10000]));
+  // Derive the internal maps and their plain result objects in one pass; the
+  // old four Object.fromEntries calls allocated eight intermediate pair arrays.
+  scoreConversionBuilds += 1;
+  const majority = new Map();
+  const outcomes = {};
+  const fractionsPlain = {};
+  const creditPlain = {};
+  for (const [id, fraction] of fractions) {
+    const passed = fraction >= 0.5;
+    majority.set(id, passed);
+    outcomes[id] = passed ? 1 : 0;
+    fractionsPlain[id] = Math.round(fraction * 10000) / 10000;
+    creditPlain[id] = Math.round(credit.get(id) * 10000) / 10000;
+  }
   return {
     // No items is a zero rate, not NaN: an empty rung must compare and report, never poison ordering.
     rate: itemIds.length ? round((passed / itemIds.length) * 100) : 0,

@@ -2543,3 +2543,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: score copied and fully sorted six fresh arrays per rung although only the middle rank determines the summary
 - **Decision**: Use an in-place O(n) rank selection for the six score medians while keeping the exported non-mutating median for other callers
 - **Consequences**: A twelve-pair interleaved A/B over 20 scores per run improved 3.460ms to 1.783ms (1.94x) with an identical stats hash; 20,000 randomized median cases matched the sorted reference. A failing-first counter and 125 tune tests pass, as does the real three-model tune gate.
+
+### ADR-333: Derive score outcome maps in one pass
+- **Date**: 2026-11-27
+- **Status**: Accepted
+- **Context**: score built majority, outcomes, fractions and credit through four Object.fromEntries calls that allocated eight intermediate pair arrays per rung
+- **Decision**: Fill the internal majority map and the three plain result objects in one loop over the fraction map
+- **Consequences**: A twelve-pair interleaved A/B over 20 scores improved 1.434ms to 1.181ms (1.21x) with an identical stats hash; a failing-first counter and 126 tune tests pass, as does the real three-model tune gate.

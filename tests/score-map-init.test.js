@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { medianQuickComputations, score, zeroedMapBuildCount } from "../benchmarks/tune-measure.mjs";
+import { medianQuickComputations, score, scoreConversionComputations, zeroedMapBuildCount } from "../benchmarks/tune-measure.mjs";
 
 // Minimal measurements stub: one seed, one item, all checks pass.
 const measurements = {
@@ -37,4 +37,14 @@ test("score selects its six medians in place without changing the stats", async 
   assert.equal(result.tokensPerSecond, 2);
   assert.equal(result.promptTokens, 8);
   assert.equal(result.prefillTps, 4000);
+});
+
+test("score derives its outcome maps in one pass", async () => {
+  const before = scoreConversionComputations();
+  const result = await score(measurements, { temperature: 0 }, ["i0"], [42]);
+  assert.equal(scoreConversionComputations(), before + 1);
+  assert.deepEqual(result.outcomes, { i0: 1 });
+  assert.deepEqual(result.fractions, { i0: 1 });
+  assert.deepEqual(result.credit, { i0: 1 });
+  assert.deepEqual([...result.majority], [["i0", true]]);
 });
