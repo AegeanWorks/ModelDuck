@@ -1,23 +1,17 @@
 {
   "active_task": {
     "active_phase": 5,
-    "completed_at": 1795740568.80334,
-    "completed_head": "b6cb99a0f3c2aa5c0e98fbd992d3cbc897d50ec2",
-    "completed_tree": "3d6f8a98d41a9fe1b05aec20ba85ab80aaae5d23",
+    "completed_at": 1795741063.4379,
+    "completed_head": "eaa439784a31c040754a8c12bed8e6e72c2a39a7",
+    "completed_tree": "660d7132de0fbb447842d7dd6a03a1408b7903d4",
     "continuations": [],
-    "impact_assessment": {
-      "benefits": "Strict delivery gate can verify the committed tree",
-      "mitigation": "ui verify, ui finish and strict delivery check",
-      "risks": "contract: UI history only; dependency: none; concurrency: none; state: UI history",
-      "why": "The UI contract digest had to be updated after src/server.js changed, but no visual view changed"
-    },
     "last_phase": "phase 4",
-    "lease_until": 1795747757.88057,
+    "lease_until": 1795748144.54341,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "status": "completed",
-    "task_id": "ui-verification-1130",
-    "updated_at": 1795740557.88057,
+    "task_id": "openai-model-index-1131",
+    "updated_at": 1795740944.54341,
     "workspaces": [
       {
         "name": "modelduck",
@@ -26,126 +20,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: real repo-check child spawns 6 -> 0 and 360.424ms -> 0.131ms with identical verdict hash; full default tune 801.339ms -> 442.696ms with identical fresh answers, probes, runs, reuse and outcome hash; real three-model tune gate passed all nine rates with zero delta; 138 targeted tests, full suite and 4/4 gates pass",
-      "files_affected": [
-        "benchmarks/suite.mjs",
-        "tests/noentry-shortcut.test.js",
-        ".aikit/decisions.md",
-        "benchmarks/history.jsonl"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/runtime-shortcut-real-ab.mjs",
-          "baseline": 360.424,
-          "candidate": 0.131,
-          "command": "node runtime-shortcut-real-ab.mjs",
-          "control": "baseline/baseline 574.219ms vs 588.650ms",
-          "drift": "2.5",
-          "interleaved": "yes",
-          "metric": "real repo-check judging",
-          "unit": "ms",
-          "workload": "eight code-repo checks, ten interleaved old/new pairs, cold verdict cache"
-        },
-        {
-          "artifact": "local-only/runtime-shortcut-real-ab.mjs",
-          "baseline": 6.0,
-          "candidate": 0.0,
-          "command": "node runtime-shortcut-real-ab.mjs",
-          "control": "identical verdict hash f18624b43c4cd3590067380da094cd5c44c144008d5e7347be43f85cb845b891",
-          "drift": "0",
-          "interleaved": "yes",
-          "metric": "real repo-check child spawns",
-          "unit": "spawns",
-          "workload": "eight code-repo checks with irrelevant answer text"
-        },
-        {
-          "artifact": "local-only/runtime-shortcut-e2e-ab.mjs",
-          "baseline": 801.339,
-          "candidate": 442.696,
-          "command": "node runtime-shortcut-e2e-ab.mjs",
-          "control": "fresh=24, probes=16, runs=12, identical reuse and outcome hash 2d00cf7739667e3995f7095e4a18c3dfbdd3e84bba325c4250c69410f10feaab",
-          "drift": "2.5",
-          "interleaved": "yes",
-          "metric": "default deterministic full tune",
-          "unit": "ms",
-          "workload": "one stale code family, five interleaved old/new pairs"
-        },
-        {
-          "artifact": "benchmarks/history.jsonl",
-          "baseline": 0.0,
-          "candidate": 0.0,
-          "command": "npm run tune:gate",
-          "control": "all nine rows passed with 84 fresh answers and paraphrase probes",
-          "drift": "0",
-          "interleaved": "no",
-          "metric": "core-model tune-gate task-rate delta",
-          "qualified": "no",
-          "unit": "percentage points",
-          "workload": "three core models across code, comprehension and recall"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "runtime-error-shortcut-1126",
-      "timestamp": 1795715912.70367,
-      "timestamp_str": "2026-11-26 20:58:32",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          ""
-        ]
-      },
-      "description": "Task 'runtime-error-shortcut-1126' completed successfully.",
-      "head": "4a7e63e3febd7c7b290ec96025b0947393392e92",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "runtime-error-shortcut-1126",
-      "timestamp": 1795716013.42238,
-      "timestamp_str": "2026-11-26 21:00:13"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Overlap up to four fresh sandbox judges with the next serial model generation",
-      "files_affected": [
-        "benchmarks/tune-evaluate.mjs",
-        "tests/benchmark-tune-evaluate.test.js",
-        "tests/benchmark-tune-timing.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Hide judge startup and execution behind later generation without idle process pools, sandbox reuse or extra model concurrency",
-        "mitigation": "failing-first order/error/bounded-overlap tests, direct and full-tune old/new hashes, full npm test and 4/4 strict gates; revert on ordering or verdict change",
-        "risks": "contract: ordered results/onItem, one fresh child per answer, identical verdicts/errors/timing stats; dependency: none; concurrency: model width remains one, at most four judges in flight; state: no cache/schema change",
-        "why": "Width-one evaluation still waits for each judge child before starting the next model answer, leaving inference and judging entirely serial"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "d46445a6053464384d8916d2ce6681a0ea28d5e34ceef479843ad8bfccfcb052",
-      "status": "in_progress",
-      "task_id": "judge-generation-pipeline-1126",
-      "timestamp": 1795721168.38958,
-      "timestamp_str": "2026-11-26 22:26:08",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "description": "Task 'judge-generation-pipeline-1126' abandoned: Repeated judge/generation pipeline rejected again: direct gain 1.23x had 8.9% control drift and full speed-stage gain was only 1.06x with 4.5% drift, inconsistent with the prior real-child 0.86x regression; restored HEAD",
@@ -624,6 +498,87 @@
       "task_id": "ui-verification-1130",
       "timestamp": 1795740568.80334,
       "timestamp_str": "2026-11-27 03:49:28"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Cache a dual-key OpenAI model lookup index",
+      "files_affected": [
+        "src/openai.js",
+        "tests/openai-contract.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Rebuild the id and filename index only when the public model list changes, preserving exact first-match precedence",
+        "mitigation": "failing-first index-build test, duplicate-key precedence assertions, openai/server suites, benchmark and strict gates; revert on any lookup difference",
+        "risks": "contract: id lookups win over filename lookups and first list match wins for duplicate keys; dependency: listPublicRebuilds version; concurrency: process-local WeakMap; state: cache must invalidate on registry changes",
+        "why": "findModel rescans listPublic twice per /v1/models/{id} request and strips .gguf repeatedly; a 200-model 8,000-lookup prototype improved 60.141ms to 0.379ms"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "f0714206f943b4ed8d874c9fdd8c8233c68d0106ea60ceed59391b8c9c9ae5bc",
+      "status": "in_progress",
+      "task_id": "openai-model-index-1131",
+      "timestamp": 1795740761.62967,
+      "timestamp_str": "2026-11-27 03:52:41",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: 200-model 8,000-lookup A/B 57.222ms to 0.526ms (108.7x) with identical results and 0.5 percent A/A drift; 98 targeted tests and full npm suite (1320 pass, one pre-existing skip) pass",
+      "files_affected": [
+        "src/openai.js",
+        "tests/openai-contract.test.js",
+        ".aikit/decisions.md"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/openai-model-index-production-ab.mjs",
+          "baseline": 57.222,
+          "candidate": 0.526,
+          "command": "node openai-model-index-production-ab.mjs",
+          "control": "baseline/baseline 57.222ms vs 57.495ms with identical results",
+          "drift": "0.5",
+          "interleaved": "yes",
+          "metric": "200-model OpenAI lookup",
+          "unit": "ms",
+          "workload": "8,000 interleaved old/new lookups covering ids, exact file names, stripped file names and misses"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "openai-model-index-1131",
+      "timestamp": 1795740944.54341,
+      "timestamp_str": "2026-11-27 03:55:44",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          ""
+        ]
+      },
+      "description": "Task 'openai-model-index-1131' completed successfully.",
+      "head": "eaa439784a31c040754a8c12bed8e6e72c2a39a7",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "openai-model-index-1131",
+      "timestamp": 1795741063.4379,
+      "timestamp_str": "2026-11-27 03:57:43"
     }
   ],
   "version": 1

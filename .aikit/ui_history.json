@@ -4785,5 +4785,35 @@
     "surface": "app",
     "surface_digest": "50ff10859bc8d822b1cc6f6ef82116961ff573b637f670700ee26ce4c9aab14d",
     "visual_change": true
+  },
+  {
+    "allowed_removals": [],
+    "allowed_tests": [],
+    "baseline_commit": "e84eb2c",
+    "baseline_digest": "50ff10859bc8d822b1cc6f6ef82116961ff573b637f670700ee26ce4c9aab14d",
+    "changed_paths": [],
+    "contract_hash": "c6a291e913a9c8f174aadf7fb264b0941c55e9f4999a9a43152f1fb616845d11",
+    "final_snapshot_digest": "",
+    "final_snapshot_entries": 0,
+    "finished_at": 1795741035.62995,
+    "mode": "visual",
+    "no_change_reason": "Cached OpenAI model lookup is server-side only; no visual surface changed",
+    "no_visual_reason": "",
+    "review": {
+      "reviewed_at": 1795741035.62994,
+      "reviewer": "agent:opencode",
+      "snapshot_digest": "",
+      "snapshot_entries": 0,
+      "surface": "app",
+      "surface_digest": "dfb4a4b989f6f5060ae0d053567b43481e69b5577e3477fd0152454ea53e0dd5",
+      "visual": true
+    },
+    "reviewer": "agent:opencode",
+    "schema": 1,
+    "started_at": 1795741006.77413,
+    "strikes": 0,
+    "surface": "app",
+    "surface_digest": "dfb4a4b989f6f5060ae0d053567b43481e69b5577e3477fd0152454ea53e0dd5",
+    "visual_change": true
   }
 ]
