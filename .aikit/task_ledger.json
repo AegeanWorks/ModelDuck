@@ -1,135 +1,19 @@
 {
   "active_task": {
     "active_phase": 5,
-    "completed_at": 1795730179.24873,
-    "completed_head": "2ab2ed3f0c79ae1ee7934359039078faadb5e848",
-    "completed_tree": "fc79e629d6751ea4a5f61aedff470badb5856c14",
+    "completed_at": 1795740037.29286,
+    "completed_head": "0859124eca827e46cda4a7da5347b999d4472eab",
+    "completed_tree": "7a94e65b65c63268e6f95b415cc954eae45f363c",
     "continuations": [],
-    "last_phase": "phase 4",
-    "lease_until": 1795737279.39823,
+    "last_phase": "in_progress",
+    "lease_until": 1795747176.0761,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "status": "completed",
-    "task_id": "judge-key-cache-1128",
-    "updated_at": 1795730079.39823,
-    "workspaces": [
-      {
-        "name": "modelduck",
-        "path": "projects/modelduck"
-      }
-    ]
+    "task_id": "tune-estimate-memo-1129",
+    "updated_at": 1795739976.0761
   },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: thread speed-stage timed calls 18 -> 14 and 38.617ms -> 30.085ms (1.28x) with identical Fastest/Light/Quiet preset hash and 0.2% control drift; real three-model tune gate passed all nine task rates with zero delta; 116 targeted tests, full suite and 4/4 gates pass",
-      "files_affected": [
-        "benchmarks/tune-speed.mjs",
-        "tests/benchmark-tune.test.js",
-        ".aikit/decisions.md",
-        "benchmarks/history.jsonl"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/thread-prune-ab.mjs",
-          "baseline": 18.0,
-          "candidate": 14.0,
-          "command": "node thread-prune-ab.mjs",
-          "control": "baseline/baseline 38.006ms vs 37.939ms",
-          "drift": "0.2",
-          "interleaved": "yes",
-          "metric": "speed-stage timed calls",
-          "unit": "calls",
-          "workload": "six thread candidates, four speed items, three seeds, ten interleaved old/new pairs"
-        },
-        {
-          "artifact": "local-only/thread-prune-ab.mjs",
-          "baseline": 38.617,
-          "candidate": 30.085,
-          "command": "node thread-prune-ab.mjs",
-          "control": "identical preset hash a3bd116dcb1ee8074bc36df21cf6d910993c24530beaa5260618de685bafa0ea",
-          "drift": "0.2",
-          "interleaved": "yes",
-          "metric": "speed-stage wall time",
-          "unit": "ms",
-          "workload": "six thread candidates with 2ms CPU stand-in per timed call, ten interleaved pairs"
-        },
-        {
-          "artifact": "benchmarks/history.jsonl",
-          "baseline": 0.0,
-          "candidate": 0.0,
-          "command": "npm run tune:gate",
-          "control": "all nine rows passed, 84 fresh answers and paraphrase probes",
-          "drift": "0",
-          "interleaved": "no",
-          "metric": "core-model tune-gate task-rate delta",
-          "qualified": "no",
-          "unit": "percentage points",
-          "workload": "smollm2, qwen0.5b and qwen-coder1.5b across code, comprehension and recall"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "thread-cap-pruning-1125",
-      "timestamp": 1795711710.30974,
-      "timestamp_str": "2026-11-26 19:48:30",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          ""
-        ]
-      },
-      "description": "Task 'thread-cap-pruning-1125' completed successfully.",
-      "head": "9c943744d479c00acc3af8e130d14938d87b35c8",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "thread-cap-pruning-1125",
-      "timestamp": 1795711881.21167,
-      "timestamp_str": "2026-11-26 19:51:21"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Pre-spawn up to four single-use JavaScript judge children during model generation",
-      "files_affected": [
-        "benchmarks/judge-pool.mjs",
-        "benchmarks/suite.mjs",
-        "benchmarks/tune-evaluate.mjs",
-        "benchmarks/tune-job.mjs",
-        "tests/judge-pool.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Hide judge startup latency without reusing a sandbox or changing any verdict, timeout, output limit or run accounting",
-        "mitigation": "failing-first one-use/isolation/timeout/output-limit/dispose tests, sandbox hardening, direct and full-tune old/new hashes, full npm test and 4/4 strict gates; revert on any leak or verdict change",
-        "risks": "contract: one fresh permission-isolated child per answer with identical env/cwd/heap/timeout/maxBuffer; dependency: node child_process only; concurrency: bounded four idle children; state: process-local pool disposed after each tune",
-        "why": "Timed and untuned answers still pay a fresh Node sandbox startup after every generation, although process startup can overlap the preceding model call"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "19e5cf48daaa2b23bbd9ec411e3010795e42d1012c6bdc551e500182770faa07",
-      "status": "in_progress",
-      "task_id": "prewarm-judge-children-1126",
-      "timestamp": 1795713767.69165,
-      "timestamp_str": "2026-11-26 20:22:47",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "description": "Task 'prewarm-judge-children-1126' abandoned: Rejected prewarmed judge children after full-tune A/B regressed despite a 1.22x microbenchmark; restored HEAD and removed the pool",
@@ -675,6 +559,53 @@
       "task_id": "judge-key-cache-1128",
       "timestamp": 1795730179.24873,
       "timestamp_str": "2026-11-27 00:56:19"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Memoize model-independent tune estimates per steps and options",
+      "files_affected": [],
+      "impact_assessment": {
+        "benefits": "Compute each distinct estimate once per request while preserving every returned field and fallback",
+        "mitigation": "failing-first memoization counter test, full tune-grid/tune/server tests, route output comparison and strict gates; revert on any estimate change",
+        "risks": "contract: identical estimate values and key sensitivity to steps identity and options; dependency: existing pure estimate functions; concurrency: process-local per-request helper; state: bounded per-helper Map",
+        "why": "The tune estimate route recomputes expectedAnswers and estimateTune six times per installed model although their arguments are identical; a 60-model prototype improved 6.514ms to 0.109ms with identical JSON"
+      },
+      "phase": "in_progress",
+      "phase_num": 2,
+      "plan_digest": "1049f69c89a3f01c37598fb487e1336646eebe169f0957996d2d552aae5e0c45",
+      "status": "in_progress",
+      "task_id": "tune-estimate-memo-1129",
+      "timestamp": 1795739691.10447,
+      "timestamp_str": "2026-11-27 03:34:51"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: production 60-model route A/B 6.587ms to 0.147ms (44.8x) with identical output across 24 option combinations and 3.6 percent control drift; server and tune-grid tests pass; full npm suite passed 1319 with one pre-existing skip; documentation and secret gates pass",
+      "files_affected": [],
+      "phase": "in_progress",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "tune-estimate-memo-1129",
+      "timestamp": 1795739976.0761,
+      "timestamp_str": "2026-11-27 03:39:36"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          ""
+        ]
+      },
+      "description": "Task 'tune-estimate-memo-1129' completed successfully.",
+      "head": "0859124eca827e46cda4a7da5347b999d4472eab",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "tune-estimate-memo-1129",
+      "timestamp": 1795740037.29286,
+      "timestamp_str": "2026-11-27 03:40:37"
     }
   ],
   "version": 1
