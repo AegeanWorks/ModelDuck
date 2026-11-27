@@ -2690,3 +2690,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Gate counter increments on NODE_TEST_CONTEXT, which Node sets in test worker processes, so all assertions keep working while production skips the writes
 - **Cross-principle check:** PRINCIPLE-003: decisions and all measured outputs are unchanged; PRINCIPLE-010: roughly twenty counter writes per hot path disappear in production; PRINCIPLE-011: the env marker only changes diagnostics, never behavior; PRINCIPLE-014: full counter-using test suite plus repeated partial-credit decision A/Bs.
 - **Consequences**: All 140 targeted tests pass with counters intact, as does the real three-model tune gate; four partial-credit full-tune A/Bs improved 1.03x to 1.33x with identical decisions every round.
+
+### ADR-352: Build minimal intermediate stop stats
+- **Date**: 2026-11-28
+- **Status**: Accepted
+- **Context**: light finalize still allocated a 25-field stats object and summed all fractions although the early-stop guard reads only paired evidence containers
+- **Decision**: Return only majority, fractions and credit at intermediate looks; build the full report when a candidate stops or finishes
+- **Cross-principle check:** PRINCIPLE-003: the guard receives exactly the paired evidence it reads and stopped looks are rebuilt in full, so decisions and final reports are unchanged; PRINCIPLE-010: three intermediate looks skip the fraction sum and full object; PRINCIPLE-014: failing-first field test and repeated partial-credit decision A/Bs.
+- **Consequences**: A failing-first field test and 140 stats/tune tests pass, as does the real three-model tune gate; six partial-credit full-tune A/Bs were positive in five runs with a median near 1.10x and identical decisions every round.

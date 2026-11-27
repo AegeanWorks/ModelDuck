@@ -202,11 +202,11 @@ test("intermediate looks omit solved and interval", async () => {
     lookAt: [4],
     stopSignalOnly: true,
     shouldStop: (value, point) => {
-      if (point === 4) intermediate = { solved: value.solved, ci95: value.ci95 };
+      if (point === 4) intermediate = Object.keys(value).sort();
       return false;
     },
   });
-  assert.deepEqual(intermediate, { solved: null, ci95: null });
+  assert.deepEqual(intermediate, ["credit", "fractions", "majority"], "the guard only receives paired evidence");
   assert.equal(stats.solved, 8);
   assert.ok(stats.ci95.low < 100 && stats.ci95.high <= 100);
 });
@@ -223,12 +223,12 @@ test("scoreSequential can skip unused summaries at intermediate looks", async ()
     lookAt: [4, 8],
     stopSignalOnly: true,
     shouldStop: (value, point) => {
-      stops.push({ point, latencyMs: value.latencyMs });
+      stops.push({ point, hasCredit: Boolean(value.credit) });
       return false;
     },
   });
   assert.equal(lightFinalizeComputations(), before + 2, "the two intermediate looks used the light path");
-  assert.deepEqual(stops.map((entry) => entry.latencyMs), [null, null]);
+  assert.deepEqual(stops.map((entry) => entry.hasCredit), [true, true]);
   assert.equal(stats.latencyMs, 10, "the final report still has every summary");
   assert.equal(stats.rate, 100);
 

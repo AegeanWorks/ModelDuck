@@ -674,46 +674,20 @@ export function lightFinalizeComputations() {
 }
 function finalizeScore(state, itemCount, usedLength, summarize = true) {
   const { fractions, latencies, tokens, speeds, promptTokenCounts, prefillSpeeds, decodeSpeeds } = state;
+  if (!summarize) {
+    // Intermediate early-stop looks only read paired pass evidence. Build just
+    // those containers, and skip the fraction sum and full report entirely.
+    if (DIAGNOSTICS) lightFinalizeBuilds += 1;
+    return {
+      majority: state.majority,
+      fractions: state.fractionsPlain,
+      credit: state.creditPlain,
+    };
+  }
   const passed = [...fractions.values()].reduce((sum, value) => sum + value, 0);
   // Fractional solved count (seed-averaged) for a rounding-free tolerance (D4):
   // one item lost by majority at 3 seeds counts as 0.67 items, not as a rounded point.
-  const solved = summarize ? Math.round(passed * 1000) / 1000 : null;
-  if (!summarize) {
-    // Intermediate early-stop looks only read paired pass evidence. The six
-    // medians, the spread, the solved count and the interval are omitted here
-    // and rebuilt if the look stops.
-    if (DIAGNOSTICS) lightFinalizeBuilds += 1;
-    return {
-      rate: itemCount ? round((passed / itemCount) * 100) : 0,
-      solved,
-      ci95: null,
-      latencyMs: null,
-      latencySd: null,
-      outputTokens: null,
-      tokensPerSecond: null,
-      truncationRate: null,
-      giveUpRate: null,
-      promptTokens: null,
-      prefillTps: null,
-      decodeTps: null,
-      items: itemCount,
-      seeds: usedLength,
-      memoryBytes: state.memoryBytes,
-      ...(state.gpuVram !== undefined && { gpuVram: state.gpuVram }),
-      failed: state.errors === itemCount * usedLength,
-      error: state.firstError,
-      majority: state.majority,
-      outcomes: state.outcomes,
-      fractions: state.fractionsPlain,
-      credit: state.creditPlain,
-      itemLatency: state.itemLatency,
-      itemTokens: state.itemTokens,
-      itemPrompt: state.itemPrompt,
-      itemSpeed: state.itemSpeed,
-      itemThroughput: state.itemThroughput,
-      digests: state.digests,
-    };
-  }
+  const solved = Math.round(passed * 1000) / 1000;
   return {
     // No items is a zero rate, not NaN: an empty rung must compare and report, never poison ordering.
     rate: itemCount ? round((passed / itemCount) * 100) : 0,
