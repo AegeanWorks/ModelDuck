@@ -1,17 +1,17 @@
 {
   "active_task": {
     "active_phase": 5,
-    "completed_at": 1795741546.72007,
-    "completed_head": "48b5b8efda5b691659366033671809f0658041cb",
-    "completed_tree": "bbecdfdcea2afbfca3b1197a6e5744efc758d7bd",
+    "completed_at": 1795742417.2776,
+    "completed_head": "194d85310626c21f7d0d390b62633e0f145666b2",
+    "completed_tree": "91709f59be4e69f86541f1291ec8423ff3c5c214",
     "continuations": [],
     "last_phase": "phase 4",
-    "lease_until": 1795748626.86145,
+    "lease_until": 1795749493.64961,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "status": "completed",
-    "task_id": "preset-model-index-1132",
-    "updated_at": 1795741426.86145,
+    "task_id": "item-outcomes-stringify-1133",
+    "updated_at": 1795742293.64961,
     "workspaces": [
       {
         "name": "modelduck",
@@ -20,67 +20,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          ""
-        ]
-      },
-      "description": "Task 'pure-expression-shortcut-1126' completed successfully.",
-      "head": "d50a3661172a02e99f8d3d0ed412b699010cd4ac",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "pure-expression-shortcut-1126",
-      "timestamp": 1795727763.5506,
-      "timestamp_str": "2026-11-27 00:16:03"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[1/1] VERIFIED: refreshed the codebase map and README tree for the pure-judge test; guidelines freshness check passes and strict gate is rerun",
-      "files_affected": [
-        "README.md",
-        ".aikit/codebase_map.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Fresh generated map and README within the 40,000-char limit",
-        "mitigation": "guidelines freshness check and strict delivery gate",
-        "risks": "contract: documentation only; dependency: none; concurrency: none; state: generated map",
-        "why": "The pure-judge test added a tracked path and new symbols after its feature task was completed, so the cold-start map and README tree needed refresh"
-      },
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "pure-judge-docs-1127",
-      "timestamp": 1795727908.37676,
-      "timestamp_str": "2026-11-27 00:18:28",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          ""
-        ]
-      },
-      "description": "Task 'pure-judge-docs-1127' completed successfully.",
-      "head": "e0810527b87ba30471dfc1534b0a580d8d464be2",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "pure-judge-docs-1127",
-      "timestamp": 1795727917.09658,
-      "timestamp_str": "2026-11-27 00:18:37"
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "description": "[1/2] Extend in-process judge to whitelisted pure built-ins and literal expressions",
@@ -573,6 +512,87 @@
       "task_id": "preset-model-index-1132",
       "timestamp": 1795741546.72007,
       "timestamp_str": "2026-11-27 04:05:46"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Stop serializing settings after the distinct-setting cap in itemOutcomes",
+      "files_affected": [
+        "src/tune-runs.js",
+        "tests/itemoutcomes-reads.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Skip the discarded key serialization while preserving every count and saturation verdict",
+        "mitigation": "failing-first stringify-counter test, itemOutcomes/cachedAnswers suites, 20k-row A/B and strict gates; revert if any count changes",
+        "risks": "contract: counts, distinct-setting sizes and saturation unchanged; dependency: none; concurrency: process-local counter; state: existing counts map only",
+        "why": "countRow serializes every row's settings even after an item already has 16 distinct settings, so 20,000 rows wasted 18,400 stringifies; prototype improved 8.162ms to 1.406ms"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "d5c4fe8e9f012f514238a792c654c61fdffe07b41511b4cd726d1daf687842d8",
+      "status": "in_progress",
+      "task_id": "item-outcomes-stringify-1133",
+      "timestamp": 1795742091.77452,
+      "timestamp_str": "2026-11-27 04:14:51",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: 20,000-row itemOutcomes A/B 37.635ms to 31.634ms (1.19x) with identical counts and saturation under 0.4 percent control drift; 22 targeted tests and full npm suite (1322 pass, one pre-existing skip) pass",
+      "files_affected": [
+        "src/tune-runs.js",
+        "tests/itemoutcomes-reads.test.js",
+        ".aikit/decisions.md"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/item-outcomes-production-ab.mjs",
+          "baseline": 37.635,
+          "candidate": 31.634,
+          "command": "node item-outcomes-production-ab.mjs",
+          "control": "baseline/baseline 33.458ms vs 33.577ms with identical outcome hash",
+          "drift": "0.4",
+          "interleaved": "yes",
+          "metric": "20,000-row itemOutcomes",
+          "unit": "ms",
+          "workload": "six interleaved old/new pairs against the committed prior version over one 20,000-answer run, 100 items and 30-key settings objects"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "item-outcomes-stringify-1133",
+      "timestamp": 1795742293.64961,
+      "timestamp_str": "2026-11-27 04:18:13",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          ""
+        ]
+      },
+      "description": "Task 'item-outcomes-stringify-1133' completed successfully.",
+      "head": "194d85310626c21f7d0d390b62633e0f145666b2",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "item-outcomes-stringify-1133",
+      "timestamp": 1795742417.2776,
+      "timestamp_str": "2026-11-27 04:20:17"
     }
   ],
   "version": 1
