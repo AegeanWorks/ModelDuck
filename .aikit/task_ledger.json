@@ -1,17 +1,17 @@
 {
   "active_task": {
     "active_phase": 5,
-    "completed_at": 1795820222.30763,
-    "completed_head": "12c819db610d670c7450cb93f815647f8a5e1ca9",
-    "completed_tree": "9af5ea5794f2e2b5bf23897c005898bee4048818",
+    "completed_at": 1795820529.20211,
+    "completed_head": "3dce7f0b4226c6ee663575ff14e4d0ed9da52420",
+    "completed_tree": "fbfc2c22364f78ed03f33e79233f93789658121a",
     "continuations": [],
     "last_phase": "phase 4",
-    "lease_until": 1795827369.06488,
+    "lease_until": 1795827687.84692,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "status": "completed",
-    "task_id": "threeway-select-1199",
-    "updated_at": 1795820169.06488,
+    "task_id": "paired-values-1200",
+    "updated_at": 1795820487.84692,
     "workspaces": [
       {
         "name": "modelduck",
@@ -20,88 +20,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          ""
-        ]
-      },
-      "description": "Task 'test-only-diagnostics-1190' completed successfully.",
-      "head": "4a5549b4016f37900f5f166e88b0e9161d00367e",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "test-only-diagnostics-1190",
-      "timestamp": 1795811445.65234,
-      "timestamp_str": "2026-11-27 23:30:45"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Build only the stop guard's fields at intermediate looks",
-      "files_affected": [
-        "benchmarks/tune-measure.mjs",
-        "tests/benchmark-tune-stats.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Return a three-field object at intermediate looks and keep the full report for stopped and final looks",
-        "mitigation": "failing-first field test, partial-credit full-tune A/B with identical decisions, full suite and strict gates; revert if not measurable",
-        "risks": "contract: identical stop decisions and final reports; dependency: shouldStop field use; concurrency: process-local counter; state: none",
-        "why": "light finalize still allocated a full 25-field stats object although shouldStop reads only paired evidence containers"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "461e64643356a9f586ed55f511b9d9284476e8480ba27c74b1c2c1f61c2bd6f2",
-      "status": "in_progress",
-      "task_id": "minimal-intermediate-stats-1193",
-      "timestamp": 1795815623.67429,
-      "timestamp_str": "2026-11-28 00:40:23",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: minimal intermediate stop stats improved six partial-credit full-tune A/Bs in five runs with median near 1.10x and identical decisions; full npm suite 1351 pass 0 fail 1 skip; real three-model tune gate passed 9/9 rates with zero delta",
-      "files_affected": [
-        "benchmarks/tune-measure.mjs",
-        "tests/benchmark-tune-stats.test.js",
-        ".aikit/decisions.md",
-        "benchmarks/history.jsonl"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/big-tune-partial-ab.mjs",
-          "baseline": 3.202,
-          "candidate": 2.821,
-          "command": "node big-tune-partial-ab.mjs",
-          "control": "identical settings, pAdjusted and sweep decisions in every round",
-          "drift": "0.2",
-          "interleaved": "yes",
-          "metric": "10-round partial-credit multi-axis grouped tune",
-          "unit": "ms",
-          "workload": "ten interleaved baseline/candidate rounds of a three-axis two-pass code tune with three checks per item"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "minimal-intermediate-stats-1193",
-      "timestamp": 1795816316.57728,
-      "timestamp_str": "2026-11-28 00:51:56",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "delivery": {
@@ -512,6 +430,88 @@
       "task_id": "threeway-select-1199",
       "timestamp": 1795820222.30763,
       "timestamp_str": "2026-11-28 01:57:02"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Build paired difference values without id objects",
+      "files_affected": [
+        "benchmarks/tune-measure.mjs",
+        "tests/benchmark-tune-stats.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Count b/c and collect the values array in one pass, removing one object allocation per differing item",
+        "mitigation": "failing-first equivalence test, 145 targeted tests, partial-credit full-tune A/B with identical decision hashes, npm test and tune:gate; revert if not measurable",
+        "risks": "contract: identical b/c, p-values and decisions; dependency: pairedDiffs signal precedence; concurrency: process-local counter; state: none",
+        "why": "paired() built [{id,diff}] objects only to map them straight back to a values array for signFlipPValue"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "54311332a132da16ef323735044c98b8a682aac6f327717e5b7dfeecb4975a4e",
+      "status": "in_progress",
+      "task_id": "paired-values-1200",
+      "timestamp": 1795820381.06192,
+      "timestamp_str": "2026-11-28 01:59:41",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: values-only paired path passed a failing-first equivalence test and 145 targeted tests; full npm suite 1354 pass 0 fail 1 skip; real three-model tune gate 9/9 zero delta; eight partial-credit full-tune A/Bs had median 1.021x with identical decision hashes",
+      "files_affected": [
+        "benchmarks/tune-measure.mjs",
+        "tests/benchmark-tune-stats.test.js",
+        ".aikit/decisions.md",
+        "benchmarks/history.jsonl"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/long-ab.mjs",
+          "baseline": 2.155,
+          "candidate": 2.097,
+          "command": "node long-ab.mjs",
+          "control": "identical settings, pAdjusted and sweep decisions in every round",
+          "drift": "0.2",
+          "interleaved": "yes",
+          "metric": "10-round partial-credit multi-axis grouped tune",
+          "unit": "ms",
+          "workload": "180 interleaved baseline/candidate rounds of a three-axis two-pass code tune with three checks per item"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "paired-values-1200",
+      "timestamp": 1795820487.84692,
+      "timestamp_str": "2026-11-28 02:01:27",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          ""
+        ]
+      },
+      "description": "Task 'paired-values-1200' completed successfully.",
+      "head": "3dce7f0b4226c6ee663575ff14e4d0ed9da52420",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "paired-values-1200",
+      "timestamp": 1795820529.20211,
+      "timestamp_str": "2026-11-28 02:02:09"
     }
   ],
   "version": 1
