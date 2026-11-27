@@ -1,63 +1,6 @@
 {
-  "active_task": {
-    "active_phase": 5,
-    "completed_at": 1795792952.97213,
-    "completed_head": "039f78437963ac10d39a82c93757e71753c946c6",
-    "completed_tree": "eb92d82efb91cba4905c81eff142ee6df3b4db42",
-    "continuations": [],
-    "last_phase": "phase 4",
-    "lease_until": 1795800051.8588,
-    "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-    "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-    "status": "completed",
-    "task_id": "grouped-exact-sums-1177",
-    "updated_at": 1795792851.8588,
-    "workspaces": [
-      {
-        "name": "modelduck",
-        "path": "projects/modelduck"
-      }
-    ]
-  },
+  "active_task": null,
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Skip donor filtering when a cap family has one slot",
-      "files_affected": [
-        "benchmarks/tune-measure.mjs",
-        "tests/benchmark-tune-stats.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Return missing items directly when no sibling slot can donate, preserving reuse when siblings exist",
-        "mitigation": "failing-first counter test, interleaved big-tune A/B with identical decisions, full suite and strict gates; revert if not measurable",
-        "risks": "contract: identical cap reuse and accounting; dependency: capSlots shape; concurrency: process-local counter; state: slot family map",
-        "why": "every measure filtered the cap family to find sibling donors although most families have only the current slot"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "545ded7658b985db69751d86235cc8526040524e46c241f1865a0b463b489320",
-      "status": "in_progress",
-      "task_id": "sibling-cap-early-return-1169",
-      "timestamp": 1795787723.60538,
-      "timestamp_str": "2026-11-27 16:55:23",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "Task 'sibling-cap-early-return-1169' abandoned: Rejected sibling-cap-early-return-1169 after measurement: skipping donor filtering for lone cap slots was neutral-to-regressive across five fourteen-round full-tune A/Bs (median 0.91x) with identical decisions; production files restored",
-      "phase": "abandoned",
-      "phase_num": 2,
-      "status": "abandoned",
-      "task_id": "sibling-cap-early-return-1169",
-      "timestamp": 1795787910.37648,
-      "timestamp_str": "2026-11-27 16:58:30"
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "description": "[1/2] Memoize sweep base keys by current object",
@@ -449,6 +392,44 @@
       "task_id": "grouped-exact-sums-1177",
       "timestamp": 1795792952.97213,
       "timestamp_str": "2026-11-27 18:22:32"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Cache sign-flip p-values by difference vector",
+      "files_affected": [
+        "benchmarks/stats.mjs",
+        "tests/benchmark-stats.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Memoize the exact or Monte Carlo p-value by the nonzero difference vector, permutation width and test side",
+        "mitigation": "failing-first counter test, partial-credit full-tune A/B with identical decisions, full suite and strict gates; revert if not measurable",
+        "risks": "contract: identical p-values and decisions; dependency: pure function; concurrency: process-local bounded cache; state: cache scoped to process",
+        "why": "Monte Carlo sign flips redo 10,000 permutations for diff vectors that repeat across looks and sweeps with partial credit"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "397e7e208fa596e69fd7d523c2f388e6a84db7ce22fc624d14250e55a8221124",
+      "status": "in_progress",
+      "task_id": "mc-pvalue-cache-1178",
+      "timestamp": 1795793088.34355,
+      "timestamp_str": "2026-11-27 18:24:48",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "Task 'mc-pvalue-cache-1178' abandoned: Rejected mc-pvalue-cache-1178 after measurement: caching sign-flip p-values by difference vector had zero hits in a partial-credit tune and regressed the full-tune A/B to 0.83x; production files restored",
+      "phase": "abandoned",
+      "phase_num": 2,
+      "status": "abandoned",
+      "task_id": "mc-pvalue-cache-1178",
+      "timestamp": 1795793282.02196,
+      "timestamp_str": "2026-11-27 18:28:02"
     }
   ],
   "version": 1
