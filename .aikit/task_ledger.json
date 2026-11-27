@@ -1,61 +1,25 @@
 {
-  "active_task": null,
+  "active_task": {
+    "active_phase": 5,
+    "completed_at": 1795786167.30846,
+    "completed_head": "30228dc8666d535b8ae3c605743d59195a78edf3",
+    "completed_tree": "0962a1c13de707e2e9c6ae53f384e5ab69a64982",
+    "continuations": [],
+    "last_phase": "phase 4",
+    "lease_until": 1795793302.39375,
+    "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+    "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+    "status": "completed",
+    "task_id": "shared-evidence-cache-1165",
+    "updated_at": 1795786102.39375,
+    "workspaces": [
+      {
+        "name": "modelduck",
+        "path": "projects/modelduck"
+      }
+    ]
+  },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          ""
-        ]
-      },
-      "description": "Task 'rung-accumulate-1156' completed successfully.",
-      "head": "2d3e4c829215f5eae9f3e7f7060587f81faec4c5",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "rung-accumulate-1156",
-      "timestamp": 1795780261.2893,
-      "timestamp_str": "2026-11-27 14:51:01"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Sum finalize fractions with a direct loop",
-      "files_affected": [
-        "benchmarks/tune-measure.mjs",
-        "tests/benchmark-tune-stats.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Accumulate the same sum in iteration order with a plain loop, preserving every rounded result",
-        "mitigation": "failing-first counter test, interleaved direct and big-tune A/Bs with identical decisions, full suite and strict gates; revert if not measurable",
-        "risks": "contract: identical passed sum, rates and decisions; dependency: none; concurrency: process-local counter; state: none",
-        "why": "finalizeScore copied every fraction into a new array and reduced it through a callback at every look"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "5fa19a2d716c029102f61290dc89682c236dd6b92ef93a94fd15337c77cb0747",
-      "status": "in_progress",
-      "task_id": "passed-sum-loop-1157",
-      "timestamp": 1795780422.07648,
-      "timestamp_str": "2026-11-27 14:53:42",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "Task 'passed-sum-loop-1157' abandoned: Rejected passed-sum-loop-1157 after measurement: direct fraction sum was 4x faster in isolation but three fourteen-round full-tune A/Bs were neutral (0.967x, 1.201x, 1.015x) with identical decisions; production files restored",
-      "phase": "abandoned",
-      "phase_num": 2,
-      "status": "abandoned",
-      "task_id": "passed-sum-loop-1157",
-      "timestamp": 1795780538.08,
-      "timestamp_str": "2026-11-27 14:55:38"
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "description": "[1/2] Build publicStats with an explicit literal",
@@ -455,6 +419,88 @@
       "task_id": "skip-noop-events-1164",
       "timestamp": 1795785112.75855,
       "timestamp_str": "2026-11-27 16:11:52"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Share paired evidence across sweeps",
+      "files_affected": [
+        "benchmarks/tune.mjs",
+        "tests/benchmark-tune.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Create one paired-evidence cache per tune and reuse it in every sweep while keeping identical evidence",
+        "mitigation": "failing-first counter test, interleaved big-tune A/B with identical decisions, full suite and strict gates; revert if not measurable",
+        "risks": "contract: identical p-values and decisions; dependency: stats object identity; concurrency: process-local counter; state: cache scoped to one tune",
+        "why": "sweep-local evidence is rebuilt for the same cached report pairs that recur across axes and passes"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "0a874f1f20cddeef2b1d7010df89586a6b4da68dcd784f705eefecd5c4f8bf0b",
+      "status": "in_progress",
+      "task_id": "shared-evidence-cache-1165",
+      "timestamp": 1795785241.61511,
+      "timestamp_str": "2026-11-27 16:14:01",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: tune-wide paired evidence cache improved four 14-round big-tune A/Bs by 1.10x to 1.20x with identical decisions; counter observed 16 hits versus 9 builds per tune; full npm suite 1347 pass 0 fail 1 skip; real three-model tune gate passed 9/9 rates with zero delta",
+      "files_affected": [
+        "benchmarks/tune.mjs",
+        "tests/benchmark-tune.test.js",
+        ".aikit/decisions.md",
+        "benchmarks/history.jsonl"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/big-tune-ab.mjs",
+          "baseline": 1.869,
+          "candidate": 1.657,
+          "command": "node big-tune-ab.mjs",
+          "control": "identical decisions in every round",
+          "drift": "0.2",
+          "interleaved": "yes",
+          "metric": "14-round multi-axis grouped tune",
+          "unit": "ms",
+          "workload": "fourteen interleaved baseline/candidate rounds of a three-axis two-pass code tune"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "shared-evidence-cache-1165",
+      "timestamp": 1795786102.39375,
+      "timestamp_str": "2026-11-27 16:28:22",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          ""
+        ]
+      },
+      "description": "Task 'shared-evidence-cache-1165' completed successfully.",
+      "head": "30228dc8666d535b8ae3c605743d59195a78edf3",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "shared-evidence-cache-1165",
+      "timestamp": 1795786167.30846,
+      "timestamp_str": "2026-11-27 16:29:27"
     }
   ],
   "version": 1
