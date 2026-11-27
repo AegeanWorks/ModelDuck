@@ -2682,3 +2682,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Inline the same three-comparison predicate with identical short-circuit order and outcomes
 - **Cross-principle check:** PRINCIPLE-003: the inlined predicate matches itemPassed on every answer shape and decisions were identical in all six A/B rounds; PRINCIPLE-010: one fewer call per prompt on the hot measure path; PRINCIPLE-014: equivalence test and repeated partial-credit decision A/Bs.
 - **Consequences**: An equivalence test over all answer shapes and 140 stats/tune tests pass, as does the real three-model tune gate; six 10-round partial-credit full-tune A/Bs were positive in five runs with a median near 1.03x and identical decisions.
+
+### ADR-351: Enable diagnostic counters only in tests
+- **Date**: 2026-11-27
+- **Status**: Accepted
+- **Context**: hot benchmark paths incremented roughly twenty module-level diagnostic counters that no production consumer reads
+- **Decision**: Gate counter increments on NODE_TEST_CONTEXT, which Node sets in test worker processes, so all assertions keep working while production skips the writes
+- **Cross-principle check:** PRINCIPLE-003: decisions and all measured outputs are unchanged; PRINCIPLE-010: roughly twenty counter writes per hot path disappear in production; PRINCIPLE-011: the env marker only changes diagnostics, never behavior; PRINCIPLE-014: full counter-using test suite plus repeated partial-credit decision A/Bs.
+- **Consequences**: All 140 targeted tests pass with counters intact, as does the real three-model tune gate; four partial-credit full-tune A/Bs improved 1.03x to 1.33x with identical decisions every round.

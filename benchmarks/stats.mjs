@@ -4,6 +4,9 @@
  * useful power at a few dozen items. Pure functions, no dependencies.
  */
 
+/** Diagnostic counters are only consumed by tests. */
+const DIAGNOSTICS = Boolean(process.env.NODE_TEST_CONTEXT);
+
 export const FLOOR_DROP_POINTS = 5;
 export const ALPHA = 0.05;
 const Z95 = 1.959964;
@@ -179,14 +182,14 @@ function signPatterns(count, permutations) {
       signs[base + index] = state < 0x80000000 ? 1 : -1;
     }
   }
-  signPatternBuilds += 1;
+  if (DIAGNOSTICS) signPatternBuilds += 1;
   SIGN_PATTERNS.set(key, signs);
   return signs;
 }
 function monteCarloSignedSums(nonzero, permutations, visit) {
   const count = nonzero.length;
   const signs = signPatterns(count, permutations);
-  monteCarloDraws += count * permutations;
+  if (DIAGNOSTICS) monteCarloDraws += count * permutations;
   for (let draw = 0; draw < permutations; draw += 1) {
     const base = draw * count;
     let sum = 0;
@@ -217,7 +220,7 @@ function binomials(count) {
   return row;
 }
 function exactSignedSums(nonzero) {
-  signFlipMasks += 2 ** nonzero.length;
+  if (DIAGNOSTICS) signFlipMasks += 2 ** nonzero.length;
   const groups = new Map();
   for (const value of nonzero) groups.set(value, (groups.get(value) ?? 0) + 1);
   let sums = [0];

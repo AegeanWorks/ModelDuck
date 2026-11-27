@@ -1,5 +1,8 @@
 import { signFlipPValue, wilson } from "./stats.mjs";
 
+/** Diagnostic counters are only consumed by tests; production should not pay for them. */
+const DIAGNOSTICS = Boolean(process.env.NODE_TEST_CONTEXT);
+
 /** Measuring candidates for a tune: a per-item cache with a run budget, and the statistics each choice is made on. */
 
 // Rates, medians and confidence bounds repeat heavily across candidates. Keep
@@ -19,11 +22,11 @@ export function round(value, digits = 1) {
   }
   const hit = cache.get(value);
   if (hit !== undefined) {
-    roundCacheHits += 1;
+    if (DIAGNOSTICS) roundCacheHits += 1;
     return hit;
   }
   const result = Number(value.toFixed(digits));
-  roundCacheBuilds += 1;
+  if (DIAGNOSTICS) roundCacheBuilds += 1;
   if (cache.size < ROUND_CACHE_LIMIT) cache.set(value, result);
   return result;
 }
@@ -64,7 +67,7 @@ function selectRank(values, k, left = 0, right = values.length - 1) {
   return values[k];
 }
 function medianQuick(values) {
-  medianQuickBuilds += 1;
+  if (DIAGNOSTICS) medianQuickBuilds += 1;
   const middle = Math.floor(values.length / 2);
   return values.length % 2 ? selectRank(values, middle) : (selectRank(values, middle - 1) + selectRank(values, middle)) / 2;
 }
@@ -74,7 +77,7 @@ export function stdevLoopComputations() {
   return stdevLoopBuilds;
 }
 function stdev(values) {
-  stdevLoopBuilds += 1;
+  if (DIAGNOSTICS) stdevLoopBuilds += 1;
   // Plain loops keep the two-pass arithmetic order (and every rounding bit)
   // while avoiding a callback invocation for each value.
   let total = 0;
@@ -94,7 +97,7 @@ export function slotKeyComputations() {
   return settingsKeyComputes;
 }
 export const settingsKey = (settings) => {
-  settingsKeyComputes += 1;
+  if (DIAGNOSTICS) settingsKeyComputes += 1;
   return JSON.stringify(Object.keys(settings).sort().map((key) => [key, settings[key]]));
 };
 
@@ -457,7 +460,7 @@ export class Measurements {
   }
 
   async measure(settings, itemIds, seed, { from = 0, to = itemIds.length } = {}) {
-    rangedMeasureBuilds += 1;
+    if (DIAGNOSTICS) rangedMeasureBuilds += 1;
     const slot = this.#slotFor(settings, seed);
     const key = this.prefetched.size ? slotKeyOf(settings, seed) : null;
     const pending = key ? this.prefetched.get(key) : null;
@@ -536,11 +539,11 @@ export function leanScoreComputations() {
   return leanScoreBuilds;
 }
 function createScoreState(ids, lean = false) {
-  if (lean) leanScoreBuilds += 1;
+  if (lean && DIAGNOSTICS) leanScoreBuilds += 1;
   // Fill each map directly: `new Map(ids.map(id => [id, 0]))` allocates an
   // intermediate array of pairs for every map, on every tuning rung.
   const zeroed = () => {
-    zeroedMapBuilds += 1;
+    if (DIAGNOSTICS) zeroedMapBuilds += 1;
     const map = new Map();
     for (const id of ids) map.set(id, 0);
     return map;
@@ -651,8 +654,8 @@ export function derivedUpdateComputations() {
   return derivedUpdateBuilds;
 }
 function updateDerived(state, itemIds, from, to) {
-  derivedUpdateBuilds += 1;
-  scoreConversionBuilds += 1;
+  if (DIAGNOSTICS) derivedUpdateBuilds += 1;
+  if (DIAGNOSTICS) scoreConversionBuilds += 1;
   for (let index = from; index < to; index += 1) {
     const id = itemIds[index];
     const fraction = state.fractions.get(id);
@@ -679,7 +682,7 @@ function finalizeScore(state, itemCount, usedLength, summarize = true) {
     // Intermediate early-stop looks only read paired pass evidence. The six
     // medians, the spread, the solved count and the interval are omitted here
     // and rebuilt if the look stops.
-    lightFinalizeBuilds += 1;
+    if (DIAGNOSTICS) lightFinalizeBuilds += 1;
     return {
       rate: itemCount ? round((passed / itemCount) * 100) : 0,
       solved,
@@ -789,8 +792,8 @@ function diffMap(before, after) {
   return diffs;
 }
 export function pairedDiffs(before, after) {
-  pairedDiffBuilds += 1;
-  pairedDiffScanBuilds += 1;
+  if (DIAGNOSTICS) pairedDiffBuilds += 1;
+  if (DIAGNOSTICS) pairedDiffScanBuilds += 1;
   if (before.credit && after.credit) return diffMap(before.credit, after.credit);
   if (before.fractions && after.fractions) return diffMap(before.fractions, after.fractions);
   const diffs = [];
@@ -920,7 +923,7 @@ export function createRungAccumulator(lean = false) {
  * reused across rungs, so the measurement cache still holds earlier answers.
  */
 export async function scoreFromAccumulator(state, measurements, settings, itemIds, from, to, seeds) {
-  rungAccumulateBuilds += 1;
+  if (DIAGNOSTICS) rungAccumulateBuilds += 1;
   const used = settings.temperature > 0 ? seeds : seeds.slice(0, 1);
   extendScoreState(state, itemIds, from, to);
   for (const seed of used) {
@@ -952,7 +955,7 @@ export async function scoreSequential(measurements, settings, itemIds, seeds, { 
   for (const point of points) {
     if (point > done) {
       const from = done;
-      sequentialAccumulateBuilds += 1;
+      if (DIAGNOSTICS) sequentialAccumulateBuilds += 1;
       extendScoreState(state, itemIds, from, point);
       for (const seed of used) {
         // The whole rung array is passed so answer-reuse accounting counts the

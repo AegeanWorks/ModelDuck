@@ -162,7 +162,7 @@ export function groupedGuardStats() {
   return { loopBuilds: groupRateLoopBuilds, cacheHits: groupRateCacheHits };
 }
 function groupRate(stats, ids) {
-  groupRateLoopBuilds += 1;
+  if (DIAGNOSTICS) groupRateLoopBuilds += 1;
   if (!ids.length) return null;
   let passed = 0;
   for (const id of ids) if (stats.majority.get(id)) passed += 1;
@@ -175,7 +175,7 @@ function groupStats(before, after, groups, clusterOf = null, diffs = null, befor
     const evidence = groupEvidence(before, after, ids, clusterOf, diffs);
     let baselineRate = beforeRates?.[group];
     if (baselineRate === undefined) baselineRate = groupRate(before, ids);
-    else groupRateCacheHits += 1;
+    else if (DIAGNOSTICS) groupRateCacheHits += 1;
     return [group, { items: ids.length, rate: groupRate(after, ids), before: baselineRate, ...evidence, worse: evidence.b > evidence.c && evidence.pValue < 0.05 }];
   }));
 }
@@ -195,11 +195,11 @@ export function createSweepEvidenceCache(clusterOf = null) {
       cache.set(before, byAfter);
     }
     if (byAfter.has(after)) {
-      pairedEvidenceHits += 1;
+      if (DIAGNOSTICS) pairedEvidenceHits += 1;
       return byAfter.get(after);
     }
     const evidence = clusterOf ? pairedClustered(before, after, clusterOf) : paired(before, after);
-    pairedEvidenceBuilds += 1;
+    if (DIAGNOSTICS) pairedEvidenceBuilds += 1;
     byAfter.set(after, evidence);
     return evidence;
   };
@@ -244,6 +244,9 @@ function balancedChoice({ survivors, incumbent, chosen, itemIds, context, floor,
     guard: `Kept ${JSON.stringify(Object.values(replacement.patch)[0])}: the higher-scoring ${JSON.stringify(Object.values(chosen.patch)[0])} was clearly worse on ${worse.join(", ")}.`,
   };
 }
+
+/** Diagnostic counters are only consumed by tests. */
+const DIAGNOSTICS = Boolean(process.env.NODE_TEST_CONTEXT);
 
 /** One axis: successive halving over the rungs (or one full rung), stopping a value that falls significantly behind, then the selection rule on the last rung. */
 let sweepStatsHits = 0;
@@ -294,13 +297,13 @@ async function sweepCore(context, { stage, task, axis, current, rungs, forced, c
         const cacheKey = `${settingsKey(settings)}|${itemIds.length}|${itemIds[0]}|${itemIds[itemIds.length - 1]}|${levelSeeds.length}`;
         const cached = context.statsCache?.get(cacheKey);
         if (cached) {
-          sweepStatsHits += 1;
+          if (DIAGNOSTICS) sweepStatsHits += 1;
           entry.stats = cached;
         } else {
           entry.stats = rungState
             ? await scoreFromAccumulator(rungState, measurements, settings, itemIds, rungDone, itemIds.length, levelSeeds)
             : await score(measurements, settings, itemIds, levelSeeds);
-          sweepStatsBuilds += 1;
+          if (DIAGNOSTICS) sweepStatsBuilds += 1;
           context.statsCache?.set(cacheKey, entry.stats);
         }
       }
@@ -318,7 +321,7 @@ async function sweepCore(context, { stage, task, axis, current, rungs, forced, c
         const key = `${finalKey}|${rungKey(itemIds, levelSeeds)}`;
         const cached = context.statsCache?.get(key);
         if (cached && !cached.partial) {
-          sweepStatsHits += 1;
+          if (DIAGNOSTICS) sweepStatsHits += 1;
           entry.stats = cached;
         } else {
           // A challenger stops at the first look where it is significantly worse than the best completed value (ADR-063).
@@ -335,7 +338,7 @@ async function sweepCore(context, { stage, task, axis, current, rungs, forced, c
             },
           });
           if (entry.stats && !entry.stats.partial) {
-            sweepStatsBuilds += 1;
+            if (DIAGNOSTICS) sweepStatsBuilds += 1;
             context.statsCache?.set(key, entry.stats);
           }
         }
