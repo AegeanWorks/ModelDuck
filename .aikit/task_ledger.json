@@ -3,44 +3,6 @@
   "checkpoints": [
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "Task 'measure-micro-loops-1150' abandoned: Rejected measure-micro-loops-1150 after measurement: missing-item filter, solvedCount and costDelta loops were 2x faster in isolation but a thirty-pair full-tune A/B was neutral (0.997x) with identical decisions; production files restored",
-      "phase": "abandoned",
-      "phase_num": 2,
-      "status": "abandoned",
-      "task_id": "measure-micro-loops-1150",
-      "timestamp": 1795768111.49119,
-      "timestamp_str": "2026-11-27 11:28:31"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Accumulate scoreSequential looks incrementally",
-      "files_affected": [
-        "benchmarks/tune-measure.mjs",
-        "tests/benchmark-tune-stats.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Accumulate each newly measured item once and finalize the same full stats at every look",
-        "mitigation": "failing-first counter test, exact sequential-vs-full hash A/B, full suite and strict gates; revert on any hash or accounting change",
-        "risks": "contract: identical stats, accounting and stop decisions; dependency: score helpers; concurrency: process-local counter; state: accumulator scoped to one sequential score",
-        "why": "scoreSequential called score on every growing prefix, re-looping the first items at each of four looks"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "df3fc86abffd1c38d135e055fa112485ee1165dbe69818130cc1084af71d8aa0",
-      "status": "in_progress",
-      "task_id": "sequential-score-accumulate-1151",
-      "timestamp": 1795768247.94282,
-      "timestamp_str": "2026-11-27 11:30:47",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "checklists": "passed",
       "description": "[2/2] VERIFIED: incremental sequential scoring improved 20 sequential evaluations from 5.501ms to 3.836ms (1.43x) with identical stats hash and measurement count; full-tune A/Bs positive but noisy; full npm suite 1339 pass 0 fail 1 skip; real three-model tune gate passed 9/9 rates with zero delta",
       "files_affected": [
@@ -536,6 +498,44 @@
       "task_id": "passed-sum-loop-1157",
       "timestamp": 1795780538.08,
       "timestamp_str": "2026-11-27 14:55:38"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Build publicStats with an explicit literal",
+      "files_affected": [
+        "benchmarks/tune-measure.mjs",
+        "tests/benchmark-tune-stats.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "List the public fields explicitly, preserving the exact key set and values including conditional gpuVram",
+        "mitigation": "failing-first key/value equivalence test, interleaved direct and big-tune A/Bs with identical decisions, full suite and strict gates; revert on any difference",
+        "risks": "contract: identical public object keys and values; dependency: tune and tune-device callers; concurrency: process-local counter; state: none",
+        "why": "publicStats used rest destructuring to drop seven internal maps, which allocated a fresh object through a slower path for every candidate in every rung"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "ff2ff04410a9c2bc6fd61a914e19ecd43ddccbd666fb89c79fd68a01b4955b8c",
+      "status": "in_progress",
+      "task_id": "public-stats-literal-1158",
+      "timestamp": 1795780703.76966,
+      "timestamp_str": "2026-11-27 14:58:23",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "Task 'public-stats-literal-1158' abandoned: Rejected public-stats-literal-1158 after measurement: explicit-literal publicStats was 11x faster in isolation but two fourteen-round full-tune A/Bs were neutral (1.015x and 0.96x) with identical decisions; production files restored",
+      "phase": "abandoned",
+      "phase_num": 2,
+      "status": "abandoned",
+      "task_id": "public-stats-literal-1158",
+      "timestamp": 1795781035.75633,
+      "timestamp_str": "2026-11-27 15:03:55"
     }
   ],
   "version": 1
