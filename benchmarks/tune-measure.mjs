@@ -42,31 +42,48 @@ export function median(values) {
 // the exported `median` still get the non-mutating version.
 let medianQuickBuilds = 0;
 let medianUpperScans = 0;
+let medianEqualClassHits = 0;
 export function medianQuickComputations() {
   return medianQuickBuilds;
 }
 export function medianUpperScanComputations() {
   return medianUpperScans;
 }
+export function medianEqualClassComputations() {
+  return medianEqualClassHits;
+}
 function selectRank(values, k, left = 0, right = values.length - 1) {
   while (left < right) {
     const pivot = values[(left + right) >>> 1];
+    // Dutch-flag partition: repeated check scores and seed averages produce
+    // many equal values, so separating the equal class in one pass avoids
+    // swapping those duplicates on every later partition.
     let low = left;
+    let mid = left;
     let high = right;
-    while (low <= high) {
-      while (values[low] < pivot) low += 1;
-      while (values[high] > pivot) high -= 1;
-      if (low <= high) {
+    while (mid <= high) {
+      const value = values[mid];
+      if (value < pivot) {
         const held = values[low];
-        values[low] = values[high];
-        values[high] = held;
+        values[low] = value;
+        values[mid] = held;
         low += 1;
+        mid += 1;
+      } else if (value > pivot) {
+        const held = values[high];
+        values[high] = value;
+        values[mid] = held;
         high -= 1;
+      } else {
+        mid += 1;
       }
     }
-    if (k <= high) right = high;
-    else if (k >= low) left = low;
-    else return values[k];
+    if (k < low) right = low - 1;
+    else if (k > high) left = high + 1;
+    else {
+      if (DIAGNOSTICS) medianEqualClassHits += 1;
+      return pivot;
+    }
   }
   return values[k];
 }

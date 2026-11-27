@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { medianQuickComputations, medianUpperScanComputations, score, scoreConversionComputations, stdevLoopComputations, zeroedMapBuildCount } from "../benchmarks/tune-measure.mjs";
+import { medianEqualClassComputations, medianQuickComputations, medianUpperScanComputations, score, scoreConversionComputations, stdevLoopComputations, zeroedMapBuildCount } from "../benchmarks/tune-measure.mjs";
 
 // Minimal measurements stub: one seed, one item, all checks pass.
 const measurements = {
@@ -58,6 +58,25 @@ test("even-length medians scan the right partition for the upper rank", async ()
   assert.equal(result.outputTokens, 6.5);
   assert.equal(result.tokensPerSecond, 5);
   assert.equal(result.promptTokens, 9.5);
+});
+
+test("repeated scores stop selection on the equal class", async () => {
+  const ids = ["i0", "i1", "i2", "i3"];
+  const repeated = {
+    measure: async () => ({
+      prompts: ids.map((id, index) => ({
+        id, passed: 1, total: 1, digest: id,
+        ms: [10, 20, 20, 40][index], outputTokens: [5, 7, 7, 9][index],
+        tokensPerSecond: 2, promptTokens: 8, firstTokenMs: 1,
+      })),
+      memoryBytes: 100,
+    }),
+  };
+  const before = medianEqualClassComputations();
+  const result = await score(repeated, { temperature: 0 }, ids, [42]);
+  assert.ok(medianEqualClassComputations() > before, "duplicate values ended a partition on the equal class");
+  assert.equal(result.latencyMs, 20, "the median is unchanged by three-way partition");
+  assert.equal(result.outputTokens, 7);
 });
 
 test("score derives its outcome maps in one pass", async () => {

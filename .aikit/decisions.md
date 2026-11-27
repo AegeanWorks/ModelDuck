@@ -2714,3 +2714,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: After selecting rank middle-1, find the upper median by scanning the tail for its minimum
 - **Cross-principle check:** PRINCIPLE-003: 20000 randomized arrays give bit-identical medians and every A/B round keeps identical decision hashes; PRINCIPLE-010: the second O(n log n) quickselect becomes one O(n) scan; PRINCIPLE-014: failing-first counter test plus repeated decision A/Bs.
 - **Consequences**: A randomized 20000-array equivalence probe and a failing-first counter test pass, as does the real three-model tune gate; eleven partial-credit full-tune A/Bs had a median speedup near 1.024x with identical decision hashes in every round.
+
+### ADR-355: Three-way partition in the score median selector
+- **Date**: 2026-11-28
+- **Status**: Accepted
+- **Context**: Hoare partition swaps the many equal latency and token values produced by repeated checks and seed averages on every later partition
+- **Decision**: Separate less, equal and greater values in one Dutch-flag pass so the rank inside the equal class stops selection immediately
+- **Cross-principle check:** PRINCIPLE-003: 20000 randomized arrays give bit-identical medians and every A/B round keeps identical decision hashes; PRINCIPLE-010: one partition pass replaces repeated swaps of equal values; PRINCIPLE-014: failing-first counter test plus randomized equivalence and decision A/Bs.
+- **Consequences**: A 20000-array randomized equivalence probe and a failing-first counter test pass, as does the real three-model tune gate; seven partial-credit full-tune A/Bs had a median speedup near 1.073x with identical decision hashes in every round.
