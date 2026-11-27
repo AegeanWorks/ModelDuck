@@ -24,6 +24,7 @@ import {
   sseStart,
 } from "./http.js";
 import { publicCatalog } from "./model-catalog.js";
+import { listPublicRebuilds } from "./model-registry.js";
 import { currentFingerprint, importRecipe, isPartRun, launchRecipe, listProfiles, loadProfile, loadProfileSlim, profileIdFor, profileRecipe, profileStampFor, saveProfile, typeWarnings } from "./model-profiles.js";
 import { SHIPPED_PRESETS_DIR, matchPreset, presetProfile, readShippedPresets } from "./preset-match.js";
 import { parseVerifyRequest, runVerified } from "./verified-code.js";
@@ -46,6 +47,36 @@ export function overviewProfileReadCount() {
 }
 export function resetOverviewProfileReads() {
   overviewProfileReads = 0;
+}
+
+// The shipped-preset routes ask for the same model many times. Keep one
+// profile-ID map per registry/public-list version, with first-list-order wins
+// for duplicate ids just like the old linear find.
+let presetModelIndex = new WeakMap();
+let presetModelIndexBuildCount = 0;
+export function presetModelIndexBuilds() {
+  return presetModelIndexBuildCount;
+}
+export function resetPresetModelIndex() {
+  presetModelIndex = new WeakMap();
+  presetModelIndexBuildCount = 0;
+}
+function presetModelIndexFor(registry) {
+  if (!registry || typeof registry.listPublic !== "function") return new Map();
+  const version = listPublicRebuilds();
+  const cached = presetModelIndex.get(registry);
+  if (cached?.version === version) return cached.byId;
+  const byId = new Map();
+  for (const model of registry.listPublic()) {
+    const id = profileIdFor(model.fileName);
+    if (!byId.has(id)) byId.set(id, model);
+  }
+  presetModelIndex.set(registry, { version, byId });
+  presetModelIndexBuildCount += 1;
+  return byId;
+}
+export function findPresetModel(registry, catalogId) {
+  return presetModelIndexFor(registry).get(catalogId) ?? null;
 }
 import { TunedSettings, diffSettings } from "./tuned-settings.js";
 import { EngineRebuildLease, reloadFingerprint } from "./settings-reload.js";
@@ -846,10 +877,10 @@ export function createHttpServer({
 
     // Shipped presets (benchmarks/presets): how each fits this computer, before anything is applied.
     if (pathname === "/api/presets" && method === "GET") {
-      const installed = registry ? registry.listPublic() : [];
+      const byProfileId = presetModelIndexFor(registry);
       const presets = [];
       for (const recipe of await readShippedPresets(presetsDir)) {
-        const entry = installed.find((model) => profileIdFor(model.fileName) === recipe.catalogId) ?? null;
+        const entry = byProfileId.get(recipe.catalogId) ?? null;
         const match = entry ? matchPreset(recipe, await profileFingerprint(entry)) : { status: "not_installed", keeps: [], reasons: [], next: null };
         const rates = Object.fromEntries(Object.entries(recipe.tasks ?? {}).map(([task, preset]) => [task, { rate: preset?.stats?.rate ?? null, items: preset?.stats?.items ?? null }]));
         presets.push({ catalogId: recipe.catalogId, modelId: entry?.id ?? null, measuredAt: recipe.createdAt ?? null, measuredOn: recipe.fingerprint?.cpu ?? null, rates, ...match });
@@ -881,7 +912,7 @@ export function createHttpServer({
           fix: "Tune this model instead: Bench & Tune → Quick pass.",
         });
       }
-      const entry = registry.listPublic().find((model) => profileIdFor(model.fileName) === catalogId) ?? null;
+      const entry = findPresetModel(registry, catalogId);
       if (!entry) {
         throw new AppError("That model is not installed", {
           code: "profile_model_missing",

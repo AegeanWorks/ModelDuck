@@ -8,6 +8,7 @@ import test from "node:test";
 import { FakeEngine, makeHarness } from "./helpers.js";
 import { AppError } from "../src/errors.js";
 import { currentFingerprint, profileFromTune, profileIdFor, saveProfile } from "../src/model-profiles.js";
+import { findPresetModel, presetModelIndexBuilds, resetPresetModelIndex } from "../src/server.js";
 import { startRun } from "../src/tune-runs.js";
 
 const GIB = 1024 ** 3;
@@ -46,6 +47,21 @@ function rawStatus(port, path, headers, method = "GET", body = null) {
     request.end();
   });
 }
+
+test("shipped preset lookup reuses one profile-ID model map per registry version", () => {
+  resetPresetModelIndex();
+  const models = [
+    { id: "first", fileName: "shared.gguf" },
+    { id: "second", fileName: "other.gguf" },
+  ];
+  const registry = { listPublic: () => models.slice() };
+  const before = presetModelIndexBuilds();
+  const wanted = profileIdFor("other.gguf");
+  assert.equal(findPresetModel(registry, wanted)?.id, "second");
+  assert.equal(findPresetModel(registry, wanted)?.id, "second");
+  assert.equal(findPresetModel(registry, profileIdFor("missing.gguf")), null);
+  assert.equal(presetModelIndexBuilds(), before + 1, "the model map is built once for this registry version");
+});
 
 test("state exposes models, settings and the local app info", async (t) => {
   const harness = await makeHarness(t);
