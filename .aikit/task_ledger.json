@@ -1,17 +1,17 @@
 {
   "active_task": {
     "active_phase": 5,
-    "completed_at": 1795790876.98157,
-    "completed_head": "b198c08ea2efc5ca8132bf61ba4ff0f26dd7dad5",
-    "completed_tree": "02563ec1cffc2436dfbeebc25b795c0d673336da",
+    "completed_at": 1795792952.97213,
+    "completed_head": "039f78437963ac10d39a82c93757e71753c946c6",
+    "completed_tree": "eb92d82efb91cba4905c81eff142ee6df3b4db42",
     "continuations": [],
     "last_phase": "phase 4",
-    "lease_until": 1795797981.8004,
+    "lease_until": 1795800051.8588,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "status": "completed",
-    "task_id": "exact-sums-single-array-1176",
-    "updated_at": 1795790781.8004,
+    "task_id": "grouped-exact-sums-1177",
+    "updated_at": 1795792851.8588,
     "workspaces": [
       {
         "name": "modelduck",
@@ -20,54 +20,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "Task 'slot-single-lookup-1167' abandoned: Rejected slot-single-lookup-1167 after measurement: replacing has()+get() with one Map lookup in slotFor was neutral-to-regressive across five fourteen-round full-tune A/Bs (median 0.91x) with identical decisions; production files restored",
-      "phase": "abandoned",
-      "phase_num": 2,
-      "status": "abandoned",
-      "task_id": "slot-single-lookup-1167",
-      "timestamp": 1795786849.60942,
-      "timestamp_str": "2026-11-27 16:40:49"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Cache balanced-choice paired diffs across sweeps",
-      "files_affected": [
-        "benchmarks/tune.mjs",
-        "tests/benchmark-tune.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Cache diffs by immutable report pair in the tune context and reuse them in every guard evaluation",
-        "mitigation": "failing-first counter test, interleaved big-tune A/B with identical decisions, full suite and strict gates; revert if not measurable",
-        "risks": "contract: identical grouped guard decisions; dependency: stats object identity; concurrency: process-local counter; state: cache scoped to one tune",
-        "why": "balancedChoice rebuilt ordered per-item diffs for report pairs that recur across axes and passes now that reports are cached"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "e26cfd2cfd9b7876dc129fe186be9d32f04b559fa18b0fd7edd6f1f19ff1713c",
-      "status": "in_progress",
-      "task_id": "diff-cache-1168",
-      "timestamp": 1795786965.65215,
-      "timestamp_str": "2026-11-27 16:42:45",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "Task 'diff-cache-1168' abandoned: Rejected diff-cache-1168 after measurement: context-level paired-diff cache had only 3 hits per tune and was neutral-to-regressive across five fourteen-round full-tune A/Bs (median 0.94x) with identical decisions; production files restored",
-      "phase": "abandoned",
-      "phase_num": 2,
-      "status": "abandoned",
-      "task_id": "diff-cache-1168",
-      "timestamp": 1795787179.63825,
-      "timestamp_str": "2026-11-27 16:46:19"
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "description": "[1/2] Skip donor filtering when a cap family has one slot",
@@ -415,6 +367,88 @@
       "task_id": "exact-sums-single-array-1176",
       "timestamp": 1795790876.98157,
       "timestamp_str": "2026-11-27 17:47:56"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Group repeated magnitudes in exact sign-flip enumeration",
+      "files_affected": [
+        "benchmarks/stats.mjs",
+        "tests/benchmark-stats.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Enumerate distinct magnitude groups with binomial weights, cutting states from 2^n to the product of group counts plus one",
+        "mitigation": "failing-first p-value equivalence test, partial-credit full-tune A/B with identical decisions, full suite and strict gates; revert on any p-value or decision change",
+        "risks": "contract: identical p-values and decisions; dependency: exact path callers; concurrency: process-local counter; state: none",
+        "why": "exactSignedSums enumerated all 2^n masks although real credit values repeat, so many masks share the same signed sum"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "3906777e282ac4dcc8d66d5761b794cc0ccd5459e9f4a263be32b0071433d7aa",
+      "status": "in_progress",
+      "task_id": "grouped-exact-sums-1177",
+      "timestamp": 1795791529.21198,
+      "timestamp_str": "2026-11-27 17:58:49",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: grouped exact sign enumeration improved three 10-round partial-credit full-tune A/Bs by 2.21x, 3.04x and 3.40x with identical decisions; 2000 randomized p-values matched the mask enumeration; full npm suite 1349 pass 0 fail 1 skip; real three-model tune gate passed 9/9 rates with zero delta",
+      "files_affected": [
+        "benchmarks/stats.mjs",
+        "tests/benchmark-stats.test.js",
+        ".aikit/decisions.md",
+        "benchmarks/history.jsonl"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/big-tune-partial-ab.mjs",
+          "baseline": 17.744,
+          "candidate": 5.221,
+          "command": "node big-tune-partial-ab.mjs",
+          "control": "identical settings, pAdjusted and sweep decisions in every round",
+          "drift": "0.5",
+          "interleaved": "yes",
+          "metric": "10-round partial-credit multi-axis grouped tune",
+          "unit": "ms",
+          "workload": "ten interleaved baseline/candidate rounds of a three-axis two-pass code tune with three checks per item"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "grouped-exact-sums-1177",
+      "timestamp": 1795792851.8588,
+      "timestamp_str": "2026-11-27 18:20:51",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          ""
+        ]
+      },
+      "description": "Task 'grouped-exact-sums-1177' completed successfully.",
+      "head": "039f78437963ac10d39a82c93757e71753c946c6",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "grouped-exact-sums-1177",
+      "timestamp": 1795792952.97213,
+      "timestamp_str": "2026-11-27 18:22:32"
     }
   ],
   "version": 1
