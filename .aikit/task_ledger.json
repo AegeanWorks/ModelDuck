@@ -3,44 +3,6 @@
   "checkpoints": [
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Reuse non-partial challenger reports too",
-      "files_affected": [
-        "benchmarks/tune.mjs",
-        "tests/benchmark-tune.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Cache complete challenger reports alongside incumbent reports and reuse them when inputs match",
-        "mitigation": "failing-first counter test, interleaved big-tune A/B with identical decisions, full suite and strict gates; revert if not measurable",
-        "risks": "contract: identical decisions; partial reports never reused; dependency: sweep cache; concurrency: process-local counter; state: cache scoped to one tune",
-        "why": "challengers with settings already fully measured in an earlier sweep or pass were re-scored although reports are a pure function of settings, rung and seeds"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "cd8fc1fb1fd1c5cdf90761b0277779d10d58dfdccb0d4edae19fc512979de6d5",
-      "status": "in_progress",
-      "task_id": "challenger-report-reuse-1162",
-      "timestamp": 1795783877.46022,
-      "timestamp_str": "2026-11-27 15:51:17",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "Task 'challenger-report-reuse-1162' abandoned: Rejected challenger-report-reuse-1162 after measurement: caching complete challenger reports doubled cache hits but five fourteen-round full-tune A/Bs were neutral at median 1.01x with identical decisions; production files restored",
-      "phase": "abandoned",
-      "phase_num": 2,
-      "status": "abandoned",
-      "task_id": "challenger-report-reuse-1162",
-      "timestamp": 1795784065.36175,
-      "timestamp_str": "2026-11-27 15:54:25"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "description": "[1/2] Cache challenger reports by frozen patch identity",
       "files_affected": [
         "benchmarks/tune.mjs",
@@ -430,6 +392,44 @@
       "task_id": "settings-key-memo-1170",
       "timestamp": 1795788497.92514,
       "timestamp_str": "2026-11-27 17:08:17"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Reuse grouped guard stats across sweeps",
+      "files_affected": [
+        "benchmarks/tune.mjs",
+        "tests/benchmark-tune.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Cache grouped guard entries by rung, incumbent report and candidate report, reusing identical guard evidence",
+        "mitigation": "failing-first counter test, interleaved big-tune A/B with identical decisions, full suite and strict gates; revert if not measurable",
+        "risks": "contract: identical guard decisions; dependency: report object identity and rung array; concurrency: process-local counter; state: cache scoped to one tune",
+        "why": "balancedChoice rebuilt per-view rates and evidence for report pairs that recur now that reports are cached"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "5a093162bb05a28f6a8c3c7f4e041f9c195b777eb4b507877cd583da72602116",
+      "status": "in_progress",
+      "task_id": "group-guard-cache-1171",
+      "timestamp": 1795788607.86211,
+      "timestamp_str": "2026-11-27 17:10:07",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "Task 'group-guard-cache-1171' abandoned: Rejected group-guard-cache-1171 after measurement: tune-wide grouped-guard cache had only 1 hit per big tune and regressed full-tune A/Bs to 0.82x and 0.92x with identical decisions; production files restored",
+      "phase": "abandoned",
+      "phase_num": 2,
+      "status": "abandoned",
+      "task_id": "group-guard-cache-1171",
+      "timestamp": 1795788806.32985,
+      "timestamp_str": "2026-11-27 17:13:26"
     }
   ],
   "version": 1
