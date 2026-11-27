@@ -1,61 +1,25 @@
 {
-  "active_task": null,
+  "active_task": {
+    "active_phase": 5,
+    "completed_at": 1795784797.45844,
+    "completed_head": "d5f85903356ed454cb1c3ce10e77d3610d55c9f1",
+    "completed_tree": "ca66cd09af9cec644b337e870fa21c03f0608a5c",
+    "continuations": [],
+    "last_phase": "phase 4",
+    "lease_until": 1795791936.87414,
+    "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+    "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+    "status": "completed",
+    "task_id": "patch-key-reuse-1163",
+    "updated_at": 1795784736.87414,
+    "workspaces": [
+      {
+        "name": "modelduck",
+        "path": "projects/modelduck"
+      }
+    ]
+  },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          ""
-        ]
-      },
-      "description": "Task 'ranged-measure-1154' completed successfully.",
-      "head": "bcf88dd9a10f842ac4a7d239044c010e7769508c",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "ranged-measure-1154",
-      "timestamp": 1795777306.93294,
-      "timestamp_str": "2026-11-27 14:01:46"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Give the default single-decimal rounding a dedicated cache",
-      "files_affected": [
-        "benchmarks/tune-measure.mjs",
-        "tests/benchmark-tune-stats.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Use one direct Map lookup for the common case and keep the general path for other widths",
-        "mitigation": "failing-first counter test, interleaved direct A/B with identical output hash, full suite and strict gates; revert if not measurable",
-        "risks": "contract: identical rounded values and counters; dependency: exported round used across benchmarks; concurrency: process-local cache; state: bounded maps",
-        "why": "round looked up a digits map and then a value map on every call although nearly all calls use the default one decimal"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "6a3ed24cb40d7c3771bb07cf278ad9058d2a55acd6609993e09ef188d31af69f",
-      "status": "in_progress",
-      "task_id": "round-fast-path-1155",
-      "timestamp": 1795777496.26888,
-      "timestamp_str": "2026-11-27 14:04:56",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "Task 'round-fast-path-1155' abandoned: Rejected round-fast-path-1155 after measurement: dedicated single-decimal cache made direct round calls 2.66x faster with identical output, but two fourteen-round full-tune A/Bs were neutral (1.018x and 0.978x); production files restored",
-      "phase": "abandoned",
-      "phase_num": 2,
-      "status": "abandoned",
-      "task_id": "round-fast-path-1155",
-      "timestamp": 1795777662.73334,
-      "timestamp_str": "2026-11-27 14:07:42"
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "description": "[1/2] Accumulate the incumbent's stats across rungs",
@@ -457,6 +421,88 @@
       "task_id": "challenger-report-reuse-1162",
       "timestamp": 1795784065.36175,
       "timestamp_str": "2026-11-27 15:54:25"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Cache challenger reports by frozen patch identity",
+      "files_affected": [
+        "benchmarks/tune.mjs",
+        "tests/benchmark-tune.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Use a WeakMap keyed by the patch object plus a once-per-sweep settings key and rung prefix, then reuse complete challenger reports",
+        "mitigation": "failing-first counter test, interleaved big-tune A/B with identical decisions and measurable gain, full suite and strict gates; revert if neutral",
+        "risks": "contract: identical decisions, partial reports never reused; dependency: patch object identity; concurrency: process-local counter; state: cache scoped to one tune",
+        "why": "settingsKey re-stringified settings for every challenger although axis patches are frozen objects reused across passes"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "fd05bbb8359fe2432c10d3b1377ff373ee7a8c3489bf0ffba41036cb4afe4e38",
+      "status": "in_progress",
+      "task_id": "patch-key-reuse-1163",
+      "timestamp": 1795784158.1094,
+      "timestamp_str": "2026-11-27 15:55:58",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: memoized settings keys by frozen patch and reused complete challenger reports; five 14-round big-tune A/Bs ranged 1.01x to 1.38x with identical decisions and no regressions; full npm suite 1346 pass 0 fail 1 skip; real three-model tune gate passed 9/9 rates with zero delta",
+      "files_affected": [
+        "benchmarks/tune.mjs",
+        "tests/benchmark-tune.test.js",
+        ".aikit/decisions.md",
+        "benchmarks/history.jsonl"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/big-tune-ab.mjs",
+          "baseline": 1.96,
+          "candidate": 1.938,
+          "command": "node big-tune-ab.mjs",
+          "control": "identical decisions in every round",
+          "drift": "0.2",
+          "interleaved": "yes",
+          "metric": "14-round multi-axis grouped tune",
+          "unit": "ms",
+          "workload": "fourteen interleaved baseline/candidate rounds of a three-axis two-pass code tune"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "patch-key-reuse-1163",
+      "timestamp": 1795784736.87414,
+      "timestamp_str": "2026-11-27 16:05:36",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          ""
+        ]
+      },
+      "description": "Task 'patch-key-reuse-1163' completed successfully.",
+      "head": "d5f85903356ed454cb1c3ce10e77d3610d55c9f1",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "patch-key-reuse-1163",
+      "timestamp": 1795784797.45844,
+      "timestamp_str": "2026-11-27 16:06:37"
     }
   ],
   "version": 1
