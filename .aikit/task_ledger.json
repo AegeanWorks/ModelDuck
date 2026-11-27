@@ -1,63 +1,6 @@
 {
-  "active_task": {
-    "active_phase": 5,
-    "completed_at": 1795786167.30846,
-    "completed_head": "30228dc8666d535b8ae3c605743d59195a78edf3",
-    "completed_tree": "0962a1c13de707e2e9c6ae53f384e5ab69a64982",
-    "continuations": [],
-    "last_phase": "phase 4",
-    "lease_until": 1795793302.39375,
-    "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-    "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-    "status": "completed",
-    "task_id": "shared-evidence-cache-1165",
-    "updated_at": 1795786102.39375,
-    "workspaces": [
-      {
-        "name": "modelduck",
-        "path": "projects/modelduck"
-      }
-    ]
-  },
+  "active_task": null,
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Build publicStats with an explicit literal",
-      "files_affected": [
-        "benchmarks/tune-measure.mjs",
-        "tests/benchmark-tune-stats.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "List the public fields explicitly, preserving the exact key set and values including conditional gpuVram",
-        "mitigation": "failing-first key/value equivalence test, interleaved direct and big-tune A/Bs with identical decisions, full suite and strict gates; revert on any difference",
-        "risks": "contract: identical public object keys and values; dependency: tune and tune-device callers; concurrency: process-local counter; state: none",
-        "why": "publicStats used rest destructuring to drop seven internal maps, which allocated a fresh object through a slower path for every candidate in every rung"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "ff2ff04410a9c2bc6fd61a914e19ecd43ddccbd666fb89c79fd68a01b4955b8c",
-      "status": "in_progress",
-      "task_id": "public-stats-literal-1158",
-      "timestamp": 1795780703.76966,
-      "timestamp_str": "2026-11-27 14:58:23",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "Task 'public-stats-literal-1158' abandoned: Rejected public-stats-literal-1158 after measurement: explicit-literal publicStats was 11x faster in isolation but two fourteen-round full-tune A/Bs were neutral (1.015x and 0.96x) with identical decisions; production files restored",
-      "phase": "abandoned",
-      "phase_num": 2,
-      "status": "abandoned",
-      "task_id": "public-stats-literal-1158",
-      "timestamp": 1795781035.75633,
-      "timestamp_str": "2026-11-27 15:03:55"
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "description": "[1/2] Skip unused per-item maps in tune scoring",
@@ -501,6 +444,44 @@
       "task_id": "shared-evidence-cache-1165",
       "timestamp": 1795786167.30846,
       "timestamp_str": "2026-11-27 16:29:27"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Skip unused rounded objects at intermediate looks",
+      "files_affected": [
+        "benchmarks/tune-measure.mjs",
+        "tests/benchmark-tune-stats.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Write rounded objects only for full reports and return slot matches with one Map lookup",
+        "mitigation": "failing-first counter test, interleaved big-tune A/B with identical decisions, full suite and strict gates; revert if not measurable",
+        "risks": "contract: identical stop decisions and final reports; dependency: updateDerived signature; concurrency: process-local counter; state: slot/accumulator scoped to one tune",
+        "why": "updateDerived built rounded plain objects at every look although the stop guard reads only the Maps, and slotFor looked up the same slot twice"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "a36c29270e1472a4ab3c79126c338e661b089957a52d500c4010e180f896d920",
+      "status": "in_progress",
+      "task_id": "light-derived-slot-1166",
+      "timestamp": 1795786348.77537,
+      "timestamp_str": "2026-11-27 16:32:28",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "Task 'light-derived-slot-1166' abandoned: Rejected light-derived-slot-1166 after measurement: skipping rounded objects at intermediate looks required backfilling all items at full looks and regressed full-tune A/Bs to 0.78x-0.80x with identical decisions; production files restored",
+      "phase": "abandoned",
+      "phase_num": 2,
+      "status": "abandoned",
+      "task_id": "light-derived-slot-1166",
+      "timestamp": 1795786584.47166,
+      "timestamp_str": "2026-11-27 16:36:24"
     }
   ],
   "version": 1
