@@ -2571,3 +2571,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: balancedChoice recomputed the incumbent's per-view pass rate for every survivor and groupRate filtered an array per view
 - **Decision**: Precompute the incumbent's view rates once per guard and count candidate view passes with a plain loop while keeping the same grouped stats
 - **Consequences**: A twelve-pair interleaved A/B over real grouped code tunes improved 0.9039ms to 0.8155ms (1.11x) with an identical guard hash; 52 cached before-rates and 78 loop counts were observed. A failing-first counter and 119 tune tests pass, as does the real three-model tune gate.
+
+### ADR-337: Memoize rounded benchmark values
+- **Date**: 2026-11-27
+- **Status**: Accepted
+- **Context**: round formatted the same rates and medians with Number(value.toFixed(digits)) thousands of times per tune although the values repeat heavily
+- **Decision**: Cache the exact toFixed result per value and digit width in bounded process-local maps, with a fast hit path
+- **Consequences**: A direct ten-pair interleaved A/B over 10,000 calls improved 2.229ms to 0.834ms (2.67x) with an identical output hash; a thirty-pair full-tune A/B improved 1.298ms to 1.143ms (1.136x) with identical decisions and 110,319 cache hits. A failing-first counter and 123 tune tests pass, as does the real three-model tune gate.

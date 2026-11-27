@@ -2,7 +2,31 @@ import { itemPassed, signFlipPValue, wilson } from "./stats.mjs";
 
 /** Measuring candidates for a tune: a per-item cache with a run budget, and the statistics each choice is made on. */
 
-export const round = (value, digits = 1) => Number(value.toFixed(digits));
+// Rates, medians and confidence bounds repeat heavily across candidates. Keep
+// the exact toFixed result per (value, digits) so the slow formatting runs once.
+const ROUND_CACHE_LIMIT = 8192;
+const ROUND_CACHES = new Map();
+let roundCacheHits = 0;
+let roundCacheBuilds = 0;
+export function roundCacheStats() {
+  return { hits: roundCacheHits, builds: roundCacheBuilds };
+}
+export function round(value, digits = 1) {
+  let cache = ROUND_CACHES.get(digits);
+  if (!cache) {
+    cache = new Map();
+    ROUND_CACHES.set(digits, cache);
+  }
+  const hit = cache.get(value);
+  if (hit !== undefined) {
+    roundCacheHits += 1;
+    return hit;
+  }
+  const result = Number(value.toFixed(digits));
+  roundCacheBuilds += 1;
+  if (cache.size < ROUND_CACHE_LIMIT) cache.set(value, result);
+  return result;
+}
 
 export function median(values) {
   const sorted = [...values].sort((left, right) => left - right);

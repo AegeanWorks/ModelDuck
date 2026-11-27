@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { monteCarloDrawCount } from "../benchmarks/stats.mjs";
-import { Measurements, paired, pairedClustered, score } from "../benchmarks/tune-measure.mjs";
+import { Measurements, paired, pairedClustered, round, roundCacheStats, score } from "../benchmarks/tune-measure.mjs";
 import { createSweepEvidenceCache, tune } from "../benchmarks/tune.mjs";
 
 /**
@@ -149,6 +149,18 @@ test("a sweep evidence cache repeats neither Monte Carlo draws nor object identi
   const reverse = evidence(after, before);
   assert.deepEqual([reverse.b, reverse.c], [first.c, first.b], "direction remains part of the cache key");
   assert.equal(monteCarloDrawCount(), drawsBefore + 48 * 10000, "the reverse comparison is computed once");
+});
+
+test("round reuses exact results for repeated values without changing them", () => {
+  const before = roundCacheStats();
+  const expected = [round(33.333), round(33.333, 2), round(NaN), round(-0), round(0), round(1.005)];
+  const actual = [round(33.333), round(33.333, 2), round(NaN), round(-0), round(0), round(1.005)];
+  assert.deepEqual(actual.map(String), expected.map(String));
+  const after = roundCacheStats();
+  assert.ok(after.hits > before.hits, "repeated values hit the cache");
+  assert.ok(after.builds > before.builds, "new values and widths are still computed");
+  assert.equal(round(33.333), Number((33.333).toFixed(1)));
+  assert.equal(round(1.005, 2), Number((1.005).toFixed(2)));
 });
 
 test("score counts empty answers as give-ups beside truncation (lit §8)", async () => {
