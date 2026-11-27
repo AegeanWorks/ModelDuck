@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { monteCarloDrawCount } from "../benchmarks/stats.mjs";
-import { Measurements, paired, pairedClustered, round, roundCacheStats, score } from "../benchmarks/tune-measure.mjs";
+import { Measurements, paired, pairedClustered, round, roundCacheStats, score, scoreSequential, sequentialAccumulateComputations } from "../benchmarks/tune-measure.mjs";
 import { createSweepEvidenceCache, tune } from "../benchmarks/tune.mjs";
 
 /**
@@ -161,6 +161,20 @@ test("round reuses exact results for repeated values without changing them", () 
   assert.ok(after.builds > before.builds, "new values and widths are still computed");
   assert.equal(round(33.333), Number((33.333).toFixed(1)));
   assert.equal(round(1.005, 2), Number((1.005).toFixed(2)));
+});
+
+test("scoreSequential accumulates each newly measured item once", async () => {
+  const ids = Array.from({ length: 12 }, (_value, index) => `i${index}`);
+  const measurements = new Measurements(async (_settings, itemIds) => ({
+    prompts: itemIds.map((id) => ({ id, passed: 1, total: 1, ms: 10, outputTokens: 5, tokensPerSecond: 2, digest: id })),
+    memoryBytes: 100,
+  }), 100);
+  const before = sequentialAccumulateComputations();
+  const stats = await scoreSequential(measurements, { temperature: 0 }, ids, [42], { lookAt: [4, 8], shouldStop: () => false });
+  assert.ok(sequentialAccumulateComputations() > before, "new rows use the accumulate path");
+  assert.equal(stats.items, 12);
+  assert.equal(stats.rate, 100);
+  assert.equal(measurements.reusedRows, 12, "the four and eight item prefixes are still served from the cache");
 });
 
 test("score counts empty answers as give-ups beside truncation (lit §8)", async () => {

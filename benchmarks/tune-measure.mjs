@@ -517,94 +517,112 @@ export function scoreConversionComputations() {
   return scoreConversionBuilds;
 }
 
-export async function score(measurements, settings, itemIds, seeds) {
-  const used = settings.temperature > 0 ? seeds : seeds.slice(0, 1);
+/** Mutable per-item accumulators shared by `score` and the incremental `scoreSequential`. */
+function createScoreState(ids) {
   // Fill each map directly: `new Map(ids.map(id => [id, 0]))` allocates an
   // intermediate array of pairs for every map, on every tuning rung.
   const zeroed = () => {
     zeroedMapBuilds += 1;
     const map = new Map();
-    for (const id of itemIds) map.set(id, 0);
+    for (const id of ids) map.set(id, 0);
     return map;
   };
-  const fractions = zeroed();
-  // Partial credit per item (G6): the share of checks passed, averaged over
-  // seeds. Code items have 2-7 cases but count only when all pass; the
-  // fraction of cases is a finer signal for the paired test. The headline
-  // rate stays all-or-nothing.
-  const credit = zeroed();
-  const itemLatency = new Map();
-  const itemTokens = new Map();
-  const itemPrompt = new Map();
-  const itemSpeed = new Map();
-  // Work per second of wall time, prompt plus answer: what an engine that reads prompts faster is worth (ADR-159).
-  const itemThroughput = new Map();
-  const digests = new Map();
-  const latencies = [];
-  const tokens = [];
-  const speeds = [];
-  const promptTokenCounts = [];
-  // Prefill vs decode throughput (M3/M4): identical prompts make prefill
-  // comparable even when answers differ; decode stays comparable per token.
-  const prefillSpeeds = [];
-  const decodeSpeeds = [];
-  // Per-answer serving evidence (M1/V4): stop reasons, TTFT and decode rate stay
-  // comparable when answers differ, unlike raw text digests.
-  let truncated = 0;
-  // Empty answers (no tokens, or blank text) are give-ups, not truncations:
-  // the agentic failure mode is an empty patch, not a cut-off one (lit §8).
-  let empty = 0;
-  let answered = 0;
-  let memoryBytes;
-  let gpuVram;
-  let errors = 0;
-  let firstError = null;
-  for (const seed of used) {
-    const measured = await measurements.measure(settings, itemIds, seed);
-    if (!measured) return null;
-    memoryBytes = measured.memoryBytes ?? measured.memory?.cpuRam ?? memoryBytes;
-    gpuVram = measured.gpuVram ?? measured.memory?.gpuVram ?? gpuVram;
-    for (const prompt of measured.prompts) {
-      if (prompt.error) {
-        errors += 1;
-        firstError ??= prompt.error;
-      } else {
-        answered += 1;
-        if (prompt.stopReason === "maxTokens") truncated += 1;
-        if (prompt.outputTokens === 0 || (typeof prompt.text === "string" && prompt.text.trim() === "")) empty += 1;
-      }
-      if (itemPassed(prompt)) fractions.set(prompt.id, fractions.get(prompt.id) + 1 / used.length);
-      if (!prompt.error && Number(prompt.total) > 0) {
-        credit.set(prompt.id, credit.get(prompt.id) + Math.min(1, Math.max(0, (Number(prompt.passed) || 0) / Number(prompt.total))) / used.length);
-      }
-      if (Number.isFinite(prompt.ms)) {
-        latencies.push(prompt.ms);
-        itemLatency.set(prompt.id, (itemLatency.get(prompt.id) ?? 0) + prompt.ms / used.length);
-      }
-      if (Number.isFinite(prompt.outputTokens)) {
-        tokens.push(prompt.outputTokens);
-        itemTokens.set(prompt.id, (itemTokens.get(prompt.id) ?? 0) + prompt.outputTokens / used.length);
-      }
-      if (Number.isFinite(prompt.tokensPerSecond)) {
-        speeds.push(prompt.tokensPerSecond);
-        itemSpeed.set(prompt.id, (itemSpeed.get(prompt.id) ?? 0) + prompt.tokensPerSecond / used.length);
-      }
-      if (Number.isFinite(prompt.promptTokens) && Number.isFinite(prompt.firstTokenMs) && prompt.firstTokenMs > 0) {
-        prefillSpeeds.push((prompt.promptTokens / (prompt.firstTokenMs / 1000)) || 0);
-      }
-      if (Number.isFinite(prompt.outputTokens) && Number.isFinite(prompt.ms) && Number.isFinite(prompt.firstTokenMs) && prompt.ms > prompt.firstTokenMs && prompt.outputTokens > 1) {
-        decodeSpeeds.push(((prompt.outputTokens - 1) / ((prompt.ms - prompt.firstTokenMs) / 1000)) || 0);
-      }
-      if (Number.isFinite(prompt.promptTokens) && Number.isFinite(prompt.outputTokens) && Number.isFinite(prompt.ms) && prompt.ms > 0) {
-        itemThroughput.set(prompt.id, (itemThroughput.get(prompt.id) ?? 0) + (((prompt.promptTokens + prompt.outputTokens) / (prompt.ms / 1000)) / used.length));
-      }
-      if (Number.isFinite(prompt.promptTokens)) {
-        promptTokenCounts.push(prompt.promptTokens);
-        itemPrompt.set(prompt.id, (itemPrompt.get(prompt.id) ?? 0) + prompt.promptTokens / used.length);
-      }
-      if (seed === used[0]) digests.set(prompt.id, prompt.digest ?? null);
+  return {
+    fractions: zeroed(),
+    // Partial credit per item (G6): the share of checks passed, averaged over
+    // seeds. Code items have 2-7 cases but count only when all pass; the
+    // fraction of cases is a finer signal for the paired test. The headline
+    // rate stays all-or-nothing.
+    credit: zeroed(),
+    itemLatency: new Map(),
+    itemTokens: new Map(),
+    itemPrompt: new Map(),
+    itemSpeed: new Map(),
+    // Work per second of wall time, prompt plus answer: what an engine that reads prompts faster is worth (ADR-159).
+    itemThroughput: new Map(),
+    digests: new Map(),
+    latencies: [],
+    tokens: [],
+    speeds: [],
+    promptTokenCounts: [],
+    // Prefill vs decode throughput (M3/M4): identical prompts make prefill
+    // comparable even when answers differ; decode stays comparable per token.
+    prefillSpeeds: [],
+    decodeSpeeds: [],
+    // Per-answer serving evidence (M1/V4): stop reasons, TTFT and decode rate stay
+    // comparable when answers differ, unlike raw text digests.
+    truncated: 0,
+    // Empty answers (no tokens, or blank text) are give-ups, not truncations:
+    // the agentic failure mode is an empty patch, not a cut-off one (lit §8).
+    empty: 0,
+    answered: 0,
+    memoryBytes: undefined,
+    gpuVram: undefined,
+    errors: 0,
+    firstError: null,
+  };
+}
+
+function extendScoreState(state, ids) {
+  for (const id of ids) {
+    if (!state.fractions.has(id)) {
+      state.fractions.set(id, 0);
+      state.credit.set(id, 0);
     }
   }
+}
+
+function noteMemory(state, measured) {
+  state.memoryBytes = measured.memoryBytes ?? measured.memory?.cpuRam ?? state.memoryBytes;
+  state.gpuVram = measured.gpuVram ?? measured.memory?.gpuVram ?? state.gpuVram;
+}
+
+function accumulateScore(state, prompts, usedLength, captureDigests) {
+  const { fractions, credit, itemLatency, itemTokens, itemPrompt, itemSpeed, itemThroughput, digests } = state;
+  for (const prompt of prompts) {
+    if (prompt.error) {
+      state.errors += 1;
+      state.firstError ??= prompt.error;
+    } else {
+      state.answered += 1;
+      if (prompt.stopReason === "maxTokens") state.truncated += 1;
+      if (prompt.outputTokens === 0 || (typeof prompt.text === "string" && prompt.text.trim() === "")) state.empty += 1;
+    }
+    if (itemPassed(prompt)) fractions.set(prompt.id, fractions.get(prompt.id) + 1 / usedLength);
+    if (!prompt.error && Number(prompt.total) > 0) {
+      credit.set(prompt.id, credit.get(prompt.id) + Math.min(1, Math.max(0, (Number(prompt.passed) || 0) / Number(prompt.total))) / usedLength);
+    }
+    if (Number.isFinite(prompt.ms)) {
+      state.latencies.push(prompt.ms);
+      itemLatency.set(prompt.id, (itemLatency.get(prompt.id) ?? 0) + prompt.ms / usedLength);
+    }
+    if (Number.isFinite(prompt.outputTokens)) {
+      state.tokens.push(prompt.outputTokens);
+      itemTokens.set(prompt.id, (itemTokens.get(prompt.id) ?? 0) + prompt.outputTokens / usedLength);
+    }
+    if (Number.isFinite(prompt.tokensPerSecond)) {
+      state.speeds.push(prompt.tokensPerSecond);
+      itemSpeed.set(prompt.id, (itemSpeed.get(prompt.id) ?? 0) + prompt.tokensPerSecond / usedLength);
+    }
+    if (Number.isFinite(prompt.promptTokens) && Number.isFinite(prompt.firstTokenMs) && prompt.firstTokenMs > 0) {
+      state.prefillSpeeds.push((prompt.promptTokens / (prompt.firstTokenMs / 1000)) || 0);
+    }
+    if (Number.isFinite(prompt.outputTokens) && Number.isFinite(prompt.ms) && Number.isFinite(prompt.firstTokenMs) && prompt.ms > prompt.firstTokenMs && prompt.outputTokens > 1) {
+      state.decodeSpeeds.push(((prompt.outputTokens - 1) / ((prompt.ms - prompt.firstTokenMs) / 1000)) || 0);
+    }
+    if (Number.isFinite(prompt.promptTokens) && Number.isFinite(prompt.outputTokens) && Number.isFinite(prompt.ms) && prompt.ms > 0) {
+      itemThroughput.set(prompt.id, (itemThroughput.get(prompt.id) ?? 0) + (((prompt.promptTokens + prompt.outputTokens) / (prompt.ms / 1000)) / usedLength));
+    }
+    if (Number.isFinite(prompt.promptTokens)) {
+      state.promptTokenCounts.push(prompt.promptTokens);
+      itemPrompt.set(prompt.id, (itemPrompt.get(prompt.id) ?? 0) + prompt.promptTokens / usedLength);
+    }
+    if (captureDigests) digests.set(prompt.id, prompt.digest ?? null);
+  }
+}
+
+function finalizeScore(state, itemIds, usedLength) {
+  const { fractions, credit, latencies, tokens, speeds, promptTokenCounts, prefillSpeeds, decodeSpeeds } = state;
   const passed = [...fractions.values()].reduce((sum, value) => sum + value, 0);
   // Fractional solved count (seed-averaged) for a rounding-free tolerance (D4):
   // one item lost by majority at 3 seeds counts as 0.67 items, not as a rounded point.
@@ -633,30 +651,42 @@ export async function score(measurements, settings, itemIds, seeds) {
     outputTokens: tokens.length ? round(medianQuick(tokens)) : null,
     tokensPerSecond: speeds.length ? round(medianQuick(speeds), 2) : null,
     // Share of non-error answers cut off by the token budget (M1); a tuned cap must keep this near zero.
-    truncationRate: answered ? round((truncated / answered) * 100) : null,
+    truncationRate: state.answered ? round((state.truncated / state.answered) * 100) : null,
     // Share of non-error answers that are empty (lit §8); the agentic give-up rate.
-    giveUpRate: answered ? round((empty / answered) * 100) : null,
+    giveUpRate: state.answered ? round((state.empty / state.answered) * 100) : null,
     promptTokens: promptTokenCounts.length ? round(medianQuick(promptTokenCounts)) : null,
     prefillTps: prefillSpeeds.length ? round(medianQuick(prefillSpeeds), 2) : null,
     decodeTps: decodeSpeeds.length ? round(medianQuick(decodeSpeeds), 2) : null,
     items: itemIds.length,
-    seeds: used.length,
-    memoryBytes,
-    ...(gpuVram !== undefined && { gpuVram }),
+    seeds: usedLength,
+    memoryBytes: state.memoryBytes,
+    ...(state.gpuVram !== undefined && { gpuVram: state.gpuVram }),
     // Every answer errored: the settings did not load or run, which is not a measurement.
-    failed: errors === itemIds.length * used.length,
-    error: firstError,
+    failed: state.errors === itemIds.length * usedLength,
+    error: state.firstError,
     majority,
     outcomes,
     fractions: fractionsPlain,
     credit: creditPlain,
-    itemLatency,
-    itemTokens,
-    itemPrompt,
-    itemSpeed,
-    itemThroughput,
-    digests,
+    itemLatency: state.itemLatency,
+    itemTokens: state.itemTokens,
+    itemPrompt: state.itemPrompt,
+    itemSpeed: state.itemSpeed,
+    itemThroughput: state.itemThroughput,
+    digests: state.digests,
   };
+}
+
+export async function score(measurements, settings, itemIds, seeds) {
+  const used = settings.temperature > 0 ? seeds : seeds.slice(0, 1);
+  const state = createScoreState(itemIds);
+  for (const seed of used) {
+    const measured = await measurements.measure(settings, itemIds, seed);
+    if (!measured) return null;
+    noteMemory(state, measured);
+    accumulateScore(state, measured.prompts, used.length, seed === used[0]);
+  }
+  return finalizeScore(state, itemIds, used.length);
 }
 
 export const publicStats = ({ majority: _majority, itemLatency: _latency, itemTokens: _tokens, itemPrompt: _prompt, itemSpeed: _speed, itemThroughput: _throughput, digests: _digests, ...stats }) => stats;
@@ -801,12 +831,33 @@ export function lookPoints(size, looks = 4) {
  * same statistics as `score`. A stopped result carries `partial: true` and the
  * item count it reached.
  */
+let sequentialAccumulateBuilds = 0;
+export function sequentialAccumulateComputations() {
+  return sequentialAccumulateBuilds;
+}
+
 export async function scoreSequential(measurements, settings, itemIds, seeds, { lookAt = null, shouldStop = null } = {}) {
   const points = [...new Set([...(lookAt ?? []), itemIds.length])].filter((point) => point > 0 && point <= itemIds.length).sort((left, right) => left - right);
+  const used = settings.temperature > 0 ? seeds : seeds.slice(0, 1);
+  const state = createScoreState(points.length ? itemIds.slice(0, points[0]) : []);
   let stats = null;
+  let done = 0;
   for (const point of points) {
-    stats = await score(measurements, settings, itemIds.slice(0, point), seeds);
-    if (!stats) return null;
+    const prefix = itemIds.slice(0, point);
+    if (point > done) {
+      sequentialAccumulateBuilds += 1;
+      extendScoreState(state, itemIds.slice(done, point));
+      for (const seed of used) {
+        // The full prefix is still asked for so answer-reuse accounting is the
+        // same as a plain score; only the newly reached rows are accumulated.
+        const measured = await measurements.measure(settings, prefix, seed);
+        if (!measured) return null;
+        noteMemory(state, measured);
+        accumulateScore(state, measured.prompts.slice(done, point), used.length, seed === used[0]);
+      }
+      done = point;
+    }
+    stats = finalizeScore(state, prefix, used.length);
     if (point === itemIds.length) break;
     if (shouldStop?.(stats, point)) return { ...stats, partial: true };
   }
