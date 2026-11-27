@@ -1,92 +1,6 @@
 {
-  "active_task": {
-    "active_phase": 5,
-    "completed_at": 1795784797.45844,
-    "completed_head": "d5f85903356ed454cb1c3ce10e77d3610d55c9f1",
-    "completed_tree": "ca66cd09af9cec644b337e870fa21c03f0608a5c",
-    "continuations": [],
-    "last_phase": "phase 4",
-    "lease_until": 1795791936.87414,
-    "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-    "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-    "status": "completed",
-    "task_id": "patch-key-reuse-1163",
-    "updated_at": 1795784736.87414,
-    "workspaces": [
-      {
-        "name": "modelduck",
-        "path": "projects/modelduck"
-      }
-    ]
-  },
+  "active_task": null,
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Accumulate the incumbent's stats across rungs",
-      "files_affected": [
-        "benchmarks/tune-measure.mjs",
-        "benchmarks/tune.mjs",
-        "tests/benchmark-tune-stats.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Keep one score accumulator for the incumbent across rungs and finalize identical stats at each rung",
-        "mitigation": "failing-first equivalence test, exact big-tune decision A/B, full suite and strict gates; revert on any decision or accounting change",
-        "risks": "contract: identical stats, decisions and measure order; dependency: tune-measure helpers; concurrency: process-local counter; state: accumulator scoped to one sweep",
-        "why": "sweepCore re-scored the incumbent from scratch at each growing rung, re-looping the first items although their answers were cached"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "db1a5b27484fd4b8faa7a458e1a4e171e3a2adcb55a3a851f050c255332e23f9",
-      "status": "in_progress",
-      "task_id": "rung-accumulate-1156",
-      "timestamp": 1795777799.86351,
-      "timestamp_str": "2026-11-27 14:09:59",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: carried incumbent score across rungs; three 14-round big-tune A/Bs improved 1.06x, 1.15x and 1.165x with identical decisions every round; full npm suite 1343 pass 0 fail 1 skip; real three-model tune gate passed 9/9 rates with zero delta",
-      "files_affected": [
-        "benchmarks/tune-measure.mjs",
-        "benchmarks/tune.mjs",
-        "tests/benchmark-tune-stats.test.js",
-        ".aikit/decisions.md",
-        "benchmarks/history.jsonl"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/big-tune-ab.mjs",
-          "baseline": 2.716,
-          "candidate": 2.332,
-          "command": "node big-tune-ab.mjs",
-          "control": "identical decisions in every round",
-          "drift": "0.25",
-          "interleaved": "yes",
-          "metric": "14-round multi-axis grouped tune",
-          "unit": "ms",
-          "workload": "fourteen interleaved baseline/candidate rounds of a three-axis two-pass code tune"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "rung-accumulate-1156",
-      "timestamp": 1795780188.68189,
-      "timestamp_str": "2026-11-27 14:49:48",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "delivery": {
@@ -503,6 +417,44 @@
       "task_id": "patch-key-reuse-1163",
       "timestamp": 1795784797.45844,
       "timestamp_str": "2026-11-27 16:06:37"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Skip candidate event objects when no handler is installed",
+      "files_affected": [
+        "benchmarks/tune.mjs",
+        "tests/benchmark-tune.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Guard event construction behind a flag set only for a real handler, preserving decisions and all callback behavior",
+        "mitigation": "failing-first counter test, interleaved big-tune A/B with identical decisions, full suite and strict gates; revert if not measurable",
+        "risks": "contract: no callback sees a different event stream; dependency: onEvent default; concurrency: process-local counter; state: none",
+        "why": "sweepCore built a progress object for every candidate even when the default no-op onEvent is used"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "6089aee901385f927771b322cf3f04ade0a0425c39146a46875cf0a64853fad9",
+      "status": "in_progress",
+      "task_id": "skip-noop-events-1164",
+      "timestamp": 1795784975.39224,
+      "timestamp_str": "2026-11-27 16:09:35",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "Task 'skip-noop-events-1164' abandoned: Rejected skip-noop-events-1164 after measurement: skipping candidate event objects for the default no-op handler was neutral across five fourteen-round full-tune A/Bs (median 1.02x with a 0.93x outlier) with identical decisions; production files restored",
+      "phase": "abandoned",
+      "phase_num": 2,
+      "status": "abandoned",
+      "task_id": "skip-noop-events-1164",
+      "timestamp": 1795785112.75855,
+      "timestamp_str": "2026-11-27 16:11:52"
     }
   ],
   "version": 1
