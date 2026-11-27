@@ -5,6 +5,10 @@ import path from "node:path";
 
 const SCHEMA = `
 PRAGMA foreign_keys = ON;
+CREATE TABLE IF NOT EXISTS migrations (
+  name TEXT PRIMARY KEY,
+  applied_at TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS commits (
   hash TEXT PRIMARY KEY,
   subject TEXT,
@@ -157,6 +161,30 @@ export function currentGitInfo(cwd = process.cwd(), ref = "HEAD", exec = execFil
   }
 }
 
+const RUN_SCOPE_MIGRATION = "run_scope_backfill_v1";
+const RUN_SCOPE_BACKFILL = `UPDATE runs SET run_scope = CASE
+   WHEN json_extract(result_json, '$.reproRun') IS NOT NULL
+     AND json_extract(result_json, '$.reproRun') != 0 THEN 'repro'
+   WHEN EXISTS (SELECT 1 FROM json_each(result_json, '$.models')
+     WHERE json_extract(value, '$.deterministicRepro') = 1) THEN 'repro'
+   WHEN json_extract(result_json, '$.settings.matrixScope') LIKE '%repro:%'
+     OR json_extract(result_json, '$.settings.matrixScope') LIKE 'repro%' THEN 'repro'
+   WHEN json_extract(result_json, '$.settings.matrixScope') LIKE '%flash%'
+     OR json_extract(result_json, '$.shard.tag') LIKE '%flash%' THEN 'flash'
+   WHEN json_extract(result_json, '$.settings.matrixScope') LIKE '%single:%'
+     OR json_extract(result_json, '$.settings.matrixScope') LIKE '%single-%'
+     OR json_extract(result_json, '$.shard.tag') LIKE '%single%' THEN 'single'
+   WHEN json_extract(result_json, '$.shard.tag') LIKE '%repro' THEN 'repro'
+   WHEN json_extract(result_json, '$.shard') IS NOT NULL THEN 'shard'
+   WHEN json_extract(result_json, '$.settings.matrixScope') = 'shard'
+     OR json_extract(result_json, '$.settings.matrixScope') LIKE 'repro:shard%' THEN 'shard'
+   ELSE 'standard'
+ END WHERE run_scope IS NULL AND json_valid(result_json)`;
+let runScopeBackfills = 0;
+export function runScopeBackfillCount() {
+  return runScopeBackfills;
+}
+
 export async function openDatabase(dbPath) {
   const { DatabaseSync } = await import("node:sqlite");
   await mkdir(path.dirname(dbPath), { recursive: true });
@@ -199,30 +227,17 @@ export async function openDatabase(dbPath) {
     // canonical runs; the scope keeps trends and links on comparable data.
     ["run_scope", "TEXT"],
   ]);
-  // Backfill scopes for databases written before the column existed. The
-  // result JSON already carries the markers, so old shard, repro, flash and
-  // single rows are labeled without touching the append-only log. The models
-  // check covers repro runs from before the top-level flag existed.
-  db.exec(
-    `UPDATE runs SET run_scope = CASE
-       WHEN json_extract(result_json, '$.reproRun') IS NOT NULL
-         AND json_extract(result_json, '$.reproRun') != 0 THEN 'repro'
-       WHEN EXISTS (SELECT 1 FROM json_each(result_json, '$.models')
-         WHERE json_extract(value, '$.deterministicRepro') = 1) THEN 'repro'
-       WHEN json_extract(result_json, '$.settings.matrixScope') LIKE '%repro:%'
-         OR json_extract(result_json, '$.settings.matrixScope') LIKE 'repro%' THEN 'repro'
-       WHEN json_extract(result_json, '$.settings.matrixScope') LIKE '%flash%'
-         OR json_extract(result_json, '$.shard.tag') LIKE '%flash%' THEN 'flash'
-       WHEN json_extract(result_json, '$.settings.matrixScope') LIKE '%single:%'
-         OR json_extract(result_json, '$.settings.matrixScope') LIKE '%single-%'
-         OR json_extract(result_json, '$.shard.tag') LIKE '%single%' THEN 'single'
-       WHEN json_extract(result_json, '$.shard.tag') LIKE '%repro' THEN 'repro'
-       WHEN json_extract(result_json, '$.shard') IS NOT NULL THEN 'shard'
-       WHEN json_extract(result_json, '$.settings.matrixScope') = 'shard'
-         OR json_extract(result_json, '$.settings.matrixScope') LIKE 'repro:shard%' THEN 'shard'
-       ELSE 'standard'
-     END WHERE run_scope IS NULL AND json_valid(result_json)`,
-  );
+  // Backfill scopes for databases written before the column existed, once per
+  // database. The result JSON already carries the markers, so old shard, repro,
+  // flash and single rows are labeled without touching the append-only log.
+  if (!db.prepare("SELECT 1 FROM migrations WHERE name = ?").get(RUN_SCOPE_MIGRATION)) {
+    inTransaction(db, () => {
+      db.exec(RUN_SCOPE_BACKFILL);
+      db.prepare("INSERT INTO migrations (name, applied_at) VALUES (?, ?)")
+        .run(RUN_SCOPE_MIGRATION, new Date().toISOString());
+    });
+    runScopeBackfills += 1;
+  }
   return db;
 }
 

@@ -2472,3 +2472,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Reuse the stat pass and per-file stamps for one second when the sorted .json name list is unchanged, keep readdir on every call so additions and removals invalidate immediately, and clear the cache on saveProfile
 - **Consequences**: A 60-profile 200-call A/B improved 215.053ms to 23.065ms (9.32x) with identical summaries and one stat pass per run instead of 60. A failing-first stat-count test plus add/remove, stamp-reuse and server tests pass, and the full npm suite passed 1323 with one pre-existing skip.
 - **Cross-principle check:** PRINCIPLE-003: readdir still detects added/removed files on every call, saveProfile invalidates immediately, and loadProfile's stale known stamp still forces a fresh read; PRINCIPLE-010: unchanged polls skip 59 of 60 stats per run; PRINCIPLE-013: the cache is process-local and bounded by directory entries; PRINCIPLE-014: failing-first counter test plus exact old/new summary comparison.
+
+### ADR-324: Persist the history run-scope migration
+- **Date**: 2026-11-27
+- **Status**: Accepted
+- **Context**: openDatabase executed a full-table JSON backfill on every report, record and link call, even after every row already had a scope
+- **Decision**: Create a migrations table and run the run_scope backfill only when its marker is absent, recording the marker in the same transaction; legacy databases still backfill when the marker is removed or missing
+- **Consequences**: A 20-open A/B on a 15 MB populated database improved 598.327ms to 424.068ms (1.41x); bench:report improved 715.390ms to 653.177ms (1.10x) under 14.5 percent A/A drift. A failing-first persistence test and 28 history/report tests pass, and the full npm suite passed 1324 with one pre-existing skip.
+- **Cross-principle check:** PRINCIPLE-003: scope derivation SQL is unchanged and a missing marker still backfills legacy databases; PRINCIPLE-010: repeated full-table scans are removed after the first open; PRINCIPLE-013: the marker is written in the same transaction as the backfill and survives later opens; PRINCIPLE-014: failing-first persistence test, legacy test update, report/open benchmarks and full suite.

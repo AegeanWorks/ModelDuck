@@ -15,6 +15,7 @@ import {
   openDatabase,
   rebuildDatabase,
   recordRun,
+  runScopeBackfillCount,
 } from "../benchmarks/history.mjs";
 
 const RESULT = {
@@ -285,6 +286,18 @@ test("run scopes label provenance without corrupting trends or links", async (t)
   }
 });
 
+test("the run-scope backfill is persisted and skipped on later opens", async (t) => {
+  const paths = await tempPaths(t);
+  await recordRun({ ...paths, result: RESULT, git: { hash: "abc123", subject: "parent", branch: "main" } });
+  const before = runScopeBackfillCount();
+  const db = await openDatabase(paths.dbPath);
+  try {
+    assert.equal(runScopeBackfillCount(), before, "an already migrated database does not backfill again");
+  } finally {
+    db.close();
+  }
+});
+
 // Databases written before the scope column backfill from the stored JSON.
 test("pre-scope history rows gain their scope on open", async (t) => {
   const paths = await tempPaths(t);
@@ -307,6 +320,7 @@ test("pre-scope history rows gain their scope on open", async (t) => {
   const raw = new DatabaseSync(paths.dbPath);
   try {
     raw.exec("UPDATE runs SET run_scope = NULL");
+    raw.exec("DELETE FROM migrations WHERE name = 'run_scope_backfill_v1'");
   } finally {
     raw.close();
   }
