@@ -1,17 +1,17 @@
 {
   "active_task": {
     "active_phase": 5,
-    "completed_at": 1795741063.4379,
-    "completed_head": "eaa439784a31c040754a8c12bed8e6e72c2a39a7",
-    "completed_tree": "660d7132de0fbb447842d7dd6a03a1408b7903d4",
+    "completed_at": 1795741546.72007,
+    "completed_head": "48b5b8efda5b691659366033671809f0658041cb",
+    "completed_tree": "bbecdfdcea2afbfca3b1197a6e5744efc758d7bd",
     "continuations": [],
     "last_phase": "phase 4",
-    "lease_until": 1795748144.54341,
+    "lease_until": 1795748626.86145,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "status": "completed",
-    "task_id": "openai-model-index-1131",
-    "updated_at": 1795740944.54341,
+    "task_id": "preset-model-index-1132",
+    "updated_at": 1795741426.86145,
     "workspaces": [
       {
         "name": "modelduck",
@@ -20,117 +20,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "Task 'judge-generation-pipeline-1126' abandoned: Repeated judge/generation pipeline rejected again: direct gain 1.23x had 8.9% control drift and full speed-stage gain was only 1.06x with 4.5% drift, inconsistent with the prior real-child 0.86x regression; restored HEAD",
-      "phase": "abandoned",
-      "phase_num": 2,
-      "status": "abandoned",
-      "task_id": "judge-generation-pipeline-1126",
-      "timestamp": 1795721721.54927,
-      "timestamp_str": "2026-11-26 22:35:21"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Judge provably pure single-return arithmetic functions in process",
-      "files_affected": [
-        "benchmarks/suite.mjs",
-        "tests/pure-expression-shortcut.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Remove child startup for narrow arithmetic/comparison functions while preserving every verdict, error detail, unreadable flag, output cap and sandbox path for anything dynamic",
-        "mitigation": "failing-first parser/exclusion/output tests, 98 real stored candidates compared with the child verdict hash, full deterministic tune old/new hashes, real three-model tune gate, full npm test and 4/4 strict gates; revert on any verdict or accounting change",
-        "risks": "contract: exact executable-check verdicts, output-limit fallback and no state leakage; dependency: Node Function constructor only; concurrency: existing caches and in-flight maps; state: bounded verdict caches and new counters",
-        "why": "7.68 percent of 13,965 real stored code answers are a single safe return expression, and 98 unique such functions cost 8.88 seconds of sandbox startup for verdicts reproducible exactly in process"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "6d2526989e69db7054d6478b659ff810472abdaa0d178dc1d6ff131b3c324b15",
-      "status": "in_progress",
-      "task_id": "pure-expression-shortcut-1126",
-      "timestamp": 1795723326.00614,
-      "timestamp_str": "2026-11-26 23:02:06",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: 98 real stored pure functions judged with 98 -> 0 child spawns and 8290.841ms -> 2.732ms at an identical verdict hash; full speed-only tune judge phase 68ms -> 5ms with identical decisions, rows and 0.2 percent control drift; default and budget restores kept identical accounting and outcome hash; real three-model gate passed 9/9 rates with zero delta; 166 targeted tests, full npm test (1316 pass, 1 skip) pass",
-      "files_affected": [
-        "benchmarks/suite.mjs",
-        "tests/pure-expression-shortcut.test.js",
-        ".aikit/decisions.md",
-        "benchmarks/history.jsonl"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/pure-code-shortcut-ab.mjs",
-          "baseline": 8290.841,
-          "candidate": 2.732,
-          "command": "node pure-code-shortcut-ab.mjs",
-          "control": "baseline/baseline 7900.739ms vs 9700.492ms, child-startup noise",
-          "drift": "22.8",
-          "interleaved": "yes",
-          "metric": "98 stored pure answers judged",
-          "unit": "ms",
-          "workload": "98 unique real stored single-return functions, five interleaved old/new pairs"
-        },
-        {
-          "artifact": "local-only/pure-code-shortcut-ab.mjs",
-          "baseline": 98.0,
-          "candidate": 0.0,
-          "command": "node pure-code-shortcut-ab.mjs",
-          "control": "identical verdict hash fb0e43d5d4dc5701f446992fb630cbc777629133107f3c74bdb8211c6148d36 across all pairs",
-          "drift": "0",
-          "interleaved": "yes",
-          "metric": "child spawns for stored pure answers",
-          "unit": "spawns",
-          "workload": "same 98 real answers"
-        },
-        {
-          "artifact": "local-only/judge-pipeline-speed-e2e-ab.mjs",
-          "baseline": 68.0,
-          "candidate": 5.0,
-          "command": "node judge-pipeline-speed-e2e-ab.mjs",
-          "control": "decision hash 8e3a71b60f078a4f00411d37b8b59cb9207455d35ae9455f45fe12d20c518078 and rows hash e0595f360bb9fdb8be168e6fd30c95f5774d1cbf7abfb1f44d3943132f0e9aaa",
-          "drift": "0.2",
-          "interleaved": "yes",
-          "metric": "full speed-only tune judge phase",
-          "unit": "ms",
-          "workload": "36 timed answers across a five-pair full tune A/B"
-        },
-        {
-          "artifact": "local-only/runtime-shortcut-e2e-ab.mjs",
-          "baseline": 0.0,
-          "candidate": 0.0,
-          "command": "node runtime-shortcut-e2e-ab.mjs",
-          "control": "fresh 24/21, probes 16/17, runs 12/6 and reuse notes identical",
-          "drift": "0",
-          "interleaved": "yes",
-          "metric": "full restore outcome-hash delta",
-          "unit": "hash delta",
-          "workload": "default and one-miss budget restores over five interleaved pairs"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "pure-expression-shortcut-1126",
-      "timestamp": 1795727682.26822,
-      "timestamp_str": "2026-11-27 00:14:42",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "delivery": {
@@ -579,6 +468,111 @@
       "task_id": "openai-model-index-1131",
       "timestamp": 1795741063.4379,
       "timestamp_str": "2026-11-27 03:57:43"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Cache a profile-ID model map for shipped preset routes",
+      "files_affected": [
+        "src/server.js",
+        "tests/server.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Build the model map once per registry version and serve every preset lookup in constant time",
+        "mitigation": "failing-first lookup/index test, server suite, benchmark across 3 and 30 presets, npm test and strict gates; revert on any lookup or route difference",
+        "risks": "contract: first public-list match wins and id lookups are unchanged; dependency: listPublicRebuilds version; concurrency: process-local WeakMap; state: invalidate on scan/delete",
+        "why": "The preset routes scan the public model list once per recipe; with 30 presets and 60 models a synthetic A/B improved 2.871ms to 0.392ms, but a short three-preset request can regress, so the map must be version-cached across requests"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "3d4afcc0c92069abe665821357212f9eda402befd2a4b25091fde6789ee151ab",
+      "status": "in_progress",
+      "task_id": "preset-model-index-1132",
+      "timestamp": 1795741249.77846,
+      "timestamp_str": "2026-11-27 04:00:49",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: repeated preset lookups improved 0.068ms to 0.056ms for 3x16, stayed neutral at 0.063ms to 0.062ms for 3x60, and improved 1.329ms to 0.207ms for 30x60 over 200 requests; 48 targeted tests and full npm suite (1321 pass, one pre-existing skip) pass",
+      "files_affected": [
+        "src/server.js",
+        "tests/server.test.js",
+        ".aikit/decisions.md"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/preset-model-index-production-ab.mjs",
+          "baseline": 0.068,
+          "candidate": 0.056,
+          "command": "node preset-model-index-production-ab.mjs",
+          "control": "identical lookup results in all cases",
+          "drift": "0",
+          "interleaved": "yes",
+          "metric": "3 presets 16 models",
+          "unit": "ms",
+          "workload": "200 repeated preset lookup requests, ten interleaved rounds"
+        },
+        {
+          "artifact": "local-only/preset-model-index-production-ab.mjs",
+          "baseline": 0.063,
+          "candidate": 0.062,
+          "command": "node preset-model-index-production-ab.mjs",
+          "control": "neutral within noise, identical results",
+          "drift": "0",
+          "interleaved": "yes",
+          "metric": "3 presets 60 models",
+          "unit": "ms",
+          "workload": "200 repeated preset lookup requests, ten interleaved rounds"
+        },
+        {
+          "artifact": "local-only/preset-model-index-production-ab.mjs",
+          "baseline": 1.329,
+          "candidate": 0.207,
+          "command": "node preset-model-index-production-ab.mjs",
+          "control": "identical lookup results in all cases",
+          "drift": "0",
+          "interleaved": "yes",
+          "metric": "30 presets 60 models",
+          "unit": "ms",
+          "workload": "200 repeated preset lookup requests, ten interleaved rounds"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "preset-model-index-1132",
+      "timestamp": 1795741426.86145,
+      "timestamp_str": "2026-11-27 04:03:46",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          ""
+        ]
+      },
+      "description": "Task 'preset-model-index-1132' completed successfully.",
+      "head": "48b5b8efda5b691659366033671809f0658041cb",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "preset-model-index-1132",
+      "timestamp": 1795741546.72007,
+      "timestamp_str": "2026-11-27 04:05:46"
     }
   ],
   "version": 1
