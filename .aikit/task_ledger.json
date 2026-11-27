@@ -3,44 +3,6 @@
   "checkpoints": [
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Memoize sweep base keys by current object",
-      "files_affected": [
-        "benchmarks/tune.mjs",
-        "tests/benchmark-tune.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Cache the derived base key on the current object identity and reuse it across sweeps",
-        "mitigation": "failing-first counter test, interleaved big-tune A/B with identical decisions, full suite and strict gates; revert if not measurable",
-        "risks": "contract: identical cache keys and decisions; dependency: current object identity; concurrency: process-local counter; state: cache scoped to one tune",
-        "why": "each sweep re-stringified the same current and forced settings although current is the same object until an axis changes it"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "2d5688bba968cf600a9b7bfbe58ae3e8fb0c2fd1ec521bdd23348ff80b88c659",
-      "status": "in_progress",
-      "task_id": "settings-key-memo-1170",
-      "timestamp": 1795788255.35999,
-      "timestamp_str": "2026-11-27 17:04:15",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "Task 'settings-key-memo-1170' abandoned: Rejected settings-key-memo-1170 after measurement: memoizing sweep base keys regressed two fourteen-round full-tune A/Bs (0.81x and 0.79x) with identical decisions because current objects change often and the WeakMap added overhead; production files restored",
-      "phase": "abandoned",
-      "phase_num": 2,
-      "status": "abandoned",
-      "task_id": "settings-key-memo-1170",
-      "timestamp": 1795788497.92514,
-      "timestamp_str": "2026-11-27 17:08:17"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "description": "[1/2] Reuse grouped guard stats across sweeps",
       "files_affected": [
         "benchmarks/tune.mjs",
@@ -430,6 +392,44 @@
       "task_id": "mc-pvalue-cache-1178",
       "timestamp": 1795793282.02196,
       "timestamp_str": "2026-11-27 18:28:02"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Compute sign-flip inputs in one pass",
+      "files_affected": [
+        "benchmarks/stats.mjs",
+        "tests/benchmark-stats.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Collect count, negative count, uniform-magnitude flag and sum in a single loop",
+        "mitigation": "failing-first counter test, partial-credit full-tune A/B with identical decisions, full suite and strict gates; revert if not measurable",
+        "risks": "contract: identical p-values and decisions; dependency: pure function; concurrency: process-local counter; state: none",
+        "why": "each sign-flip p-value filtered and reduced the nonzero differences several times before testing"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "4b00d80320a706f7bf5e4e3de3b9d8df9d08360cc91ff9fd49488c7775bd8536",
+      "status": "in_progress",
+      "task_id": "signflip-one-pass-1179",
+      "timestamp": 1795793636.17362,
+      "timestamp_str": "2026-11-27 18:33:56",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "Task 'signflip-one-pass-1179' abandoned: Rejected signflip-one-pass-1179 after measurement: consolidating sign-flip input passes regressed two partial-credit full-tune A/Bs (0.73x and 0.82x) with identical decisions because V8 optimizes native filter/reduce better; production files restored",
+      "phase": "abandoned",
+      "phase_num": 2,
+      "status": "abandoned",
+      "task_id": "signflip-one-pass-1179",
+      "timestamp": 1795794098.63223,
+      "timestamp_str": "2026-11-27 18:41:38"
     }
   ],
   "version": 1
