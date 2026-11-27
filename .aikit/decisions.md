@@ -2496,3 +2496,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Store an import byte offset, file size, mtime and database row count in SQLite; parse only bytes after that offset, reset on truncation, rewrite, inode/row mismatch or rebuild, and keep the partial trailing line for the next import
 - **Consequences**: A five-round bench:report A/B on the populated history improved 101.506ms to 68.976ms (1.47x) under 0.1 percent control drift. A failing-first test proves only appended bytes are parsed, and rebuild plus all history/report tests pass. The full npm suite passed 1327 with one pre-existing skip.
 - **Cross-principle check:** PRINCIPLE-003: damaged, partial and rebuilt histories still reparse correctly and run/link rows are unchanged; PRINCIPLE-010: unchanged prefixes skip the whole parse; PRINCIPLE-013: the offset, file stamp and row count are stored in SQLite and reset on rebuild or invalidation; PRINCIPLE-014: failing-first appended-bytes test plus history/report suites.
+
+### ADR-327: Give positive receipt validation a short TTL
+- **Date**: 2026-11-27
+- **Status**: Accepted
+- **Context**: Present receipts were parsed once but every API poll still stat'ed each sidecar to validate the cached object, about 5ms per poll for a 200-model library
+- **Decision**: Reuse a positive receipt's stat validation for one second, while keeping writer invalidation, stamp validation on expiry and the separate short negative TTL
+- **Consequences**: A 200-receipt 50-poll A/B improved 81.319ms to 5.803ms (14.01x) with identical receipt digests and 2.2 percent control drift. A failing-first stat-counter test, invalidation tests and 54 targeted tests pass, and the full npm suite passed 1328 with one pre-existing skip.
+- **Cross-principle check:** PRINCIPLE-003: stamp validation still runs on expiry and writer invalidation clears positive entries, so edited receipts are detected; PRINCIPLE-010: 9,950 repeat stats are skipped per benchmark run; PRINCIPLE-013: the TTL is process-local and resettable; PRINCIPLE-014: failing-first TTL/counter test plus receipt, server and registry suites.

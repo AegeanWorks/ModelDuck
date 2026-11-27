@@ -61,12 +61,18 @@ let missingReceiptSkips = 0;
 // the common present-receipt path stays unchanged; the writer clears the mark.
 const MISSING_RECEIPTS = new Map();
 const MISSING_RECEIPT_TTL_MS = 500;
+// A positive receipt is stable between UI polls; reuse its validation briefly.
+const VALID_RECEIPT_TTL_MS = 1000;
 const RECEIPT_CACHE = new Map();
 const RECEIPT_CACHE_LIMIT = 2048;
 let receiptCacheHits = 0;
 let receiptCacheComputes = 0;
+let receiptStatCheckCount = 0;
 export function receiptCacheStats() {
   return { size: RECEIPT_CACHE.size, hits: receiptCacheHits, computes: receiptCacheComputes };
+}
+export function receiptStatChecks() {
+  return receiptStatCheckCount;
 }
 
 export function receiptMissingSkips() {
@@ -81,12 +87,13 @@ export function resetReceiptCounters() {
   missingReceiptSkips = 0;
   receiptCacheHits = 0;
   receiptCacheComputes = 0;
+  receiptStatCheckCount = 0;
   MISSING_RECEIPTS.clear();
   RECEIPT_CACHE.clear();
 }
 
 /** IDEA-1067/1194: measured install receipt; null when no receipt was written. */
-export async function readInstallReceipt(modelsDir, fileName, { clock = Date.now, ttlMs = MISSING_RECEIPT_TTL_MS } = {}) {
+export async function readInstallReceipt(modelsDir, fileName, { clock = Date.now, ttlMs = MISSING_RECEIPT_TTL_MS, validTtlMs = VALID_RECEIPT_TTL_MS } = {}) {
   const file = receiptPath(modelsDir, fileName);
   const now = clock();
   const missedAt = MISSING_RECEIPTS.get(file);
@@ -98,9 +105,15 @@ export async function readInstallReceipt(modelsDir, fileName, { clock = Date.now
   // validate it with one stat instead of reading and parsing the file again.
   const cached = RECEIPT_CACHE.get(file);
   if (cached !== undefined) {
+    if (now - cached.checkedAt < validTtlMs) {
+      receiptCacheHits += 1;
+      return cached.receipt;
+    }
+    receiptStatCheckCount += 1;
     const info = await fs.promises.stat(file).catch(() => null);
     if (info && `${info.mtimeMs}:${info.size}` === cached.stamp) {
       receiptCacheHits += 1;
+      cached.checkedAt = now;
       return cached.receipt;
     }
     RECEIPT_CACHE.delete(file);
@@ -114,7 +127,7 @@ export async function readInstallReceipt(modelsDir, fileName, { clock = Date.now
     const info = await fs.promises.stat(file).catch(() => null);
     if (info) {
       if (RECEIPT_CACHE.size >= RECEIPT_CACHE_LIMIT) RECEIPT_CACHE.delete(RECEIPT_CACHE.keys().next().value);
-      RECEIPT_CACHE.set(file, { stamp: `${info.mtimeMs}:${info.size}`, receipt });
+      RECEIPT_CACHE.set(file, { stamp: `${info.mtimeMs}:${info.size}`, receipt, checkedAt: now });
     }
     return receipt;
   } catch {

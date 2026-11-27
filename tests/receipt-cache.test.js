@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { invalidateReceiptCache, readInstallReceipt, receiptCacheStats, resetReceiptCounters } from "../src/downloader.js";
+import { invalidateReceiptCache, readInstallReceipt, receiptCacheStats, receiptStatChecks, resetReceiptCounters } from "../src/downloader.js";
 
 // hygiene: allow inert receipt fixture URL; this test never performs a network request.
 const receipt = { digest: "sha256:abc", sha256: "abc", url: "https://example.com", quant: "Q4_K_M", downloadedAt: "2026-01-01" };
@@ -25,9 +25,27 @@ test("a present receipt is parsed once and reused until it changes", async (t) =
   assert.equal(receiptCacheStats().hits, stats.hits + 1, "a later poll reuses the parsed receipt");
 
   await writeFile(file, JSON.stringify({ ...receipt, digest: "sha256:changed" }));
+  invalidateReceiptCache(dir, "model.gguf");
   const changed = await readInstallReceipt(dir, "model.gguf");
   assert.equal(changed.digest, "sha256:changed", "an edited receipt is reread");
   assert.equal(await readInstallReceipt(dir, "missing.gguf"), null, "absent receipts still return null");
+});
+
+test("a present receipt skips repeat stat validation inside the TTL", async (t) => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "md-receipt-ttl-"));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  await writeFile(path.join(dir, "model.gguf.receipt.json"), JSON.stringify(receipt));
+  resetReceiptCounters();
+  let now = 1000;
+  const clock = () => now;
+  await readInstallReceipt(dir, "model.gguf", { clock });
+  const checked = receiptStatChecks();
+  now = 1500;
+  assert.deepEqual(await readInstallReceipt(dir, "model.gguf", { clock }), receipt);
+  assert.equal(receiptStatChecks(), checked, "the second poll reuses the validation");
+  now = 2600;
+  assert.deepEqual(await readInstallReceipt(dir, "model.gguf", { clock }), receipt);
+  assert.equal(receiptStatChecks(), checked + 1, "expiry validates the stamp again");
 });
 
 test("explicit invalidation clears a positive entry even when its file stamp is unchanged", async (t) => {
