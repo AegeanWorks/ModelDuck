@@ -3,51 +3,6 @@
   "checkpoints": [
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          ""
-        ]
-      },
-      "description": "Task 'grouped-exact-sums-1177' completed successfully.",
-      "head": "039f78437963ac10d39a82c93757e71753c946c6",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "grouped-exact-sums-1177",
-      "timestamp": 1795792952.97213,
-      "timestamp_str": "2026-11-27 18:22:32"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Cache sign-flip p-values by difference vector",
-      "files_affected": [
-        "benchmarks/stats.mjs",
-        "tests/benchmark-stats.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Memoize the exact or Monte Carlo p-value by the nonzero difference vector, permutation width and test side",
-        "mitigation": "failing-first counter test, partial-credit full-tune A/B with identical decisions, full suite and strict gates; revert if not measurable",
-        "risks": "contract: identical p-values and decisions; dependency: pure function; concurrency: process-local bounded cache; state: cache scoped to process",
-        "why": "Monte Carlo sign flips redo 10,000 permutations for diff vectors that repeat across looks and sweeps with partial credit"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "397e7e208fa596e69fd7d523c2f388e6a84db7ce22fc624d14250e55a8221124",
-      "status": "in_progress",
-      "task_id": "mc-pvalue-cache-1178",
-      "timestamp": 1795793088.34355,
-      "timestamp_str": "2026-11-27 18:24:48",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "description": "Task 'mc-pvalue-cache-1178' abandoned: Rejected mc-pvalue-cache-1178 after measurement: caching sign-flip p-values by difference vector had zero hits in a partial-credit tune and regressed the full-tune A/B to 0.83x; production files restored",
       "phase": "abandoned",
       "phase_num": 2,
@@ -405,6 +360,45 @@
       "task_id": "exact-pvalue-multiset-cache-1186",
       "timestamp": 1795806023.99236,
       "timestamp_str": "2026-11-27 22:00:23"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Skip redundant zero filter for paired p-values",
+      "files_affected": [
+        "benchmarks/stats.mjs",
+        "benchmarks/tune-measure.mjs",
+        "tests/benchmark-stats.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Add an opt-in flag that skips the redundant filter while preserving every p-value and order",
+        "mitigation": "failing-first equivalence test, partial-credit full-tune A/B with identical decisions, full suite and strict gates; revert if not measurable",
+        "risks": "contract: identical p-values and decisions; dependency: internal call site; concurrency: process-local counter; state: none",
+        "why": "pairedDiffs already drops zero differences, yet signFlipPValue filters them again on every paired call"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "c2df3102bef9ffbff8deaf65aec86dd1aa2e4edb2303287b62bcb97935685bc0",
+      "status": "in_progress",
+      "task_id": "filtered-diff-flag-1187",
+      "timestamp": 1795806159.1295,
+      "timestamp_str": "2026-11-27 22:02:39",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "Task 'filtered-diff-flag-1187' abandoned: Rejected filtered-diff-flag-1187 after measurement: skipping the redundant zero filter via an option regressed two partial-credit full-tune A/Bs (0.81x and 0.96x) with identical decisions; production files restored",
+      "phase": "abandoned",
+      "phase_num": 2,
+      "status": "abandoned",
+      "task_id": "filtered-diff-flag-1187",
+      "timestamp": 1795806437.09768,
+      "timestamp_str": "2026-11-27 22:07:17"
     }
   ],
   "version": 1
