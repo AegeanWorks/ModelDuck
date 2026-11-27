@@ -2698,3 +2698,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Return only majority, fractions and credit at intermediate looks; build the full report when a candidate stops or finishes
 - **Cross-principle check:** PRINCIPLE-003: the guard receives exactly the paired evidence it reads and stopped looks are rebuilt in full, so decisions and final reports are unchanged; PRINCIPLE-010: three intermediate looks skip the fraction sum and full object; PRINCIPLE-014: failing-first field test and repeated partial-credit decision A/Bs.
 - **Consequences**: A failing-first field test and 140 stats/tune tests pass, as does the real three-model tune gate; six partial-credit full-tune A/Bs were positive in five runs with a median near 1.10x and identical decisions every round.
+
+### ADR-353: Gate the last two diagnostic counters
+- **Date**: 2026-11-28
+- **Status**: Accepted
+- **Context**: two counters in the exact sign-sum and McNemar paths were the only remaining diagnostic writes not gated to tests
+- **Decision**: Guard mcnemarLogSteps and signFlipGroupStates on NODE_TEST_CONTEXT like the rest of the diagnostics
+- **Cross-principle check:** PRINCIPLE-003: p-values and decisions are unchanged; PRINCIPLE-010: the last two production counter writes disappear from hot statistics paths; PRINCIPLE-014: full counter-using test suite plus repeated partial-credit decision A/Bs.
+- **Consequences**: All 136 targeted counter tests pass, as does the real three-model tune gate; six partial-credit full-tune A/Bs were positive in five runs with a median near 1.03x and identical decisions every round.

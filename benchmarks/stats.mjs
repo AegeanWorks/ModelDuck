@@ -52,7 +52,7 @@ function binomialTailLog(n, upTo) {
   for (let index = 0; index <= upTo; index += 1) {
     if (index > 0) {
       logC += Math.log(n - index + 1) - Math.log(index);
-      mcnemarLogSteps += 1;
+      if (DIAGNOSTICS) mcnemarLogSteps += 1;
     }
     tail += Math.exp(logC - n * Math.LN2);
   }
@@ -238,7 +238,7 @@ function exactSignedSums(nonzero) {
     sums = nextSums;
     weights = nextWeights;
   }
-  signFlipGroupStates += sums.length;
+  if (DIAGNOSTICS) signFlipGroupStates += sums.length;
   return { sums, weights };
 }
 
