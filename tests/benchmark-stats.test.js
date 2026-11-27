@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { compareRuns, holm, itemSummary, mcnemarExact, mcnemarOneSided, signFlipOneSided, signFlipPValue, wilson } from "../benchmarks/stats.mjs";
+import { compareRuns, holm, itemSummary, mcnemarExact, mcnemarOneSided, signFlipGroupStats, signFlipOneSided, signFlipPValue, wilson } from "../benchmarks/stats.mjs";
 
 test("Wilson intervals match published values and stay inside 0-100", () => {
   assert.deepEqual(wilson(20, 21), { low: 77.3, high: 99.2 });
@@ -35,6 +35,16 @@ test("the sign-flip test uses magnitudes a majority vote throws away (S2)", () =
   const p = signFlipPValue([1, 1, 1, 0.33, 0.33]);
   assert.equal(Number(p.toFixed(4)), 0.0625);
   assert.ok(p < mcnemarExact(0, 3), "fractions beat the majority vote");
+});
+
+test("repeated magnitudes collapse the exact enumeration", () => {
+  const values = Array.from({ length: 18 }, (_value, index) => (index % 3 === 0 ? 0.1 : index % 3 === 1 ? -0.2 : 0.3));
+  const before = signFlipGroupStats();
+  const p = signFlipPValue(values);
+  const added = signFlipGroupStats() - before;
+  assert.ok(added > 0, "the grouped path ran");
+  assert.ok(added < 2 ** values.length / 10, `only ${added} states instead of ${2 ** values.length}`);
+  assert.ok(p > 0 && p <= 1);
 });
 
 test("single-array exact sign sums keep every permutation p-value", () => {

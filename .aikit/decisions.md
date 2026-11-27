@@ -2658,3 +2658,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Compute signed sums directly with the low-bit recurrence signed[mask] = signed[mask ^ low] + 2*value, relying on the 1e-12 comparison tolerance for the 1-ULP rounding difference
 - **Cross-principle check:** PRINCIPLE-003: p-values matched the two-array reference over 5,044 cases and decisions were identical in every A/B round; PRINCIPLE-010: one Float64Array and one pass instead of two; PRINCIPLE-014: failing-first equivalence test, mask-count guard and repeated partial-credit decision A/Bs.
 - **Consequences**: Five thousand random and 44 threshold-tie p-values matched the two-array reference. Three 10-round partial-credit full-tune A/Bs improved 1.16x to 1.29x with identical decisions; a failing-first equivalence test and 133 stats/tune tests pass, as does the real three-model tune gate.
+
+### ADR-348: Group repeated magnitudes in exact sign flips
+- **Date**: 2026-11-27
+- **Status**: Accepted
+- **Context**: exactSignedSums enumerated all 2^n assignments although partial credit repeats a few magnitudes, so most assignments share the same sum
+- **Decision**: Enumerate distinct magnitude groups with binomial weights instead of individual masks, keeping the same p-values under the comparison tolerance
+- **Cross-principle check:** PRINCIPLE-003: p-values matched the mask enumeration over 2,000 randomized cases and decisions were identical in all three A/B rounds; PRINCIPLE-010: 262,144 masks collapse to tens of weighted states for repeated credit; PRINCIPLE-013: pure function with process-local diagnostics; PRINCIPLE-014: failing-first grouped-state counter, equivalence test and repeated partial-credit decision A/Bs.
+- **Consequences**: A failing-first grouped-state test and p-value equivalence test pass, along with 134 stats/tune tests, as does the real three-model tune gate. Three 10-round partial-credit full-tune A/Bs improved 2.21x, 3.04x and 3.40x with identical decisions every round; isolated speedups reach 40x at 16 items and 96x at 20.

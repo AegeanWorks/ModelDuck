@@ -195,31 +195,48 @@ function monteCarloSignedSums(nonzero, permutations, visit) {
   }
 }
 
-// All signed subset sums, in mask order. The low-bit recurrence computes each
-// sum in O(1) from an earlier one, replacing the old O(count) inner loop.
-// A signed sum is 2*(sum of values at set bits) - (sum of all values).
+// Exact signed sums with binomial weights. Real partial credit repeats a few
+// magnitudes (a third, two thirds, ...), so enumerating the distinct magnitude
+// groups and the number of copies taking a positive sign is far smaller than
+// enumerating all 2^n assignments. A group of `count` copies of `value` with
+// `j` positive signs contributes (2*j - count)*value and C(count, j) ways.
 let signFlipMasks = 0;
+let signFlipGroupStates = 0;
 export function signFlipMaskCount() {
   return signFlipMasks;
 }
-// A signed sum is 2*(sum of values at set bits) - (sum of all values). The
-// low-bit recurrence gives signed[mask] = signed[mask ^ low] + 2*value in O(1),
-// so the second Float64Array is unnecessary. The 1-ULP rounding difference is
-// absorbed by the 1e-12 comparison tolerance in both sign-flip p-values.
-function exactSignedSums(nonzero) {
-  const total = 2 ** nonzero.length;
-  const signed = new Float64Array(total);
-  const all = nonzero.reduce((sum, value) => sum + value, 0);
-  for (let mask = 0; mask < total; mask += 1) {
-    signFlipMasks += 1;
-    if (mask) {
-      const low = mask & -mask;
-      signed[mask] = signed[mask ^ low] + 2 * nonzero[31 - Math.clz32(low)];
-    } else {
-      signed[mask] = -all;
-    }
+export function signFlipGroupStats() {
+  return signFlipGroupStates;
+}
+function binomials(count) {
+  const row = new Array(count + 1);
+  row[0] = row[count] = 1;
+  for (let index = 1; index < count; index += 1) {
+    row[index] = row[index - 1] * (count - index + 1) / index;
   }
-  return signed;
+  return row;
+}
+function exactSignedSums(nonzero) {
+  signFlipMasks += 2 ** nonzero.length;
+  const groups = new Map();
+  for (const value of nonzero) groups.set(value, (groups.get(value) ?? 0) + 1);
+  let sums = [0];
+  let weights = [1];
+  for (const [value, count] of groups) {
+    const row = binomials(count);
+    const nextSums = [];
+    const nextWeights = [];
+    for (let state = 0; state < sums.length; state += 1) {
+      for (let positive = 0; positive <= count; positive += 1) {
+        nextSums.push(sums[state] + (2 * positive - count) * value);
+        nextWeights.push(weights[state] * row[positive]);
+      }
+    }
+    sums = nextSums;
+    weights = nextWeights;
+  }
+  signFlipGroupStates += sums.length;
+  return { sums, weights };
 }
 
 export function signFlipPValue(differences, { exactLimit = SIGN_FLIP_EXACT_LIMIT, permutations = SIGN_FLIP_PERMUTATIONS } = {}) {
@@ -232,12 +249,12 @@ export function signFlipPValue(differences, { exactLimit = SIGN_FLIP_EXACT_LIMIT
   if (nonzero.every((value) => Math.abs(value) === Math.abs(nonzero[0]))) return mcnemarExact(neg, pos);
   const observed = Math.abs(nonzero.reduce((sum, value) => sum + value, 0));
   if (count <= exactLimit) {
-    const totals = exactSignedSums(nonzero);
+    const { sums, weights } = exactSignedSums(nonzero);
     let extreme = 0;
-    for (let mask = 0; mask < totals.length; mask += 1) {
-      if (Math.abs(totals[mask]) >= observed - 1e-12) extreme += 1;
+    for (let state = 0; state < sums.length; state += 1) {
+      if (Math.abs(sums[state]) >= observed - 1e-12) extreme += weights[state];
     }
-    return extreme / totals.length;
+    return extreme / 2 ** count;
   }
   let extreme = 0;
   monteCarloSignedSums(nonzero, permutations, (sum) => {
@@ -262,12 +279,12 @@ export function signFlipOneSided(differences, { exactLimit = SIGN_FLIP_EXACT_LIM
   if (nonzero.every((value) => Math.abs(value) === Math.abs(nonzero[0]))) return mcnemarOneSided(neg, pos);
   const observed = nonzero.reduce((sum, value) => sum + value, 0);
   if (count <= exactLimit) {
-    const totals = exactSignedSums(nonzero);
+    const { sums, weights } = exactSignedSums(nonzero);
     let extreme = 0;
-    for (let mask = 0; mask < totals.length; mask += 1) {
-      if (totals[mask] <= observed + 1e-12) extreme += 1;
+    for (let state = 0; state < sums.length; state += 1) {
+      if (sums[state] <= observed + 1e-12) extreme += weights[state];
     }
-    return extreme / totals.length;
+    return extreme / 2 ** count;
   }
   let extreme = 0;
   monteCarloSignedSums(nonzero, permutations, (sum) => {
