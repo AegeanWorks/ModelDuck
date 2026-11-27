@@ -1,70 +1,6 @@
 {
-  "active_task": {
-    "active_phase": 5,
-    "completed_at": 1795780261.2893,
-    "completed_head": "2d3e4c829215f5eae9f3e7f7060587f81faec4c5",
-    "completed_tree": "fe4717c7d7bbbc5125a2e48f83409f414ce155ef",
-    "continuations": [],
-    "last_phase": "phase 4",
-    "lease_until": 1795787388.68189,
-    "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-    "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-    "status": "completed",
-    "task_id": "rung-accumulate-1156",
-    "updated_at": 1795780188.68189,
-    "workspaces": [
-      {
-        "name": "modelduck",
-        "path": "projects/modelduck"
-      }
-    ]
-  },
+  "active_task": null,
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          ""
-        ]
-      },
-      "description": "Task 'round-memo-1149' completed successfully.",
-      "head": "ab3b447386f2b58d431576fa2f5b889081257c38",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "round-memo-1149",
-      "timestamp": 1795767674.94455,
-      "timestamp_str": "2026-11-27 11:21:14"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Replace three allocation-heavy filter/reduce calls with loops",
-      "files_affected": [
-        "benchmarks/tune-measure.mjs",
-        "tests/benchmark-tune-stats.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Preserve exact values while replacing three intermediate arrays or callbacks with direct loops",
-        "mitigation": "failing-first counter tests, direct A/Bs, thirty-pair full-tune A/B with identical decisions, full suite and strict gates; revert if full tune is not measurably faster",
-        "risks": "contract: identical measurements, counts and cost deltas; dependency: none; concurrency: process-local counters; state: none",
-        "why": "measure rebuilt its missing list with filter, solvedCount filtered a copied values array, and costDelta reduced through a callback on every candidate comparison"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "5c7527695a40e32743463cbcf07d93ab7f49107b204b1359ab048884f1d74e27",
-      "status": "in_progress",
-      "task_id": "measure-micro-loops-1150",
-      "timestamp": 1795767962.77521,
-      "timestamp_str": "2026-11-27 11:26:02",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "description": "Task 'measure-micro-loops-1150' abandoned: Rejected measure-micro-loops-1150 after measurement: missing-item filter, solvedCount and costDelta loops were 2x faster in isolation but a thirty-pair full-tune A/B was neutral (0.997x) with identical decisions; production files restored",
@@ -562,6 +498,44 @@
       "task_id": "rung-accumulate-1156",
       "timestamp": 1795780261.2893,
       "timestamp_str": "2026-11-27 14:51:01"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Sum finalize fractions with a direct loop",
+      "files_affected": [
+        "benchmarks/tune-measure.mjs",
+        "tests/benchmark-tune-stats.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Accumulate the same sum in iteration order with a plain loop, preserving every rounded result",
+        "mitigation": "failing-first counter test, interleaved direct and big-tune A/Bs with identical decisions, full suite and strict gates; revert if not measurable",
+        "risks": "contract: identical passed sum, rates and decisions; dependency: none; concurrency: process-local counter; state: none",
+        "why": "finalizeScore copied every fraction into a new array and reduced it through a callback at every look"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "5fa19a2d716c029102f61290dc89682c236dd6b92ef93a94fd15337c77cb0747",
+      "status": "in_progress",
+      "task_id": "passed-sum-loop-1157",
+      "timestamp": 1795780422.07648,
+      "timestamp_str": "2026-11-27 14:53:42",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "Task 'passed-sum-loop-1157' abandoned: Rejected passed-sum-loop-1157 after measurement: direct fraction sum was 4x faster in isolation but three fourteen-round full-tune A/Bs were neutral (0.967x, 1.201x, 1.015x) with identical decisions; production files restored",
+      "phase": "abandoned",
+      "phase_num": 2,
+      "status": "abandoned",
+      "task_id": "passed-sum-loop-1157",
+      "timestamp": 1795780538.08,
+      "timestamp_str": "2026-11-27 14:55:38"
     }
   ],
   "version": 1
