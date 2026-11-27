@@ -4,7 +4,7 @@ import test from "node:test";
 import { createTuneEstimator, DEFAULT_STEPS, promptAxes } from "../benchmarks/tune-grid.mjs";
 import { Measurements, pairedDiffComputations, pairedDiffs, pairedDiffScanComputations, resetPairedDiffCounter } from "../benchmarks/tune-measure.mjs";
 import { predictWeightedMs, speedStage, taskProfiles } from "../benchmarks/tune-speed.mjs";
-import { groupEvidence, groupedGuardStats, measurePresets, sweepStatsCacheStats, tune } from "../benchmarks/tune.mjs";
+import { groupEvidence, groupedGuardStats, measurePresets, pairedEvidenceStats, sweepStatsCacheStats, tune } from "../benchmarks/tune.mjs";
 import { withEngine } from "../benchmarks/tune-job.mjs";
 
 const ids = (prefix, count) => Array.from({ length: count }, (_value, index) => `${prefix}-${index}`);
@@ -1480,6 +1480,25 @@ test("sweeps reuse an identical settings report across axes", async () => {
   assert.ok(after.builds > before.builds, "reports are computed");
   assert.ok(after.hits > before.hits, "an unchanged incumbent reuses its earlier report");
   assert.equal(sweeps.length, 2);
+});
+
+test("paired evidence is reused across sweeps of one tune", async () => {
+  const items = ids("math", 8);
+  const before = pairedEvidenceStats();
+  await tune({
+    evaluate: async (_settings, itemIds) => ({
+      prompts: itemIds.map((id) => ({ id, passed: 1, total: 1, ms: 10, outputTokens: 5, digest: id })),
+    }),
+    base: { temperature: 0 }, tasks: ["math"], stages: ["sampling"], rungs: { math: [items] },
+    hardware: { logicalCores: 12 }, qualityAxes: [], speedAxes: [],
+    samplingAxes: () => [
+      { name: "level", patches: [{ level: "base" }, { level: "good" }] },
+      { name: "topP", patches: [{ topP: 0.6 }, { topP: 0.95 }] },
+      { name: "ctx", patches: [{ ctx: 4096 }, { ctx: 8192 }] },
+    ],
+    options: { seeds: [42], passes: 2 },
+  });
+  assert.ok(pairedEvidenceStats().hits > before.hits, "a repeated report pair reuses its evidence");
 });
 
 test("sweeps reuse complete challenger reports by patch identity", async () => {

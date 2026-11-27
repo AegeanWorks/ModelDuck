@@ -180,7 +180,12 @@ function groupStats(before, after, groups, clusterOf = null, diffs = null, befor
   }));
 }
 
-/** Sweep-local evidence reuse; stats objects are immutable for the life of one sweep. */
+/** Paired-evidence reuse; stats objects are immutable for the life of one tune. */
+let pairedEvidenceHits = 0;
+let pairedEvidenceBuilds = 0;
+export function pairedEvidenceStats() {
+  return { hits: pairedEvidenceHits, builds: pairedEvidenceBuilds };
+}
 export function createSweepEvidenceCache(clusterOf = null) {
   const cache = new Map();
   return (before, after) => {
@@ -189,8 +194,12 @@ export function createSweepEvidenceCache(clusterOf = null) {
       byAfter = new Map();
       cache.set(before, byAfter);
     }
-    if (byAfter.has(after)) return byAfter.get(after);
+    if (byAfter.has(after)) {
+      pairedEvidenceHits += 1;
+      return byAfter.get(after);
+    }
     const evidence = clusterOf ? pairedClustered(before, after, clusterOf) : paired(before, after);
+    pairedEvidenceBuilds += 1;
     byAfter.set(after, evidence);
     return evidence;
   };
@@ -255,7 +264,7 @@ async function sweepCore(context, { stage, task, axis, current, rungs, forced, c
   // Every look spends an equal share of one error budget over the axis (ADR-063). A non-finite
   // stop alpha turns the screen off, which the mechanics tests need.
   // The change gate counts a function's inputs as one witness, not many (S4); the early stop below stays item-level.
-  const sweepPaired = createSweepEvidenceCache(context.clusterOf);
+  const sweepPaired = context.pairedEvidence;
   const stopAlpha = options.stopAlpha ?? options.changeAlpha;
   const lookBudget = Math.max(1, looks.reduce((sum, points) => sum + points.length, 0));
   const alphaPerLook = Number.isFinite(stopAlpha) && stopAlpha > 0 ? stopAlpha / lookBudget : null;
@@ -761,7 +770,7 @@ export async function tune({
   const threadCap = hardware.logicalCores ? Math.max(1, Math.floor(hardware.logicalCores * 0.75)) : Infinity;
   const start = (base.threads ?? 0) > threadCap ? { ...base, threads: threadCap } : base;
   const state = resume ? { ...emptyProgress(), ...structuredClone(resume) } : emptyProgress();
-  const context = { options: settings, measurements: new Measurements(evaluate, settings.maxRuns, onAnswers, { quota: settings.quota ?? Infinity, deadline: settings.deadline ?? Infinity, ...(settings.clock && { clock: settings.clock }) }), sweeps: state.sweeps, onEvent, statsCache: new Map(), stageBest: -Infinity, stageBestSolved: -Infinity, valid: isValidCombination, typeOf, groupOf, clusterOf, information: new ItemInformation(), adaptiveSubsets: new Map(), stageBestBy: new Map(), stageBestKey: undefined, holmMinCount: 0 };
+  const context = { options: settings, measurements: new Measurements(evaluate, settings.maxRuns, onAnswers, { quota: settings.quota ?? Infinity, deadline: settings.deadline ?? Infinity, ...(settings.clock && { clock: settings.clock }) }), sweeps: state.sweeps, onEvent, statsCache: new Map(), pairedEvidence: createSweepEvidenceCache(clusterOf), stageBest: -Infinity, stageBestSolved: -Infinity, valid: isValidCombination, typeOf, groupOf, clusterOf, information: new ItemInformation(), adaptiveSubsets: new Map(), stageBestBy: new Map(), stageBestKey: undefined, holmMinCount: 0 };
   for (const live of prefetched ?? []) {
     try {
       context.measurements.prefetch(live.settings, live.seed, [live.row], live);

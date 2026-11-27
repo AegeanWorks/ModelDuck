@@ -2642,3 +2642,11 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Memoize each frozen patch's derived settings key by base settings and reuse the shared report cache for complete challenger reports
 - **Cross-principle check:** PRINCIPLE-003: identical final settings, rung and seeds produce the same report and decisions stayed unchanged in all five A/B rounds; PRINCIPLE-010: repeated challengers are scored once instead of once per pass; PRINCIPLE-011: partial reports keep their own stop semantics and are never reused; PRINCIPLE-014: failing-first counter and repeated big-tune decision A/Bs.
 - **Consequences**: Five fourteen-round big-tune A/Bs ranged 1.01x to 1.38x with identical decisions every round; a failing-first counter test and 131 tune tests pass, as does the real three-model tune gate. Partial reports are never reused.
+
+### ADR-346: Share paired evidence across sweeps of one tune
+- **Date**: 2026-11-27
+- **Status**: Accepted
+- **Context**: each sweep rebuilt paired evidence for report pairs that recur across axes and passes now that reports are cached
+- **Decision**: Create one paired-evidence cache per tune and reuse it in every sweep, keyed by the immutable stats objects
+- **Cross-principle check:** PRINCIPLE-003: the same immutable report pair yields the same paired evidence and decisions stayed unchanged in all four A/B rounds; PRINCIPLE-010: repeated report pairs are compared once per tune; PRINCIPLE-013: the cache is scoped to one tune context; PRINCIPLE-014: failing-first counter and repeated big-tune decision A/Bs.
+- **Consequences**: Four fourteen-round big-tune A/Bs improved 1.10x to 1.20x with identical decisions every round; a counter test observed 16 hits versus 9 builds and 132 tune tests pass, as does the real three-model tune gate.
