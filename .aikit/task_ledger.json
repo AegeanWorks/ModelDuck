@@ -1,17 +1,17 @@
 {
   "active_task": {
     "active_phase": 5,
-    "completed_at": 1795761037.76178,
-    "completed_head": "0ce6183fab2b25e9f8f1986e85588ce3e9974a46",
-    "completed_tree": "fd6e2688faaa85d1cc58e8a3832fbb37ff97e926",
+    "completed_at": 1795761630.9855,
+    "completed_head": "f772a9f8818732ef4faed9d131209f31eef66044",
+    "completed_tree": "435c660d03478eda3e0a6c243bb4135e8b533d5e",
     "continuations": [],
     "last_phase": "phase 4",
-    "lease_until": 1795768182.84393,
+    "lease_until": 1795768784.70646,
     "owner": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "started_by": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
     "status": "completed",
-    "task_id": "signflip-pattern-cache-1143",
-    "updated_at": 1795760982.84393,
+    "task_id": "score-median-select-1144",
+    "updated_at": 1795761584.70646,
     "workspaces": [
       {
         "name": "modelduck",
@@ -20,87 +20,6 @@
     ]
   },
   "checkpoints": [
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "delivery": {
-        "forced": false,
-        "roots": [
-          ""
-        ]
-      },
-      "description": "Task 'cachedanswers-key-cache-1136' completed successfully.",
-      "head": "1290736137947843e0243121af94ee39995a84b9",
-      "phase": "completed",
-      "phase_num": 5,
-      "status": "completed",
-      "task_id": "cachedanswers-key-cache-1136",
-      "timestamp": 1795745503.65365,
-      "timestamp_str": "2026-11-27 05:11:43"
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "description": "[1/2] Persist a history.jsonl import byte offset in SQLite",
-      "files_affected": [
-        "benchmarks/history.mjs",
-        "tests/benchmark-history.test.js",
-        ".aikit/decisions.md"
-      ],
-      "impact_assessment": {
-        "benefits": "Read only appended bytes, skip an unchanged prefix and keep rebuild/truncation safe",
-        "mitigation": "failing-first appended-bytes test, rebuild/truncation tests, report A/B, full npm suite and strict gates",
-        "risks": "contract: run and link results stay identical; dependency: node:sqlite state table; concurrency: single process local; state: invalidate on truncation, rewrite, inode change or fewer database rows",
-        "why": "Every report and link re-parses a 6.8MB append-only history file and checks every imported uid even when the database is current, about 72ms per open"
-      },
-      "phase": "phase 2",
-      "phase_num": 2,
-      "plan_digest": "646556d13b782a5c7e210831cf3bd941ff01efd83993492bec5a4ce2dc996d55",
-      "status": "in_progress",
-      "task_id": "history-import-offset-1137",
-      "timestamp": 1795746076.63678,
-      "timestamp_str": "2026-11-27 05:21:16",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
-    {
-      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
-      "checklists": "passed",
-      "description": "[2/2] VERIFIED: bench:report 101.506ms to 68.976ms (1.47x) over five interleaved rounds with 0.1 percent control drift; failing appended-bytes test passes, rebuild and all history/report tests pass, full npm suite 1327 pass with one pre-existing skip",
-      "files_affected": [
-        "benchmarks/history.mjs",
-        "tests/benchmark-history.test.js",
-        ".aikit/decisions.md"
-      ],
-      "measurements": [
-        {
-          "artifact": "local-only/history-import-offset-report-ab.mjs",
-          "baseline": 101.506,
-          "candidate": 68.976,
-          "command": "node history-import-offset-report-ab.mjs",
-          "control": "baseline/baseline 101.512ms vs 101.433ms",
-          "drift": "0.1",
-          "interleaved": "yes",
-          "metric": "bench:report on populated history",
-          "unit": "ms",
-          "workload": "five interleaved rounds on a 6.8MB history.jsonl and 15MB SQLite copy"
-        }
-      ],
-      "phase": "phase 4",
-      "phase_num": 4,
-      "status": "in_progress",
-      "task_id": "history-import-offset-1137",
-      "timestamp": 1795746558.84351,
-      "timestamp_str": "2026-11-27 05:29:18",
-      "workspaces": [
-        {
-          "name": "modelduck",
-          "path": "projects/modelduck"
-        }
-      ]
-    },
     {
       "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
       "delivery": {
@@ -551,6 +470,88 @@
       "task_id": "signflip-pattern-cache-1143",
       "timestamp": 1795761037.76178,
       "timestamp_str": "2026-11-27 09:30:37"
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "description": "[1/2] Use in-place quickselect for score's six summary medians",
+      "files_affected": [
+        "benchmarks/tune-measure.mjs",
+        "tests/score-map-init.test.js",
+        ".aikit/decisions.md"
+      ],
+      "impact_assessment": {
+        "benefits": "Select the median in O(n) in place, removing six copies and full sorts per score while keeping exported median non-mutating",
+        "mitigation": "failing-first counter test, 20,000 randomized equivalence cases, interleaved score A/B, full suite and strict gates",
+        "risks": "contract: identical medians and stats; dependency: none; concurrency: process-local counter; state: fresh local arrays may be reordered",
+        "why": "score sorted six fresh arrays with a copied full sort on every rung although it only needs the middle value(s)"
+      },
+      "phase": "phase 2",
+      "phase_num": 2,
+      "plan_digest": "17dce076918e0c65e31fc639e8899d59b1d8636088d91d7bc8a3633281a329f1",
+      "status": "in_progress",
+      "task_id": "score-median-select-1144",
+      "timestamp": 1795761289.17425,
+      "timestamp_str": "2026-11-27 09:34:49",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "checklists": "passed",
+      "description": "[2/2] VERIFIED: in-place rank selection cut 20 scores per run from 3.460ms to 1.783ms (1.94x) with identical stats hash; 20,000 randomized medians matched; full npm suite 1333 pass 0 fail 1 skip; real three-model tune gate passed 9/9 rates with zero delta",
+      "files_affected": [
+        "benchmarks/tune-measure.mjs",
+        "tests/score-map-init.test.js",
+        ".aikit/decisions.md",
+        "benchmarks/history.jsonl"
+      ],
+      "measurements": [
+        {
+          "artifact": "local-only/score-median-ab.mjs",
+          "baseline": 3.46,
+          "candidate": 1.783,
+          "command": "node score-median-ab.mjs",
+          "control": "identical stats hash 6eef9ac3341cc954b8d0082499cf833a9a130a219fd12919b42daa4100d74e1f",
+          "drift": "0.15",
+          "interleaved": "yes",
+          "metric": "20 score computations",
+          "unit": "ms",
+          "workload": "twelve interleaved baseline/candidate pairs over 48 items and 3 seeds"
+        }
+      ],
+      "phase": "phase 4",
+      "phase_num": 4,
+      "status": "in_progress",
+      "task_id": "score-median-select-1144",
+      "timestamp": 1795761584.70646,
+      "timestamp_str": "2026-11-27 09:39:44",
+      "workspaces": [
+        {
+          "name": "modelduck",
+          "path": "projects/modelduck"
+        }
+      ]
+    },
+    {
+      "agent": "opencode:ses_df1072c06ffe1Kkle6uI9oFtnb",
+      "delivery": {
+        "forced": false,
+        "roots": [
+          ""
+        ]
+      },
+      "description": "Task 'score-median-select-1144' completed successfully.",
+      "head": "f772a9f8818732ef4faed9d131209f31eef66044",
+      "phase": "completed",
+      "phase_num": 5,
+      "status": "completed",
+      "task_id": "score-median-select-1144",
+      "timestamp": 1795761630.9855,
+      "timestamp_str": "2026-11-27 09:40:30"
     }
   ],
   "version": 1
