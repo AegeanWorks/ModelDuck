@@ -2564,3 +2564,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: pairedDiffs chained filter, map and filter over Object.entries, allocating three intermediate arrays for every comparison
 - **Decision**: Accumulate nonzero ordered differences directly into one array, keeping the same credit/fractions/majority precedence and order
 - **Consequences**: A twelve-pair interleaved A/B over 16 comparisons improved 0.1352ms to 0.0945ms (1.43x) with an identical diff hash; a failing-first counter and 121 tune tests pass, as does the real three-model tune gate.
+
+### ADR-336: Count grouped guard before-rates once
+- **Date**: 2026-11-27
+- **Status**: Accepted
+- **Context**: balancedChoice recomputed the incumbent's per-view pass rate for every survivor and groupRate filtered an array per view
+- **Decision**: Precompute the incumbent's view rates once per guard and count candidate view passes with a plain loop while keeping the same grouped stats
+- **Consequences**: A twelve-pair interleaved A/B over real grouped code tunes improved 0.9039ms to 0.8155ms (1.11x) with an identical guard hash; 52 cached before-rates and 78 loop counts were observed. A failing-first counter and 119 tune tests pass, as does the real three-model tune gate.

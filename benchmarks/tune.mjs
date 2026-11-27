@@ -156,13 +156,27 @@ export function groupEvidence(before, after, ids, clusterOf = null, suppliedDiff
   return { b, c, pValue };
 }
 
-const groupRate = (stats, ids) => (ids.length ? round((ids.filter((id) => stats.majority.get(id)).length / ids.length) * 100) : null);
+let groupRateLoopBuilds = 0;
+let groupRateCacheHits = 0;
+export function groupedGuardStats() {
+  return { loopBuilds: groupRateLoopBuilds, cacheHits: groupRateCacheHits };
+}
+function groupRate(stats, ids) {
+  groupRateLoopBuilds += 1;
+  if (!ids.length) return null;
+  let passed = 0;
+  for (const id of ids) if (stats.majority.get(id)) passed += 1;
+  return round((passed / ids.length) * 100);
+}
 
 /** Per-view rate and paired evidence for a candidate against the current setting. */
-function groupStats(before, after, groups, clusterOf = null, diffs = null) {
+function groupStats(before, after, groups, clusterOf = null, diffs = null, beforeRates = null) {
   return Object.fromEntries(Object.entries(groups).map(([group, ids]) => {
     const evidence = groupEvidence(before, after, ids, clusterOf, diffs);
-    return [group, { items: ids.length, rate: groupRate(after, ids), before: groupRate(before, ids), ...evidence, worse: evidence.b > evidence.c && evidence.pValue < 0.05 }];
+    let baselineRate = beforeRates?.[group];
+    if (baselineRate === undefined) baselineRate = groupRate(before, ids);
+    else groupRateCacheHits += 1;
+    return [group, { items: ids.length, rate: groupRate(after, ids), before: baselineRate, ...evidence, worse: evidence.b > evidence.c && evidence.pValue < 0.05 }];
   }));
 }
 
@@ -196,6 +210,8 @@ function balancedChoice({ survivors, incumbent, chosen, itemIds, context, floor,
   }
   const usable = Object.fromEntries(Object.entries(groups).filter(([, ids]) => ids.length >= MIN_GROUP_ITEMS));
   if (Object.keys(usable).length < 2) return null;
+  // The incumbent's per-view rate never changes across candidates; count it once.
+  const beforeRates = Object.fromEntries(Object.entries(usable).map(([group, viewIds]) => [group, groupRate(incumbent.stats, viewIds)]));
   const groupCache = new Map();
   const groupsFor = (after, clusterOf) => {
     let entry = groupCache.get(after);
@@ -204,7 +220,7 @@ function balancedChoice({ survivors, incumbent, chosen, itemIds, context, floor,
       groupCache.set(after, entry);
     }
     const mode = clusterOf ? "clustered" : "item";
-    if (!entry.byMode.has(mode)) entry.byMode.set(mode, groupStats(incumbent.stats, after, usable, clusterOf, entry.diffs));
+    if (!entry.byMode.has(mode)) entry.byMode.set(mode, groupStats(incumbent.stats, after, usable, clusterOf, entry.diffs, beforeRates));
     return entry.byMode.get(mode);
   };
   const chosenGroups = groupsFor(chosen.stats, context.clusterOf);

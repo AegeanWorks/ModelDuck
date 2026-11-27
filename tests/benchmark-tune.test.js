@@ -4,7 +4,7 @@ import test from "node:test";
 import { createTuneEstimator, DEFAULT_STEPS, promptAxes } from "../benchmarks/tune-grid.mjs";
 import { Measurements, pairedDiffComputations, pairedDiffs, pairedDiffScanComputations, resetPairedDiffCounter } from "../benchmarks/tune-measure.mjs";
 import { predictWeightedMs, speedStage, taskProfiles } from "../benchmarks/tune-speed.mjs";
-import { groupEvidence, measurePresets, tune } from "../benchmarks/tune.mjs";
+import { groupEvidence, groupedGuardStats, measurePresets, tune } from "../benchmarks/tune.mjs";
 import { withEngine } from "../benchmarks/tune-job.mjs";
 
 const ids = (prefix, count) => Array.from({ length: count }, (_value, index) => `${prefix}-${index}`);
@@ -1158,6 +1158,19 @@ test("a coding preset that gains overall by losing bug fixes is kept out", async
   assert.equal(sweep.changed, false);
   assert.match(sweep.groupGuard, /fix/, "the guard names the view it protected");
   assert.equal(sweep.groups.fix.worse, false, "the kept preset is not worse on any view");
+});
+
+test("a grouped guard counts each before-rate once and scans views with a loop", async () => {
+  const before = groupedGuardStats();
+  const { sweeps } = await groupedCodeTune((temperature, id) => {
+    const index = Number(id.split("-")[1]);
+    if (temperature === 0) return id.startsWith("write") ? index < 4 : index < 6;
+    return id.startsWith("write");
+  });
+  const after = groupedGuardStats();
+  assert.ok(after.loopBuilds > before.loopBuilds, "group rates use the loop path");
+  assert.ok(after.cacheHits > 0, "incumbent view rates are reused across candidates");
+  assert.equal(sweeps.find((entry) => entry.axis === "temperature").changed, false);
 });
 
 test("a coding preset that improves every view wins", async () => {
