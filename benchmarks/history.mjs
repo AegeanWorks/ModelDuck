@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, appendFile } from "node:fs/promises";
+import { mkdir, appendFile, open } from "node:fs/promises";
 import path from "node:path";
 
 const SCHEMA = `
@@ -8,6 +8,14 @@ PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS migrations (
   name TEXT PRIMARY KEY,
   applied_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS history_import (
+  path TEXT PRIMARY KEY,
+  byte_offset INTEGER NOT NULL,
+  file_size INTEGER NOT NULL,
+  mtime_ms REAL NOT NULL,
+  inode INTEGER NOT NULL,
+  db_runs INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS commits (
   hash TEXT PRIMARY KEY,
@@ -183,6 +191,11 @@ const RUN_SCOPE_BACKFILL = `UPDATE runs SET run_scope = CASE
 let runScopeBackfills = 0;
 export function runScopeBackfillCount() {
   return runScopeBackfills;
+}
+let historyImportBytes = 0;
+let historyImportPrefixSkips = 0;
+export function historyImportStats() {
+  return { bytesParsed: historyImportBytes, prefixSkips: historyImportPrefixSkips };
 }
 
 export async function openDatabase(dbPath) {
@@ -427,18 +440,53 @@ function applyLink(db, link) {
 }
 
 export async function importHistory(db, historyPath, logger = console) {
-  let text;
+  let handle;
   try {
-    text = await readFile(historyPath, "utf8");
+    handle = await open(historyPath, "r");
   } catch (error) {
     if (error?.code === "ENOENT") return { runs: 0, links: 0 };
     throw error;
   }
+  let start = 0;
+  let info;
+  let buffer = Buffer.alloc(0);
+  try {
+    info = await handle.stat();
+    const state = db.prepare("SELECT * FROM history_import WHERE path = ?").get(historyPath);
+    const dbRuns = Number(db.prepare("SELECT COUNT(*) AS count FROM runs").get().count);
+    if (state) {
+      const savedSize = Number(state.file_size);
+      const savedOffset = Number(state.byte_offset);
+      // Windows inodes exceed safe JS integers; size + mtime is sufficient here.
+      const intact = Number(state.inode ?? 0) === 0 && dbRuns >= Number(state.db_runs)
+        && savedOffset <= savedSize && savedOffset <= info.size && info.size >= savedSize;
+      const unchanged = info.size === savedSize && Math.abs(info.mtimeMs - Number(state.mtime_ms)) < 1;
+      if (intact && (unchanged || info.size > savedSize)) {
+        start = savedOffset;
+        if (unchanged && start === info.size) historyImportPrefixSkips += 1;
+      }
+    }
+    const length = info.size - start;
+    if (length > 0) {
+      const bytes = Buffer.alloc(length);
+      const { bytesRead } = await handle.read(bytes, 0, length, start);
+      buffer = bytes.subarray(0, bytesRead);
+    }
+  } finally {
+    await handle.close();
+  }
+  historyImportBytes += buffer.length;
   return inTransaction(db, () => {
     let runs = 0;
     let links = 0;
+    let completeBytes = 0;
     const pendingLinks = [];
-    for (const line of text.split("\n")) {
+    let position = 0;
+    while (position < buffer.length) {
+      const end = buffer.indexOf(10, position);
+      if (end < 0) break; // a partial trailing line is retried on the next import
+      const line = buffer.subarray(position, end).toString("utf8");
+      position = end + 1;
       if (!line.trim()) continue;
       let record;
       try {
@@ -454,9 +502,17 @@ export async function importHistory(db, historyPath, logger = console) {
         pendingLinks.push(record);
       }
     }
+    completeBytes = position;
     for (const link of pendingLinks) {
       if (applyLink(db, link)) links += 1;
     }
+    const dbRunsAfter = Number(db.prepare("SELECT COUNT(*) AS count FROM runs").get().count);
+    db.prepare(
+      `INSERT INTO history_import (path, byte_offset, file_size, mtime_ms, inode, db_runs)
+       VALUES (?, ?, ?, ?, ?, ?)
+       ON CONFLICT(path) DO UPDATE SET byte_offset = excluded.byte_offset, file_size = excluded.file_size,
+         mtime_ms = excluded.mtime_ms, inode = excluded.inode, db_runs = excluded.db_runs`,
+    ).run(historyPath, start + completeBytes, info.size, info.mtimeMs, 0, dbRunsAfter);
     return { runs, links };
   });
 }
@@ -630,5 +686,6 @@ export function historyStats(db) {
 
 export function rebuildDatabase(db, historyPath, logger = console) {
   db.exec("DELETE FROM prompt_results; DELETE FROM model_results; DELETE FROM runs; DELETE FROM commits;");
+  db.prepare("DELETE FROM history_import WHERE path = ?").run(historyPath);
   return importHistory(db, historyPath, logger);
 }

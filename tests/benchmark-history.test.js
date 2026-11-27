@@ -7,6 +7,7 @@ import test from "node:test";
 import {
   currentGitInfo,
   deriveRunScope,
+  historyImportStats,
   importHistory,
   linkRun,
   listRuns,
@@ -478,4 +479,30 @@ test("currentGitInfo keeps its all-null fallback when Git fails", () => {
     dirty: true,
   });
   assert.equal(calls.length, 1, "a failed first command does not launch more processes");
+});
+
+test("importHistory parses only appended history bytes after the first import", async (t) => {
+  const paths = await tempPaths(t);
+  const git = { hash: "abc123", subject: "parent", branch: "main", dirty: false };
+  await recordRun({ ...paths, result: RESULT, git });
+  let db = await openDatabase(paths.dbPath);
+  try {
+    await importHistory(db, paths.historyPath);
+  } finally {
+    db.close();
+  }
+  const importedBytes = (await readFile(paths.historyPath)).length;
+  await recordRun({ ...paths, result: { ...RESULT, finishedAt: "2026-10-30T10:02:00.000Z" }, git: { ...git, hash: "def456" } });
+  const fullBytes = (await readFile(paths.historyPath)).length;
+  const appendedBytes = fullBytes - importedBytes;
+  const before = historyImportStats().bytesParsed;
+  db = await openDatabase(paths.dbPath);
+  try {
+    const imported = await importHistory(db, paths.historyPath);
+    assert.equal(imported.runs, 0, "recordRun already inserted the appended row");
+  } finally {
+    db.close();
+  }
+  const parsed = historyImportStats().bytesParsed - before;
+  assert.equal(parsed, appendedBytes, "only the appended line was parsed");
 });
